@@ -1,0 +1,1054 @@
+/* ============================================
+   11-NEARBY.JS
+   Tela Nearby, viewer de drops, reações em drops
+   
+   Depende de: 00-config.js, 03-utils.js, 08-perfil.js, 10-adeptos.js
+============================================ */
+
+(function () {
+  'use strict';
+
+  // ============================================
+  // DADOS DOS PERFIS NEARBY (fixos por enquanto)
+  // ============================================
+  // Serão substituídos por consultas ao backend.
+
+  const publicacoesNearbyNex = {
+    conectados: {
+      julia: {
+        nome: 'Julia',
+        distancia: '120 m',
+        imagem: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200'
+      },
+      lucas: {
+        nome: 'Lucas',
+        distancia: '350 m',
+        imagem: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200'
+      },
+      ana: {
+        nome: 'Ana',
+        distancia: '620 m',
+        imagem: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'
+      },
+      rafael: {
+        nome: 'Rafael',
+        distancia: '1.2 km',
+        imagem: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200'
+      }
+    },
+    nearby: {
+      julia: {
+        nome: 'Julia',
+        distancia: '120 m',
+        imagem: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200'
+      },
+      lucas: {
+        nome: 'Lucas',
+        distancia: '350 m',
+        imagem: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200'
+      },
+      ana: {
+        nome: 'Ana',
+        distancia: '620 m',
+        imagem: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'
+      },
+      rafael: {
+        nome: 'Rafael',
+        distancia: '1.2 km',
+        imagem: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200'
+      },
+      camila: {
+        nome: 'Camila',
+        distancia: '1.8 km',
+        imagem: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200'
+      },
+      mateus: {
+        nome: 'Mateus',
+        distancia: '2.4 km',
+        imagem: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200'
+      },
+      beatriz: {
+        nome: 'Beatriz',
+        distancia: '3.1 km',
+        imagem: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?w=1200'
+      },
+      pedro: {
+        nome: 'Pedro',
+        distancia: '4.6 km',
+        imagem: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200'
+      },
+      larissa: {
+        nome: 'Larissa',
+        distancia: '5.2 km',
+        imagem: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200'
+      }
+    }
+  };
+
+  // ============================================
+  // BUSCAR PERFIL POR ID OU NOME
+  // ============================================
+
+  function buscarPerfilNearbyNex(perfilId, perfilNome) {
+    const nomeBusca = String(perfilNome || '').trim().toLowerCase();
+    const idBusca = String(perfilId || '').trim();
+
+    const bases = [
+      ['conectados', publicacoesNearbyNex?.conectados || {}],
+      ['nearby', publicacoesNearbyNex?.nearby || {}]
+    ];
+
+    for (const [tipo, base] of bases) {
+      if (idBusca && base[idBusca]) {
+        return { perfil: base[idBusca], tipo, id: idBusca };
+      }
+
+      for (const [id, perfil] of Object.entries(base)) {
+        const nome = String(perfil?.nome || '').trim().toLowerCase();
+
+        if (nomeBusca && nome === nomeBusca) {
+          return { perfil, tipo, id };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // ============================================
+  // ABRIR DROP COMENTADO (usado quando clica
+  // num drop recebido no chat)
+  // ============================================
+
+  function abrirDropComentadoNex(perfilId, perfilNome, dropIndex = 0) {
+    const achado = buscarPerfilNearbyNex(perfilId, perfilNome);
+    if (!achado) return;
+
+    abrirViewerPublicacaoNex(
+      achado.perfil,
+      achado.tipo,
+      achado.id,
+      dropIndex
+    );
+  }
+
+  // ============================================
+  // REAÇÕES EM DROPS (Mapas em memória)
+  // ============================================
+
+  const reacoesDropsNex = new Map();
+  const reacoesUsuarioDropNex = new Map();
+
+  // ============================================
+  // ESTATÍSTICAS DE REAÇÃO DE UM DROP
+  // ============================================
+
+  function obterStatsReacaoDropNex(perfilId, dropIndex, url) {
+  // ⚠️ Se o sistema novo está disponível, delega pra ele
+  if (
+    typeof window.obterStatsReacaoNex === 'function' &&
+    typeof window.chaveDropPerfilNex === 'function'
+  ) {
+    const chave = window.chaveDropPerfilNex(perfilId, dropIndex, url);
+    return window.obterStatsReacaoNex(chave);
+  }
+
+  // Fallback: comportamento antigo (Map em memória)
+  return (
+    reacoesDropsNex.get(chaveReacaoDropNex(perfilId, dropIndex, url)) || {
+      heart: 0,
+      broken: 0
+    }
+  );
+}
+
+function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
+  // ⚠️ Se o sistema novo está disponível, delega pra ele
+  if (
+    typeof window.obterReacaoUsuarioNex === 'function' &&
+    typeof window.chaveDropPerfilNex === 'function'
+  ) {
+    const chave = window.chaveDropPerfilNex(perfilId, dropIndex, url);
+    return window.obterReacaoUsuarioNex(chave, usuarioId);
+  }
+
+  // Fallback: comportamento antigo (Map em memória)
+  return (
+    reacoesUsuarioDropNex.get(
+      chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId)
+    ) || ''
+  );
+}
+
+  // ============================================
+  // REGISTRAR REAÇÃO EM UM DROP
+  // ============================================
+  // Quando você reage (❤️ ou 💔) num drop:
+  // - Atualiza o contador
+  // - Registra a interação no sistema de adeptos
+
+  function registrarReacaoDropNex(
+  perfilId,
+  dropIndex,
+  url,
+  emoji,
+  usuarioId = 'local'
+) {
+  const chaveDrop = window.chaveDropPerfilNex
+    ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
+    : chaveReacaoDropNex(perfilId, dropIndex, url);
+
+  // ⚠️ Se o sistema de reações está disponível, usa ele
+  if (typeof window.alternarReacaoNex === 'function') {
+    const resultado = window.alternarReacaoNex(chaveDrop, usuarioId, emoji);
+
+    // Atualiza Map antigo pra manter compatibilidade com quem lê dele
+    const keyUser = chaveUsuarioReacaoDropNex(
+      perfilId,
+      dropIndex,
+      url,
+      usuarioId
+    );
+    reacoesDropsNex.set(chaveDrop, {
+      heart: resultado.heart,
+      broken: resultado.broken
+    });
+    reacoesUsuarioDropNex.set(keyUser, resultado.reacaoAtual);
+
+    // Registra interação só quando ADICIONOU (não no toggle de remoção)
+    if (resultado.reacaoAtual) {
+      registrarInteracaoNex(
+        perfilId,
+        resultado.reacaoAtual === '❤️' ? 'like' : 'deslike',
+        `${perfilId}::${dropIndex}`
+      );
+    }
+
+    return resultado;
+  }
+
+  // Fallback: comportamento antigo em memória (caso 15-reacoes não carregue)
+  const estatisticas = reacoesDropsNex.get(chaveDrop) || {
+    heart: 0,
+    broken: 0
+  };
+  const keyUser = chaveUsuarioReacaoDropNex(
+    perfilId,
+    dropIndex,
+    url,
+    usuarioId
+  );
+  const reacaoAnterior = reacoesUsuarioDropNex.get(keyUser) || '';
+
+  if (reacaoAnterior === emoji) return;
+
+  if (reacaoAnterior === '❤️') {
+    estatisticas.heart = Math.max(0, estatisticas.heart - 1);
+  }
+  if (reacaoAnterior === '💔') {
+    estatisticas.broken = Math.max(0, estatisticas.broken - 1);
+  }
+
+  if (emoji === '❤️') estatisticas.heart += 1;
+  if (emoji === '💔') estatisticas.broken += 1;
+
+  reacoesDropsNex.set(chaveDrop, estatisticas);
+  reacoesUsuarioDropNex.set(keyUser, emoji);
+
+  registrarInteracaoNex(
+    perfilId,
+    emoji === '❤️' ? 'like' : 'deslike',
+    `${perfilId}::${dropIndex}`
+  );
+  }
+  
+  // ============================================
+  // OBTER DROPS DE UM PERFIL
+  // ============================================
+
+  function obterDropsDoPerfil(perfil) {
+    if (Array.isArray(perfil?.drops) && perfil.drops.length) {
+      return perfil.drops;
+    }
+
+    return [
+      {
+        url: perfil?.imagem || '',
+        type: 'image',
+        views: perfil?.views || 128,
+        expireText: perfil?.expireText || 'Expira em 4h'
+      }
+    ];
+  }
+
+  // ============================================
+// ABRIR VIEWER DE PUBLICAÇÃO (TELA CHEIA)
+// ============================================
+
+function abrirViewerPublicacaoNex(
+  post,
+  tipo,
+  id,
+  dropIndexInicial = 0,
+  baseOverride = null
+) {
+  if (!post) return;
+
+  // ============================================
+  // DEFINE A BASE DE PERFIS
+  // ============================================
+
+  let base;
+
+  if (baseOverride) {
+    base = baseOverride;
+  } else if (tipo === 'conectados') {
+    // Monta base dinâmica a partir dos conectados reais
+    base = {};
+    lerConectadosMyDropsNex().forEach((perfil) => {
+      const idPerfil = normalizarIdPerfilNex(perfil.id);
+      if (!idPerfil) return;
+
+      const dadosVisuais =
+        publicacoesNearbyNex.conectados[idPerfil] ||
+        publicacoesNearbyNex.nearby[idPerfil] ||
+        {};
+
+      base[idPerfil] = {
+        id: idPerfil,
+        nome: perfil.nome || dadosVisuais.nome || idPerfil,
+        distancia: dadosVisuais.distancia || '',
+        imagem: dadosVisuais.imagem || '',
+        ...dadosVisuais
+      };
+    });
+  } else {
+    base = publicacoesNearbyNex.nearby;
+  }
+
+  const ids = Object.keys(base);
+
+  let perfilAtualId = id && base[id] ? id : ids[0];
+  let dropIndexAtual = Math.max(0, Number(dropIndexInicial) || 0);
+
+  // ============================================
+  // REMOVE VIEWER ANTIGO
+  // ============================================
+
+  const antigo = document.querySelector('.nearby-drop-viewer');
+  if (antigo) antigo.remove();
+
+  // ============================================
+  // MONTA HTML DO VIEWER
+  // ============================================
+
+  const viewer = document.createElement('div');
+  viewer.className = 'nearby-drop-viewer';
+
+  viewer.innerHTML = `
+    <div class="nearby-drop-bg"></div>
+
+    <div class="nearby-drop-shell">
+      <div class="nearby-drop-topbar">
+        <div class="nearby-drop-top-left">
+          <div class="nearby-drop-user">
+            <div class="nearby-drop-avatar" id="nearbyDropAvatar"></div>
+
+            <div class="nearby-drop-user-meta">
+              <strong id="nearbyDropNome"></strong>
+              <span id="nearbyDropDistancia"></span>
+              <small id="nearbyDropExpire"></small>
+            </div>
+          </div>
+        </div>
+
+        <div class="nearby-drop-top-right">
+          <button class="nearby-drop-close" type="button" aria-label="Voltar">➥</button>
+          <div class="nearby-drop-counter" id="nearbyDropCounter"></div>
+        </div>
+      </div>
+
+      <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">
+        ⌃
+      </button>
+
+      <button class="nearby-drop-arrow nearby-drop-arrow-left" type="button" aria-label="Anterior">
+        ‹
+      </button>
+
+      <div class="nearby-drop-media-wrap">
+        <div class="nearby-drop-media" id="nearbyDropMedia"></div>
+      </div>
+
+      <button class="nearby-drop-arrow nearby-drop-arrow-right" type="button" aria-label="Próxima">
+        ›
+      </button>
+
+      <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">
+        ⌄
+      </button>
+
+      <div class="nearby-drop-footer">
+        <div class="nearby-drop-footer-top">
+          <div class="nearby-drop-left-stats">
+            <div class="nearby-drop-views">
+              👁️‍🗨️ <span id="nearbyDropViews">0</span>
+            </div>
+
+            <div class="nearby-drop-reactions" id="nearbyDropReactions"></div>
+          </div>
+
+          <button class="nearby-drop-profile-btn" type="button">
+            👣 Visitar perfil
+          </button>
+        </div>
+
+        <div class="nearby-drop-comment-box">
+          <input class="nearby-drop-comment-input" placeholder="Comentar...">
+          <button class="nearby-drop-reaction" type="button">❤️</button>
+          <button class="nearby-drop-reaction" type="button">💔</button>
+          <button class="nearby-drop-send" type="button">⌯⌲</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(viewer);
+
+  // ============================================
+  // BOTÃO VISITAR PERFIL
+  // ============================================
+
+  const btnVisitarPerfil = viewer.querySelector('.nearby-drop-profile-btn');
+
+  if (tipo === 'perfil') {
+    if (btnVisitarPerfil) btnVisitarPerfil.style.display = 'none';
+  } else if (btnVisitarPerfil) {
+    btnVisitarPerfil.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const perfil = base[perfilAtualId];
+      if (!perfil) return;
+
+      viewer.remove();
+      document.body.style.overflow = '';
+
+      abrirPerfilVisitadoNex(
+        perfil.id || perfilAtualId || perfil.nome || '',
+        perfil.nome || 'Perfil'
+      );
+    });
+  }
+
+  // ============================================
+  // INPUT DE COMENTÁRIO
+  // ============================================
+
+  const inputComentario = viewer.querySelector('.nearby-drop-comment-input');
+  const botaoEnviar = viewer.querySelector('.nearby-drop-send');
+
+  function atualizarEstadoEnviarNex() {
+    const texto = (inputComentario?.value || '').trim();
+    if (!botaoEnviar) return;
+
+    botaoEnviar.disabled = !texto;
+    botaoEnviar.classList.toggle('is-active', !!texto);
+  }
+
+  if (inputComentario) {
+    atualizarEstadoEnviarNex();
+    inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
+  }
+
+  // ============================================
+  // BOTÕES DE REAÇÃO
+  // ============================================
+
+  viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const perfil = base[perfilAtualId];
+    const drops = obterDropsDoPerfil(perfil);
+    const drop = drops[dropIndexAtual];
+
+    if (!perfil || !drop) return;
+
+    const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
+    const urlCalc = drop.url || drop.imagem || '';
+
+    // ⚠️ Bloqueia auto-reação
+    const autorLimpo = String(perfilIdCalc).toLowerCase();
+    const meuUser = String(Drops.usernameAtual || '').toLowerCase();
+
+    if (autorLimpo && autorLimpo === meuUser) {
+      window.mostrarToastNex?.(
+        'Você não pode reagir ao seu próprio drop.',
+        'info'
+      );
+      return;
+    }
+
+    // ⚠️ Usa o @username real, não 'local'
+    const usuarioId = Drops.usernameAtual || 'anonimo';
+
+    registrarReacaoDropNex(
+      perfilIdCalc,
+      dropIndexAtual,
+      urlCalc,
+      btn.textContent.trim(),
+      usuarioId
+    );
+
+    // ⚠️ Pop visual
+    btn.classList.remove('pop-anim');
+    void btn.offsetWidth;
+    btn.classList.add('pop-anim');
+    setTimeout(() => btn.classList.remove('pop-anim'), 360);
+
+    // ⚠️ Atualiza estado ativo dos botões
+    atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
+
+    // Re-renderiza contador
+    renderizar();
+
+    if (typeof renderChat === 'function') {
+      renderChat(Drops.estado.conversaAtual);
+    }
+  });
+});
+
+  document.body.style.overflow = 'hidden';
+
+  // ============================================
+  // ENVIAR COMENTÁRIO
+  // ============================================
+
+  function enviarComentarioNearbyNex() {
+    const texto = (inputComentario?.value || '').trim();
+    if (!texto) return;
+
+    const perfil = base[perfilAtualId];
+    const drops = obterDropsDoPerfil(perfil);
+    const drop = drops[dropIndexAtual];
+
+    if (!perfil || !drop) return;
+
+    const nomeContato = perfil.nome || 'Perfil Nearby';
+    const chaveConversa = nomeContato;
+
+    const mensagemNearby = {
+      id: gerarIdMensagemNex(),
+      timestamp: Date.now(),
+      side: 'right',
+      nome: 'Eu',
+      avatar: 'EU',
+      ...obterDataHoraNex(),
+      status: 'enviado',
+      text: texto,
+      anexo: {
+        type: drop.type === 'video' ? 'video' : 'imagem',
+        url: drop.url || drop.imagem || '',
+        origem: 'nearby',
+        perfilNome: nomeContato,
+        perfilId: perfil.id || '',
+        dropIndex: dropIndexAtual
+      }
+    };
+
+    if (typeof registrarMensagemRecebidaNex === 'function') {
+      registrarMensagemRecebidaNex(nomeContato, mensagemNearby, false);
+    } else {
+      if (!conversas[chaveConversa]) {
+        conversas[chaveConversa] = [];
+      }
+      conversas[chaveConversa].push(mensagemNearby);
+    }
+
+    if (typeof marcarConversaComoNaoLidaNex === 'function') {
+      marcarConversaComoNaoLidaNex(nomeContato, false);
+    }
+
+    if (
+      typeof renderChat === 'function' &&
+      Drops.estado.conversaAtual === chaveConversa
+    ) {
+      renderChat(chaveConversa);
+    }
+
+    if (inputComentario) {
+      inputComentario.value = 'Você enviou um comentário.';
+      atualizarEstadoEnviarNex();
+
+      setTimeout(() => {
+        inputComentario.value = '';
+        atualizarEstadoEnviarNex();
+      }, 1200);
+    }
+
+    // Registra comentário como interação pro sistema de adeptos
+    registrarInteracaoNex(
+      perfil.id || perfilAtualId || perfil.nome || '',
+      'comment',
+      `nearby::${dropIndexAtual}`
+    );
+  }
+
+  if (botaoEnviar) {
+    botaoEnviar.addEventListener('click', enviarComentarioNearbyNex);
+  }
+      // ============================================
+    // RENDERIZAR O VIEWER
+    // ============================================
+
+    function renderizar() {
+      const perfil = base[perfilAtualId];
+      if (!perfil) return;
+
+      const drops = obterDropsDoPerfil(perfil);
+      const drop = drops[dropIndexAtual] || drops[0];
+
+      const avatar = viewer.querySelector('#nearbyDropAvatar');
+      const nome = viewer.querySelector('#nearbyDropNome');
+      const distancia = viewer.querySelector('#nearbyDropDistancia');
+      const expire = viewer.querySelector('#nearbyDropExpire');
+      const counter = viewer.querySelector('#nearbyDropCounter');
+      const views = viewer.querySelector('#nearbyDropViews');
+      const media = viewer.querySelector('#nearbyDropMedia');
+
+      if (avatar) {
+        avatar.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
+      }
+      if (nome) nome.textContent = perfil.nome || 'Perfil';
+      if (distancia) distancia.textContent = perfil.distancia || '';
+      if (expire) expire.textContent = drop.expireText || 'Expira em 4h';
+      if (counter) {
+        counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
+      }
+      if (views) views.textContent = drop.views || 0;
+
+      // ============================================
+      // REAÇÕES
+      // ============================================
+
+      const reacoesEl = viewer.querySelector('#nearbyDropReactions');
+const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
+const urlCalc = drop.url || drop.imagem || '';
+
+const stats = obterStatsReacaoDropNex(
+  perfilIdCalc,
+  dropIndexAtual,
+  urlCalc
+);
+
+const totalReacoes = stats.heart + stats.broken;
+
+// ⚠️ Marca os botões que o usuário já reagiu
+atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
+
+      if (reacoesEl) {
+        if (totalReacoes > 0) {
+          reacoesEl.innerHTML = `
+            <span class="nearby-drop-reaction-count">❤️${stats.heart}</span>
+            <span class="nearby-drop-reaction-count">💔${stats.broken}</span>
+          `;
+          reacoesEl.style.display = 'inline-flex';
+        } else {
+          reacoesEl.innerHTML = '';
+          reacoesEl.style.display = 'none';
+        }
+      }
+
+      // ============================================
+      // MÍDIA (imagem ou vídeo)
+      // ============================================
+
+      if (media) {
+        const url = String(drop.url || drop.imagem || '');
+        const tipoDrop = String(drop.type || drop.tipo || '').toLowerCase();
+
+        const ehVideo =
+          tipoDrop.includes('video') ||
+          /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+
+        media.innerHTML = '';
+
+        if (ehVideo) {
+          const video = document.createElement('video');
+          video.src = url;
+          video.controls = true;
+          video.autoplay = true;
+          video.muted = true;
+          video.playsInline = true;
+          video.preload = 'metadata';
+          media.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = perfil.nome || '';
+          media.appendChild(img);
+        }
+      }
+
+      // ============================================
+      // NAVEGAÇÃO (setas desabilitadas nos extremos)
+      // ============================================
+
+      const profileIndex = ids.indexOf(perfilAtualId);
+
+      const upBtn = viewer.querySelector('.nearby-drop-nav-up');
+      const downBtn = viewer.querySelector('.nearby-drop-nav-down');
+      const leftBtn = viewer.querySelector('.nearby-drop-arrow-left');
+      const rightBtn = viewer.querySelector('.nearby-drop-arrow-right');
+
+      if (upBtn) upBtn.disabled = profileIndex <= 0;
+      if (downBtn) downBtn.disabled = profileIndex >= ids.length - 1;
+      if (leftBtn) leftBtn.disabled = dropIndexAtual <= 0;
+      if (rightBtn) rightBtn.disabled = dropIndexAtual >= drops.length - 1;
+    }
+
+    // ============================================
+    // EVENTOS DE FECHAR
+    // ============================================
+
+    viewer.querySelector('.nearby-drop-close').onclick = () => {
+      viewer.remove();
+      document.body.style.overflow = '';
+    };
+
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) {
+        viewer.remove();
+        document.body.style.overflow = '';
+      }
+    });
+
+    // ============================================
+    // NAVEGAÇÃO ENTRE DROPS (setas laterais)
+    // ============================================
+
+    viewer.querySelector('.nearby-drop-arrow-left').onclick = () => {
+      if (dropIndexAtual <= 0) return;
+      dropIndexAtual -= 1;
+      renderizar();
+    };
+
+    viewer.querySelector('.nearby-drop-arrow-right').onclick = () => {
+      const perfil = base[perfilAtualId];
+      const drops = obterDropsDoPerfil(perfil);
+      if (dropIndexAtual >= drops.length - 1) return;
+      dropIndexAtual += 1;
+      renderizar();
+    };
+
+    // ============================================
+    // NAVEGAÇÃO ENTRE PERFIS (setas verticais)
+    // ============================================
+
+    viewer.querySelector('.nearby-drop-nav-up').onclick = () => {
+      const idx = ids.indexOf(perfilAtualId);
+      if (idx <= 0) return;
+      perfilAtualId = ids[idx - 1];
+      dropIndexAtual = 0;
+      renderizar();
+    };
+
+    viewer.querySelector('.nearby-drop-nav-down').onclick = () => {
+      const idx = ids.indexOf(perfilAtualId);
+      if (idx >= ids.length - 1) return;
+      perfilAtualId = ids[idx + 1];
+      dropIndexAtual = 0;
+      renderizar();
+    };
+
+      // Renderiza primeira vez
+  renderizar();
+}
+
+// ============================================
+// MARCA BOTÕES DE REAÇÃO COM ESTADO ATIVO
+// ============================================
+
+function atualizarBotoesReacaoNex(
+  viewerEl,
+  perfilId,
+  dropIndex,
+  url
+) {
+  if (!viewerEl) return;
+
+  const usuarioId = Drops.usernameAtual || 'anonimo';
+
+  let reacaoAtual = '';
+
+  if (typeof window.obterReacaoUsuarioNex === 'function') {
+    const chave = window.chaveDropPerfilNex
+      ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
+      : chaveReacaoDropNex(perfilId, dropIndex, url);
+
+    reacaoAtual = window.obterReacaoUsuarioNex(chave, usuarioId);
+  } else {
+    reacaoAtual = obterReacaoUsuarioDropNex(
+      perfilId,
+      dropIndex,
+      url,
+      usuarioId
+    );
+  }
+
+  viewerEl.querySelectorAll('.nearby-drop-reaction').forEach((b) => {
+    const emoji = b.textContent.trim();
+    b.classList.toggle('ativo', emoji === reacaoAtual);
+  });
+}
+
+  // ============================================
+  // ABRIR PUBLICAÇÃO DE CONECTADO
+  // ============================================
+
+  function abrirPublicacaoConectadaNex(id) {
+    const conectadosReais = lerConectadosMyDropsNex();
+
+    const baseDinamica = {};
+
+    conectadosReais.forEach((perfil) => {
+      const idPerfil = normalizarIdPerfilNex(perfil.id);
+      if (!idPerfil) return;
+
+      const dadosVisuais =
+        publicacoesNearbyNex.conectados[idPerfil] ||
+        publicacoesNearbyNex.nearby[idPerfil] ||
+        {};
+
+      baseDinamica[idPerfil] = {
+        id: idPerfil,
+        nome: perfil.nome || dadosVisuais.nome || idPerfil,
+        distancia: dadosVisuais.distancia || '',
+        imagem: dadosVisuais.imagem || '',
+        ...dadosVisuais
+      };
+    });
+
+    const perfil = baseDinamica[id];
+    if (!perfil) return;
+
+    abrirViewerPublicacaoNex(perfil, 'conectados', id, 0, baseDinamica);
+  }
+
+  // ============================================
+  // ABRIR PUBLICAÇÃO DE PERFIL NEARBY
+  // ============================================
+
+  function abrirPublicacaoNearbyNex(id) {
+    abrirViewerPublicacaoNex(publicacoesNearbyNex.nearby[id], 'nearby', id);
+  }
+
+  // ============================================
+  // ABRIR MINHAS PUBLICAÇÕES
+  // ============================================
+
+  function abrirMinhasPublicacoesNearby() {
+    const publicacoesOrdenadas = obterPublicacoesOrdenadasMyDropsNex();
+
+    if (!publicacoesOrdenadas.length) {
+      alert(
+        'Você ainda não publicou nenhum Drop.\n\nVá em My Drops e toque em Notas, Foto ou Vídeo pra criar um.'
+      );
+      return;
+    }
+
+    abrirVisualizadorPublicacaoMyDropsNex(publicacoesOrdenadas, 0);
+  }
+
+  // ============================================
+  // RENDERIZAR PUBLICACOES DO NEARBY
+  // ============================================
+
+  function renderizarPublicacoesNearbyNex() {
+    const stories = document.querySelector('.nearby-stories');
+    const grid = document.querySelector('.nearby-grid');
+
+    if (!stories || !grid) return;
+
+    const conectados = lerConectadosMyDropsNex().map((item) =>
+      normalizarIdPerfilNex(item.id)
+    );
+
+    const conectadosSet = new Set(conectados);
+
+    // Mantém o story fixo "Minhas publicações"
+    const storyFixa = stories.querySelector('.my-story');
+    stories.innerHTML = '';
+    if (storyFixa) stories.appendChild(storyFixa);
+
+    // ============================================
+    // STORIES DOS CONECTADOS
+    // ============================================
+
+    conectados.forEach((id) => {
+      const perfil =
+        publicacoesNearbyNex.conectados[id] ||
+        publicacoesNearbyNex.nearby[id] ||
+        (window.perfisVisitadosNex && window.perfisVisitadosNex[id]);
+
+      if (!perfil) return;
+
+      const card = document.createElement('div');
+      card.className = 'story-card';
+
+      card.addEventListener('click', () => {
+        abrirPublicacaoConectadaNex(id);
+      });
+
+      const post = document.createElement('div');
+      post.className = 'story-post';
+      if (perfil.imagem || perfil.capa) {
+        post.style.backgroundImage = `url('${perfil.imagem || perfil.capa}')`;
+        post.style.backgroundSize = 'cover';
+        post.style.backgroundPosition = 'center';
+      }
+
+      const online = document.createElement('div');
+      online.className = 'story-online';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'story-avatar-center';
+      avatar.textContent = (perfil.nome || id).charAt(0).toUpperCase();
+
+      const user = document.createElement('div');
+      user.className = 'story-user';
+      user.innerHTML = `
+        <h4>${perfil.nome || id}</h4>
+        <span>${perfil.distancia || ''}</span>
+      `;
+
+      card.append(post, online, avatar, user);
+      stories.appendChild(card);
+    });
+
+    // ============================================
+    // GRID DOS PERFIS NEARBY
+    // ============================================
+
+    grid.innerHTML = '';
+
+    Object.entries(publicacoesNearbyNex.nearby).forEach(([id, perfil]) => {
+      if (conectadosSet.has(id)) return;
+
+      const card = document.createElement('div');
+      card.className = 'near-card';
+
+      card.addEventListener('click', () => {
+        abrirPublicacaoNearbyNex(id);
+      });
+
+      if (perfil.imagem) {
+        card.style.backgroundImage = `url('${perfil.imagem}')`;
+      }
+
+      const avatar = document.createElement('div');
+      avatar.className = 'near-avatar';
+      avatar.textContent = (perfil.nome || id).charAt(0).toUpperCase();
+
+      const nome = document.createElement('h3');
+      nome.textContent = perfil.nome || id;
+
+      const dist = document.createElement('span');
+      dist.textContent = perfil.distancia || '';
+
+      card.append(avatar, nome, dist);
+      grid.appendChild(card);
+    });
+  }
+
+  // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
+
+  window.publicacoesNearbyNex = publicacoesNearbyNex;
+
+  window.buscarPerfilNearbyNex = buscarPerfilNearbyNex;
+  window.abrirDropComentadoNex = abrirDropComentadoNex;
+  window.abrirViewerPublicacaoNex = abrirViewerPublicacaoNex;
+  window.abrirPublicacaoConectadaNex = abrirPublicacaoConectadaNex;
+  window.abrirPublicacaoNearbyNex = abrirPublicacaoNearbyNex;
+  window.abrirMinhasPublicacoesNearby = abrirMinhasPublicacoesNearby;
+  window.renderizarPublicacoesNearbyNex = renderizarPublicacoesNearbyNex;
+
+  // Reações
+  window.obterStatsReacaoDropNex = obterStatsReacaoDropNex;
+  window.obterReacaoUsuarioDropNex = obterReacaoUsuarioDropNex;
+  window.registrarReacaoDropNex = registrarReacaoDropNex;
+
+  // Helpers
+  window.obterDropsDoPerfil = obterDropsDoPerfil;
+
+  // ============================================
+  // INICIALIZAÇÃO
+  // ============================================
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Botão "Minhas publicações"
+    const btnMinhasPublicacoes = document.getElementById(
+      'btnMinhasPublicacoesNearby'
+    );
+
+    if (btnMinhasPublicacoes) {
+      btnMinhasPublicacoes.addEventListener('click', () => {
+        abrirMinhasPublicacoesNearby();
+      });
+    }
+
+    // Listener global de clique em drop/mídia na conversa
+    if (!window.__listenerMidiaNex) {
+      window.__listenerMidiaNex = true;
+
+      document.addEventListener('click', (e) => {
+        // Botão "Visitar perfil" no card de drop
+        const btnPerfil = e.target.closest('.msg-drop-profile-btn');
+        if (btnPerfil) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          abrirPerfilVisitadoNex(
+            btnPerfil.dataset.perfilId || '',
+            btnPerfil.dataset.perfilNome || ''
+          );
+          return;
+        }
+
+        // Clique no card do drop
+        const dropPreview = e.target.closest('.msg-drop-preview-open');
+        if (dropPreview) {
+          e.preventDefault();
+          abrirDropComentadoNex(
+            dropPreview.dataset.perfilId || '',
+            dropPreview.dataset.perfilNome || '',
+            Number(dropPreview.dataset.dropIndex || 0)
+          );
+          return;
+        }
+
+        // Clique em mídia
+        const el = e.target.closest('.msg-midia-open');
+        if (!el) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const url = el.dataset.url;
+        const tipo = el.dataset.tipo || 'image';
+
+        if (url) {
+          abrirMidiaChatNex(url, tipo);
+        }
+      });
+    }
+  });
+
+  // ============================================
+  // DEBUG
+  // ============================================
+
+  console.log('🗺️ 11-nearby.js carregado');
+
+})();

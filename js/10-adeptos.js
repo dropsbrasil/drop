@@ -1,0 +1,585 @@
+/* ============================================
+   10-ADEPTOS.JS
+   Sistema de adeptos, interações, notificações
+   
+   Persistência: via window.AdeptosAdapterNex
+   (17-adapters.js).
+   
+   Depende de: 00-config.js, 03-utils.js, 04-conversas.js
+============================================ */
+
+(function () {
+  'use strict';
+
+  // ============================================
+  // INTERAÇÕES RECEBIDAS (quem interagiu comigo)
+  // ============================================
+
+  function lerInteracoesRecebidasNex() {
+    return window.AdeptosAdapterNex.lerInteracoesRecebidas();
+  }
+
+  function salvarInteracoesRecebidasNex(lista) {
+    window.AdeptosAdapterNex.salvarInteracoesRecebidas(lista);
+  }
+
+  // ============================================
+  // INTERAÇÕES ENVIADAS (eu interagi com outros)
+  // ============================================
+
+  function lerInteracoesEnviadasNex() {
+    return window.AdeptosAdapterNex.lerInteracoesEnviadas();
+  }
+
+  function salvarInteracoesEnviadasNex(lista) {
+    window.AdeptosAdapterNex.salvarInteracoesEnviadas(lista);
+  }
+
+  // ============================================
+  // REGISTRAR INTERAÇÃO
+  // ============================================
+  // Decide automaticamente se é enviada ou recebida
+  //
+  // autorId: quem é o dono do drop (ou 'local' se for você interagindo)
+  // tipo: 'like', 'deslike', 'comment', etc
+  // dropId: identificador do drop (ex: 'julia::0')
+
+  function registrarInteracaoNex(autorId, tipo, dropId) {
+    const idLimpo = String(autorId || '').trim().toLowerCase();
+    if (!idLimpo) return;
+
+    const eu = Drops.usernameAtual;
+
+    // Se 'local', significa que VOCÊ interagiu no drop de outra pessoa.
+    // O ID real do dono do drop está dentro do dropId.
+    let idDonoDoDrop = idLimpo;
+    let idInteragente = eu;
+
+    if (idLimpo === 'local') {
+      idDonoDoDrop = String(dropId || '').split('::')[0] || '';
+    }
+
+    if (!idDonoDoDrop) return;
+
+    const interacao = {
+      autorId: idDonoDoDrop,
+      interagenteId: idInteragente,
+      tipo: String(tipo || 'like').trim(),
+      dropId: String(dropId || '').trim(),
+      timestamp: Date.now()
+    };
+
+    // Se o dono do drop é VOCÊ → RECEBIDAS
+    // Se o dono do drop é OUTRO → ENVIADAS
+    const ehMeuDrop = idDonoDoDrop === eu;
+
+    if (ehMeuDrop) {
+      const recebidas = lerInteracoesRecebidasNex();
+      recebidas.push({
+        autorId: interacao.autorId,
+        interagenteId: interacao.interagenteId,
+        tipo: interacao.tipo,
+        dropId: interacao.dropId,
+        timestamp: interacao.timestamp
+      });
+      salvarInteracoesRecebidasNex(recebidas);
+
+      console.log(`📥 Interação RECEBIDA no MEU drop: ${idDonoDoDrop}`);
+      calcularAdeptosNex();
+    } else {
+      const enviadas = lerInteracoesEnviadasNex();
+      enviadas.push({
+        autorId: interacao.autorId,
+        interagenteId: interacao.interagenteId,
+        paraId: idDonoDoDrop,
+        tipo: interacao.tipo,
+        dropId: interacao.dropId,
+        timestamp: interacao.timestamp
+      });
+      salvarInteracoesEnviadasNex(enviadas);
+
+      console.log(`📤 Interação ENVIADA: Eu → ${idDonoDoDrop}`);
+      calcularAdeptosEnviadosNex();
+    }
+  }
+
+  // ============================================
+  // LIMPAR INTERAÇÕES ANTIGAS (30 dias)
+  // ============================================
+
+  function limparInteracoesAntigasNex() {
+    const agora = Date.now();
+    const LIMITE = Drops.LIMITES.JANELA_DIAS * 24 * 60 * 60 * 1000;
+
+    // RECEBIDAS
+const recebidas = lerInteracoesRecebidasNex();
+const recebidasFiltradas = recebidas.filter((i) => {
+  const ts = Number(i?.timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) return false;
+  return agora - ts < LIMITE;
+});
+
+if (recebidasFiltradas.length !== recebidas.length) {
+  salvarInteracoesRecebidasNex(recebidasFiltradas);
+}
+
+// ENVIADAS
+const enviadas = lerInteracoesEnviadasNex();
+const enviadasFiltradas = enviadas.filter((i) => {
+  const ts = Number(i?.timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) return false;
+  return agora - ts < LIMITE;
+});
+
+if (enviadasFiltradas.length !== enviadas.length) {
+  salvarInteracoesEnviadasNex(enviadasFiltradas);
+}
+  }
+  // ============================================
+// CALCULAR ADEPTOS (quem virou MEU adepto)
+// ============================================
+
+function calcularAdeptosNex() {
+  limparInteracoesAntigasNex();
+
+  const agora = Date.now();
+  const JANELA_MS = Drops.LIMITES.JANELA_DIAS * 24 * 60 * 60 * 1000;
+
+  const interacoes = lerInteracoesRecebidasNex();
+  const conectados = lerConectadosMyDropsNex();
+
+  const porAutor = {};
+
+  interacoes.forEach((i) => {
+    // Se autorId for 'local', extrai o ID real do dono do drop
+    let autorReal = i.autorId;
+
+    if (autorReal === 'local' || !autorReal) {
+      const partes = String(i.dropId || '').split('::');
+      autorReal = partes[0] || '';
+    }
+
+    autorReal = normalizarIdPerfilNex(autorReal);
+    if (!autorReal) return;
+
+    if (!porAutor[autorReal]) {
+      porAutor[autorReal] = { total: 0, ultimaInteracao: 0 };
+    }
+
+    porAutor[autorReal].total += 1;
+
+    if (i.timestamp > porAutor[autorReal].ultimaInteracao) {
+      porAutor[autorReal].ultimaInteracao = i.timestamp;
+    }
+  });
+
+  const adeptosCalculados = [];
+
+  Object.entries(porAutor).forEach(([autorId, dados]) => {
+    const conectado = conectados.find(
+      (c) => normalizarIdPerfilNex(c.id) === normalizarIdPerfilNex(autorId)
+    );
+
+    if (!conectado) return;
+    if (agora - dados.ultimaInteracao > JANELA_MS) return;
+    if (dados.total < Drops.LIMITES.MINIMO_INTERACOES) return;
+
+    adeptosCalculados.push({
+      id: normalizarIdPerfilNex(autorId),
+      nome: conectado.nome || autorId,
+      avatar:
+        conectado.avatar ||
+        (conectado.nome || '?').charAt(0).toUpperCase(),
+      desde: dados.ultimaInteracao,
+      ultimaInteracao: dados.ultimaInteracao,
+      totalInteracoes: dados.total
+    });
+  });
+
+  const adeptosAntigos = lerAdeptosNex();
+  const idsAntigos = new Set(adeptosAntigos.map((a) => a.id));
+  const idsNovos = new Set(adeptosCalculados.map((a) => a.id));
+
+  const entraram = adeptosCalculados.filter((a) => !idsAntigos.has(a.id));
+  const sairam = adeptosAntigos.filter((a) => !idsNovos.has(a.id));
+
+  entraram.forEach((a) => notificarAdeptoNex(a, 'entrou'));
+  sairam.forEach((a) => notificarAdeptoNex(a, 'saiu'));
+
+  salvarAdeptosNex(adeptosCalculados);
+  atualizarContadorAdeptosNex();
+
+  return adeptosCalculados;
+}
+
+// ============================================
+// CALCULAR "SOU ADEPTO DE QUEM"
+// ============================================
+
+function calcularAdeptosEnviadosNex() {
+  const agora = Date.now();
+  const JANELA_MS = Drops.LIMITES.JANELA_DIAS * 24 * 60 * 60 * 1000;
+
+  const interacoes = lerInteracoesEnviadasNex();
+
+  const porPerfil = {};
+
+  interacoes.forEach((i) => {
+    const paraId = i.paraId || i.dropId.split('::')[0] || '';
+    if (!paraId) return;
+
+    if (!porPerfil[paraId]) {
+      porPerfil[paraId] = { total: 0, ultima: 0 };
+    }
+
+    porPerfil[paraId].total += 1;
+
+    if (i.timestamp > porPerfil[paraId].ultima) {
+      porPerfil[paraId].ultima = i.timestamp;
+    }
+  });
+
+  const souAdeptoDe = [];
+
+  Object.entries(porPerfil).forEach(([perfilId, dados]) => {
+    if (agora - dados.ultima > JANELA_MS) return;
+    if (dados.total < Drops.LIMITES.MINIMO_INTERACOES) return;
+
+    souAdeptoDe.push({
+      id: perfilId,
+      totalInteracoes: dados.total,
+      ultimaInteracao: dados.ultima
+    });
+  });
+
+  // Compara com a lista antiga
+  const antigos = lerSouAdeptoDeNex();
+  const idsAntigos = new Set(antigos.map((a) => a.id));
+  const idsNovos = new Set(souAdeptoDe.map((a) => a.id));
+
+  const novos = souAdeptoDe.filter((a) => !idsAntigos.has(a.id));
+  const saiu = antigos.filter((a) => !idsNovos.has(a.id));
+
+  novos.forEach((a) => notificarSouAdeptoNex(a, 'entrou'));
+  saiu.forEach((a) => notificarSouAdeptoNex(a, 'saiu'));
+
+  window.AdeptosAdapterNex.salvarSouAdeptoDe(souAdeptoDe);
+
+  console.log('🎯 Sou adepto de:', souAdeptoDe);
+  return souAdeptoDe;
+}
+
+// ============================================
+// ADEPTOS — LEITURA E ESCRITA
+// ============================================
+
+function lerAdeptosNex() {
+  return window.AdeptosAdapterNex.lerAdeptos();
+}
+
+function salvarAdeptosNex(lista) {
+  window.AdeptosAdapterNex.salvarAdeptos(lista);
+}
+
+function lerSouAdeptoDeNex() {
+  return window.AdeptosAdapterNex.lerSouAdeptoDe();
+}
+ // ============================================
+// NOTIFICAR QUE SOU ADEPTO DE ALGUÉM
+// ============================================
+
+function notificarSouAdeptoNex(perfil, tipo) {
+  const id = perfil.id;
+  if (!id) return;
+
+  const conectado = lerConectadosMyDropsNex().find(
+    (c) => normalizarIdPerfilNex(c.id) === normalizarIdPerfilNex(id)
+  );
+
+  const nome = conectado?.nome || id;
+
+  console.log(
+    `🎯 ${tipo === 'entrou' ? 'Virei adepto' : 'Deixei de ser adepto'} de:`,
+    nome
+  );
+
+  const nomeContato = nome;
+
+  if (!conversas[nomeContato]) {
+    conversas[nomeContato] = [];
+  }
+
+  const agora = Date.now();
+
+  // Usa o NOME da pessoa (não o @id) na mensagem
+  const textoMensagem =
+    tipo === 'entrou'
+      ? `👑 Parabéns! Você se tornou adepto de ${nome}!`
+      : `😢 Você deixou de ser adepto de ${nome}.`;
+
+  conversas[nomeContato].push({
+    id: gerarIdMensagemNex(),
+    timestamp: agora,
+    side: 'right',
+    nome: 'Eu',
+    avatar: 'EU',
+    data: new Date(agora).toLocaleDateString('pt-BR'),
+    hora: new Date(agora).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    text: textoMensagem,
+    sistema: true
+  });
+
+  // Cria/atualiza card no NEX
+  let card = obterCardConversaNex(nomeContato);
+
+  if (!card) {
+    criarCardConversaNex(
+      nomeContato,
+      false,
+      {
+        text: textoMensagem,
+        hora: new Date(agora).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      },
+      'recebida'
+    );
+
+    marcarConversaComoNaoLidaNex(nomeContato, false);
+  } else {
+    if (typeof renderChat === 'function' && Drops.estado.conversaAtual === nomeContato) {
+      renderChat(nomeContato);
+    }
+    marcarConversaComoNaoLidaNex(nomeContato, false);
+  }
+}
+
+// ============================================
+// NOTIFICAR QUE ALGUÉM VIROU MEU ADEPTO
+// ============================================
+
+function notificarAdeptoNex(adepto, tipo) {
+  console.log(`👑 Adepto ${tipo}:`, adepto.nome);
+
+  if (tipo === 'entrou') {
+    criarNotificacaoAdeptoNex(adepto, 'entrou');
+  }
+
+  if (tipo === 'saiu') {
+    criarNotificacaoAdeptoNex(adepto, 'saiu');
+  }
+}
+
+function criarNotificacaoAdeptoNex(adepto, tipo) {
+  const agora = Date.now();
+  const nome = adepto.nome || adepto.id;
+  const id = adepto.id;
+
+  if (!id) return;
+
+  let card = obterCardConversaNex(nome);
+
+  if (!card) {
+    const mensagemInicial = {
+      id: gerarIdMensagemNex(),
+      timestamp: agora,
+      side: 'left',
+      nome,
+      avatar: adepto.avatar || nome.charAt(0).toUpperCase(),
+      data: new Date(agora).toLocaleDateString('pt-BR'),
+      hora: new Date(agora).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      text:
+        tipo === 'entrou'
+          ? `👑 Parabéns! Você virou adepto de @${Drops.usernameAtual}!`
+          : `😢 Você deixou de ser adepto de @${Drops.usernameAtual}.`,
+      sistema: true
+    };
+
+    if (!conversas[nome]) {
+      conversas[nome] = [];
+    }
+
+    conversas[nome].push(mensagemInicial);
+
+    criarCardConversaNex(nome, false, mensagemInicial, 'recebida');
+    marcarConversaComoNaoLidaNex(nome, false);
+  } else {
+    if (!conversas[nome]) {
+      conversas[nome] = [];
+    }
+
+    conversas[nome].push({
+      id: gerarIdMensagemNex(),
+      timestamp: agora,
+      side: 'left',
+      nome,
+      avatar: adepto.avatar || nome.charAt(0).toUpperCase(),
+      data: new Date(agora).toLocaleDateString('pt-BR'),
+      hora: new Date(agora).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      text:
+        tipo === 'entrou'
+          ? `👑 Parabéns! Você virou adepto de @${Drops.usernameAtual}!`
+          : `😢 Você deixou de ser adepto de @${Drops.usernameAtual}.`,
+      sistema: true
+    });
+
+    if (typeof renderChat === 'function' && Drops.estado.conversaAtual === nome) {
+      renderChat(nome);
+    }
+
+    marcarConversaComoNaoLidaNex(nome, false);
+  }
+
+  console.log(`📬 Notificação criada: ${nome} ${tipo} como adepto`);
+} 
+  // ============================================
+// PAINEL MEUS ADEPTOS
+// ============================================
+
+function abrirMeusAdeptosNex() {
+  const painel = document.getElementById('painelMeusAdeptosNex');
+  if (!painel) return;
+
+  renderizarMeusAdeptosNex();
+  painel.style.display = 'flex';
+}
+
+function fecharMeusAdeptosNex() {
+  const painel = document.getElementById('painelMeusAdeptosNex');
+  if (painel) painel.style.display = 'none';
+}
+
+function renderizarMeusAdeptosNex() {
+  const container = document.getElementById('listaMeusAdeptosNex');
+  if (!container) return;
+
+  const adeptos = lerAdeptosNex();
+  container.innerHTML = '';
+
+  if (!adeptos.length) {
+    const vazio = document.createElement('div');
+    vazio.className = 'adepto-vazio-nex';
+    vazio.innerHTML =
+      'Você ainda não tem adeptos.<br><br>Quando alguém te salvar em <strong>Conectados</strong> e interagir <strong>15 vezes</strong> em 30 dias, vai aparecer aqui.';
+    container.appendChild(vazio);
+    return;
+  }
+
+  // Ordena: quem interagiu mais recente primeiro
+  const ordenados = [...adeptos].sort(
+    (a, b) => (b.ultimaInteracao || 0) - (a.ultimaInteracao || 0)
+  );
+
+  ordenados.forEach((a) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'adepto-item-nex';
+
+    const diasAdepto = Math.max(
+      1,
+      Math.floor(
+        (Date.now() - (a.desde || Date.now())) / (1000 * 60 * 60 * 24)
+      )
+    );
+
+    item.innerHTML = `
+      <div class="adepto-avatar-nex">${a.avatar || '?'}</div>
+
+      <div class="adepto-info-nex">
+        <div class="adepto-nome-nex">${a.nome || 'Perfil'}</div>
+        <div class="adepto-handle-nex">@${a.id}</div>
+        <div class="adepto-meta-nex">
+          <span>👑 ${diasAdepto}d como adepto</span>
+          <span>•</span>
+          <span>${a.totalInteracoes || 0} interações</span>
+        </div>
+      </div>
+    `;
+
+    item.addEventListener('click', () => {
+      fecharMeusAdeptosNex();
+      abrirPerfilVisitadoNex(a.id, a.nome);
+    });
+
+    container.appendChild(item);
+  });
+}
+
+// ============================================
+// CONTADOR DE ADEPTOS
+// ============================================
+
+function atualizarContadorAdeptosNex() {
+  const adeptos = lerAdeptosNex();
+  const total = adeptos.length;
+
+  const elPerfil = document.getElementById('perfilAdeptosNex');
+  if (elPerfil) {
+    elPerfil.textContent = total > 0 ? String(total) : '0';
+  }
+
+  const elMyDrops = document.getElementById('mydropsAdeptosContador');
+  if (elMyDrops) {
+    elMyDrops.textContent = total > 0 ? String(total) : '0';
+  }
+}
+    // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
+
+  // Interações
+  window.lerInteracoesRecebidasNex = lerInteracoesRecebidasNex;
+  window.salvarInteracoesRecebidasNex = salvarInteracoesRecebidasNex;
+  window.lerInteracoesEnviadasNex = lerInteracoesEnviadasNex;
+  window.salvarInteracoesEnviadasNex = salvarInteracoesEnviadasNex;
+  window.registrarInteracaoNex = registrarInteracaoNex;
+  window.limparInteracoesAntigasNex = limparInteracoesAntigasNex;
+
+  // Adeptos
+  window.lerAdeptosNex = lerAdeptosNex;
+  window.salvarAdeptosNex = salvarAdeptosNex;
+  window.lerSouAdeptoDeNex = lerSouAdeptoDeNex;
+  window.calcularAdeptosNex = calcularAdeptosNex;
+  window.calcularAdeptosEnviadosNex = calcularAdeptosEnviadosNex;
+  window.notificarSouAdeptoNex = notificarSouAdeptoNex;
+  window.notificarAdeptoNex = notificarAdeptoNex;
+  window.criarNotificacaoAdeptoNex = criarNotificacaoAdeptoNex;
+  window.atualizarContadorAdeptosNex = atualizarContadorAdeptosNex;
+
+  // Painel
+  window.abrirMeusAdeptosNex = abrirMeusAdeptosNex;
+  window.fecharMeusAdeptosNex = fecharMeusAdeptosNex;
+  window.renderizarMeusAdeptosNex = renderizarMeusAdeptosNex;
+
+  // ============================================
+  // INICIALIZAÇÃO
+  // ============================================
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Botão Meus Adeptos
+    const btnMeusAdeptos = document.getElementById('btnMeusAdeptosNex');
+    if (btnMeusAdeptos) {
+      btnMeusAdeptos.addEventListener('click', () => {
+        fecharPainelControleNex();
+        abrirMeusAdeptosNex();
+      });
+    }
+  });
+
+  // ============================================
+  // DEBUG
+  // ============================================
+
+  console.log('👑 10-adeptos.js carregado (via adapter)');
+
+})();
