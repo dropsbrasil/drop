@@ -521,7 +521,7 @@ function onbHandlerEmailInput() {
   btn.classList.remove('onb-btn-desabilitado');
 }
 
-function onbContinuarComEmail() {
+async function onbContinuarComEmail() {
   const input = document.getElementById('onbInputEmailGeral');
   if (!input) return;
 
@@ -529,32 +529,46 @@ function onbContinuarComEmail() {
 
   if (!onbValidarEmail(email).ok) return;
 
-  const emailCadastrado = localStorage.getItem('drops_email') || '';
-  const emailJaExiste =
-    emailCadastrado && email === emailCadastrado.toLowerCase();
+  if (!window.supabaseClient) {
+    alert('Conexão com o servidor não disponível. Tente novamente.');
+    return;
+  }
 
-  if (emailJaExiste) {
-    // ===== LOGIN =====
-    console.log('📧 Email já cadastrado. Enviando código de login...');
+  // Mostra "enviando..." no botão
+  const btn = document.getElementById('onbBtnEmailGeral');
+  const textoOriginal = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+  }
 
-    const codigo = String(Math.floor(100000 + Math.random() * 900000));
-    localStorage.setItem('drops_codigo_email', codigo);
-    localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
-    localStorage.setItem('drops_codigo_tentativas', '0');
-    localStorage.setItem('drops_codigo_modo', 'login');
-    localStorage.setItem('drops_email_login', email);
+  try {
+    const { error } = await window.supabaseClient.auth.signInWithOtp({
+      email: email,
+      options: {
+        shouldCreateUser: true
+      }
+    });
 
-    onbIrPara('verificacao');
-  } else {
-    // ===== CADASTRO =====
-    console.log('🆕 Email novo. Indo pra cadastro...');
+    if (error) throw error;
 
+    // Salva o email na sessão pra usar na tela de verificação
     localStorage.setItem('drops_email_temp', email);
 
-    onbIrPara('cadastro');
+    console.log('📧 Código enviado para:', email);
+
+    onbIrPara('verificacao');
+  } catch (erro) {
+    console.error('Erro ao enviar código:', erro);
+    alert('Não foi possível enviar o código. Verifique o email e tente novamente.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal || 'Continuar →';
+    }
   }
 }
-
+  
 /* ============================================
    TELA DE CADASTRO
 ============================================ */
@@ -625,7 +639,7 @@ function onbConfigurarCadastro() {
   });
 }
 
-function onbFinalizarCadastro() {
+async function onbFinalizarCadastro() {
   const inputNome = document.getElementById('onbInputNome');
   const inputNasc = document.getElementById('onbInputNascimento');
   const inputEmail = document.getElementById('onbInputEmail');
@@ -644,24 +658,49 @@ function onbFinalizarCadastro() {
     return;
   }
 
-  localStorage.setItem('drops_nome', nome);
-  localStorage.setItem('drops_nascimento', nasc);
-  localStorage.setItem('drops_email', email);
+  if (!window.supabaseClient) {
+    alert('Conexão com o servidor não disponível. Tente novamente.');
+    return;
+  }
 
-  localStorage.removeItem('drops_email_temp');
+  const btn = document.getElementById('onbBtnCadastro');
+  const textoOriginal = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+  }
 
-  console.log('✅ Dados básicos salvos:', { nome, nasc, email });
+  try {
+    const { error } = await window.supabaseClient.auth.signInWithOtp({
+      email: email,
+      options: { shouldCreateUser: true }
+    });
 
-  const codigo = String(Math.floor(100000 + Math.random() * 900000));
-  localStorage.setItem('drops_codigo_email', codigo);
-  localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
-  localStorage.setItem('drops_codigo_tentativas', '0');
-  localStorage.setItem('drops_codigo_modo', 'cadastro');
+    if (error) throw error;
 
-  console.log('📧 Código gerado (modo cadastro):', codigo);
+    localStorage.setItem('drops_nome', nome);
+    localStorage.setItem('drops_nascimento', nasc);
+    localStorage.setItem('drops_email', email);
+    localStorage.removeItem('drops_email_temp');
 
-  onbIrPara('verificacao');
+    localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
+    localStorage.setItem('drops_codigo_tentativas', '0');
+    localStorage.setItem('drops_codigo_modo', 'cadastro');
+
+    console.log('📧 Código real enviado para:', email);
+
+    onbIrPara('verificacao');
+  } catch (erro) {
+    console.error('Erro ao enviar código:', erro);
+    alert('Não foi possível enviar o código. Tente novamente.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal || 'Continuar →';
+    }
+  }
 }
+  
   /* ============================================
    TELA DE VERIFICAÇÃO
 ============================================ */
@@ -897,7 +936,7 @@ function onbMostrarErroVerifica(mensagem) {
   if (el) el.textContent = mensagem;
 }
 
-function onbConfirmarCodigo() {
+async function onbConfirmarCodigo() {
   const inputs = document.querySelectorAll('.onb-codigo-input');
   let codigoDigitado = '';
 
@@ -905,7 +944,6 @@ function onbConfirmarCodigo() {
     codigoDigitado += inp.value.trim();
   });
 
-  const codigoSalvo = localStorage.getItem('drops_codigo_email') || '';
   const tentativas = Number(localStorage.getItem('drops_codigo_tentativas') || '0');
   const expira = Number(localStorage.getItem('drops_codigo_expira') || '0');
   const modo = localStorage.getItem('drops_codigo_modo') || 'cadastro';
@@ -920,7 +958,26 @@ function onbConfirmarCodigo() {
     return;
   }
 
-  if (codigoDigitado === codigoSalvo) {
+  if (!window.supabaseClient) {
+    onbMostrarErroVerifica('Sem conexão com o servidor.');
+    return;
+  }
+
+  const email = localStorage.getItem('drops_email') ||
+                localStorage.getItem('drops_email_login') || '';
+
+  if (!email) {
+    onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
+    return;
+  }
+
+  const { data, error } = await window.supabaseClient.auth.verifyOtp({
+    email: email,
+    token: codigoDigitado,
+    type: 'email'
+  });
+
+  if (!error && data && data.user) {
     console.log('✅ Código confirmado. Modo:', modo);
     localStorage.setItem('drops_codigo_verificado', 'true');
     localStorage.setItem('drops_codigo_tentativas', '0');
