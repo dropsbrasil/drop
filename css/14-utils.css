@@ -1,0 +1,1096 @@
+/* ============================================
+   14-UTILS.CSS
+   Menu anexo, câmera, álbum, preview, modais, correções
+============================================ */
+
+/* ============================================
+   MENU ANEXO DO CHAT
+============================================ */
+
+.menu-anexo,
+#menuAnexoNex {
+  position: fixed;
+  right: 14px;
+  bottom: 84px;
+  width: 240px;
+  background: rgba(255,255,255,.96);
+  border-radius: 24px;
+  padding: 12px;
+  box-sizing: border-box;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 999999;
+  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+  backdrop-filter: blur(12px);
+}
+
+#menuAnexoNex {
+  width: 220px;
+}
+
+.anexo-item {
+  width: 100%;
+  border: none;
+  background: #f8fbff;
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  color: #0f172a;
+  box-shadow: 0 4px 10px rgba(0,0,0,.05);
+  cursor: pointer;
+}
+
+.anexo-item span {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.anexo-item b {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.anexo-item small {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ============================================
+   MENU CÂMERA LATERAL
+============================================ */
+
+.menu-camera-modal {
+  position: fixed;
+  right: 14px;
+  bottom: 96px;
+  width: 210px;
+  background: rgba(255,255,255,.97);
+  border-radius: 22px;
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 99999999;
+  box-shadow: 0 16px 38px rgba(0,0,0,.18);
+  backdrop-filter: blur(12px);
+}
+
+.menu-camera-modal.aberto {
+  display: flex;
+}
+
+.camera-item {
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.08);
+  color: #fff;
+  cursor: pointer;
+}
+
+.camera-item.foto {
+  background: #2563eb;
+}
+
+.camera-item.video {
+  background: #ef4444;
+}
+
+/* ============================================
+   ÁLBUM DO CHAT
+============================================ */
+
+.album-modal {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: 92px;
+  z-index: 999999998;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 26px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.22);
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.album-modal-top {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.album-title {
+  justify-self: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.album-close-btn,
+.album-trash-btn,
+.album-add-btn,
+.album-send-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.album-close-btn {
+  background: #ef4444;
+  color: #fff;
+}
+
+.album-trash-btn {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.album-add-btn {
+  background: #2563eb;
+  color: #fff;
+}
+
+.album-send-btn {
+  background: #2563eb;
+  color: #fff;
+}
+
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 10px;
+}
+
+.album-slot {
+  position: relative;
+  aspect-ratio: 3/4;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(15,23,42,.08);
+  border: 1px dashed rgba(15,23,42,.12);
+}
+
+.album-slot img,
+.album-slot video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.album-slot-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(15,23,42,.28);
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.album-slot-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.album-add-btn.hidden {
+  display: none;
+}
+
+.album-slot.selected-delete::after {
+  content: '✕';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  z-index: 2;
+}
+
+/* ============================================
+   PREVIEW DE MÍDIA (ANTES DE ENVIAR)
+============================================ */
+
+.midia-preview-card {
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+
+.midia-preview-click {
+  position: relative;
+}
+
+.midia-preview-click img,
+.midia-preview-click video {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  display: block;
+}
+
+.midia-preview-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  color: #fff;
+  background: rgba(0,0,0,.25);
+}
+
+.midia-preview-actions {
+  padding: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.midia-remove-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.midias-preview-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.midias-preview-grid {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 6px;
+}
+
+.midias-preview-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.midia-item-preview {
+  position: relative;
+  flex: 0 0 138px;
+  width: 138px;
+  aspect-ratio: 3 / 4;
+  scroll-snap-align: start;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #eaf2ff;
+}
+
+.midia-click-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf2ff;
+}
+
+.midia-item-preview img,
+.midia-item-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #eaf2ff;
+}
+
+.midias-delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(15,23,42,.82);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.midia-remove-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+/* ============================================
+   DOC PREVIEW (PDF)
+============================================ */
+
+.doc-preview-card-nex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255,255,255,.96);
+  border-radius: 22px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+}
+
+.doc-preview-icon-nex {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 14px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.doc-preview-thumb-nex {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.doc-preview-info-nex {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-preview-name-nex {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.doc-preview-meta-nex {
+  margin-top: 4px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.doc-preview-actions-nex {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.doc-preview-actions-nex button {
+  border: none;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.doc-preview-cancel-nex {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.doc-preview-send-nex {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* ============================================
+   PREVIEW DE LOCALIZAÇÃO
+============================================ */
+
+#previewLocalizacaoNex {
+  display: none;
+  pointer-events: auto;
+}
+
+.preview-localizacao-card {
+  position: relative;
+  width: calc(100vw - 24px);
+  max-width: none;
+  min-height: 45px;
+  border-radius: 20px;
+  padding: 8px 54px 8px 10px;
+  background: rgba(255,255,255,.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #111827;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid rgba(255,255,255,.38);
+}
+
+.preview-localizacao-remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  cursor: pointer;
+}
+
+.preview-localizacao-pincol {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.preview-localizacao-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #2563eb;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 8px 18px rgba(37,99,235,.22);
+}
+
+.preview-localizacao-status {
+  width: 100%;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  word-break: break-word;
+}
+
+.preview-localizacao-header-text {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+  flex-wrap: wrap;
+}
+
+.preview-localizacao-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.preview-localizacao-address {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1e293b;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ============================================
+   MODAL DE TEXTO (EDITOR)
+============================================ */
+
+#modalTextoMyDropsNex {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 2147483647;
+  padding: 20px;
+  transition: transform 0.15s ease-out;
+}
+
+#modalTextoMyDropsNex.hidden {
+  display: none;
+}
+
+.modal-texto-box {
+  width: min(92vw, 420px);
+  max-height: 80vh;
+  background: #1f241a;
+  border-radius: 28px;
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  margin-top: 60px;
+}
+
+#modalTextoMyDropsNex.keyboard-open .modal-texto-box {
+  max-height: 55vh;
+  margin-top: 10px;
+}
+
+#modalTextoMyDropsNex.keyboard-open .modal-texto-editavel {
+  min-height: 70px;
+  max-height: 100px;
+}
+
+.modal-topo-texto {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-align-texto {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  background: #2d3327;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.btn-align-texto.active {
+  background: #5c1f1f;
+}
+
+.modal-texto-editavel {
+  width: 100%;
+  min-height: 130px;
+  max-height: 300px;
+  border: none;
+  outline: none;
+  resize: none;
+  border-radius: 18px;
+  background: #fff;
+  color: #111827;
+  font-size: 18px;
+  padding: 16px;
+  line-height: 1.5;
+  overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+}
+
+.modal-texto-editavel:empty::before {
+  content: attr(data-placeholder);
+  color: #999;
+  pointer-events: none;
+}
+
+.modal-texto-editavel:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+}
+
+.modal-footer-texto {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.modal-footer-texto button {
+  border: none;
+  background: none;
+  color: #c6e48b;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ============================================
+   CORES E ESTILO NO MODAL DE TEXTO
+============================================ */
+
+.modal-cores-texto {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.modal-cor-btn {
+  width: 36px;
+  height: 36px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all .2s ease;
+  flex-shrink: 0;
+}
+
+.modal-cor-btn:hover {
+  transform: scale(1.12);
+}
+
+.modal-cor-btn.selecionada {
+  border-color: #fff;
+  box-shadow: 0 0 14px rgba(255,255,255,.35);
+}
+
+.modal-estilo-texto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 0 12px;
+  flex-wrap: wrap;
+}
+
+.modal-tamanho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-tamanho button {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.modal-tamanho button:hover {
+  background: rgba(255,255,255,.2);
+}
+
+.modal-tamanho span {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 700;
+  color: #fff;
+  font-size: 16px;
+}
+
+.modal-estilo-botoes {
+  display: flex;
+  gap: 6px;
+}
+
+.modal-estilo-botoes button {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.modal-estilo-botoes button:hover {
+  background: rgba(255,255,255,.16);
+}
+
+.modal-estilo-botoes button.ativo {
+  background: rgba(37, 99, 235, .5);
+  color: #fff;
+}
+
+/* ============================================
+   SELOS DE ORIGEM
+============================================ */
+
+.selos-origem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.selos-origem .selo {
+  display: inline-flex;
+  align-items: center;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.65),
+    0 0 8px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+.selos-origem .selo:not(:last-child)::after {
+  content: '·';
+  margin: 0 6px;
+  opacity: 0.4;
+  font-weight: 900;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.mydrops-publication-viewer #mydropsPubSelos .selos-origem,
+.mydrops-publication-viewer .nearby-drop-user-meta .selos-origem {
+  margin-top: 6px;
+}
+
+/* ============================================
+   MENSAGENS DE SISTEMA
+============================================ */
+
+.msg-sistema {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.10)) !important;
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+}
+
+.msg-sistema .msg-content {
+  background: rgba(251, 191, 36, 0.08) !important;
+  border: 1px solid rgba(251, 191, 36, 0.2) !important;
+}
+
+.msg-sistema .msg-text {
+  color: #fbbf24 !important;
+  font-weight: 700 !important;
+}
+/* ============================================
+   CORREÇÃO DEFINITIVA — EDITOR, MODAIS E LEGENDA
+   v3 — Legenda DENTRO do editor
+============================================ */
+
+body.editor-aberto {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding: 0 !important;
+}
+
+/* Esconde a tabbar quando editor estiver aberto */
+body.editor-aberto .tabbar {
+  display: none !important;
+}
+
+/* Esconde a tabbar quando viewer estiver aberto */
+body.viewer-aberto .tabbar {
+  display: none !important;
+}
+
+/* Esconde a tabbar quando modal estiver aberto */
+body.modal-aberto .tabbar {
+  display: none !important;
+}
+
+/* ⚠️ CORREÇÃO: esconde a tabbar quando o chat NEX estiver aberto */
+body.chat-aberto .tabbar {
+  display: none !important;
+}
+
+/* Trava scroll do body quando chat estiver aberto */
+body.chat-aberto {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
+
+
+/* ============================================
+   EDITOR FULLSCREEN
+============================================ */
+
+#fotoEditorMyDropsNex,
+#videoEditorMyDropsNex {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  z-index: 90000 !important;
+  background: #000 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#fotoEditorMyDropsNex[style*="display: flex"],
+#videoEditorMyDropsNex[style*="display: flex"] {
+  display: flex !important;
+}
+
+/* ============================================
+   LEGENDA ROW — ABSOLUTE DENTRO DO EDITOR
+   Fica colada no fundo, sempre visível
+============================================ */
+
+.foto-editor-legenda-row-mydrops-nex,
+.video-editor-legenda-row-mydrops-nex {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  z-index: 100000 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+/* ============================================
+   STAGE E VÍDEO TERMINAM ACIMA DA LEGENDA
+============================================ */
+
+.foto-editor-stage-mydrops-nex {
+  bottom: 130px !important;
+}
+
+#videoEditorMyDropsNex video#videoEditorPreviewMyDropsNex {
+  bottom: 130px !important;
+  top: 0 !important;
+  height: calc(100% - 130px) !important;
+  object-fit: contain !important;
+  position: absolute !important;
+}
+
+/* ============================================
+   MODAIS — FULLSCREEN E ACIMA DE TUDO
+============================================ */
+
+#modalTextoMyDropsNex,
+#modalFundoMyDropsNex,
+#modalDuracaoPublicacaoMyDropsNex {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  z-index: 2147483647 !important;
+  box-sizing: border-box !important;
+}
+
+#modalTextoMyDropsNex.hidden,
+#modalFundoMyDropsNex.hidden,
+#modalDuracaoPublicacaoMyDropsNex.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+#modalTextoMyDropsNex:not(.hidden),
+#modalFundoMyDropsNex:not(.hidden),
+#modalDuracaoPublicacaoMyDropsNex:not(.hidden) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* ============================================
+   TOAST GLOBAL (FEEDBACK DE AÇÕES)
+============================================ */
+
+#toastGlobalNex {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translate(-50%, -120%);
+  z-index: 2147483647;
+  min-width: 240px;
+  max-width: calc(100vw - 32px);
+  padding: 14px 18px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 16px 40px rgba(0,0,0,.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform .32s cubic-bezier(.22, 1, .36, 1),
+    opacity .28s ease;
+}
+
+#toastGlobalNex.visivel {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+#toastGlobalNex.sucesso {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+#toastGlobalNex.erro {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+#toastGlobalNex.info {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+.toast-icone-nex {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.toast-texto-nex {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* ============================================
+   REAÇÕES ❤️/💔 — FEEDBACK VISUAL
+============================================ */
+
+.nearby-drop-reaction {
+  transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+/* Estado ativo: usuário já reagiu com esse emoji */
+.nearby-drop-reaction.ativo {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.45),
+    0 8px 20px rgba(37,99,235,.45);
+}
+
+/* Animação pop ao clicar */
+.nearby-drop-reaction.pop-anim {
+  animation: popReacaoNex .34s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes popReacaoNex {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.45); }
+  70%  { transform: scale(.9); }
+  100% { transform: scale(1); }
+}
+
+/* Pop com estado ativo mantém a escala maior */
+.nearby-drop-reaction.ativo.pop-anim {
+  animation: popReacaoAtivoNex .34s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes popReacaoAtivoNex {
+  0%   { transform: scale(1.08); }
+  40%  { transform: scale(1.55); }
+  70%  { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}

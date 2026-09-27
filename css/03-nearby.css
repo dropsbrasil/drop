@@ -1,0 +1,309 @@
+/* ============================================
+   03-NEARBY.CSS
+   Tela Nearby: título do feed, stories, cards, grid
+============================================ */
+
+/* ============================================
+   TÍTULO DO FEED
+============================================ */
+
+.nearby-feed-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.nearby-feed-title b {
+  color: #2563eb;
+}
+
+/* ============================================
+   STORIES (HORIZONTAL)
+============================================ */
+
+.nearby-stories {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+}
+
+.story-card {
+  position: relative;
+  min-width: 138px;
+  width: 138px;
+  height: 190px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #111827;
+  flex-shrink: 0;
+  cursor: pointer;
+  z-index: 2;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.story-card * {
+  pointer-events: none;
+}
+
+.story-bg,
+.story-post {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.story-bg {
+  background: url('https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=500') center/cover no-repeat;
+  filter: blur(6px);
+  transform: scale(1.1);
+  opacity: .45;
+}
+
+.story-img-1 {
+  background: url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=500') center/cover no-repeat;
+}
+
+.story-img-2 {
+  background: url('https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=500') center/cover no-repeat;
+}
+
+.story-img-3 {
+  background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500') center/cover no-repeat;
+}
+
+.story-img-4 {
+  background: url('https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=500') center/cover no-repeat;
+}
+
+.my-story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px;
+}
+
+.story-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 3px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 12px;
+  background: #1e293b;
+  font-weight: 800;
+}
+
+.story-avatar-center {
+  position: absolute;
+  top: 38px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 3px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  z-index: 4;
+  font-weight: 800;
+}
+
+.story-online,
+.story-offline {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 5;
+  border: 2px solid rgba(255,255,255,.9);
+}
+
+.story-online {
+  background: #22c55e;
+}
+
+.story-offline {
+  background: #9ca3af;
+}
+
+.story-user {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 12px;
+  z-index: 4;
+  text-align: center;
+}
+
+.story-user h4,
+.my-story h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.story-user span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dbeafe;
+}
+
+/* ============================================
+   DIVISOR
+============================================ */
+
+.nearby-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 16px;
+}
+
+.nearby-divider span {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.nearby-divider .line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,.10);
+}
+
+/* ============================================
+   GRID DE CARDS
+============================================ */
+
+.nearby-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.near-card {
+  position: relative;
+  height: 190px;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: 14px 8px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #111827;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.near-card::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.95);
+  z-index: 2;
+}
+
+.near-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,.20), rgba(0,0,0,.38), rgba(0,0,0,.70));
+  z-index: 1;
+}
+
+.near-card * {
+  position: relative;
+  z-index: 3;
+}
+
+.card-img-1 {
+  background-image: url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=500');
+}
+
+.card-img-2 {
+  background-image: url('https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=500');
+}
+
+.card-img-3 {
+  background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500');
+}
+
+.card-img-4 {
+  background-image: url('https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=500');
+}
+
+.card-img-5 {
+  background-image: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500');
+}
+
+.card-img-6 {
+  background-image: url('https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=500');
+}
+
+.card-img-7 {
+  background-image: url('https://images.unsplash.com/photo-1500534623283-312aade485b7?w=500');
+}
+
+.card-img-8 {
+  background-image: url('https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=500');
+}
+
+.card-img-9 {
+  background-image: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=500');
+}
+
+.near-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  border: 2px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+}
+
+.near-card h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+  margin-top: 8px;
+  margin-bottom: 6px;
+}
+
+.near-card span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+}

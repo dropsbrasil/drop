@@ -1,0 +1,484 @@
+/* ============================================
+   02-MYDROPS.CSS
+   Tela My Drops: capa, perfil, stats, bio, socials, mural, tabs
+============================================ */
+
+.mydrops-page {
+  padding-bottom: 120px;
+  color: #fff;
+}
+
+/* ============================================
+   CAPA
+============================================ */
+
+.mydrops-hero {
+  position: relative;
+}
+
+.mydrops-cover {
+  width: calc(100% + 28px);
+  height: 300px;
+  margin: 0 -14px 16px;
+  border-radius: 0 0 28px 28px;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)),
+    linear-gradient(135deg, rgba(120,80,255,.65), rgba(40,170,255,.35));
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+/* ============================================
+   PERFIL FLUTUANTE
+============================================ */
+
+.mydrops-profile-card {
+  position: relative;
+  z-index: 20;
+  width: calc(100% - 4px);
+  margin: -300px auto 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ============================================
+   AVATAR + NOME
+============================================ */
+
+.mydrops-main-info {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  width: auto;
+  min-width: 0;
+  margin-left: -12px;
+}
+
+.mydrops-avatar-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.mydrops-avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #7c3aed, #60a5fa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 58px;
+  font-weight: 900;
+  border: 5px solid #3b82f6;
+  box-shadow: 0 16px 34px rgba(0,0,0,.34);
+  flex-shrink: 0;
+}
+
+.mydrops-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ============================================
+   NOME
+============================================ */
+
+.mydrops-name-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.mydrops-name-wrap h2 {
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  text-align: left;
+  color: #fff;
+  letter-spacing: .3px;
+  text-shadow:
+    0 2px 6px rgba(0,0,0,.45),
+    0 0 1px rgba(0,0,0,.9),
+    -1px 0 rgba(0,0,0,.45),
+    1px 0 rgba(0,0,0,.45),
+    0 -1px rgba(0,0,0,.45),
+    0 1px rgba(0,0,0,.45);
+}
+
+.mydrops-name-wrap p {
+  margin-top: 6px;
+  color: #cbd5e1;
+  font-size: 14px;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+/* ============================================
+   CÁPSULA DE STATS (VIDRO FOSCO)
+============================================ */
+
+.mydrops-stats {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0;
+  margin-top: 14px;
+  margin-left: 0;
+  padding: 12px 8px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+
+.mydrops-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 6px;
+  position: relative;
+  min-width: 0;
+}
+
+.mydrops-stat + .mydrops-stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+}
+
+.mydrops-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  margin-bottom: 2px;
+}
+
+.mydrops-stat:nth-child(1) .mydrops-stat-icon {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.25), rgba(59, 130, 246, 0.15));
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.mydrops-stat:nth-child(2) .mydrops-stat-icon {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(239, 68, 68, 0.15));
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
+.mydrops-stat:nth-child(3) .mydrops-stat-icon {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15));
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.mydrops-stat strong {
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.mydrops-stat small {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+/* ============================================
+   BIO
+============================================ */
+
+.mydrops-bio {
+  width: calc(100% + 28px);
+  margin: 57px -14px 0;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.05);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  text-align: center;
+}
+
+/* ============================================
+   CARD DO MURAL
+============================================ */
+
+.mydrops-mural-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 68px;
+  margin-top: 18px;
+  padding: 14px 20px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+  transition: background 0.18s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mydrops-mural-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mydrops-mural-card:active {
+  transform: scale(0.98);
+}
+
+.mydrops-mural-card-icone {
+  font-size: 26px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.mydrops-mural-card-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mydrops-mural-card-texto strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.mydrops-mural-card-texto small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.mydrops-mural-card-seta {
+  font-size: 18px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   MURAL
+============================================ */
+
+.mydrops-mural {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.mydrops-weather-fixed {
+  width: 100%;
+  min-height: 56px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.05);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.weather-location {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.4;
+  white-space: pre-line;
+  text-shadow: 0 1px 4px rgba(0,0,0,.35);
+}
+
+/* ============================================
+   TABS
+============================================ */
+
+.mydrops-tabs {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.mydrops-tab {
+  flex: 1;
+  height: 56px;
+  border: none;
+  border-radius: 22px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .25s ease;
+  min-width: 0;
+}
+
+.mydrops-tab.active {
+  background: #2d8cff;
+  color: #fff;
+}
+
+/* ============================================
+   PAINÉIS
+============================================ */
+
+.mydrops-tab-panel {
+  display: none;
+  margin-top: 16px;
+}
+
+.mydrops-tab-panel.active {
+  display: block;
+}
+
+/* ============================================
+   AÇÕES DA ABA DROPS
+============================================ */
+
+.mydrops-action-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 8px 0;
+}
+
+.mydrops-action-btn {
+  height: 50px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.08);
+  color: #fff;
+  font-weight: 800;
+}
+
+/* ============================================
+   GRID DOS DROPS
+============================================ */
+
+.mydrops-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin: 12px -6px 0;
+  align-items: start;
+}
+
+.mydrops-drop-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 0.90 / 1;
+  min-height: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #111827;
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+/* ============================================
+   RESPONSIVO
+============================================ */
+
+@media (max-width: 480px) {
+  .mydrops-grid {
+    gap: 4px;
+    margin: 12px 0 0;
+  }
+
+  .mydrops-drop-card {
+    aspect-ratio: 1.14 / 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .mydrops-profile-card {
+    gap: 10px;
+    padding: 8px 10px;
+  }
+
+  .mydrops-main-info {
+    gap: 10px;
+  }
+
+  .mydrops-avatar {
+    width: 120px;
+    height: 120px;
+    font-size: 50px;
+  }
+
+  .mydrops-name-wrap h2 {
+    font-size: 20px;
+  }
+
+  .mydrops-name-wrap p {
+    font-size: 12px;
+  }
+
+  .mydrops-stat {
+    width: 96px;
+  }
+}

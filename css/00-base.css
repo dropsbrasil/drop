@@ -1,0 +1,199 @@
+/* ============================================
+   00-BASE.CSS
+   Reset global, HTML, body, botões, telas
+============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background: #050b18;
+  color: #fff;
+  overflow-x: hidden;
+}
+
+body {
+  padding-bottom: 72px;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* ============================================
+   TELAS
+============================================ */
+
+.screen {
+  display: none;
+  min-height: 100vh;
+  background: #050b18;
+  padding: 18px 8px 95px;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* ============================================
+   TÍTULOS SIMPLES
+============================================ */
+
+.simple-top {
+  margin-bottom: 18px;
+}
+
+.simple-top h1 {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.simple-top p {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0 10px;
+}
+
+.section-title h3 {
+  font-size: 18px;
+}
+
+.section-title span {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ============================================
+   SCROLLBAR ESCONDIDA
+============================================ */
+
+.mydrops-row::-webkit-scrollbar,
+.nearby-stories::-webkit-scrollbar,
+.viewer-track::-webkit-scrollbar,
+.chat-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   ESTADO VAZIO
+============================================ */
+
+.mydrops-empty-state {
+  margin: 18px 16px 0;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  color: #cbd5e1;
+  text-align: center;
+}
+/* ============================================
+   TABBAR (BARRA DE NAVEGAÇÃO INFERIOR)
+============================================ */
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: #050b18;
+  border-top: 1px solid rgba(255,255,255,.05);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  z-index: 999999;
+}
+
+.tab {
+  background: none;
+  color: #7c8aa8;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.active-tab {
+  color: #2563eb;
+}
+/* ============================================
+   ABAS DO NEX (Não lidas / Geral / Conectados)
+============================================ */
+
+.nex-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.nex-tab {
+  height: 46px;
+  border-radius: 16px;
+  background: #111827;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.active-nex-tab {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* ============================================
+   PÁGINAS DO NEX
+============================================ */
+
+.nex-page {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.active-nex-page {
+  display: flex;
+}

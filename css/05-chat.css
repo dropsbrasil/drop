@@ -1,0 +1,437 @@
+/* ============================================
+   05-CHAT.CSS
+   Tela do chat NEX: topo, corpo, rodapé, preview stack
+============================================ */
+
+#chatNex {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #bfe8ff;
+  z-index: 999999;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* ============================================
+   TOPO DO CHAT
+============================================ */
+
+.chat-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(12px);
+  z-index: 20;
+  border-bottom: 1px solid rgba(0,0,0,.05);
+}
+
+.chat-top-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.chat-user-status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.chat-back-btn {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 0;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chat-back-btn:active {
+  transform: scale(.96);
+}
+
+.chat-user-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chat-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 2px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chat-user-meta {
+  min-width: 0;
+}
+
+.chat-user-meta h3 {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.chat-user-meta p {
+  font-size: 12px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.chat-user-status {
+  font-size: 13px;
+  font-weight: 800;
+  color: #16a34a;
+  white-space: nowrap;
+}
+
+/* ============================================
+   CORPO DO CHAT
+============================================ */
+
+.chat-body {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  right: 0;
+  bottom: 156px;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================
+   RODAPÉ DO CHAT (INPUT + BOTÕES)
+============================================ */
+
+.chat-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 72;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(10px);
+}
+
+#chatInput {
+  flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  border: none;
+  border-radius: 18px;
+  padding: 10px 14px;
+  background: #e2e8f0;
+  color: #111827;
+  font-size: 16px;
+  outline: none;
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 10px;
+}
+
+.chat-action-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: #eef4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+#micBtn {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+#micBtn.mic-recording {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+
+.send-btn {
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(37,99,235,.25);
+  flex-shrink: 0;
+}
+
+.chat-bottom button {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* ============================================
+   GRAVADOR DE ÁUDIO
+============================================ */
+
+#audioRecorderNex {
+  position: fixed;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: auto;
+  background: rgba(15,23,42,.92);
+  border-radius: 20px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 999999;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+}
+
+#audioTempoNex {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.audio-meter {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,.12);
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.audio-meter-fill {
+  width: 0%;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width .15s linear;
+}
+
+/* ============================================
+   PREVIEW STACK (RESPOSTA, MÍDIA, LOCALIZAÇÃO, ÁUDIO)
+============================================ */
+
+#previewStackNex {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 84px;
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+#previewMidiasNex,
+#audioInlineNex {
+  width: 100%;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+#previewMidiasNex {
+  display: none;
+  background: rgba(255,255,255,.38);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  border: 1px solid rgba(255,255,255,.22);
+  overflow: hidden;
+}
+
+/* ============================================
+   PREVIEW DE ÁUDIO INLINE
+============================================ */
+
+#audioInlineNex {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  display: none;
+  background: transparent;
+}
+
+.audio-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  border: 1px solid rgba(37,99,235,.08);
+}
+
+.audio-preview-play {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border: none;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(37,99,235,.22);
+}
+
+.audio-preview-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audio-preview-bar {
+  flex: 1;
+  height: 8px;
+  background: #dbeafe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.audio-preview-fill {
+  width: 0%;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width .15s linear;
+}
+
+.audio-preview-time {
+  min-width: 92px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.audio-preview-cancel {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: none;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   PREVIEW DE RESPOSTA
+============================================ */
+
+#previewRespostaNex {
+  display: none;
+  width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.reply-preview-box {
+  width: 100%;
+  background: #fff;
+  border: 2px solid #2f6bff;
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+
+.reply-preview-text {
+  color: #ff2d2d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reply-preview-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #ff2d2d;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(255,45,45,.35);
+  pointer-events: auto;
+  position: relative;
+  z-index: 5;
+}

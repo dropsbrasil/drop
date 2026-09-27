@@ -1,0 +1,735 @@
+/* ============================================
+   15-MURAL.CSS
+   Modal do Mural criativo
+============================================ */
+
+/* ============================================
+   OVERLAY + JANELA
+============================================ */
+
+.mural-overlay-nex {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.mural-janela-nex {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100dvh;
+  background: #0f172a;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+}
+
+/* ============================================
+   TOPO (título + ferramentas + fechar)
+============================================ */
+
+.mural-topo-nex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.mural-topo-titulo-nex {
+  font-size: 16px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  flex-shrink: 0;
+}
+
+.mural-topo-ferramentas-nex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   BOTÕES DE FERRAMENTA (vidro fosco)
+============================================ */
+
+.mural-ferramenta-nex,
+.mural-topo-fechar-nex {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    transform 0.14s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.18);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.mural-ferramenta-nex:active,
+.mural-topo-fechar-nex:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.mural-ferramenta-nex.ativa {
+  background: rgba(37, 99, 235, 0.92);
+  border-color: rgba(37, 99, 235, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 18px rgba(37, 99, 235, 0.45);
+}
+
+/* ============================================
+   ÁREA CENTRAL
+============================================ */
+
+.mural-area-wrap-nex {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 12px 12px 12px;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   CANVAS SCROLLÁVEL
+============================================ */
+
+.mural-canvas-scroll-nex {
+  position: absolute;
+  inset: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+  background: #f5efe0;
+}
+
+.mural-canvas-nex {
+  position: relative;
+  width: 100%;
+  height: 2400px;
+  background: #f5efe0;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(120, 100, 60, 0.04), transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(120, 100, 60, 0.04), transparent 60%);
+}
+
+/* Marca d'água — logos do Drops na borda esquerda */
+.mural-canvas-nex::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.12;
+
+  background-image:
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png'),
+    url('../assets/drops-icon.png');
+
+  background-repeat: no-repeat;
+
+  background-position:
+    left 18px top 150px,
+    left 18px top 450px,
+    left 18px top 750px,
+    left 18px top 1050px,
+    left 18px top 1350px,
+    left 18px top 1650px,
+    left 18px top 1950px,
+    left 18px top 2250px;
+
+  background-size: 54px 54px;
+}
+
+.mural-canvas-desenho-nex {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  touch-action: none;
+  pointer-events: none;
+}
+
+.mural-canvas-desenho-nex.ativo {
+  pointer-events: auto;
+}
+
+.mural-camada-elementos-nex {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ============================================
+   SETAS DE ROLAGEM (flutuando sobre o canvas)
+============================================ */
+
+.mural-setas-nex {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  z-index: 30;
+}
+
+.mural-seta-nex {
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    transform 0.14s ease,
+    border-color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.mural-seta-nex:active {
+  transform: scale(0.92);
+  background: rgba(37, 99, 235, 0.9);
+  border-color: rgba(37, 99, 235, 0.95);
+}
+
+/* ============================================
+   PALETA DE CORES (vidro fosco)
+============================================ */
+
+.mural-paleta-nex {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 24px rgba(0, 0, 0, 0.35);
+  z-index: 31;
+}
+
+.mural-cor-nex {
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+
+.mural-cor-nex:active {
+  transform: scale(0.9);
+}
+
+.mural-cor-nex.selecionada {
+  border-color: #ffffff;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+/* ============================================
+   CONTROLES DE SELEÇÃO (topo do canvas)
+============================================ */
+
+.mural-controles-selecao-nex {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 26px rgba(0, 0, 0, 0.4);
+  z-index: 40;
+  pointer-events: auto;
+}
+
+.mural-ctrl-btn-nex {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mural-ctrl-btn-nex:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.mural-ctrl-btn-nex.danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  margin-left: 14px;
+  position: relative;
+}
+
+.mural-ctrl-btn-nex.danger::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 20%;
+  bottom: 20%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.mural-ctrl-btn-nex.danger:active {
+  background: rgba(239, 68, 68, 0.35);
+}
+
+/* ============================================
+   AVISOS DE LIMITE
+============================================ */
+
+.mural-limite-nex,
+.mural-limite-topo-nex {
+  font-family: 'Comic Sans MS', 'Caveat', cursive;
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(15, 23, 42, 0.55);
+  text-align: center;
+  padding: 20px;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mural-limite-nex {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.mural-limite-topo-nex {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  z-index: 25;
+}
+
+.mural-limite-nex.visivel,
+.mural-limite-topo-nex.visivel {
+  opacity: 1;
+}
+
+/* ============================================
+   RODAPÉ / BOTÃO SALVAR
+============================================ */
+
+.mural-rodape-nex {
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0b1220;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.mural-btn-salvar-nex {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+  transition: filter 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mural-btn-salvar-nex:hover {
+  filter: brightness(1.08);
+}
+
+.mural-btn-salvar-nex:active {
+  transform: scale(0.97);
+}
+
+/* ============================================
+   MODAL DE BALÃO DE TEXTO
+============================================ */
+
+.mural-texto-overlay-nex {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483648;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.mural-texto-box-nex {
+  width: min(100%, 360px);
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+  box-sizing: border-box;
+}
+
+.mural-texto-input-nex {
+  width: 100%;
+  min-height: 100px;
+  max-height: 200px;
+  resize: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.mural-texto-input-nex:focus {
+  border-color: rgba(37, 99, 235, 0.6);
+}
+
+.mural-texto-actions-nex {
+  display: flex;
+  gap: 10px;
+}
+
+.mural-texto-cancelar-nex,
+.mural-texto-aplicar-nex {
+  flex: 1;
+  height: 46px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mural-texto-cancelar-nex {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.mural-texto-aplicar-nex {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+}
+
+.mural-texto-cancelar-nex:active,
+.mural-texto-aplicar-nex:active {
+  transform: scale(0.96);
+}
+
+.mural-texto-aplicar-nex:active {
+  filter: brightness(1.08);
+}
+/* ============================================
+   ELEMENTOS DE TEXTO NO CANVAS
+============================================ */
+
+.mural-texto-item-nex {
+  position: absolute;
+  padding: 4px 8px;
+  cursor: move;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  max-width: 80%;
+  z-index: 5;
+  transition: outline-color 0.15s ease;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.mural-texto-item-nex.selecionado {
+  outline-color: rgba(37, 99, 235, 0.7);
+  outline-style: dashed;
+}
+
+.mural-texto-conteudo-nex {
+  display: block;
+  font-family: 'Caveat', 'Comic Sans MS', cursive;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+}
+/* ============================================
+   ELEMENTOS DE FOTO (sticker) NO CANVAS
+============================================ */
+
+.mural-foto-item-nex {
+  position: absolute;
+  cursor: move;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  z-index: 5;
+  transition: outline-color 0.15s ease;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.mural-foto-item-nex.selecionado {
+  outline-color: rgba(37, 99, 235, 0.7);
+  outline-style: dashed;
+}
+
+.mural-foto-conteudo-nex {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  pointer-events: none;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+}
+/* ============================================
+   CANETA — cursor especial quando ativa
+============================================ */
+
+.mural-canvas-desenho-nex.ativo {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+/* ============================================
+   INDICADOR DE SELEÇÃO ATIVA (contorno animado)
+============================================ */
+
+.mural-texto-item-nex.selecionado,
+.mural-foto-item-nex.selecionado {
+  outline-color: rgba(37, 99, 235, 0.85);
+  outline-style: dashed;
+  animation: muralSelecaoPulseNex 1.4s ease-in-out infinite;
+}
+
+@keyframes muralSelecaoPulseNex {
+  0%, 100% {
+    outline-offset: 4px;
+  }
+  50% {
+    outline-offset: 7px;
+  }
+}
+/* ============================================
+   BOTÃO SALVAR — ESTADO DESABILITADO
+============================================ */
+
+.mural-btn-salvar-nex:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  color: #64748b;
+  box-shadow: none;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.mural-btn-salvar-nex:disabled:active {
+  transform: none;
+}
+
+/* ============================================
+   ELEMENTOS TRAVADOS (visual neutro)
+============================================ */
+
+.mural-texto-item-nex.travado,
+.mural-foto-item-nex.travado {
+  cursor: default;
+}
+
+.mural-texto-item-nex.travado:active,
+.mural-foto-item-nex.travado:active {
+  transform: none;
+}
+
+
+/* ============================================
+   MODAL DE CONFIRMAÇÃO — BOTÕES
+============================================ */
+
+#muralConfirmSairNex .mural-texto-box-nex {
+  max-width: 360px !important;
+  padding: 24px 20px !important;
+}
+
+#muralConfirmSairNex .mural-texto-actions-nex {
+  flex-direction: column !important;
+  gap: 12px !important;
+  margin-top: 8px !important;
+}
+
+#muralConfirmSairNex button {
+  width: 100% !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  border-radius: 18px !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  letter-spacing: 0.2px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transition: transform 0.14s ease, filter 0.15s ease, background 0.15s ease !important;
+}
+
+/* ─── SALVAR E SAIR — único botão cheio ─── */
+#muralConfirmSalvarSairNex {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28) !important;
+}
+
+#muralConfirmSalvarSairNex:active {
+  transform: scale(0.97) !important;
+  filter: brightness(1.08) !important;
+}
+
+/* ─── SAIR SEM SALVAR — alerta, mas contido ─── */
+#muralConfirmSairSemSalvarNex {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.28) !important;
+  box-shadow: none !important;
+}
+
+#muralConfirmSairSemSalvarNex:active {
+  transform: scale(0.97) !important;
+  background: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* ─── CONTINUAR EDITANDO — totalmente neutro ─── */
+#muralConfirmContinuarNex {
+  background: transparent !important;
+  color: #94a3b8 !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  font-weight: 700 !important;
+}
+
+#muralConfirmContinuarNex:active {
+  color: #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  transform: scale(0.97) !important;
+}
+
+#muralConfirmContinuarNex {
+  background: rgba(255, 255, 255, 0.03) !important;
+}

@@ -1,0 +1,64 @@
+/* ============================================
+   01-TOPBAR.CSS
+   Barra superior do app (app-topbar)
+============================================ */
+
+.app-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.app-topbar-text h1 {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.app-topbar-text p {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.btn-menu-global {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: #111827;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   TOPBAR ESPECÍFICA DO MY DROPS
+============================================ */
+
+.mydrops-topbar {
+  margin: 0 16px 8px;
+  padding-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mydrops-topbar .app-topbar-text h1 {
+  font-size: 24px;
+  line-height: 1;
+  margin: 0;
+  color: #fff;
+  font-weight: 900;
+}
+
+.mydrops-topbar .app-topbar-text p {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #94a3b8;
+}

@@ -1,0 +1,202 @@
+/* ============================================
+   04-NEX.CSS
+   Tela NEX: tabs, páginas, cards de conversa
+============================================ */
+
+.nex-wrap {
+  width: 100%;
+}
+
+/* ============================================
+   TABS
+============================================ */
+
+.nex-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.nex-tab {
+  height: 46px;
+  border-radius: 16px;
+  background: #111827;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.active-nex-tab {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* ============================================
+   PÁGINAS
+============================================ */
+
+.nex-page {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.active-nex-page {
+  display: flex;
+}
+
+/* ============================================
+   CARD DE CONVERSA
+============================================ */
+
+.nex-chat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #111827;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.nex-chat * {
+  pointer-events: none;
+}
+
+.nex-chat .msg-drop-preview-open,
+.nex-chat .msg-drop-preview-open *,
+.nex-chat .msg-drop-profile-btn,
+.nex-chat .msg-drop-profile-btn * {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Botões e elementos clicáveis dentro do card */
+.nex-chat button,
+.nex-chat a,
+.nex-chat input,
+.nex-chat textarea,
+.nex-chat select,
+.nex-chat label,
+.nex-chat iframe,
+.nex-chat video,
+.nex-chat audio,
+.nex-chat [role="button"],
+.nex-chat .msg-open-anexo-btn,
+.nex-chat .msg-open-midias-btn,
+.nex-chat .msg-open-album-btn,
+.nex-chat .msg-album-view-btn,
+.nex-chat .btn-fotos-open,
+.nex-chat .msg-midia-open,
+.nex-chat .msg-grid-item,
+.nex-chat .msg-album-cover,
+.nex-chat .msg-video-thumb,
+.nex-chat .msg-midia-thumb,
+.nex-chat .msg-media-thumb,
+.nex-chat .msg-media-item,
+.nex-chat .msg-media-preview,
+.nex-chat .midia-item-preview,
+.nex-chat .midia-click-preview,
+.nex-chat .midia-preview-click,
+.nex-chat .preview-midias-item,
+.nex-chat .preview-midia-item,
+.nex-chat .previewMidiasNex,
+.nex-chat .preview-midias,
+.nex-chat .midia-remove-btn,
+.nex-chat .viewer-arrow,
+.nex-chat .viewer-close,
+.nex-chat .viewer-comment-send,
+.nex-chat .viewer-reaction {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* ============================================
+   LADO ESQUERDO (AVATAR + INFO)
+============================================ */
+
+.nex-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nex-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ring-blue {
+  box-shadow: 0 0 0 3px #2563eb;
+}
+
+.nex-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nex-info h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nex-info p {
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 700;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================
+   LADO DIREITO (STATUS + HORA)
+============================================ */
+
+.nex-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.nex-right small {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.online-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+}
