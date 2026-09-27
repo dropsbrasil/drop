@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#050b18">
+  <title>Drops</title>
+
+  <!-- CSS DO APP — 15 MÓDULOS -->
+  <link rel="stylesheet" href="./css/00-base.css">
+  <link rel="stylesheet" href="./css/01-topbar.css">
+  <link rel="stylesheet" href="./css/02-mydrops.css">
+  <link rel="stylesheet" href="./css/03-nearby.css">
+  <link rel="stylesheet" href="./css/04-nex.css">
+  <link rel="stylesheet" href="./css/05-chat.css">
+  <link rel="stylesheet" href="./css/06-msg.css">
+  <link rel="stylesheet" href="./css/07-viewer.css">
+  <link rel="stylesheet" href="./css/08-perfil.css">
+  <link rel="stylesheet" href="./css/09-conectados.css">
+  <link rel="stylesheet" href="./css/10-nearby-viewer.css">
+  <link rel="stylesheet" href="./css/11-mydrops-viewer.css">
+  <link rel="stylesheet" href="./css/12-editor.css">
+  <link rel="stylesheet" href="./css/13-modais.css">
+  <link rel="stylesheet" href="./css/14-utils.css"> <link rel="stylesheet" href="./css/15-mural.css">
+</head>
+<body>
+
+<!-- ============================================
+     TELA: MY DROPS
+============================================ -->
+<section id="mydrops" class="screen active">
+  <div class="app-topbar mydrops-topbar">
+    <div class="app-topbar-text">
+      <h1>MyDrops</h1>
+      <p>Seu mundo começa aqui</p>
+    </div>
+
+    <button type="button" class="btn-menu-global" onclick="abrirPainelControleNex()">
+      ☰
+    </button>
+  </div>
+
+  <div class="mydrops-cover" id="mydropsCover"></div>
+
+  <div class="mydrops-profile-card">
+    <div class="mydrops-main-info">
+      <div class="mydrops-avatar-wrap">
+        <div class="mydrops-avatar" id="mydropsAvatarEl">?</div>
+      </div>
+
+      <div class="mydrops-name-wrap">
+        <h2 id="mydropsNomeUsuario">Carregando...</h2>
+        <p id="mydropsUsername">@carregando</p>
+      </div>
+    </div>
+
+    <div class="mydrops-stats">
+  <div class="mydrops-stat">
+    <span class="mydrops-stat-icon">👣</span>
+    <strong id="mydropsVisitasContador">0</strong>
+    <small>Visitas</small>
+  </div>
+
+  <div class="mydrops-stat">
+    <span class="mydrops-stat-icon">❤️</span>
+    <strong id="mydropsInteracoesContador">0</strong>
+    <small>Interações</small>
+  </div>
+
+  <div class="mydrops-stat">
+    <span class="mydrops-stat-icon">👑</span>
+    <strong id="mydropsAdeptosContador">0</strong>
+    <small>Adeptos</small>
+  </div>
+    </div>
+
+    <div class="perfil-bio mydrops-bio" id="mydropsBioEl">Sem bio ainda.</div>
+
+    <button type="button" class="mydrops-mural-card" id="btnAbrirMuralNex" onclick="abrirMuralNex()">
+  <span class="mydrops-mural-card-icone">📌</span>
+  <span class="mydrops-mural-card-texto">
+    <strong>Mural</strong>
+    <small>Escreva, desenhe, cole</small>
+  </span>
+  <span class="mydrops-mural-card-seta">→</span>
+    </button>
+    <div class="mydrops-mural">
+      <div class="mydrops-weather-fixed">
+        <div class="weather-location" id="weatherLocation">
+          Carregando endereço…
+        </div>
+      </div>
+    </div>
+
+    <div class="mydrops-tabs">
+      <button type="button" class="mydrops-tab active" data-tab="drops">Drops</button>
+      <button type="button" class="mydrops-tab" data-tab="conectados">Conectados</button>
+    </div>
+
+    <div class="mydrops-tab-panel active" data-panel="drops">
+      <div class="mydrops-action-row">
+        <button type="button" class="mydrops-action-btn" id="btnDropsMyDropsNex">📝 Notas</button>
+        <button type="button" class="mydrops-action-btn" id="btnFotoDropsMyDropsNex">Foto</button>
+        <button type="button" class="mydrops-action-btn" id="btnVideoDropsMyDropsNex">Vídeo</button>
+      </div>
+
+      <div class="mydrops-grid"></div>
+    </div>
+
+        <div class="mydrops-tab-panel" data-panel="conectados">
+      <div id="listaConectadosMyDropsNex"></div>
+    </div>
+  </div>
+</section>
+  
+<!-- ============================================
+     TELA: NEARBY
+============================================ -->
+<section id="nearby" class="screen">
+  <div class="app-topbar">
+    <div class="app-topbar-text">
+      <h1>Nearby</h1>
+      <p>Explore ao seu redor</p>
+    </div>
+
+    <button type="button" class="btn-menu-global" onclick="abrirPainelControleNex()">
+      ☰
+    </button>
+  </div>
+
+  <div class="nearby-feed-title">
+    <span>Publicações dos conectados</span>
+    <b>• Mais recentes</b>
+  </div>
+
+  <div class="nearby-stories">
+    <div class="story-card my-story" id="btnMinhasPublicacoesNearby">
+      <div class="story-bg"></div>
+      <div class="story-avatar">VC</div>
+      <h4>Minhas publicações</h4>
+    </div>
+  </div>
+
+  <div class="nearby-divider">
+    <span>Nearby</span>
+    <div class="line"></div>
+  </div>
+
+  <div class="nearby-grid"></div>
+</section>
+
+<!-- ============================================
+     TELA: NEX
+============================================ -->
+<section id="nex" class="screen">
+  <div class="nex-wrap">
+    <div class="app-topbar">
+      <div class="app-topbar-text">
+        <h1>NEX</h1>
+        <p>Seu novo jeito de se conectar</p>
+      </div>
+
+      <button type="button" class="btn-menu-global" onclick="abrirPainelControleNex()">
+        ☰
+      </button>
+    </div>
+
+    <div class="nex-tabs">
+      <button type="button" class="nex-tab active-nex-tab" onclick="abrirNexTab('naolidas')">Não lidas</button>
+      <button type="button" class="nex-tab" onclick="abrirNexTab('geral')">Geral</button>
+      <button type="button" class="nex-tab" onclick="abrirNexTab('conectados')">Conectados</button>
+    </div>
+
+    <div id="nex-naolidas" class="nex-page active-nex-page"></div>
+    <div id="nex-geral" class="nex-page"></div>
+    <div id="nex-conectados" class="nex-page"></div>
+  </div>
+</section>
+
+<!-- ============================================
+     TELA: CHAT NEX
+============================================ -->
+<section id="chatNex" class="screen">
+  <div class="chat-top">
+    <div class="chat-top-main">
+      <div class="chat-user-left">
+        <div class="chat-avatar" id="chatAvatar">J</div>
+        <div class="chat-user-meta">
+          <h3 id="chatName">Julia</h3>
+          <p id="chatBio">Explorando conexões reais e drops rápidos.</p>
+        </div>
+      </div>
+
+      <div class="chat-user-status-wrap">
+        <div class="chat-user-status" id="chatStatus">🟢 online</div>
+        <button type="button" class="chat-back-btn" onclick="voltarChatNex()">➥ Voltar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="chatMsgs" class="chat-body"></div>
+
+  <div class="chat-bottom">
+    <textarea id="chatInput" placeholder="📨 Digite uma mensagem" style="resize:none;"></textarea>
+
+    <div class="chat-actions">
+      <button id="micBtn" class="chat-action-btn" type="button" onclick="toggleGravacaoAudioNex()">
+        🎙️
+      </button>
+
+      <button id="btnAnexoNex" class="chat-action-btn btn-anexo" type="button" onclick="toggleMenuAnexoNex()">
+        📎
+      </button>
+
+      <button class="send-btn" type="button" onclick="enviarMsgNex()">
+        ⌯⌲
+      </button>
+    </div>
+  </div>
+
+  <div id="audioRecorderNex">
+    <div id="audioTempoNex">00:00</div>
+    <div class="audio-meter">
+      <div id="audioProgressNex" class="audio-meter-fill"></div>
+    </div>
+  </div>
+
+  <div id="previewStackNex">
+    <div id="previewRespostaNex"></div>
+    <div id="previewMidiasNex"></div>
+    <div id="previewLocalizacaoNex"></div>
+    <div id="audioInlineNex"></div>
+  </div>
+
+  <div id="albumModalNex" class="album-modal" style="display:none;">
+    <div class="album-modal-top">
+      <button type="button" class="album-close-btn" onclick="fecharAlbumNex()">✕</button>
+      <button type="button" class="album-trash-btn" onclick="toggleExcluirAlbumNex()">🗑️</button>
+      <div class="album-title">Meu Álbum</div>
+      <button type="button" class="album-add-btn" id="albumAddBtnNex" onclick="document.getElementById('inputAlbumNex')?.click()">+</button>
+      <button type="button" class="album-send-btn" onclick="enviarAlbumNex()">ᯓ➤</button>
+    </div>
+
+    <div class="album-grid" id="albumGridNex"></div>
+  </div>
+
+  <div id="menuAnexoNex" class="menu-anexo">
+    <button type="button" class="anexo-item" onclick="abrirCameraMenuNex()">
+      <span>📷</span>
+      <div>
+        <b>Câmeras</b>
+        <small>Foto / vídeo</small>
+      </div>
+    </button>
+
+    <button type="button" class="anexo-item" onclick="abrirAnexoNex('localizacao')">
+      <span>🚩</span>
+      <div>
+        <b>Localização</b>
+        <small>Enviar rota</small>
+      </div>
+    </button>
+
+    <button type="button" class="anexo-item" onclick="abrirAnexoNex('docs')">
+      <span>📃</span>
+      <div>
+        <b>Docs</b>
+        <small>Documento PDF</small>
+      </div>
+    </button>
+
+    <button type="button" class="anexo-item" onclick="abrirAlbumNex()">
+      <span>🎴</span>
+      <div>
+        <b>Álbum</b>
+        <small>Ver álbum</small>
+      </div>
+    </button>
+
+    <button type="button" class="anexo-item" onclick="abrirMidiasNex()">
+      <span>🖼️</span>
+      <div>
+        <b>Mídias</b>
+        <small>Foto / vídeo múltiplos</small>
+      </div>
+    </button>
+  </div>
+
+  <div id="menuCameraLateralNex" class="menu-camera-modal">
+    <button type="button" class="camera-item foto" onclick="abrirCameraFotoNex()">
+      📷 Foto
+    </button>
+
+    <button type="button" class="camera-item video" onclick="abrirCameraVideoNex()">
+      🎥 Vídeo
+    </button>
+  </div>
+
+  <input type="file" id="inputCameraFotoNex" accept="image/*" capture="environment" hidden>
+  <input type="file" id="inputCameraVideoNex" accept="video/*" capture="environment" hidden>
+  <input type="file" id="inputDocsNex" accept="application/pdf,.pdf" hidden>
+  <input type="file" id="inputAlbumNex" accept="image/*,video/*" multiple hidden>
+  <input type="file" id="inputMidiasNex" accept="image/*,video/*" multiple hidden>
+</section>
+
+<!-- ============================================
+     TELA: PERFIL VISITADO
+============================================ -->
+<section id="perfilVisitadoNex" class="screen">
+  <div class="perfil-hero">
+    <div class="perfil-capa" id="perfilCapaNex"></div>
+
+    <button type="button" class="perfil-btn-bloquear" id="btnBloquearPerfilNex">
+      🔒 Bloquear
+    </button>
+
+    <button type="button" class="perfil-btn-sair-lateral" onclick="voltarPerfilVisitadoNex()">
+      Voltar ➥
+    </button>
+  </div>
+
+  <div class="perfil-header">
+    <div class="perfil-avatar" id="perfilAvatarNex">J</div>
+
+    <div class="perfil-nome-area">
+      <h2 id="perfilNomeNex">Nome</h2>
+      <p id="perfilUsernameNex" class="perfil-username">@carregando</p>
+    </div>
+  </div>
+
+  <div class="perfil-bio" id="perfilBioNex"></div>
+
+<!-- Mural do perfil visitado -->
+<div class="perfil-mural-section" id="perfilMuralSectionNex">
+  <div class="perfil-mural-header">
+    <span class="perfil-mural-icone">📌</span>
+    <span class="perfil-mural-titulo" id="perfilMuralTituloNex">Mural</span>
+  </div>
+
+  <div class="perfil-mural-preview" id="perfilMuralPreviewNex">
+    <!-- miniaturas via JS -->
+  </div>
+
+  <button
+    type="button"
+    class="perfil-mural-btn"
+    id="perfilMuralBtnNex"
+  >
+    ✍️ Deixar sua marca →
+  </button>
+</div>
+
+<div class="perfil-social">
+    <button type="button">
+      <img src="./assets/instagram.png" alt="Instagram">
+    </button>
+
+    <button type="button">
+      <img src="./assets/tiktok.png" alt="TikTok">
+    </button>
+
+    <button type="button">
+      <img src="./assets/whatsapp.png" alt="WhatsApp">
+    </button>
+  </div>
+
+  <div class="perfil-acoes">
+    <button type="button" class="btn-conectar-perfil" id="btnConectarPerfilNex">
+      ➕ Conectar
+    </button>
+
+    <button type="button" class="btn-nex-perfil" id="btnAbrirChatPerfilNex">
+      📨 NEX
+    </button>
+  </div>
+
+  <div class="perfil-drops-titulo">
+    <img src="./assets/drops-icon.png" alt="Drops">
+    <span>DROPS</span>
+  </div>
+
+  <div class="perfil-drops-grid" id="perfilDropsGridNex"></div>
+</section>
+
+<!-- ============================================
+     TABBAR
+============================================ -->
+<nav class="tabbar">
+  <button type="button" class="tab active-tab" onclick="abrirTela('mydrops', 0)">My Drops</button>
+  <button type="button" class="tab" onclick="abrirTela('nearby', 1)">Nearby</button>
+  <button type="button" class="tab" onclick="abrirTela('nex', 2)">NEX</button>
+</nav>
+<!-- ============================================
+     MODAIS
+============================================ -->
+
+<!-- Menu de mensagem -->
+<div id="msgMenuNex" class="msg-menu-nex"></div>
+
+<!-- Modal de editar mensagem -->
+<div id="editarMsgModalNex" class="modal-msg-nex">
+  <div class="modal-msg-box modal-edicao-box">
+    <div class="modal-edicao-topo">
+      <button type="button" class="modal-edicao-fechar" onclick="fecharModalEdicaoNex()">Fechar</button>
+      <button type="button" id="btnConcluirEdicaoNex" class="modal-edicao-concluir" onclick="concluirEdicaoNex()" disabled>Concluir</button>
+    </div>
+
+    <textarea id="editarMsgInputNex" class="modal-edicao-textarea" placeholder="Edite sua mensagem" oninput="atualizarBotaoEdicaoNex()" autofocus></textarea>
+  </div>
+</div>
+
+<!-- Modal de apagar para todos -->
+<div id="confirmDeleteModalNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">Deseja apagar esta mensagem?</div>
+
+    <div class="modal-confirm-delete-actions">
+      <button type="button" class="btn-delete-cancel-nex" onclick="fecharConfirmDeleteNex()">Não</button>
+      <button type="button" class="btn-delete-confirm-nex" onclick="confirmarApagarMsgNex()">Sim</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de apagar pra mim -->
+<div id="confirmDeleteMeModalNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">Apagar mensagem só pra você?</div>
+
+    <div class="modal-confirm-delete-actions">
+      <button type="button" class="btn-delete-cancel-nex" onclick="fecharConfirmDeleteMeNex()">Não</button>
+      <button type="button" class="btn-delete-confirm-nex" onclick="confirmarApagarPraMimNex()">Sim</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de bloquear perfil -->
+<div id="bloquearPerfilModalNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">Deseja bloquear esta pessoa?</div>
+
+    <div class="modal-confirm-delete-actions">
+      <button type="button" class="btn-delete-cancel-nex" onclick="fecharModalBloquearPerfilNex()">Não</button>
+      <button type="button" class="btn-delete-confirm-nex" onclick="confirmarBloqueioPerfilNex()">Sim</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de bloqueando usuário -->
+<div id="bloqueandoUsuarioModalNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">Bloqueando usuário 🔒</div>
+  </div>
+</div>
+
+<!-- Modal de desbloquear -->
+<div id="modalDesbloquearNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">Deseja desbloquear este usuário?</div>
+
+    <div class="modal-confirm-delete-actions">
+      <button type="button" class="btn-delete-cancel-nex" onclick="fecharModalDesbloquearNex()">Não</button>
+      <button type="button" class="btn-delete-confirm-nex" onclick="confirmarDesbloqueioNex()">Sim</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Sobre o App -->
+<div id="modalSobreAppNex" class="sobre-app-overlay-nex" style="display:none;">
+  <div class="sobre-app-box-nex">
+    <button
+      type="button"
+      class="sobre-app-fechar-nex"
+      onclick="fecharSobreAppNex()"
+    >
+      ✕
+    </button>
+
+    <div class="sobre-app-topo-nex">
+      <img src="./assets/drops-icon.png" alt="Drops" class="sobre-app-logo-nex">
+      <h2 class="sobre-app-titulo-nex">Drops</h2>
+      <p class="sobre-app-tagline-nex">Proximidade e conexão</p>
+    </div>
+
+    <div class="sobre-app-divisor-nex"></div>
+
+    <p class="sobre-app-descricao-nex">
+      Descubra quem está por perto. Compartilhe o que importa.
+    </p>
+
+    <div class="sobre-app-divisor-nex"></div>
+
+    <div class="sobre-app-links-nex">
+  <button
+    type="button"
+    class="sobre-app-link-nex"
+    onclick="abrirDocSobreNex('novidades')"
+  >
+    <span class="sobre-app-link-icone-nex">✨</span>
+    <span class="sobre-app-link-texto-nex">Novidades da versão</span>
+    <span class="sobre-app-link-seta-nex">→</span>
+  </button>
+
+  <button
+    type="button"
+    class="sobre-app-link-nex"
+    onclick="abrirDocSobreNex('termos')"
+  >
+    <span class="sobre-app-link-icone-nex">📄</span>
+    <span class="sobre-app-link-texto-nex">Termos de Uso</span>
+    <span class="sobre-app-link-seta-nex">→</span>
+  </button>
+
+      <button
+        type="button"
+        class="sobre-app-link-nex"
+        onclick="abrirDocSobreNex('privacidade')"
+      >
+        <span class="sobre-app-link-icone-nex">🔒</span>
+        <span class="sobre-app-link-texto-nex">Privacidade</span>
+        <span class="sobre-app-link-seta-nex">→</span>
+      </button>
+
+      <button
+        type="button"
+        class="sobre-app-link-nex"
+        onclick="abrirSuporteSobreNex()"
+      >
+        <span class="sobre-app-link-icone-nex">💬</span>
+        <span class="sobre-app-link-texto-nex">Suporte</span>
+            <span class="sobre-app-link-seta-nex">→</span>
+  </button>
+</div>
+
+<div class="sobre-app-divisor-nex"></div>
+
+    <div class="sobre-app-rodape-nex">
+      <p class="sobre-app-versao-nex">Versão 1.0.0</p>
+      <p class="sobre-app-copy-nex">© 2026 Drops</p>
+      <p class="sobre-app-dev-nex">Desenvolvido por JQ Marques</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Documento (Termos / Privacidade) -->
+<div id="modalDocSobreNex" class="doc-sobre-overlay-nex" style="display:none;">
+  <div class="doc-sobre-box-nex">
+    <div class="doc-sobre-topo-nex">
+      <h3 id="docSobreTituloNex" class="doc-sobre-titulo-nex">Documento</h3>
+      <button
+        type="button"
+        class="doc-sobre-fechar-nex"
+        onclick="fecharDocSobreNex()"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div id="docSobreCorpoNex" class="doc-sobre-corpo-nex"></div>
+
+    <button
+      type="button"
+      class="doc-sobre-ok-nex"
+      onclick="fecharDocSobreNex()"
+    >
+      Entendi
+    </button>
+  </div>
+</div>
+
+<!-- Modal sair da conta -->
+<div id="modalSairContaNex" class="modal-sair-conta-nex" style="display:none;">
+  <div class="modal-sair-conta-box">
+    <div class="modal-sair-conta-icon">🚪</div>
+    <h2 class="modal-sair-conta-titulo">Sair da conta?</h2>
+    <p class="modal-sair-conta-subtitulo">Você vai precisar entrar novamente com seu e-mail para acessar o Drops.</p>
+
+    <div class="modal-sair-conta-actions">
+      <button type="button" class="btn-sair-cancelar" id="btnCancelarSairNex">Cancelar</button>
+      <button type="button" class="btn-sair-confirmar" id="btnConfirmarSairNex">🚪 Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- Painel de controle -->
+<div id="painelControleNex" class="controle-overlay-nex" style="display:none;">
+  <div class="controle-modal-nex">
+    <div class="controle-topo-nex">
+      <div class="controle-topo-esquerda-nex">
+        <div class="controle-avatar-nex" id="controleAvatarNex">J</div>
+        <div class="controle-user-nex">
+          <h3 id="controleNomeNex">Nome da pessoa</h3>
+        </div>
+      </div>
+
+      <button type="button" class="controle-fechar-nex" onclick="fecharPainelControleNex()">✕</button>
+    </div>
+
+    <div class="controle-bloco-nex">
+  <h4>👤 Meu perfil</h4>
+  <button type="button" id="btnEditarNomeNex">Editar nome</button>
+  <button type="button" id="btnEditarAvatarNex">Editar avatar</button>
+  <button type="button" id="btnEditarBioNex">Editar bio</button>
+      <button type="button" id="btnEditarCapaNex">Editar capa</button>
+        <button type="button" id="btnEditarSocialNex">Editar social</button>
+</div>
+
+<div class="controle-bloco-nex">
+  <h4>🔒 Segurança</h4>
+      <button type="button" id="btnBloqueadosNex">🔐 Bloqueados</button>
+      <button type="button" id="btnDesconectadosNex">⛓️‍💥 Desconectou</button>
+    </div>
+
+    <div class="controle-bloco-nex">
+      <h4>👑 Adeptos</h4>
+      <button type="button" id="btnMeusAdeptosNex">👑 Meus Adeptos</button>
+    </div>
+
+    <div class="controle-bloco-nex">
+<h4>⚙️ Sistema</h4>
+<button type="button" id="btnLimparPerfilNex">🧹 Limpar perfil</button>
+<button type="button" id="btnSobreAppNex">ℹ️ Sobre o app</button>
+            <button type="button" onclick="sairDaContaNex()">🚪 Sair da conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Painel Meus Adeptos -->
+<div id="painelMeusAdeptosNex" class="adeptos-overlay-nex" style="display:none;">
+  <div class="adeptos-modal-nex">
+    <div class="adeptos-topo-nex">
+      <h3>👑 Meus Adeptos</h3>
+      <button type="button" class="adeptos-fechar-nex" onclick="fecharMeusAdeptosNex()">✕</button>
+    </div>
+
+    <p class="adeptos-descricao-nex">
+      São as pessoas que te salvaram em Conectados e interagiram pelo menos <strong>15 vezes</strong> nos últimos <strong>30 dias</strong>.
+    </p>
+
+    <div id="listaMeusAdeptosNex" class="lista-adeptos-nex"></div>
+  </div>
+</div>
+
+<!-- Painel Bloqueados -->
+<div id="painelBloqueadosNex" class="bloqueados-overlay-nex" style="display:none;">
+  <div class="bloqueados-modal-nex">
+    <div class="bloqueados-topo-nex">
+      <h3>🔐 Bloqueados</h3>
+      <button type="button" class="bloqueados-fechar-nex" onclick="fecharBloqueadosNex()">✕</button>
+    </div>
+
+    <div id="listaBloqueadosNex" class="lista-bloqueados-nex"></div>
+  </div>
+</div>
+
+<!-- Painel Desconectados -->
+<div id="painelDesconectadosNex" class="desconectados-overlay-nex" style="display:none;">
+  <div class="desconectados-modal-nex">
+    <div class="desconectados-topo-nex">
+      <h3>⛓️‍💥 Desconectou</h3>
+      <button type="button" class="desconectados-fechar-nex" onclick="fecharDesconectadosNex()">✕</button>
+    </div>
+
+    <div id="listaDesconectadosNex" class="lista-desconectados-nex"></div>
+  </div>
+</div>
+
+<!-- ============================================
+     MODAL DO MURAL
+============================================ -->
+<div id="modalMuralNex" class="mural-overlay-nex" style="display:none;">
+
+  <div class="mural-janela-nex">
+
+<!-- ─── TOPO: título + ferramentas + fechar ─── -->
+<div class="mural-topo-nex">
+  <span class="mural-topo-titulo-nex">📌 Mural</span>
+
+  <div class="mural-topo-ferramentas-nex">
+    <button
+      type="button"
+      class="mural-ferramenta-nex"
+      id="muralBtnTextoNex"
+      data-ferramenta="texto"
+      aria-label="Texto / Emoji"
+    >
+      T/😎
+    </button>
+
+    <button
+      type="button"
+      class="mural-ferramenta-nex"
+      id="muralBtnCanetaNex"
+      data-ferramenta="caneta"
+      aria-label="Canetinha"
+    >
+      🖍️
+    </button>
+
+    <button
+      type="button"
+      class="mural-ferramenta-nex"
+      id="muralBtnFotoNex"
+      data-ferramenta="foto"
+      aria-label="Foto"
+    >
+      🖼️
+    </button>
+
+    <button
+  type="button"
+  class="mural-topo-fechar-nex"
+  aria-label="Fechar"
+>
+  ✕
+    </button>
+  </div>
+</div>
+    
+    <!-- ─── ÁREA DO MURAL (canvas) ─── -->
+    <div class="mural-area-wrap-nex">
+
+      <!-- Canvas scrollável -->
+      <div class="mural-canvas-scroll-nex" id="muralScrollNex">
+        <div class="mural-canvas-nex" id="muralCanvasNex">
+
+          <!-- Camada de desenho (canvas HTML5) -->
+          <canvas class="mural-canvas-desenho-nex" id="muralDesenhoNex"></canvas>
+
+          <!-- Camada de elementos (textos, emojis, fotos) -->
+          <div class="mural-camada-elementos-nex" id="muralCamadaElementosNex"></div>
+
+          <!-- Aviso de limite inferior -->
+          <div class="mural-limite-nex" id="muralLimiteInferiorNex">
+            ✋ Você chegou ao limite
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Aviso de limite superior -->
+      <div class="mural-limite-topo-nex" id="muralLimiteSuperiorNex">
+        ✋ Você chegou ao limite
+      </div>
+
+      <!-- Setas de rolagem (DIREITA) -->
+      <div class="mural-setas-nex">
+        <button
+          type="button"
+          class="mural-seta-nex"
+          id="muralSetaCimaNex"
+          aria-label="Subir"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          class="mural-seta-nex"
+          id="muralSetaBaixoNex"
+          aria-label="Descer"
+        >
+          ▼
+        </button>
+      </div>
+
+      <!-- Paleta de cores (aparece só quando caneta ativa) -->
+      <div class="mural-paleta-nex" id="muralPaletaNex" style="display:none;">
+        <button type="button" class="mural-cor-nex" data-cor="#1f2937" style="background:#1f2937;"></button>
+        <button type="button" class="mural-cor-nex" data-cor="#ef4444" style="background:#ef4444;"></button>
+        <button type="button" class="mural-cor-nex" data-cor="#f59e0b" style="background:#f59e0b;"></button>
+        <button type="button" class="mural-cor-nex" data-cor="#22c55e" style="background:#22c55e;"></button>
+        <button type="button" class="mural-cor-nex" data-cor="#3b82f6" style="background:#3b82f6;"></button>
+        <button type="button" class="mural-cor-nex" data-cor="#8b5cf6" style="background:#8b5cf6;"></button>
+        <button type="button" class="mural-cor-nex" data-cor="#ec4899" style="background:#ec4899;"></button>
+      </div>
+
+<!-- Toolbar de seleção (aparece só quando elemento selecionado) -->
+<div class="mural-controles-selecao-nex" id="muralControlesSelecaoNex" style="display:none;">
+  <button type="button" class="mural-ctrl-btn-nex" id="muralBtnMenosNex" aria-label="Diminuir">−</button>
+  <button type="button" class="mural-ctrl-btn-nex" id="muralBtnMaisNex" aria-label="Aumentar">+</button>
+  <button type="button" class="mural-ctrl-btn-nex" id="muralBtnGirarNex" aria-label="Girar horário">↻</button>
+  <button type="button" class="mural-ctrl-btn-nex" id="muralBtnGirarInversoNex" aria-label="Girar anti-horário">↺</button>
+  <button type="button" class="mural-ctrl-btn-nex danger" id="muralBtnLixeiraNex" aria-label="Excluir">🗑️</button>
+</div>
+
+    </div>
+
+    <!-- ─── RODAPÉ: salvar ─── -->
+    <div class="mural-rodape-nex">
+      <button
+        type="button"
+        class="mural-btn-salvar-nex"
+        id="muralBtnSalvarNex"
+      >
+        Salvar arte
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Input escondido para foto do mural -->
+<input type="file" id="muralInputFotoNex" accept="image/*" hidden>
+
+  <!-- Modal — Mural em breve (perfil visitado) -->
+<div id="perfilMuralEmBreveNex" class="mural-texto-overlay-nex" style="display:none;">
+  <div class="mural-texto-box-nex">
+    <div style="text-align:center;padding:8px 0;">
+      <div style="font-size:44px;margin-bottom:12px;">🎨</div>
+      <h3 style="color:#fff;font-size:19px;font-weight:900;margin:0 0 10px;">
+        Deixe sua marca no mural
+      </h3>
+      <p style="color:#94a3b8;font-size:14px;line-height:1.5;margin:0 0 20px;">
+        Em breve você poderá rabiscar, escrever e colar fotos no mural de quem você visita. A gente está preparando isso com carinho.
+      </p>
+
+      <button
+        type="button"
+        class="perfil-mural-btn"
+        id="perfilMuralEmBreveOkNex"
+      >
+        Entendi
+      </button>
+    </div>
+  </div>
+</div>
+
+  <!-- Modal de Confirmação — Sair do Mural sem Salvar -->
+<div id="muralConfirmSairNex" class="mural-texto-overlay-nex" style="display:none;">
+  <div class="mural-texto-box-nex">
+    <h3 style="color:#fff;font-size:18px;font-weight:900;margin:0 0 8px;text-align:center;">
+      Sair sem salvar?
+    </h3>
+    <p style="color:#94a3b8;font-size:14px;line-height:1.45;margin:0 0 16px;text-align:center;">
+      Você adicionou coisas novas que ainda não foram salvas. Se sair agora, essas alterações serão perdidas.
+    </p>
+
+    <div class="mural-texto-actions-nex" style="flex-direction:column;gap:8px;">
+      <button type="button" class="mural-texto-aplicar-nex" id="muralConfirmSalvarSairNex">
+        Salvar e sair
+      </button>
+      <button type="button" class="mural-texto-cancelar-nex" id="muralConfirmSairSemSalvarNex" style="background:rgba(239,68,68,0.18);color:#fca5a5;">
+        Sair sem salvar
+      </button>
+      <button type="button" class="mural-texto-cancelar-nex" id="muralConfirmContinuarNex" style="background:transparent;">
+        Continuar editando
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal do balão de texto do mural -->
+<div id="muralModalTextoNex" class="mural-texto-overlay-nex" style="display:none;">
+  <div class="mural-texto-box-nex">
+    <textarea
+      id="muralTextoInputNex"
+      class="mural-texto-input-nex"
+      placeholder="Escreva algo..."
+      maxlength="200"
+    ></textarea>
+
+    <div class="mural-texto-actions-nex">
+      <button type="button" class="mural-texto-cancelar-nex" id="muralTextoCancelarNex">
+        Cancelar
+      </button>
+      <button type="button" class="mural-texto-aplicar-nex" id="muralTextoAplicarNex">
+        Aplicar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação — Limpar Perfil -->
+<div id="confirmLimparPerfilModalNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">
+      Tem certeza? Isso vai apagar <strong>foto de capa</strong>, <strong>foto de perfil</strong>, <strong>bio</strong> e <strong>todas as publicações</strong>. Não dá pra desfazer.
+    </div>
+
+    <div class="modal-confirm-delete-actions">
+      <button
+        type="button"
+        class="btn-delete-cancel-nex"
+        onclick="fecharConfirmLimparPerfilNex()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-delete-confirm-nex"
+        onclick="confirmarLimparPerfilNex()"
+      >
+        Apagar tudo
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmação — Mudança de Nome -->
+<div id="confirmNomeModalNex" class="modal-msg-nex" style="display:none;">
+  <div class="modal-msg-box">
+    <div class="modal-confirm-delete-title">
+      Após salvar, você só poderá mudar o nome novamente em <strong>30 dias</strong>. Deseja continuar?
+    </div>
+
+    <div class="modal-confirm-delete-actions">
+      <button
+        type="button"
+        class="btn-delete-cancel-nex"
+        onclick="fecharConfirmNomeNex()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-delete-confirm-nex"
+        onclick="confirmarSalvarNomeNex()"
+      >
+                Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Nome -->
+      
+<div class="mydrops-bio-modal" id="nomeModal">
+  <div class="mydrops-bio-box">
+    <h3>Editar nome</h3>
+
+    <input
+      type="text"
+      id="inputNomeNex"
+      class="nome-edit-input-nex"
+      maxlength="40"
+      placeholder="Seu nome"
+      autocomplete="name"
+    >
+
+    <p id="nomeAjudaNex" class="nome-edit-ajuda-nex">
+      Letras, números e até 2 emojis. Máx. 3 palavras.
+    </p>
+
+    <p id="nomeCooldownNex" class="nome-edit-cooldown-nex"></p>
+
+    <div class="mydrops-bio-actions">
+      <button type="button" id="cancelarNomeNex">Cancelar</button>
+      <button type="button" id="salvarNomeNex">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Bio -->
+<div class="mydrops-bio-modal" id="bioModal">
+  <div class="mydrops-bio-box">
+    <h3>Editar bio</h3>
+
+    <div class="bio-toolbar">
+      <button type="button" class="bio-align-btn" data-align="left">⍇</button>
+      <button type="button" class="bio-align-btn" data-align="center">⍗</button>
+      <button type="button" class="bio-align-btn" data-align="right">⍈</button>
+    </div>
+
+    <textarea id="inputBioNex" maxlength="190" placeholder="Escreva algo sobre você..."></textarea>
+
+    <div class="mydrops-bio-actions">
+      <button type="button" id="cancelarBioNex">Cancelar</button>
+      <button type="button" id="salvarBioNex">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Social -->
+<div class="social-modal-nex" id="socialModalNex">
+  <div class="social-box-nex">
+    <h3>Editar social</h3>
+
+    <label for="inputInstagramNex">Instagram</label>
+    <input type="text" id="inputInstagramNex" placeholder="https://instagram.com/seuperfil">
+
+    <label for="inputTiktokNex">TikTok</label>
+    <input type="text" id="inputTiktokNex" placeholder="https://tiktok.com/@seuperfil">
+
+    <label for="inputWhatsappNex">WhatsApp</label>
+    <input type="text" id="inputWhatsappNex" placeholder="https://wa.me/55...">
+
+    <div class="social-actions-nex">
+      <button type="button" id="cancelarSocialNex">Cancelar</button>
+      <button type="button" id="salvarSocialNex">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inputs de capa e avatar -->
+<input type="file" id="inputCapaNex" accept="image/*" hidden>
+<input type="file" id="inputAvatarNex" accept="image/*" hidden>
+<!-- ============================================
+     CÂMERA E EDITORES DO MY DROPS
+============================================ -->
+
+<!-- Câmera MyDrops -->
+<div id="cameraMyDropsOverlayNex" class="camera-mydrops-overlay-nex" style="display:none;">
+  <video id="cameraMyDropsPreviewNex" autoplay playsinline muted></video>
+
+  <div class="camera-mydrops-topo-nex">
+    <div id="cameraMyDropsTimerNex" class="camera-mydrops-timer-nex">00:00</div>
+  </div>
+
+  <button type="button" id="cameraMyDropsSwitchNex" class="camera-mydrops-switch-nex">🔄</button>
+  <button type="button" id="cameraMyDropsRecordNex" class="camera-mydrops-record-nex"></button>
+</div>
+
+<!-- Editor de vídeo MyDrops -->
+<div id="videoEditorMyDropsNex" class="video-editor-mydrops-nex" style="display:none;">
+  <video id="videoEditorPreviewMyDropsNex" autoplay playsinline muted></video>
+
+  <button type="button" id="videoEditorSairMyDropsNex" class="video-editor-sair-mydrops-nex">
+    Sair ➜
+  </button>
+
+  <div id="videoEditorLayerMyDropsNex" class="video-editor-layer-mydrops-nex"></div>
+
+  <button type="button" id="videoEditorLoopMyDropsNex" class="video-editor-loop-mydrops-nex">ᦠ</button>
+
+  <div id="videoEditorLegendaRowMyDropsNex" class="video-editor-legenda-row-mydrops-nex">
+    <div id="videoEditorLegendaMyDropsNex" class="video-editor-legenda-mydrops-nex">
+      <textarea id="legendaVideoMyDropsInput" class="video-editor-legenda-input" maxlength="500" placeholder="✍🏼 Escreva uma legenda (máx. 500 caracteres)..."></textarea>
+      <span id="legendaVideoContadorMyDrops" class="video-editor-legenda-contador">0/500</span>
+    </div>
+
+    <button type="button" id="videoEditorPublishMyDropsNex" class="video-editor-publish-mydrops-nex">
+      Publicar
+    </button>
+  </div>
+</div>
+
+<!-- Modal de texto -->
+<div id="modalTextoMyDropsNex" class="hidden">
+  <div class="modal-texto-box">
+    <div class="modal-topo-texto">
+      <button class="btn-align-texto" data-align="left">⍇</button>
+      <button class="btn-align-texto active" data-align="center">⍗</button>
+      <button class="btn-align-texto" data-align="right">⍈</button>
+    </div>
+
+    <div id="inputTextoMyDropsNex" class="modal-texto-editavel" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Toque para editar"></div>
+
+    <div class="modal-cores-texto">
+      <button class="modal-cor-btn" style="background:#ffffff;" data-cor="#ffffff"></button>
+      <button class="modal-cor-btn" style="background:#000000;" data-cor="#000000"></button>
+      <button class="modal-cor-btn" style="background:#ff0000;" data-cor="#ff0000"></button>
+      <button class="modal-cor-btn" style="background:#2563eb;" data-cor="#2563eb"></button>
+      <button class="modal-cor-btn" style="background:#16a34a;" data-cor="#16a34a"></button>
+      <button class="modal-cor-btn" style="background:#f59e0b;" data-cor="#f59e0b"></button>
+      <button class="modal-cor-btn" style="background:#8b5cf6;" data-cor="#8b5cf6"></button>
+      <button class="modal-cor-btn" style="background:#ec4899;" data-cor="#ec4899"></button>
+    </div>
+
+    <div class="modal-estilo-texto">
+      <div class="modal-tamanho">
+        <button id="tamanhoMenosTexto">−</button>
+        <span id="tamanhoValorTexto">24</span>
+        <button id="tamanhoMaisTexto">+</button>
+      </div>
+
+      <div class="modal-estilo-botoes">
+        <button id="estiloNegritoTexto"><b>B</b></button>
+        <button id="estiloItalicoTexto"><i>I</i></button>
+        <button id="estiloNormalTexto">N</button>
+      </div>
+    </div>
+
+    <div class="modal-footer-texto">
+      <button id="cancelarTextoMyDropsNex">Cancelar</button>
+      <button id="aplicarTextoMyDropsNex">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Fundo -->
+<div id="modalFundoMyDropsNex" class="hidden">
+  <div class="modal-fundo-box">
+    <div class="modal-fundo-titulo">🎨 Escolha o fundo</div>
+
+    <div class="modal-fundo-opcoes">
+      <button type="button" class="modal-fundo-btn" id="fundoCoresBtn">
+        <span>🎨</span> Cores
+      </button>
+      <button type="button" class="modal-fundo-btn" id="fundoGaleriaBtn">
+        <span>🖼️</span> Galeria
+      </button>
+    </div>
+
+    <div class="modal-fundo-cores" id="fundoPaletaCores" style="display:none;">
+      <div class="fundo-cores-grid">
+        <button class="fundo-cor" style="background:#ffffff;" data-cor="#ffffff"></button>
+        <button class="fundo-cor" style="background:#000000;" data-cor="#000000"></button>
+        <button class="fundo-cor" style="background:#ff0000;" data-cor="#ff0000"></button>
+        <button class="fundo-cor" style="background:#00ff00;" data-cor="#00ff00"></button>
+        <button class="fundo-cor" style="background:#0000ff;" data-cor="#0000ff"></button>
+        <button class="fundo-cor" style="background:#ffff00;" data-cor="#ffff00"></button>
+        <button class="fundo-cor" style="background:#ff00ff;" data-cor="#ff00ff"></button>
+        <button class="fundo-cor" style="background:#00ffff;" data-cor="#00ffff"></button>
+        <button class="fundo-cor" style="background:#ff8800;" data-cor="#ff8800"></button>
+        <button class="fundo-cor" style="background:#88ff00;" data-cor="#88ff00"></button>
+        <button class="fundo-cor" style="background:#0088ff;" data-cor="#0088ff"></button>
+        <button class="fundo-cor" style="background:#ff0088;" data-cor="#ff0088"></button>
+        <button class="fundo-cor" style="background:#8800ff;" data-cor="#8800ff"></button>
+        <button class="fundo-cor" style="background:#00ff88;" data-cor="#00ff88"></button>
+        <button class="fundo-cor" style="background:#ff4444;" data-cor="#ff4444"></button>
+        <button class="fundo-cor" style="background:#44ff44;" data-cor="#44ff44"></button>
+        <button class="fundo-cor" style="background:#4444ff;" data-cor="#4444ff"></button>
+        <button class="fundo-cor" style="background:#888888;" data-cor="#888888"></button>
+        <button class="fundo-cor" style="background:#ffcc00;" data-cor="#ffcc00"></button>
+        <button class="fundo-cor" style="background:#cc00ff;" data-cor="#cc00ff"></button>
+      </div>
+
+      <input type="color" id="fundoColorPicker" value="#08111f">
+    </div>
+
+    <div class="modal-fundo-galeria" id="fundoGaleriaPreview" style="display:none;">
+      <div class="fundo-galeria-vazio" id="fundoGaleriaVazio">
+        Nenhuma imagem selecionada
+      </div>
+
+      <div class="fundo-galeria-preview" id="fundoGaleriaPreviewImg" style="display:none;">
+        <img id="fundoPreviewImagem" src="" alt="Preview do fundo">
+        <button type="button" class="fundo-remover-img" id="fundoRemoverImagem">✕ Remover</button>
+      </div>
+    </div>
+
+    <input type="file" id="fundoGaleriaInput" accept="image/*" hidden>
+
+    <div class="modal-fundo-actions">
+      <button type="button" id="fundoCancelarBtn">Cancelar</button>
+      <button type="button" id="fundoAplicarBtn">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Duração -->
+<div id="modalDuracaoPublicacaoMyDropsNex" class="hidden">
+  <div class="modal-duracao-box">
+    <div class="modal-duracao-titulo">⏰ Duração da publicação</div>
+
+    <div class="modal-duracao-opcoes">
+      <label class="modal-duracao-opcao">
+        <input type="radio" name="duracaoPublicacaoMyDropsNex" value="12h">
+        <span>12 horas</span>
+      </label>
+
+      <label class="modal-duracao-opcao">
+        <input type="radio" name="duracaoPublicacaoMyDropsNex" value="24h" checked>
+        <span>24 horas</span>
+      </label>
+
+      <label class="modal-duracao-opcao">
+        <input type="radio" name="duracaoPublicacaoMyDropsNex" value="permanente">
+        <span>Permanente</span>
+      </label>
+
+      <label class="modal-duracao-opcao">
+        <input type="radio" name="duracaoPublicacaoMyDropsNex" value="custom">
+        <span>Personalizado</span>
+      </label>
+    </div>
+
+    <div id="duracaoPersonalizadaWrapMyDropsNex" class="modal-duracao-personalizado">
+      <span>Digite a quantidade de dias</span>
+      <input type="number" id="inputDuracaoDiasMyDropsNex" min="1" max="365" placeholder="1 a 365">
+      <span>dias</span>
+    </div>
+
+    <div class="modal-footer-duracao">
+      <button type="button" id="cancelarDuracaoPublicacaoMyDropsNex">
+        Cancelar
+      </button>
+
+      <button type="button" id="concluirDuracaoPublicacaoMyDropsNex">
+        Concluir
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Canvas escondido para renderizar vídeo com texto -->
+<canvas id="videoRenderCanvasMyDropsNex" style="display:none;"></canvas>
+
+
+<!-- ============================================
+     LIBS EXTERNAS
+============================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
+
+<!-- ============================================
+     JS DO APP — 15 MÓDULOS
+============================================ -->
+<script src="./js/00-config.js"></script>
+<script src="./js/17-adapters.js"></script>
+<script src="./js/01-auth.js"></script>
+<script src="./js/02-ui.js"></script>
+<script src="./js/03-utils.js"></script>
+<script src="./js/04-conversas.js"></script>
+<script src="./js/05-nex-chat.js"></script>
+<script src="./js/06-nex-midia.js"></script>
+<script src="./js/07-nex-album.js"></script>
+<script src="./js/08-perfil.js"></script>
+<script src="./js/09-conectados.js"></script>
+<script src="./js/18-sobre.js"></script>
+<script src="./js/10-adeptos.js"></script>
+<script src="./js/11-nearby.js"></script>
+<script src="./js/12-mydrops.js"></script>
+<script src="./js/13-editor.js"></script>
+<script src="./js/15-reacoes.js"></script>
+<script src="./js/16-visitas.js"></script>
+<script src="./js/19-mural.js"></script>
+<script src="./js/14-init.js"></script>
+
+<!-- Script de selos (por último) -->
+<script src="./js/selos.js"></script>
+
+</body>
+</html>

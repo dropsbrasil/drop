@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#050b18">
+  <title>Drops</title>
+  <link rel="stylesheet" href="./css/onboarding.css">
+</head>
+<body>
+
+<section id="onb-tela-splash" class="onb-tela onb-ativa">
+  <div class="onb-splash-wrap">
+    <div class="onb-foto-wrap">
+      <img src="./assets/drops-icon.png" alt="Drops" class="onb-foto">
+    </div>
+    <h1 class="onb-splash-nome">
+      <span class="onb-letra" style="--atraso: 0.8s">D</span><span class="onb-letra" style="--atraso: 1.0s">r</span><span class="onb-letra" style="--atraso: 1.2s">o</span><span class="onb-letra" style="--atraso: 1.4s">p</span><span class="onb-letra" style="--atraso: 1.6s">s</span>
+    </h1>
+    <p class="onb-splash-tagline">Proximidade e conexão</p>
+  </div>
+</section>
+
+<section id="onb-tela-carrossel" class="onb-tela">
+  <div class="onb-carrossel-wrap">
+    <div class="onb-carrossel-slides" id="onbCarrosselSlides">
+
+      <div class="onb-slide onb-slide-ativo" data-slide="0">
+        <div class="onb-slide-ilustracao">📡</div>
+        <h2 class="onb-slide-titulo">Proximidade e conexão</h2>
+        <p class="onb-slide-descricao">
+          Descubra quem está perto mesmo estando longe.
+        </p>
+      </div>
+
+      <div class="onb-slide" data-slide="1">
+        <div class="onb-slide-ilustracao">🌍</div>
+        <h2 class="onb-slide-titulo">Seu feed é o seu bairro</h2>
+        <p class="onb-slide-descricao">
+          Veja drops de quem está por perto. Curta, comente, conecte-se.
+        </p>
+      </div>
+
+      <div class="onb-slide" data-slide="2">
+        <div class="onb-slide-ilustracao">💬</div>
+        <h2 class="onb-slide-titulo">Converse com quem importa</h2>
+        <p class="onb-slide-descricao">
+          Mande mensagens, áudios, fotos, localização. Tudo em um só lugar.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="onb-carrossel-indicador" id="onbIndicador">
+      <span class="onb-ponto onb-ponto-ativo" data-ponto="0"></span>
+      <span class="onb-ponto" data-ponto="1"></span>
+      <span class="onb-ponto" data-ponto="2"></span>
+    </div>
+
+    <button type="button" class="onb-btn-principal" id="onbBtnProximo" onclick="onbProximoSlide()">
+      Próximo
+    </button>
+  </div>
+</section>
+
+<section id="onb-tela-cadastro" class="onb-tela">
+  <button type="button" class="onb-btn-voltar" onclick="onbVoltar()">← Voltar</button>
+
+  <div class="onb-conteudo">
+
+    <div class="onb-cadastro-topo">
+      <img src="./assets/drops-icon.png" alt="Drops" class="onb-cadastro-icone">
+      <h2 class="onb-cadastro-titulo">Vamos criar sua conta</h2>
+      <p class="onb-cadastro-subtitulo">Só o essencial pra começar.</p>
+    </div>
+
+    <form class="onb-form" id="onbFormCadastro" onsubmit="event.preventDefault(); onbFinalizarCadastro();">
+
+      <div class="onb-campo">
+        <label class="onb-label" for="onbInputNome">Nome do usuário</label>
+        <input
+          type="text"
+          id="onbInputNome"
+          class="onb-input"
+          placeholder="JQ Marques"
+          autocomplete="name"
+          maxlength="40"
+        >
+        <p class="onb-ajuda" id="onbAjudaNome">
+          Letras, números e até 2 emojis. Máx. 3 palavras.
+        </p>
+      </div>
+
+      <div class="onb-campo">
+        <label class="onb-label" for="onbInputNascimento">Data de nascimento</label>
+        <input
+          type="text"
+          id="onbInputNascimento"
+          class="onb-input"
+          placeholder="DD / MM / AAAA"
+          inputmode="numeric"
+          autocomplete="bday"
+          maxlength="14"
+        >
+        <p class="onb-ajuda" id="onbAjudaNascimento">
+          Você precisa ter 15 anos ou mais.
+        </p>
+      </div>
+
+<div class="onb-campo">
+  <label class="onb-label" for="onbInputEmail">E-mail</label>
+  <input
+    type="email"
+    id="onbInputEmail"
+    class="onb-input onb-input-readonly"
+    placeholder="seu@email.com"
+    autocomplete="email"
+    maxlength="80"
+    inputmode="email"
+    autocapitalize="off"
+    spellcheck="false"
+    readonly
+  >
+  <p class="onb-ajuda" id="onbAjudaEmail">
+    Vamos enviar um código de verificação.
+  </p>
+</div>
+
+      <button
+        type="submit"
+        class="onb-btn-principal onb-btn-desabilitado"
+        id="onbBtnCadastro"
+        disabled
+      >
+        Continuar →
+      </button>
+
+    </form>
+
+  </div>
+</section>
+
+<section id="onb-tela-verificacao" class="onb-tela">
+  <button type="button" class="onb-btn-voltar" onclick="onbVoltar()">← Voltar</button>
+
+  <div class="onb-conteudo">
+
+    <div class="onb-verifica-topo">
+      <div class="onb-verifica-icone">📧</div>
+      <h2 class="onb-verifica-titulo">Confirme seu e-mail</h2>
+      <p class="onb-verifica-subtitulo">
+        Enviamos um código de 6 dígitos para:
+      </p>
+      <p class="onb-verifica-email" id="onbVerificaEmail">
+        jq@gmail.com
+      </p>
+    </div>
+
+    <!-- Banner de teste (mostra o código) -->
+    <div class="onb-verifica-teste" id="onbVerificaTeste">
+      🔧 MODO TESTE — Código:
+      <strong id="onbVerificaTesteCodigo">000000</strong>
+    </div>
+
+    <!-- Campo do código -->
+    <div class="onb-codigo-wrap" id="onbCodigoWrap">
+      <input
+        type="text"
+        class="onb-codigo-input"
+        id="onbCodigoInput0"
+        maxlength="1"
+        inputmode="numeric"
+        pattern="[0-9]"
+        autocomplete="one-time-code"
+        data-index="0"
+      >
+      <input
+        type="text"
+        class="onb-codigo-input"
+        id="onbCodigoInput1"
+        maxlength="1"
+        inputmode="numeric"
+        pattern="[0-9]"
+        data-index="1"
+      >
+      <input
+        type="text"
+        class="onb-codigo-input"
+        id="onbCodigoInput2"
+        maxlength="1"
+        inputmode="numeric"
+        pattern="[0-9]"
+        data-index="2"
+      >
+      <input
+        type="text"
+        class="onb-codigo-input"
+        id="onbCodigoInput3"
+        maxlength="1"
+        inputmode="numeric"
+        pattern="[0-9]"
+        data-index="3"
+      >
+      <input
+        type="text"
+        class="onb-codigo-input"
+        id="onbCodigoInput4"
+        maxlength="1"
+        inputmode="numeric"
+        pattern="[0-9]"
+        data-index="4"
+      >
+      <input
+        type="text"
+        class="onb-codigo-input"
+        id="onbCodigoInput5"
+        maxlength="1"
+        inputmode="numeric"
+        pattern="[0-9]"
+        data-index="5"
+      >
+    </div>
+
+    <!-- Barra de expiração -->
+    <div class="onb-verifica-timer" id="onbVerificaTimer">
+      <div class="onb-verifica-timer-barra">
+        <div class="onb-verifica-timer-fill" id="onbVerificaTimerFill"></div>
+      </div>
+      <span class="onb-verifica-timer-texto" id="onbVerificaTimerTexto">
+        Expira em 10:00
+      </span>
+    </div>
+
+    <!-- Mensagem de erro -->
+    <p class="onb-verifica-erro" id="onbVerificaErro"></p>
+
+    <!-- Reenviar -->
+    <div class="onb-verifica-reenviar-wrap">
+      <span class="onb-verifica-reenviar-texto">Não recebeu?</span>
+      <button
+        type="button"
+        class="onb-verifica-reenviar-btn"
+        id="onbVerificaReenviar"
+        disabled
+      >
+        Reenviar em 30s
+      </button>
+    </div>
+
+    <!-- Botão confirmar -->
+    <button
+      type="button"
+      class="onb-btn-principal onb-btn-desabilitado"
+      id="onbBtnVerifica"
+      disabled
+      onclick="onbConfirmarCodigo()"
+    >
+      Confirmar →
+    </button>
+
+  </div>
+</section>
+
+<section id="onb-tela-username" class="onb-tela">
+  <button type="button" class="onb-btn-voltar" onclick="onbVoltar()">← Voltar</button>
+
+  <div class="onb-conteudo">
+
+    <div class="onb-user-topo">
+      <div class="onb-user-icone">🏷️</div>
+      <h2 class="onb-user-titulo">Escolha seu @</h2>
+      <p class="onb-user-subtitulo">
+        É o seu endereço único no Drops.<br>
+        Depois de criado, não pode ser mudado.
+      </p>
+    </div>
+
+    <div class="onb-campo">
+      <div class="onb-input-user-wrap" id="onbUserWrap">
+        <span class="onb-input-user-arroba">@</span>
+        <input
+          type="text"
+          id="onbInputUser"
+          class="onb-input-user"
+          placeholder="seunome"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          maxlength="20"
+        >
+      </div>
+
+      <p class="onb-user-status" id="onbUserStatus"></p>
+
+      <div class="onb-user-sugestoes-wrap" id="onbUserSugestoesWrap" style="display: none;">
+        <p class="onb-user-sugestoes-label">Sugestões disponíveis:</p>
+        <div class="onb-user-sugestoes" id="onbUserSugestoes"></div>
+      </div>
+    </div>
+
+    <p class="onb-user-ajuda">
+      Só letras minúsculas e números. 3 a 20 caracteres.
+    </p>
+
+    <button
+      type="button"
+      class="onb-btn-principal onb-btn-desabilitado"
+      id="onbBtnUser"
+      disabled
+      onclick="onbFinalizarUsername()"
+    >
+      Concluir →
+    </button>
+
+  </div>
+</section>
+
+<section id="onb-tela-lgpd" class="onb-tela">
+  <button type="button" class="onb-btn-voltar" onclick="onbVoltar()">← Voltar</button>
+
+  <div class="onb-conteudo">
+
+    <div class="onb-lgpd-topo">
+      <div class="onb-lgpd-icone">📜</div>
+      <h2 class="onb-lgpd-titulo">Antes de começar...</h2>
+      <p class="onb-lgpd-subtitulo">
+        Para usar o Drops, você precisa<br>
+        concordar com nossos termos.
+      </p>
+    </div>
+
+    <div class="onb-lgpd-lista">
+
+      <label class="onb-lgpd-item">
+        <input type="checkbox" class="onb-lgpd-checkbox" id="onbLgpdTermos" data-tipo="termos">
+        <div class="onb-lgpd-item-conteudo">
+          <span class="onb-lgpd-item-texto">
+            Li e aceito os <strong>Termos de Uso</strong>
+          </span>
+          <button
+            type="button"
+            class="onb-lgpd-ver-link"
+            data-doc="termos"
+            onclick="event.preventDefault(); onbAbrirModalTermos('termos');"
+          >
+            📄 Ler termos
+          </button>
+        </div>
+      </label>
+
+      <label class="onb-lgpd-item">
+        <input type="checkbox" class="onb-lgpd-checkbox" id="onbLgpdPrivacidade" data-tipo="privacidade">
+        <div class="onb-lgpd-item-conteudo">
+          <span class="onb-lgpd-item-texto">
+            Li e aceito a <strong>Política de Privacidade</strong> (LGPD)
+          </span>
+          <button
+            type="button"
+            class="onb-lgpd-ver-link"
+            data-doc="privacidade"
+            onclick="event.preventDefault(); onbAbrirModalTermos('privacidade');"
+          >
+            📄 Ler política
+          </button>
+        </div>
+      </label>
+
+      <label class="onb-lgpd-item">
+        <input type="checkbox" class="onb-lgpd-checkbox" id="onbLgpdDados" data-tipo="dados">
+        <div class="onb-lgpd-item-conteudo">
+          <span class="onb-lgpd-item-texto">
+            Autorizo o <strong>tratamento dos meus dados</strong>
+          </span>
+          <span class="onb-lgpd-item-descricao">
+            Necessário para o funcionamento do app.
+          </span>
+        </div>
+      </label>
+
+    </div>
+
+    <button
+      type="button"
+      class="onb-btn-principal onb-btn-desabilitado"
+      id="onbBtnLgpd"
+      disabled
+      onclick="onbFinalizarLgpd()"
+    >
+      Concluir cadastro →
+    </button>
+
+  </div>
+</section>
+
+<!-- Modal de Termos / Política -->
+<div class="onb-modal-doc" id="onbModalDoc" style="display: none;">
+  <div class="onb-modal-doc-box">
+    <div class="onb-modal-doc-topo">
+      <h3 class="onb-modal-doc-titulo" id="onbModalDocTitulo">Termos de Uso</h3>
+      <button
+        type="button"
+        class="onb-modal-doc-fechar"
+        onclick="onbFecharModalTermos()"
+      >
+        ✕
+      </button>
+    </div>
+    <div class="onb-modal-doc-corpo" id="onbModalDocCorpo">
+      <!-- Conteúdo vai aqui via JS -->
+    </div>
+    <button
+      type="button"
+      class="onb-modal-doc-ok"
+      onclick="onbFecharModalTermos()"
+    >
+      Entendi
+    </button>
+  </div>
+</div>
+
+  <section id="onb-tela-escolha" class="onb-tela">
+  <div class="onb-escolha-wrap">
+    <img src="./assets/drops-icon.png" alt="Drops" class="onb-escolha-logo">
+    <h1 class="onb-escolha-titulo">Drops</h1>
+    <p class="onb-escolha-tagline">Proximidade e conexão.</p>
+
+    <div class="onb-escolha-acoes">
+      <button
+        type="button"
+        class="onb-btn-principal"
+        onclick="onbIrParaEmail()"
+      >
+        Entrar / Cadastrar
+      </button>
+    </div>
+  </div>
+  </section>
+
+<section id="onb-tela-email" class="onb-tela">
+  <div class="onb-conteudo">
+
+    <div class="onb-entrar-topo">
+  <img src="./assets/drops-icon.png" alt="Drops" class="onb-email-logo">
+
+  <h1 class="onb-email-titulo">
+    <span class="onb-letra" style="--atraso: 0.1s">D</span><span class="onb-letra" style="--atraso: 0.2s">r</span><span class="onb-letra" style="--atraso: 0.3s">o</span><span class="onb-letra" style="--atraso: 0.4s">p</span><span class="onb-letra" style="--atraso: 0.5s">s</span>
+  </h1>
+
+  <p class="onb-entrar-subtitulo">
+    Digite seu e-mail para continuar.
+  </p>
+    </div>
+
+    <div class="onb-campo">
+      <label class="onb-label" for="onbInputEmailGeral">E-mail</label>
+      <input
+        type="email"
+        id="onbInputEmailGeral"
+        class="onb-input"
+        placeholder="seu@email.com"
+        autocomplete="email"
+        maxlength="80"
+        inputmode="email"
+        autocapitalize="off"
+        spellcheck="false"
+      >
+      <p class="onb-ajuda" id="onbAjudaEmailGeral"></p>
+    </div>
+
+    <button
+      type="button"
+      class="onb-btn-principal onb-btn-desabilitado"
+      id="onbBtnEmailGeral"
+      disabled
+      onclick="onbContinuarComEmail()"
+    >
+      Continuar →
+    </button>
+
+    <div class="onb-email-info">
+      <p class="onb-email-info-linha">
+        ℹ️ <strong>Já tem conta?</strong> Vamos enviar um código pro seu e-mail.
+      </p>
+      <p class="onb-email-info-linha">
+        ℹ️ <strong>Ainda não tem?</strong> Vamos te ajudar a criar uma.
+      </p>
+    </div>
+
+  </div>
+</>
+  
+
+<script src="./js/onboarding.js"></script>
+</body>
+</html>
