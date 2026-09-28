@@ -759,8 +759,8 @@ function onbConfigurarCodigoInputs() {
           }
         });
         onbAtualizarBotaoVerifica();
-        inputs[Math.min(digitos.length, 5)].focus();
-        return;
+inputs[Math.min(digitos.length, 7)].focus();
+return;
       }
 
       e.target.value = valor;
@@ -770,11 +770,11 @@ function onbConfigurarCodigoInputs() {
         e.target.classList.remove('onb-codigo-erro');
 
         const idx = Number(e.target.dataset.index);
-        if (idx < 5) {
-          document.getElementById(`onbCodigoInput${idx + 1}`)?.focus();
-        } else {
-          e.target.blur();
-        }
+if (idx < 7) {
+  document.getElementById(`onbCodigoInput${idx + 1}`)?.focus();
+} else {
+  e.target.blur();
+}
       } else {
         e.target.classList.remove('onb-codigo-preenchido');
       }
@@ -807,7 +807,7 @@ function onbConfigurarCodigoInputs() {
     input.addEventListener('paste', (e) => {
       e.preventDefault();
       const texto = (e.clipboardData || window.clipboardData).getData('text');
-      const digitos = texto.replace(/\D/g, '').slice(0, 6).split('');
+      const digitos = texto.replace(/\D/g, '').slice(0, 8).split('');
 
       inputs.forEach((inp, i) => {
         inp.value = digitos[i] || '';
@@ -1001,11 +1001,23 @@ if (tentativas >= 3) {
     return;
   }
 
-  const { data, error } = await window.supabaseClient.auth.verifyOtp({
+  let data = null;
+let error = null;
+
+const tiposParaTentar = ['email', 'magiclink', 'signup'];
+for (const tipo of tiposParaTentar) {
+  const resultado = await window.supabaseClient.auth.verifyOtp({
     email: email,
     token: codigoDigitado,
-    type: 'email'
+    type: tipo
   });
+  if (!resultado.error) {
+    data = resultado.data;
+    error = null;
+    break;
+  }
+  error = resultado.error;
+}
 
   if (!error && data && data.user) {
     console.log('✅ Código confirmado. Modo:', modo);
