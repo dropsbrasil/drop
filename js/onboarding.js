@@ -747,7 +747,7 @@ function onbConfigurarCodigoInputs() {
       let valor = e.target.value.replace(/\D/g, '');
 
       if (valor.length > 1) {
-        const digitos = valor.split('').slice(0, 6);
+  const digitos = valor.split('').slice(0, 8);
         inputs.forEach((inp, i) => {
           inp.value = digitos[i] || '';
           if (inp.value) {
@@ -831,7 +831,7 @@ function onbAtualizarBotaoVerifica() {
     if (inp.value.trim()) preenchidos++;
   });
 
-  if (preenchidos === 6) {
+  if (preenchidos === 8) {
     btn.disabled = false;
     btn.classList.remove('onb-btn-desabilitado');
   } else {
