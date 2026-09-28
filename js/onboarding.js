@@ -709,6 +709,7 @@ let timerReenviar = null;
 let tempoReenviar = 30;
 
 function onbIniciarTelaVerificacao() {
+  localStorage.setItem('drops_codigo_tentativas', '0');
   const modo = localStorage.getItem('drops_codigo_modo') || 'cadastro';
   const emailSalvo = modo === 'login'
     ? (localStorage.getItem('drops_email_login') || '')
