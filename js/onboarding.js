@@ -729,9 +729,10 @@ function onbIniciarTelaVerificacao() {
   const erroEl = document.getElementById('onbVerificaErro');
   if (erroEl) erroEl.textContent = '';
 
-  onbConfigurarCodigoInputs();
-  onbIniciarTimerExpiracao();
-  onbIniciarTimerReenviar();
+  localStorage.setItem('drops_codigo_expira', String(Date.now() + 60 * 60 * 1000));
+onbConfigurarCodigoInputs();
+onbIniciarTimerExpiracao();
+onbIniciarTimerReenviar();
   onbAtualizarBotaoVerifica();
 
   setTimeout(() => {
@@ -869,11 +870,11 @@ function onbIniciarTimerExpiracao() {
 
     texto.textContent = `Expira em ${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}`;
 
-    if (restante <= 0) {
-      clearInterval(timerExpiracao);
-      timerExpiracao = null;
-      texto.textContent = 'Código expirado';
-      onbMostrarErroVerifica('Código expirado. Solicite um novo.');
+    if (restante <= 0 && expira > 0 && Date.now() > expira) {
+  clearInterval(timerExpiracao);
+  timerExpiracao = null;
+  texto.textContent = 'Código expirado';
+  onbMostrarErroVerifica('Código expirado. Solicite um novo.');
     }
   }
 
