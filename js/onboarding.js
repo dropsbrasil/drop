@@ -905,30 +905,62 @@ function onbIniciarTimerReenviar() {
   }, 1000);
 }
 
-function onbReenviarCodigo() {
-  const codigo = String(Math.floor(100000 + Math.random() * 900000));
-  localStorage.setItem('drops_codigo_email', codigo);
-  localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
-  localStorage.setItem('drops_codigo_tentativas', '0');
+async function onbReenviarCodigo() {
+  const email = localStorage.getItem('drops_email') ||
+                localStorage.getItem('drops_email_login') || '';
 
-  console.log('📧 Novo código gerado:', codigo);
+  if (!email) {
+    onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
+    return;
+  }
 
-  const codigoEl = document.getElementById('onbVerificaTesteCodigo');
-  if (codigoEl) codigoEl.textContent = codigo;
+  if (!window.supabaseClient) {
+    onbMostrarErroVerifica('Sem conexão com o servidor.');
+    return;
+  }
 
-  document.querySelectorAll('.onb-codigo-input').forEach((el) => {
-    el.value = '';
-    el.classList.remove('onb-codigo-preenchido', 'onb-codigo-erro');
-  });
+  const btn = document.getElementById('onbVerificaReenviar');
+  const textoOriginal = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+  }
 
-  onbMostrarErroVerifica('');
-  onbIniciarTimerExpiracao();
-  onbIniciarTimerReenviar();
-  onbAtualizarBotaoVerifica();
+  try {
+    const { error } = await window.supabaseClient.auth.signInWithOtp({
+      email: email,
+      options: { shouldCreateUser: true }
+    });
 
-  setTimeout(() => {
-    document.getElementById('onbCodigoInput0')?.focus();
-  }, 100);
+    if (error) throw error;
+
+    localStorage.setItem('drops_codigo_expira', String(Date.now() + 60 * 60 * 1000));
+    localStorage.setItem('drops_codigo_tentativas', '0');
+
+    console.log('📧 Novo código enviado para:', email);
+
+    document.querySelectorAll('.onb-codigo-input').forEach((el) => {
+      el.value = '';
+      el.classList.remove('onb-codigo-preenchido', 'onb-codigo-erro');
+    });
+
+    onbMostrarErroVerifica('');
+    onbIniciarTimerExpiracao();
+    onbIniciarTimerReenviar();
+    onbAtualizarBotaoVerifica();
+
+    setTimeout(() => {
+      document.getElementById('onbCodigoInput0')?.focus();
+    }, 100);
+  } catch (erro) {
+    console.error('Erro ao reenviar código:', erro);
+    onbMostrarErroVerifica('Não foi possível reenviar. Tente novamente.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal || 'Reenviar';
+    }
+  }
 }
 
 function onbMostrarErroVerifica(mensagem) {
@@ -948,12 +980,8 @@ async function onbConfirmarCodigo() {
   const expira = Number(localStorage.getItem('drops_codigo_expira') || '0');
   const modo = localStorage.getItem('drops_codigo_modo') || 'cadastro';
 
-  if (Date.now() > expira) {
-    onbMostrarErroVerifica('Código expirado. Solicite um novo.');
-    return;
-  }
-
-  if (tentativas >= 3) {
+if (tentativas >= 3) {
+  
     onbMostrarErroVerifica('Muitas tentativas. Aguarde 5 minutos.');
     return;
   }
