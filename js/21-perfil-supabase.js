@@ -77,9 +77,11 @@
           });
 
         if (insertError) {
-          console.error('Erro ao criar perfil no Supabase:', insertError);
-        } else {
-          console.log('✅ Perfil criado no Supabase!');
+  console.error('Erro ao criar perfil no Supabase:', insertError);
+  alert('ERRO ao inserir: ' + JSON.stringify(insertError));
+} else {
+  console.log('✅ Perfil criado no Supabase!');
+  alert('✅ Perfil criado no Supabase!');
         }
       }
     } catch (erro) {
