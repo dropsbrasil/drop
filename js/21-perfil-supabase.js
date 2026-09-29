@@ -57,8 +57,20 @@
         if (perfil.social_whatsapp) localStorage.setItem('mydropsSocialWhatsapp_' + u, perfil.social_whatsapp);
 
         if (typeof window.carregarDadosUsuarioMyDrops === 'function') {
-          window.carregarDadosUsuarioMyDrops();
-        }
+  window.carregarDadosUsuarioMyDrops();
+}
+
+// Força atualização da capa no MyDrops
+const capaSalva = localStorage.getItem('mydropsCover_' + u);
+if (capaSalva) {
+  const capaEl = document.querySelector('.mydrops-cover');
+  if (capaEl) {
+    capaEl.style.backgroundImage =
+      `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
+    capaEl.style.backgroundSize = 'cover';
+    capaEl.style.backgroundPosition = 'center';
+  }
+}
       } else {
         console.log('☁️ Perfil não existe. Criando no Supabase...');
 
