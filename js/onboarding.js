@@ -565,11 +565,39 @@ async function onbContinuarComEmail() {
     }
 
     // CADASTRO NOVO — email não existe, vai pra tela de cadastro
-    console.log('🆕 Email novo. Indo pra tela de cadastro.');
+console.log('🆕 Email novo. Indo pra tela de cadastro.');
 
-    localStorage.setItem('drops_codigo_modo', 'cadastro');
+// Limpa dados do usuário anterior (se houver) ANTES de ir pra cadastro
+const chavesLimpar = [
+  'drops_nome', 'drops_username',
+  'drops_termos_versao', 'drops_termos_aceito_em',
+  'drops_lgpd_versao', 'drops_lgpd_aceito_em',
+  'drops_dados_aceito_em', 'drops_cadastro_em',
+  'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
+  'mydropsDesconectadosNex', 'mydropsAdeptosNex',
+  'mydropsSouAdeptoDeNex',
+  'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
+];
 
-    onbIrPara('cadastro');
+chavesLimpar.forEach((k) => localStorage.removeItem(k));
+
+const prefixosLimpar = [
+  'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
+  'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
+  'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
+];
+
+Object.keys(localStorage).forEach((k) => {
+  if (prefixosLimpar.some((p) => k.startsWith(p))) {
+    localStorage.removeItem(k);
+  }
+});
+
+console.log('🧹 Dados antigos limpos para novo cadastro');
+
+localStorage.setItem('drops_codigo_modo', 'cadastro');
+
+onbIrPara('cadastro');
   } catch (erro) {
     console.error('Erro ao verificar email:', erro);
     alert('Não foi possível verificar o email. Tente novamente.');
@@ -1036,34 +1064,6 @@ for (const tipo of tiposParaTentar) {
   localStorage.setItem('drops_codigo_verificado', 'true');
   localStorage.setItem('drops_codigo_tentativas', '0');
 
-  if (modo === 'cadastro') {
-  const chavesLimpar = [
-    'drops_nome', 'drops_username',
-    'drops_termos_versao', 'drops_termos_aceito_em',
-    'drops_lgpd_versao', 'drops_lgpd_aceito_em',
-    'drops_dados_aceito_em', 'drops_cadastro_em',
-    'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
-    'mydropsDesconectadosNex', 'mydropsAdeptosNex',
-    'mydropsSouAdeptoDeNex',
-    'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
-  ];
-
-  chavesLimpar.forEach((k) => localStorage.removeItem(k));
-
-  const prefixosLimpar = [
-    'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
-    'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
-    'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
-  ];
-
-  Object.keys(localStorage).forEach((k) => {
-    if (prefixosLimpar.some((p) => k.startsWith(p))) {
-      localStorage.removeItem(k);
-    }
-  });
-
-  console.log('🧹 Dados antigos limpos para novo cadastro');
-  }
 
   if (modo === 'login') {
       console.log('🔓 Login confirmado. Marcando como logado...');
