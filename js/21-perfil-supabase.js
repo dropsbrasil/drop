@@ -35,9 +35,12 @@
         .maybeSingle();
 
       if (error) {
-        console.error('Erro ao buscar perfil no Supabase:', error);
-        return;
-      }
+  console.error('Erro ao buscar perfil no Supabase:', error);
+  alert('ERRO ao buscar: ' + JSON.stringify(error));
+  return;
+}
+
+alert('Consulta OK. Perfil existe? ' + (perfil ? 'SIM' : 'NÃO'));
 
       const username = localStorage.getItem('drops_username') || '';
       const userKey = username;
