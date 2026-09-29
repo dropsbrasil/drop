@@ -542,62 +542,59 @@ async function onbContinuarComEmail() {
   }
 
   try {
-    // Salva o email temporário
     localStorage.setItem('drops_email_temp', email);
     localStorage.setItem('drops_email', email);
 
-    // Tenta enviar OTP SEM criar usuário novo.
-    // Se conseguir, o email já existe (login).
-    const { error: erroLogin } = await window.supabaseClient.auth.signInWithOtp({
-      email: email,
-      options: { shouldCreateUser: false }
-    });
+    const { data: existe, error: erroCheck } = await window.supabaseClient
+      .rpc('email_existe', { email_busca: email });
 
-    if (!erroLogin) {
-      // LOGIN — email já existe
+    if (erroCheck) throw erroCheck;
+
+    if (existe) {
+      console.log('🔓 Email já cadastrado. Modo LOGIN.');
+
+      const { error: erroOtp } = await window.supabaseClient.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: false }
+      });
+
+      if (erroOtp) throw erroOtp;
+
       localStorage.setItem('drops_codigo_modo', 'login');
       localStorage.setItem('drops_email_login', email);
 
-      console.log('📧 Login: código enviado para:', email);
-
       onbIrPara('verificacao');
-      return;
+    } else {
+      console.log('🆕 Email novo. Modo CADASTRO.');
+
+      const chavesLimpar = [
+        'drops_nome', 'drops_username',
+        'drops_termos_versao', 'drops_termos_aceito_em',
+        'drops_lgpd_versao', 'drops_lgpd_aceito_em',
+        'drops_dados_aceito_em', 'drops_cadastro_em',
+        'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
+        'mydropsDesconectadosNex', 'mydropsAdeptosNex',
+        'mydropsSouAdeptoDeNex',
+        'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
+      ];
+
+      chavesLimpar.forEach((k) => localStorage.removeItem(k));
+
+      const prefixosLimpar = [
+        'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
+        'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
+        'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
+      ];
+
+      Object.keys(localStorage).forEach((k) => {
+        if (prefixosLimpar.some((p) => k.startsWith(p))) {
+          localStorage.removeItem(k);
+        }
+      });
+
+      localStorage.setItem('drops_codigo_modo', 'cadastro');
+      onbIrPara('cadastro');
     }
-
-    // CADASTRO NOVO — email não existe, vai pra tela de cadastro
-console.log('🆕 Email novo. Indo pra tela de cadastro.');
-
-// Limpa dados do usuário anterior (se houver) ANTES de ir pra cadastro
-const chavesLimpar = [
-  'drops_nome', 'drops_username',
-  'drops_termos_versao', 'drops_termos_aceito_em',
-  'drops_lgpd_versao', 'drops_lgpd_aceito_em',
-  'drops_dados_aceito_em', 'drops_cadastro_em',
-  'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
-  'mydropsDesconectadosNex', 'mydropsAdeptosNex',
-  'mydropsSouAdeptoDeNex',
-  'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
-];
-
-chavesLimpar.forEach((k) => localStorage.removeItem(k));
-
-const prefixosLimpar = [
-  'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
-  'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
-  'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
-];
-
-Object.keys(localStorage).forEach((k) => {
-  if (prefixosLimpar.some((p) => k.startsWith(p))) {
-    localStorage.removeItem(k);
-  }
-});
-
-console.log('🧹 Dados antigos limpos para novo cadastro');
-
-localStorage.setItem('drops_codigo_modo', 'cadastro');
-
-onbIrPara('cadastro');
   } catch (erro) {
     console.error('Erro ao verificar email:', erro);
     alert('Não foi possível verificar o email. Tente novamente.');
@@ -1066,22 +1063,20 @@ for (const tipo of tiposParaTentar) {
 
 
   if (modo === 'login') {
-      console.log('🔓 Login confirmado. Marcando como logado...');
+    console.log('🔓 Login confirmado. Marcando como logado...');
 
-      localStorage.setItem('drops_logado', 'true');
-      localStorage.setItem('drops_ultimo_login', new Date().toISOString());
+    localStorage.setItem('drops_logado', 'true');
+    localStorage.setItem(CHAVE_CADASTRO, 'true');
+    localStorage.setItem('drops_ultimo_login', new Date().toISOString());
 
-      localStorage.removeItem('drops_codigo_modo');
-      localStorage.removeItem('drops_email_login');
-
-      onbIrParaApp();
-    } else {
-      console.log('🆕 Onboarding confirmado. Indo pra tela de @ID...');
-
-      localStorage.removeItem('drops_codigo_modo');
-
-      onbIrPara('username');
+    if (!localStorage.getItem('drops_nome')) {
+      localStorage.setItem('drops_nome', 'Usuário');
     }
+
+    localStorage.removeItem('drops_codigo_modo');
+    localStorage.removeItem('drops_email_login');
+
+    onbIrParaApp();
   } else {
     const novas = tentativas + 1;
     localStorage.setItem('drops_codigo_tentativas', String(novas));
