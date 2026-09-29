@@ -553,7 +553,8 @@ async function onbContinuarComEmail() {
     if (error) throw error;
 
     // Salva o email na sessão pra usar na tela de verificação
-    localStorage.setItem('drops_email_temp', email);
+localStorage.setItem('drops_email_temp', email);
+localStorage.setItem('drops_email', email);
 
     console.log('📧 Código enviado para:', email);
 
@@ -711,9 +712,10 @@ let tempoReenviar = 30;
 function onbIniciarTelaVerificacao() {
   localStorage.setItem('drops_codigo_tentativas', '0');
   const modo = localStorage.getItem('drops_codigo_modo') || 'cadastro';
-  const emailSalvo = modo === 'login'
-    ? (localStorage.getItem('drops_email_login') || '')
-    : (localStorage.getItem('drops_email') || '');
+const emailSalvo =
+  localStorage.getItem('drops_email_temp') ||
+  localStorage.getItem('drops_email_login') ||
+  localStorage.getItem('drops_email') || '';
 
   const emailEl = document.getElementById('onbVerificaEmail');
   if (emailEl) emailEl.textContent = emailSalvo;
@@ -799,8 +801,8 @@ if (idx < 7) {
         document.getElementById(`onbCodigoInput${idx - 1}`)?.focus();
       }
 
-      if (e.key === 'ArrowRight' && idx < 5) {
-        document.getElementById(`onbCodigoInput${idx + 1}`)?.focus();
+      if (e.key === 'ArrowRight' && idx < 7) {
+  document.getElementById(`onbCodigoInput${idx + 1}`)?.focus();
       }
     });
 
@@ -908,9 +910,9 @@ function onbIniciarTimerReenviar() {
 }
 
 async function onbReenviarCodigo() {
-  const email = localStorage.getItem('drops_email') ||
-                localStorage.getItem('drops_email_login') || '';
-
+  const email = localStorage.getItem('drops_email_temp') ||
+              localStorage.getItem('drops_email') ||
+              localStorage.getItem('drops_email_login') || '';
   if (!email) {
     onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
     return;
@@ -993,9 +995,9 @@ if (tentativas >= 3) {
     return;
   }
 
-  const email = localStorage.getItem('drops_email') ||
-                localStorage.getItem('drops_email_login') || '';
-
+  const email = localStorage.getItem('drops_email_temp') ||
+              localStorage.getItem('drops_email') ||
+              localStorage.getItem('drops_email_login') || '';
   if (!email) {
     onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
     return;
