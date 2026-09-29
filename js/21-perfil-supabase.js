@@ -90,9 +90,22 @@
   window.sincronizarPerfilSupabase = sincronizar;
 
   document.addEventListener('DOMContentLoaded', async () => {
-    await aguardarSupabase();
-    await sincronizar();
-  });
+  await aguardarSupabase();
+
+  alert('1. supabaseClient: ' + (window.supabaseClient ? 'OK' : 'FALTA'));
+  alert('2. Drops: ' + (window.Drops ? 'OK' : 'FALTA'));
+
+  const { data: { user } } = await window.supabaseClient.auth.getUser();
+  alert('3. User: ' + (user ? user.email : 'NENHUM'));
+
+  if (!user) {
+    alert('❌ Sem sessão. Parei aqui.');
+    return;
+  }
+
+  await sincronizar();
+  alert('4. Sincronização terminou.');
+});
 
   console.log('☁️ 21-perfil-supabase.js carregado');
 
