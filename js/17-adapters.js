@@ -89,25 +89,28 @@ salvarUltimaMudancaNome(timestamp) {
     },
 
     salvarAvatar(dataUrl) {
-      localStorage.setItem(
-        Drops.chaveUsuario('mydropsAvatar'),
-        String(dataUrl || '')
-      );
-    },
+  localStorage.setItem(
+    Drops.chaveUsuario('mydropsAvatar'),
+    String(dataUrl || '')
+  );
+  if (window.atualizarPerfilSupabase) window.atualizarPerfilSupabase();
+},
 
-    salvarCapa(dataUrl) {
-      localStorage.setItem(
-        Drops.chaveUsuario('mydropsCover'),
-        String(dataUrl || '')
-      );
-    },
+salvarCapa(dataUrl) {
+  localStorage.setItem(
+    Drops.chaveUsuario('mydropsCover'),
+    String(dataUrl || '')
+  );
+  if (window.atualizarPerfilSupabase) window.atualizarPerfilSupabase();
+},
 
-    salvarBio(texto) {
-      localStorage.setItem(
-        Drops.chaveUsuario('mydropsBio'),
-        String(texto || '')
-      );
-    },
+salvarBio(texto) {
+  localStorage.setItem(
+    Drops.chaveUsuario('mydropsBio'),
+    String(texto || '')
+  );
+  if (window.atualizarPerfilSupabase) window.atualizarPerfilSupabase();
+},
 
     // ------------------------------------------
     // SOCIAL
@@ -131,18 +134,19 @@ salvarUltimaMudancaNome(timestamp) {
     },
 
     salvarSocial({ instagram, tiktok, whatsapp }) {
-      localStorage.setItem(
-        Drops.chaveUsuario('mydropsSocialInstagram'),
-        String(instagram || '').trim()
-      );
-      localStorage.setItem(
-        Drops.chaveUsuario('mydropsSocialTiktok'),
-        String(tiktok || '').trim()
-      );
-      localStorage.setItem(
-        Drops.chaveUsuario('mydropsSocialWhatsapp'),
-        String(whatsapp || '').trim()
-      );
+  localStorage.setItem(
+    Drops.chaveUsuario('mydropsSocialInstagram'),
+    String(instagram || '').trim()
+  );
+  localStorage.setItem(
+    Drops.chaveUsuario('mydropsSocialTiktok'),
+    String(tiktok || '').trim()
+  );
+  localStorage.setItem(
+    Drops.chaveUsuario('mydropsSocialWhatsapp'),
+    String(whatsapp || '').trim()
+  );
+  if (window.atualizarPerfilSupabase) window.atualizarPerfilSupabase();
     }
   };
 

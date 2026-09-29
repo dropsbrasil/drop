@@ -36,11 +36,8 @@
 
       if (error) {
   console.error('Erro ao buscar perfil no Supabase:', error);
-  alert('ERRO ao buscar: ' + JSON.stringify(error));
   return;
-}
-
-alert('Consulta OK. Perfil existe? ' + (perfil ? 'SIM' : 'NÃO'));
+      }
 
       const username = localStorage.getItem('drops_username') || '';
       const userKey = username;
@@ -81,10 +78,8 @@ alert('Consulta OK. Perfil existe? ' + (perfil ? 'SIM' : 'NÃO'));
 
         if (insertError) {
   console.error('Erro ao criar perfil no Supabase:', insertError);
-  alert('ERRO ao inserir: ' + JSON.stringify(insertError));
 } else {
   console.log('✅ Perfil criado no Supabase!');
-  alert('✅ Perfil criado no Supabase!');
         }
       }
     } catch (erro) {
@@ -92,12 +87,48 @@ alert('Consulta OK. Perfil existe? ' + (perfil ? 'SIM' : 'NÃO'));
     }
   }
 
+    async function atualizarPerfilSupabase() {
+    if (!window.supabaseClient) return;
+
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const username = localStorage.getItem('drops_username') || '';
+      const userKey = username;
+
+      const { error } = await window.supabaseClient
+        .from('profiles')
+        .update({
+          username: username,
+          nome: localStorage.getItem('drops_nome') || '',
+          bio: localStorage.getItem('mydropsBio_' + userKey) || '',
+          avatar_url: localStorage.getItem('mydropsAvatar_' + userKey) || '',
+          capa_url: localStorage.getItem('mydropsCover_' + userKey) || '',
+          social_instagram: localStorage.getItem('mydropsSocialInstagram_' + userKey) || '',
+          social_tiktok: localStorage.getItem('mydropsSocialTiktok_' + userKey) || '',
+          social_whatsapp: localStorage.getItem('mydropsSocialWhatsapp_' + userKey) || '',
+          atualizado_em: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Erro ao atualizar perfil no Supabase:', error);
+      } else {
+        console.log('☁️ Perfil atualizado no Supabase!');
+      }
+    } catch (erro) {
+      console.error('Erro na atualização do perfil:', erro);
+    }
+  }
+
   window.sincronizarPerfilSupabase = sincronizar;
+  window.atualizarPerfilSupabase = atualizarPerfilSupabase;
 
   document.addEventListener('DOMContentLoaded', async () => {
-  await aguardarSupabase();
-  await sincronizar();
-});
+    await aguardarSupabase();
+    await sincronizar();
+  });
 
   console.log('☁️ 21-perfil-supabase.js carregado');
 
