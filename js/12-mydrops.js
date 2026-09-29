@@ -450,8 +450,34 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
 
   mostrarModalPublicandoMyDrops();
 
-  publicacoesMyDropsNex.unshift(publicacao);
-  salvarPublicacoesMyDropsNex();
+// Salva localmente (feedback rápido)
+publicacoesMyDropsNex.unshift(publicacao);
+salvarPublicacoesMyDropsNex();
+
+// Envia pro Supabase (em segundo plano)
+try {
+  const urlMidia = await window.uploadMidiaDropsSupabase?.(publicacao.mediaUrl);
+
+  if (urlMidia) {
+    const pubSupabase = await window.criarPublicacaoSupabase?.({
+      tipo: publicacao.midiaTipo === 'video' ? 'video' : 'foto',
+      mediaUrl: urlMidia,
+      legenda: publicacao.legenda || '',
+      loop: publicacao.loop === true,
+      duracao: publicacao.duracao || '24h',
+      expiraEm: publicacao.expiraEm || null
+    });
+
+    if (pubSupabase) {
+      // Guarda o ID do Supabase pra poder apagar depois
+      publicacao.idSupabase = pubSupabase.id;
+      salvarPublicacoesMyDropsNex();
+      console.log('☁️ Drop sincronizado com Supabase');
+    }
+  }
+} catch (erro) {
+  console.error('Erro ao sincronizar drop com Supabase:', erro);
+}
 
   limparCamposLegendaMyDrops();
   fecharModalDuracaoPublicacaoMyDropsNex();
@@ -1048,17 +1074,27 @@ function renderizarPublicacoesMyDropsNex() {
         e.preventDefault();
         e.stopPropagation();
 
-        abrirModalExcluirPublicacaoMyDropsNex(() => {
-          const pub =
-            publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
-          if (!pub) return;
+        abrirModalExcluirPublicacaoMyDropsNex(async () => {
+  const pub =
+    publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
+  if (!pub) return;
 
-          publicacoesMyDropsNex = publicacoesMyDropsNex.filter(
-            (item) => item.id !== pub.id
-          );
+  // Apaga do Supabase (em segundo plano)
+  if (pub.idSupabase) {
+    try {
+      await window.apagarPublicacaoSupabase?.(pub.idSupabase);
+      console.log('🗑️ Drop apagado do Supabase');
+    } catch (erro) {
+      console.error('Erro ao apagar do Supabase:', erro);
+    }
+  }
 
-          salvarPublicacoesMyDropsNex();
-          renderizarPublicacoesMyDropsNex();
+  publicacoesMyDropsNex = publicacoesMyDropsNex.filter(
+    (item) => item.id !== pub.id
+  );
+
+  salvarPublicacoesMyDropsNex();
+  renderizarPublicacoesMyDropsNex();
 
           publicacoesViewerMyDropsNex =
             obterPublicacoesOrdenadasMyDropsNex();
