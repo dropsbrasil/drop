@@ -456,11 +456,10 @@ function abrirEditorAvatarNex() {
   if (input) input.click();
 }
 
-function aplicarAvatarNex(event) {
+async function aplicarAvatarNex(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  // Validação simples
   if (!file.type.startsWith('image/')) {
     window.mostrarToastNex?.('Escolha um arquivo de imagem.', 'erro');
     event.target.value = '';
@@ -469,18 +468,29 @@ function aplicarAvatarNex(event) {
 
   const reader = new FileReader();
 
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     try {
       const avatar = document.querySelector('.mydrops-avatar');
       if (!avatar) throw new Error('Elemento do avatar não encontrado.');
 
+      // Mostra a imagem localmente de imediato (feedback visual)
       avatar.innerHTML = `<img src="${e.target.result}" alt="Avatar do usuário">`;
 
-      window.AuthAdapterNex.salvarAvatar(e.target.result);
+      window.mostrarToastNex?.('Enviando avatar...', 'info');
 
-      window.mostrarToastNex?.('Avatar atualizado com sucesso!', 'sucesso');
+      // Faz upload pro Supabase Storage
+      const urlPublica = await window.uploadImagemSupabase?.('avatars', e.target.result);
 
-      // Fecha painel/qualquer coisa aberta
+      if (urlPublica) {
+        // Sucesso — salva a URL no localStorage
+        window.AuthAdapterNex.salvarAvatar(urlPublica);
+        window.mostrarToastNex?.('Avatar atualizado!', 'sucesso');
+      } else {
+        // Fallback — salva base64 (localStorage só)
+        window.AuthAdapterNex.salvarAvatar(e.target.result);
+        window.mostrarToastNex?.('Avatar salvo localmente.', 'info');
+      }
+
       if (typeof fecharPainelControleNex === 'function') {
         fecharPainelControleNex();
       }
@@ -496,8 +506,6 @@ function aplicarAvatarNex(event) {
   };
 
   reader.readAsDataURL(file);
-
-  // Limpa input pra permitir escolher o mesmo arquivo de novo
   event.target.value = '';
 }
 
@@ -510,7 +518,7 @@ function abrirEditorCapaNex() {
   if (input) input.click();
 }
 
-function aplicarCapaNex(event) {
+async function aplicarCapaNex(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
@@ -522,19 +530,29 @@ function aplicarCapaNex(event) {
 
   const reader = new FileReader();
 
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     try {
       const capa = document.querySelector('.mydrops-cover');
       if (!capa) throw new Error('Elemento da capa não encontrado.');
 
+      // Mostra a imagem localmente de imediato
       capa.style.backgroundImage =
         `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${e.target.result}')`;
       capa.style.backgroundSize = 'cover';
       capa.style.backgroundPosition = 'center';
 
-      window.AuthAdapterNex.salvarCapa(e.target.result);
+      window.mostrarToastNex?.('Enviando capa...', 'info');
 
-      window.mostrarToastNex?.('Foto de capa atualizada!', 'sucesso');
+      // Faz upload pro Supabase Storage
+      const urlPublica = await window.uploadImagemSupabase?.('capas', e.target.result);
+
+      if (urlPublica) {
+        window.AuthAdapterNex.salvarCapa(urlPublica);
+        window.mostrarToastNex?.('Foto de capa atualizada!', 'sucesso');
+      } else {
+        window.AuthAdapterNex.salvarCapa(e.target.result);
+        window.mostrarToastNex?.('Capa salva localmente.', 'info');
+      }
 
       if (typeof fecharPainelControleNex === 'function') {
         fecharPainelControleNex();
@@ -551,7 +569,6 @@ function aplicarCapaNex(event) {
   };
 
   reader.readAsDataURL(file);
-
   event.target.value = '';
 }
   // ============================================

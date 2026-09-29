@@ -99,6 +99,48 @@ if (capaSalva) {
     }
   }
 
+async function uploadImagemSupabase(bucket, dataUrl) {
+  if (!window.supabaseClient) return null;
+  if (!dataUrl) return null;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return null;
+
+    // Converte base64 em Blob
+    const resposta = await fetch(dataUrl);
+    const blob = await resposta.blob();
+
+    // Nome do arquivo: pasta_do_user/timestamp.png
+    const extensao = blob.type.includes('png') ? 'png' : 'jpg';
+    const nomeArquivo = `${user.id}/${Date.now()}.${extensao}`;
+
+    // Faz upload (upsert = substitui se já existir)
+    const { error: uploadError } = await window.supabaseClient.storage
+      .from(bucket)
+      .upload(nomeArquivo, blob, {
+        contentType: blob.type,
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Erro no upload:', uploadError);
+      return null;
+    }
+
+    // Pega a URL pública
+    const { data: urlData } = window.supabaseClient.storage
+      .from(bucket)
+      .getPublicUrl(nomeArquivo);
+
+    console.log('☁️ Upload OK:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (erro) {
+    console.error('Erro no upload da imagem:', erro);
+    return null;
+  }
+}
+
     async function atualizarPerfilSupabase() {
     if (!window.supabaseClient) return;
 
@@ -135,7 +177,8 @@ if (capaSalva) {
   }
 
   window.sincronizarPerfilSupabase = sincronizar;
-  window.atualizarPerfilSupabase = atualizarPerfilSupabase;
+window.atualizarPerfilSupabase = atualizarPerfilSupabase;
+window.uploadImagemSupabase = uploadImagemSupabase;
 
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
