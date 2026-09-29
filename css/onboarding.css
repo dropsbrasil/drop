@@ -495,10 +495,10 @@ button {
 ============================================ */
 .onb-codigo-wrap {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
   margin-bottom: 20px;
-  padding: 12px;
+  padding: 10px;
   background: rgba(255,255,255,.04);
   border: 1.5px solid rgba(255,255,255,.08);
   border-radius: 20px;
@@ -506,12 +506,12 @@ button {
 
 .onb-codigo-input {
   width: 100%;
-  height: 56px;
+  height: 48px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255,255,255,.06);
   color: #ffffff;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 900;
   text-align: center;
   outline: none;
@@ -521,7 +521,6 @@ button {
   padding: 0;
   caret-color: #2563eb;
 }
-
 .onb-codigo-input:focus {
   background: rgba(37, 99, 235, .15);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, .5);
