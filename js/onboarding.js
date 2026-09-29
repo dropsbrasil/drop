@@ -534,34 +534,45 @@ async function onbContinuarComEmail() {
     return;
   }
 
-  // Mostra "enviando..." no botão
   const btn = document.getElementById('onbBtnEmailGeral');
   const textoOriginal = btn?.textContent;
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Enviando...';
+    btn.textContent = 'Verificando...';
   }
 
   try {
-    const { error } = await window.supabaseClient.auth.signInWithOtp({
+    // Salva o email temporário
+    localStorage.setItem('drops_email_temp', email);
+    localStorage.setItem('drops_email', email);
+
+    // Tenta enviar OTP SEM criar usuário novo.
+    // Se conseguir, o email já existe (login).
+    const { error: erroLogin } = await window.supabaseClient.auth.signInWithOtp({
       email: email,
-      options: {
-        shouldCreateUser: true
-      }
+      options: { shouldCreateUser: false }
     });
 
-    if (error) throw error;
+    if (!erroLogin) {
+      // LOGIN — email já existe
+      localStorage.setItem('drops_codigo_modo', 'login');
+      localStorage.setItem('drops_email_login', email);
 
-    // Salva o email na sessão pra usar na tela de verificação
-localStorage.setItem('drops_email_temp', email);
-localStorage.setItem('drops_email', email);
+      console.log('📧 Login: código enviado para:', email);
 
-    console.log('📧 Código enviado para:', email);
+      onbIrPara('verificacao');
+      return;
+    }
 
-    onbIrPara('verificacao');
+    // CADASTRO NOVO — email não existe, vai pra tela de cadastro
+    console.log('🆕 Email novo. Indo pra tela de cadastro.');
+
+    localStorage.setItem('drops_codigo_modo', 'cadastro');
+
+    onbIrPara('cadastro');
   } catch (erro) {
-    console.error('Erro ao enviar código:', erro);
-    alert('Não foi possível enviar o código. Verifique o email e tente novamente.');
+    console.error('Erro ao verificar email:', erro);
+    alert('Não foi possível verificar o email. Tente novamente.');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -680,14 +691,13 @@ async function onbFinalizarCadastro() {
     if (error) throw error;
 
     localStorage.setItem('drops_nome', nome);
-    localStorage.setItem('drops_nascimento', nasc);
-    localStorage.setItem('drops_email', email);
-    localStorage.removeItem('drops_email_temp');
+localStorage.setItem('drops_nascimento', nasc);
+localStorage.setItem('drops_email', email);
+localStorage.setItem('drops_email_temp', email);
 
-    localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
-    localStorage.setItem('drops_codigo_tentativas', '0');
-    localStorage.setItem('drops_codigo_modo', 'cadastro');
-
+localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
+localStorage.setItem('drops_codigo_tentativas', '0');
+localStorage.setItem('drops_codigo_modo', 'cadastro');
     console.log('📧 Código real enviado para:', email);
 
     onbIrPara('verificacao');
@@ -1027,33 +1037,32 @@ for (const tipo of tiposParaTentar) {
   localStorage.setItem('drops_codigo_tentativas', '0');
 
   if (modo === 'cadastro') {
-    // Limpa dados do usuário anterior (se houver)
-    const chavesLimpar = [
-      'drops_nome', 'drops_username',
-      'drops_termos_versao', 'drops_termos_aceito_em',
-      'drops_lgpd_versao', 'drops_lgpd_aceito_em',
-      'drops_dados_aceito_em', 'drops_cadastro_em',
-      'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
-      'mydropsDesconectadosNex', 'mydropsAdeptosNex',
-      'mydropsSouAdeptoDeNex',
-      'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
-    ];
+  const chavesLimpar = [
+    'drops_nome', 'drops_username',
+    'drops_termos_versao', 'drops_termos_aceito_em',
+    'drops_lgpd_versao', 'drops_lgpd_aceito_em',
+    'drops_dados_aceito_em', 'drops_cadastro_em',
+    'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
+    'mydropsDesconectadosNex', 'mydropsAdeptosNex',
+    'mydropsSouAdeptoDeNex',
+    'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
+  ];
 
-    chavesLimpar.forEach((k) => localStorage.removeItem(k));
+  chavesLimpar.forEach((k) => localStorage.removeItem(k));
 
-    const prefixosLimpar = [
-      'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
-      'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
-      'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
-    ];
+  const prefixosLimpar = [
+    'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
+    'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
+    'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
+  ];
 
-    Object.keys(localStorage).forEach((k) => {
-      if (prefixosLimpar.some((p) => k.startsWith(p))) {
-        localStorage.removeItem(k);
-      }
-    });
+  Object.keys(localStorage).forEach((k) => {
+    if (prefixosLimpar.some((p) => k.startsWith(p))) {
+      localStorage.removeItem(k);
+    }
+  });
 
-    console.log('🧹 Dados antigos limpos para novo cadastro');
+  console.log('🧹 Dados antigos limpos para novo cadastro');
   }
 
   if (modo === 'login') {
