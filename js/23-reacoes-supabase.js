@@ -104,29 +104,43 @@
       }
 
       // Se tem outra reação → remove antes
-      if (listaExistente.length > 0) {
-        await window.supabaseClient
-          .from('reacoes')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('publicacao_id', publicacaoId);
-      }
+if (listaExistente.length > 0) {
+  const { error: delError } = await window.supabaseClient
+    .from('reacoes')
+    .delete()
+    .eq('usuario_id', user.id)
+    .eq('publicacao_id', publicacaoId);
+
+  if (delError) {
+    alert(
+      'ERRO DELETE reacao:\n' +
+      'message = ' + delError.message + '\n' +
+      'code = ' + delError.code
+    );
+  }
+}
 
       // Adiciona a nova reação
-      const { error: insertError } = await window.supabaseClient
-        .from('reacoes')
-        .insert({
-          usuario_id: user.id,
-          publicacao_id: publicacaoId,
-          tipo
-        });
+const { error: insertError } = await window.supabaseClient
+  .from('reacoes')
+  .insert({
+    usuario_id: user.id,
+    publicacao_id: publicacaoId,
+    tipo
+  });
 
-      if (insertError) {
-        console.error('Erro ao inserir reação:', insertError);
-        return null;
-      }
+if (insertError) {
+  alert(
+    'ERRO INSERT reacao:\n' +
+    'message = ' + insertError.message + '\n' +
+    'code = ' + insertError.code + '\n' +
+    'details = ' + insertError.details + '\n' +
+    'hint = ' + insertError.hint
+  );
+  return null;
+}
 
-      return { acao: 'adicionada', tipo };
+return { acao: 'adicionada', tipo };
     } catch (erro) {
       console.error('Erro ao alternar reação:', erro);
       return null;
