@@ -176,9 +176,37 @@ async function uploadImagemSupabase(bucket, dataUrl) {
     }
   }
 
+    // ============================================
+  // BUSCAR PERFIL PÚBLICO DE OUTRO USUÁRIO
+  // ============================================
+  async function buscarPerfilPublicoSupabase(username) {
+    if (!window.supabaseClient) return null;
+    if (!username) return null;
+
+    try {
+      const { data, error } = await window.supabaseClient
+        .rpc('buscar_perfil_por_username', {
+          username_busca: String(username).replace(/^@/, '').trim()
+        });
+
+      if (error) {
+        console.error('Erro ao buscar perfil público:', error);
+        return null;
+      }
+
+      if (!data || !data.length) return null;
+
+      return data[0];
+    } catch (erro) {
+      console.error('Erro ao buscar perfil público:', erro);
+      return null;
+    }
+  }
+
   window.sincronizarPerfilSupabase = sincronizar;
-window.atualizarPerfilSupabase = atualizarPerfilSupabase;
-window.uploadImagemSupabase = uploadImagemSupabase;
+  window.atualizarPerfilSupabase = atualizarPerfilSupabase;
+  window.uploadImagemSupabase = uploadImagemSupabase;
+  window.buscarPerfilPublicoSupabase = buscarPerfilPublicoSupabase;
 
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
