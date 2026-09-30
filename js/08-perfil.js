@@ -115,16 +115,8 @@ if (avatarEl) {
     (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
 
   if (avatarValido) {
-  avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
   avatarEl.style.backgroundImage = 'none';
-  avatarEl.textContent = '';
-
-  const imgTeste = avatarEl.querySelector('img');
-  alert('IMG no DOM?\n' + (imgTeste ? imgTeste.outerHTML : 'NAO EXISTE'));
-  if (imgTeste) {
-    imgTeste.onerror = () => alert('ERRO AO CARREGAR IMAGEM');
-    imgTeste.onload = () => alert('IMAGEM CARREGOU OK');
-  }
+  avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
 } else {
     avatarEl.innerHTML = '';
     avatarEl.style.backgroundImage = 'none';
