@@ -763,6 +763,100 @@ atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
       renderizar();
     };
 
+      // ============================================
+      // SWIPE (ARRASTAR) — horizontal = troca drop
+      //                 — vertical   = troca perfil
+      // ============================================
+
+      let swipeStartX = 0;
+      let swipeStartY = 0;
+      let swipeStartTime = 0;
+      let swipeAtivo = false;
+
+      const LIMITE_SWIPE = 50;
+      const TEMPO_MAX_SWIPE = 800;
+
+      viewer.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+
+        const alvo = e.target;
+        if (
+          alvo.closest('.nearby-drop-arrow') ||
+          alvo.closest('.nearby-drop-nav') ||
+          alvo.closest('.nearby-drop-close') ||
+          alvo.closest('.nearby-drop-comment-box') ||
+          alvo.closest('.nearby-drop-footer') ||
+          alvo.closest('.nearby-drop-profile-btn') ||
+          alvo.closest('input') ||
+          alvo.closest('video')
+        ) {
+          swipeAtivo = false;
+          return;
+        }
+
+        swipeAtivo = true;
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        swipeStartTime = Date.now();
+      }, { passive: true });
+
+      viewer.addEventListener('touchend', (e) => {
+        if (!swipeAtivo) return;
+        swipeAtivo = false;
+
+        if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+        const dx = e.changedTouches[0].clientX - swipeStartX;
+        const dy = e.changedTouches[0].clientY - swipeStartY;
+        const dt = Date.now() - swipeStartTime;
+
+        if (dt > TEMPO_MAX_SWIPE) return;
+
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+
+        // Horizontal dominante
+        if (absX > LIMITE_SWIPE && absX > absY * 1.3) {
+          if (dx < 0) {
+            // arrastou para a ESQUERDA → próximo drop
+            const perfil = base[perfilAtualId];
+            const drops = obterDropsDoPerfil(perfil);
+            if (dropIndexAtual < drops.length - 1) {
+              dropIndexAtual += 1;
+              renderizar();
+            }
+          } else {
+            // arrastou para a DIREITA → drop anterior
+            if (dropIndexAtual > 0) {
+              dropIndexAtual -= 1;
+              renderizar();
+            }
+          }
+          return;
+        }
+
+        // Vertical dominante
+        if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
+          const idx = ids.indexOf(perfilAtualId);
+
+          if (dy < 0) {
+            // arrastou para CIMA → próximo perfil
+            if (idx < ids.length - 1) {
+              perfilAtualId = ids[idx + 1];
+              dropIndexAtual = 0;
+              renderizar();
+            }
+          } else {
+            // arrastou para BAIXO → perfil anterior
+            if (idx > 0) {
+              perfilAtualId = ids[idx - 1];
+              dropIndexAtual = 0;
+              renderizar();
+            }
+          }
+        }
+      }, { passive: true });
+
       // Renderiza primeira vez
   renderizar();
 }
