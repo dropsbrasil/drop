@@ -97,13 +97,20 @@ const perfisVisitadosNex = {}; // mantido vazio para compatibilidade
       capaEl.style.backgroundImage = `url('${perfil.capa}')`;
     }
 
-    const avatarEl = document.getElementById('perfilAvatarNex');
+        const avatarEl = document.getElementById('perfilAvatarNex');
 if (avatarEl) {
-  if (perfil.avatar) {
+  const avatarValido =
+    perfil.avatar &&
+    typeof perfil.avatar === 'string' &&
+    perfil.avatar.startsWith('http');
+
+  if (avatarValido) {
     avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar">`;
     avatarEl.style.backgroundImage = `url('${perfil.avatar}')`;
     avatarEl.textContent = '';
   } else {
+    avatarEl.innerHTML = '';
+    avatarEl.style.backgroundImage = 'none';
     avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
   }
 }
