@@ -105,14 +105,7 @@ const perfil = {
       capaEl.style.backgroundImage = `url('${perfil.capa}')`;
     }
 
-        const avatarEl = document.getElementById('perfilAvatarNex');
-if (avatarEl) {
-  const avatarValido =
-    perfil.avatar &&
-    typeof perfil.avatar === 'string' &&
-    perfil.avatar.startsWith('http');
-
-          const avatarEl = document.getElementById('perfilAvatarNex');
+      const avatarEl = document.getElementById('perfilAvatarNex');
 if (avatarEl) {
   const avatarValido =
     perfil.avatar &&
