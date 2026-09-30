@@ -63,11 +63,19 @@
   // ALTERNAR REAÇÃO (toggle)
   // ============================================
   async function alternarReacaoSupabase(publicacaoId, emoji) {
-    if (!window.supabaseClient || !publicacaoId || !emoji) return null;
+  if (!window.supabaseClient || !publicacaoId || !emoji) return null;
 
-    try {
-      const { data: { user } } = await window.supabaseClient.auth.getUser();
-      if (!user) return null;
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+
+    alert(
+      'DEBUG Auth:\n' +
+      'user = ' + (user ? user.id : 'NULL') + '\n' +
+      'email = ' + (user ? user.email : 'NULL') + '\n' +
+      'tem sessão? ' + (!!window.supabaseClient.auth.getSession)
+    );
+
+    if (!user) return null;
 
       const tipo = emoji === '💔' ? 'broken' : 'heart';
 
