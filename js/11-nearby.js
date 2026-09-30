@@ -9,6 +9,11 @@
   'use strict';
 
   // ============================================
+  // MAPA: chave local → id uuid do Supabase
+  // ============================================
+  window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
+
+  // ============================================
   // DADOS DOS PERFIS NEARBY (fixos por enquanto)
   // ============================================
   // Serão substituídos por consultas ao backend.
@@ -187,7 +192,7 @@ function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
   // - Atualiza o contador
   // - Registra a interação no sistema de adeptos
 
-  function registrarReacaoDropNex(
+    function registrarReacaoDropNex(
   perfilId,
   dropIndex,
   url,
@@ -197,6 +202,19 @@ function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
   const chaveDrop = window.chaveDropPerfilNex
     ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
     : chaveReacaoDropNex(perfilId, dropIndex, url);
+
+  // ⚠️ FASE 5: salva no Supabase (backend) além do localStorage
+  if (typeof window.alternarReacaoSupabase === 'function') {
+    const publicacaoId =
+      window.__dropsMapaIdsPublicacao &&
+      window.__dropsMapaIdsPublicacao[chaveDrop];
+
+    if (publicacaoId) {
+      window
+        .alternarReacaoSupabase(publicacaoId, emoji)
+        .catch((err) => console.warn('Erro Supabase reação:', err));
+    }
+  }
 
   // ⚠️ Se o sistema de reações está disponível, usa ele
   if (typeof window.alternarReacaoNex === 'function') {
@@ -1188,18 +1206,29 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
     const primeiro = drops[0];
 
     base[autorId] = {
-      id: autorId,
-      nome: primeiro.autorNome || autorId,
-      avatar: primeiro.autorAvatar || null,
-      distancia: '',
-      drops: drops.map((d) => ({
-        url: d.mediaUrl,
-        type: d.tipo === 'video' ? 'video' : 'image',
-        autorId: d.autorUsername,
-        autorNome: d.autorNome,
-        dropIndex: d.id
-      }))
+  id: autorId,
+  nome: primeiro.autorNome || autorId,
+  avatar: primeiro.autorAvatar || null,
+  distancia: '',
+  drops: drops.map((d, idxDentro) => {
+    // ⚠️ FASE 5: guarda o id do Supabase pra ligar a reação
+    const chaveLocal =
+      typeof window.chaveDropPerfilNex === 'function'
+        ? window.chaveDropPerfilNex(autorId, idxDentro, d.mediaUrl)
+        : `${autorId}::${idxDentro}::${d.mediaUrl}`;
+
+    window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
+
+    return {
+      url: d.mediaUrl,
+      type: d.tipo === 'video' ? 'video' : 'image',
+      autorId: d.autorUsername,
+      autorNome: d.autorNome,
+      dropIndex: d.id,
+      publicacaoIdSupabase: d.id
     };
+  })
+  };
   });
 
   // ============================================
