@@ -106,7 +106,8 @@ const perfil = {
       capaEl.style.backgroundImage = `url('${perfil.capa}')`;
     }
 
-      const avatarEl = document.getElementById('perfilAvatarNex');
+            const avatarEl = document.getElementById('perfilAvatarNex');
+alert('avatarEl existe? ' + !!avatarEl + '\navatar valido? ' + !!perfil.avatar + '\nvalor: ' + (perfil.avatar || 'VAZIO'));
 if (avatarEl) {
   const avatarValido =
     perfil.avatar &&
