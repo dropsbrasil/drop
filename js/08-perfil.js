@@ -9,36 +9,12 @@
   'use strict';
 
   // ============================================
-  // DADOS DOS PERFIS VISITADOS (fixos por enquanto)
-  // ============================================
-  // Estes dados serão substituídos por consultas ao backend
-  // quando conectarmos o Firebase.
+// PERFIS VISITADOS (dados reais do Supabase)
+// ============================================
+// Os dados agora são buscados em tempo real pelo
+// @username da pessoa visitada.
 
-  const perfisVisitadosNex = {
-    julia: {
-      nome: 'Julia',
-      capa: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200',
-      avatar: 'J',
-      bio: 'Viva leve, poste forte e deixe o resto acontecer.',
-      visitas: '12.4K',
-      reacoes: '8.7K',
-      adeptos: '3.1K',
-      drops: [
-        {
-          type: 'image',
-          url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200'
-        },
-        {
-          type: 'video',
-          url: 'https://www.w3schools.com/html/mov_bbb.mp4'
-        },
-        {
-          type: 'image',
-          url: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200'
-        }
-      ]
-    }
-  };
+const perfisVisitadosNex = {}; // mantido vazio para compatibilidade
 
   // ============================================
   // BLOQUEADOS (em memória, depois vira backend)
@@ -51,44 +27,66 @@
   // ABRIR PERFIL VISITADO
   // ============================================
 
-  function abrirPerfilVisitadoNex(perfilId, perfilNome) {
-    Drops.estado.telaOrigemPerfilVisitado =
-      document.querySelector('.screen.active')?.id || 'nex';
+  async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
+  Drops.estado.telaOrigemPerfilVisitado =
+    document.querySelector('.screen.active')?.id || 'nex';
 
-    const id = String(perfilId || '').trim().toLowerCase();
+  const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
 
-    Drops.estado.perfilBloquearAtual = id;
-    Drops.estado.perfilAberto = perfilNome;
+  Drops.estado.perfilBloquearAtual = id;
+  Drops.estado.perfilAberto = perfilNome;
 
-    if (perfisBloqueadosNex.has(id)) {
-  return;
-}
+  if (perfisBloqueadosNex.has(id)) {
+    return;
+  }
 
-// Registra visita (hoje: stub; amanhã: backend)
-if (typeof window.registrarVisitaPerfil === 'function') {
-  window.registrarVisitaPerfil(id, Drops.usernameAtual);
-}
+  // Registra visita (hoje: stub; amanhã: backend)
+  if (typeof window.registrarVisitaPerfil === 'function') {
+    window.registrarVisitaPerfil(id, Drops.usernameAtual);
+  }
 
-// Busca perfil ou cria padrão
-const perfilBase = perfisVisitadosNex[id] || {
-  nome: perfilNome || 'Perfil',
-  capa: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
-  avatar: (perfilNome || 'P').charAt(0).toUpperCase(),
-  bio: 'Sem bio disponível no momento.',
-  visitas: '0',
-  reacoes: '0',
-  adeptos: '0',
-  drops: []
-};
+  // ============================================
+  // BUSCA DADOS REAIS NO SUPABASE
+  // ============================================
+  let perfilReal = null;
 
-// ⚠️ CORREÇÃO: só mostra os drops próprios do perfil visitado.
-// Quando o backend chegar, o perfilBase.drops virá de uma
-// consulta real (buscarDropsDoPerfil).
+  if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+    perfilReal = await window.buscarPerfilPublicoSupabase(id);
+  }
 
-const perfil = {
-  ...perfilBase,
-  drops: [...(perfilBase.drops || [])]
-};
+  // Dados padrão (usados se o perfil não existir no Supabase)
+  const perfilBase = {
+    nome: perfilReal?.nome || perfilNome || 'Perfil',
+    capa: perfilReal?.capa_url || 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
+    avatar: perfilReal?.avatar_url || null,
+    bio: perfilReal?.bio || 'Sem bio disponível no momento.',
+    visitas: '0',
+    reacoes: '0',
+    adeptos: '0',
+    social: {
+      instagram: perfilReal?.social_instagram || '',
+      tiktok: perfilReal?.social_tiktok || '',
+      whatsapp: perfilReal?.social_whatsapp || ''
+    },
+    drops: []
+  };
+
+  // ============================================
+  // BUSCA DROPS REAIS DESSE USUÁRIO
+  // ============================================
+  if (perfilReal && typeof window.buscarDropsDoUsuarioSupabase === 'function') {
+    try {
+      const drops = await window.buscarDropsDoUsuarioSupabase(perfilReal.id);
+      perfilBase.drops = drops;
+    } catch (e) {
+      console.warn('Erro ao buscar drops do perfil:', e);
+    }
+  }
+
+  const perfil = {
+    ...perfilBase,
+    drops: [...(perfilBase.drops || [])]
+  };
 
     // ============================================
     // PREENCHE CAMPOS VISUAIS
@@ -100,7 +98,15 @@ const perfil = {
     }
 
     const avatarEl = document.getElementById('perfilAvatarNex');
-    if (avatarEl) avatarEl.textContent = perfil.avatar;
+if (avatarEl) {
+  if (perfil.avatar) {
+    avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar">`;
+    avatarEl.style.backgroundImage = `url('${perfil.avatar}')`;
+    avatarEl.textContent = '';
+  } else {
+    avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
+  }
+}
 
     const nomeEl = document.getElementById('perfilNomeNex');
     if (nomeEl) nomeEl.textContent = perfil.nome;
