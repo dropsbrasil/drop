@@ -502,11 +502,7 @@ salvarPublicacoesMyDropsNex();
 
 // Envia pro Supabase (em segundo plano)
 try {
-  alert('1. Função upload existe? ' + (window.uploadMidiaDropsSupabase ? 'SIM' : 'NÃO'));
-
   const urlMidia = await window.uploadMidiaDropsSupabase?.(publicacao.mediaUrl);
-
-  alert('2. Upload retornou: ' + (urlMidia || 'FALHOU'));
 
   if (urlMidia) {
     const pubSupabase = await window.criarPublicacaoSupabase?.({
