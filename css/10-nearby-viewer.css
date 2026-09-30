@@ -10,6 +10,23 @@
   overflow: hidden;
   background: #050b18;
   box-sizing: border-box;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nearby-drop-viewer .nearby-drop-media-wrap {
+  touch-action: none;
+}
+
+.nearby-drop-viewer .nearby-drop-arrow,
+.nearby-drop-viewer .nearby-drop-nav,
+.nearby-drop-viewer .nearby-drop-close,
+.nearby-drop-viewer .nearby-drop-comment-box,
+.nearby-drop-viewer .nearby-drop-footer,
+.nearby-drop-viewer .nearby-drop-profile-btn {
+  touch-action: manipulation;
 }
 
 .nearby-drop-bg {
