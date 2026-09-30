@@ -43,35 +43,86 @@
       const userKey = username;
 
       if (perfil) {
-        console.log('☁️ Perfil encontrado no Supabase. Sincronizando para o localStorage...');
+  console.log('☁️ Perfil encontrado no Supabase. Sincronizando para o localStorage...');
 
-        if (perfil.username) localStorage.setItem('drops_username', perfil.username);
-        if (perfil.nome) localStorage.setItem('drops_nome', perfil.nome);
+  if (perfil.username) localStorage.setItem('drops_username', perfil.username);
+  if (perfil.nome) localStorage.setItem('drops_nome', perfil.nome);
 
-        const u = perfil.username || username;
-        if (perfil.bio) localStorage.setItem('mydropsBio_' + u, perfil.bio);
-        if (perfil.avatar_url) localStorage.setItem('mydropsAvatar_' + u, perfil.avatar_url);
-        if (perfil.capa_url) localStorage.setItem('mydropsCover_' + u, perfil.capa_url);
-        if (perfil.social_instagram) localStorage.setItem('mydropsSocialInstagram_' + u, perfil.social_instagram);
-        if (perfil.social_tiktok) localStorage.setItem('mydropsSocialTiktok_' + u, perfil.social_tiktok);
-        if (perfil.social_whatsapp) localStorage.setItem('mydropsSocialWhatsapp_' + u, perfil.social_whatsapp);
+  const u = perfil.username || username;
+  if (perfil.bio) localStorage.setItem('mydropsBio_' + u, perfil.bio);
+  if (perfil.avatar_url) localStorage.setItem('mydropsAvatar_' + u, perfil.avatar_url);
+  if (perfil.capa_url) localStorage.setItem('mydropsCover_' + u, perfil.capa_url);
+  if (perfil.social_instagram) localStorage.setItem('mydropsSocialInstagram_' + u, perfil.social_instagram);
+  if (perfil.social_tiktok) localStorage.setItem('mydropsSocialTiktok_' + u, perfil.social_tiktok);
+  if (perfil.social_whatsapp) localStorage.setItem('mydropsSocialWhatsapp_' + u, perfil.social_whatsapp);
 
-        if (typeof window.carregarDadosUsuarioMyDrops === 'function') {
-  window.carregarDadosUsuarioMyDrops();
-}
+  // ============================================
+  // ⚠️ CORREÇÃO: Se o avatar/capa do localStorage for base64
+  // e o do Supabase estiver vazio, envia pro Supabase
+  // ============================================
 
-// Força atualização da capa no MyDrops
-const capaSalva = localStorage.getItem('mydropsCover_' + u);
-if (capaSalva) {
-  const capaEl = document.querySelector('.mydrops-cover');
-  if (capaEl) {
-    capaEl.style.backgroundImage =
-      `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
-    capaEl.style.backgroundSize = 'cover';
-    capaEl.style.backgroundPosition = 'center';
+  const avatarLocal = localStorage.getItem('mydropsAvatar_' + u);
+  if (
+    avatarLocal &&
+    avatarLocal.startsWith('data:image') &&
+    !perfil.avatar_url
+  ) {
+    console.log('📤 Enviando avatar base64 para o Supabase...');
+    try {
+      const urlPublica = await window.uploadImagemSupabase?.('avatars', avatarLocal);
+      if (urlPublica) {
+        await window.supabaseClient
+          .from('profiles')
+          .update({ avatar_url: urlPublica })
+          .eq('id', user.id);
+
+        localStorage.setItem('mydropsAvatar_' + u, urlPublica);
+        console.log('✅ Avatar enviado para o Supabase:', urlPublica);
+      }
+    } catch (err) {
+      console.warn('Falha ao enviar avatar base64:', err);
+    }
   }
-}
-      } else {
+
+  const capaLocal = localStorage.getItem('mydropsCover_' + u);
+  if (
+    capaLocal &&
+    capaLocal.startsWith('data:image') &&
+    !perfil.capa_url
+  ) {
+    console.log('📤 Enviando capa base64 para o Supabase...');
+    try {
+      const urlPublica = await window.uploadImagemSupabase?.('capas', capaLocal);
+      if (urlPublica) {
+        await window.supabaseClient
+          .from('profiles')
+          .update({ capa_url: urlPublica })
+          .eq('id', user.id);
+
+        localStorage.setItem('mydropsCover_' + u, urlPublica);
+        console.log('✅ Capa enviada para o Supabase:', urlPublica);
+      }
+    } catch (err) {
+      console.warn('Falha ao enviar capa base64:', err);
+    }
+  }
+
+  if (typeof window.carregarDadosUsuarioMyDrops === 'function') {
+    window.carregarDadosUsuarioMyDrops();
+  }
+
+  // Força atualização da capa no MyDrops
+  const capaSalva = localStorage.getItem('mydropsCover_' + u);
+  if (capaSalva) {
+    const capaEl = document.querySelector('.mydrops-cover');
+    if (capaEl) {
+      capaEl.style.backgroundImage =
+        `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
+      capaEl.style.backgroundSize = 'cover';
+      capaEl.style.backgroundPosition = 'center';
+    }
+  }
+} else {
         console.log('☁️ Perfil não existe. Criando no Supabase...');
 
         const { error: insertError } = await window.supabaseClient
