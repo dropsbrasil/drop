@@ -424,21 +424,24 @@ function abrirViewerPublicacaoNex(
   if (tipo === 'perfil') {
     if (btnVisitarPerfil) btnVisitarPerfil.style.display = 'none';
   } else if (btnVisitarPerfil) {
-    btnVisitarPerfil.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+  btnVisitarPerfil.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-      const perfil = base[perfilAtualId];
-      if (!perfil) return;
+    const perfil = base[perfilAtualId];
+    if (!perfil) return;
 
-      viewer.remove();
-      document.body.style.overflow = '';
+    // ⚠️ CORREÇÃO: Fecha o viewer ANTES de abrir o perfil
+    viewer.remove();
+    document.body.style.overflow = '';
+    document.body.classList.remove('viewer-aberto');
 
-      abrirPerfilVisitadoNex(
-        perfil.id || perfilAtualId || perfil.nome || '',
-        perfil.nome || 'Perfil'
-      );
-    });
+    // ⚠️ CORREÇÃO: Chama a função (ela mesma fecha outros viewers e mostra a tela)
+    abrirPerfilVisitadoNex(
+      perfil.id || perfilAtualId || perfil.nome || '',
+      perfil.nome || 'Perfil'
+    );
+  });
   }
 
   // ============================================

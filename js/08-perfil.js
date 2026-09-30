@@ -27,66 +27,86 @@ const perfisVisitadosNex = {}; // mantido vazio para compatibilidade
   // ABRIR PERFIL VISITADO
   // ============================================
 
-  async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
-  Drops.estado.telaOrigemPerfilVisitado =
-    document.querySelector('.screen.active')?.id || 'nex';
+async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
+Drops.estado.telaOrigemPerfilVisitado =
+  document.querySelector('.screen.active')?.id || 'nex';
 
-  const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
+const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
 
-  Drops.estado.perfilBloquearAtual = id;
-  Drops.estado.perfilAberto = perfilNome;
+Drops.estado.perfilBloquearAtual = id;
+Drops.estado.perfilAberto = perfilNome;
 
-  if (perfisBloqueadosNex.has(id)) {
-    return;
-  }
+if (perfisBloqueadosNex.has(id)) {
+  return;
+}
 
-  // Registra visita (hoje: stub; amanhã: backend)
-  if (typeof window.registrarVisitaPerfil === 'function') {
-    window.registrarVisitaPerfil(id, Drops.usernameAtual);
-  }
+// ⚠️ CORREÇÃO: Fecha QUALQUER viewer aberto ANTES de qualquer coisa
+// (viewer de publicação, viewer de mídia, viewer do nearby)
+document.querySelectorAll(
+  '.mydrops-publication-viewer, .nearby-drop-viewer, .nex-midia-viewer'
+).forEach((v) => v.remove());
 
-  // ============================================
-  // BUSCA DADOS REAIS NO SUPABASE
-  // ============================================
-  let perfilReal = null;
+// Restaura scroll do body
+document.body.style.overflow = '';
+document.body.classList.remove('viewer-aberto');
 
+// ⚠️ CORREÇÃO: Mostra a tela IMEDIATAMENTE (antes dos awaits)
+// pra dar feedback visual pro usuário
+if (typeof mostrarTela === 'function') {
+  mostrarTela('perfilVisitadoNex');
+}
+
+// Registra visita (hoje: stub; amanhã: backend)
+if (typeof window.registrarVisitaPerfil === 'function') {
+  window.registrarVisitaPerfil(id, Drops.usernameAtual);
+}
+
+// ============================================
+// BUSCA DADOS REAIS NO SUPABASE
+// ============================================
+let perfilReal = null;
+
+try {
   if (typeof window.buscarPerfilPublicoSupabase === 'function') {
     perfilReal = await window.buscarPerfilPublicoSupabase(id);
   }
+} catch (e) {
+  console.warn('Erro ao buscar perfil público:', e);
+}
 
-  // Dados padrão (usados se o perfil não existir no Supabase)
-  const perfilBase = {
-    nome: perfilReal?.nome || perfilNome || 'Perfil',
-    capa: perfilReal?.capa_url || 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
-    avatar: perfilReal?.avatar_url || null,
-    bio: perfilReal?.bio || 'Sem bio disponível no momento.',
-    visitas: '0',
-    reacoes: '0',
-    adeptos: '0',
-    social: {
-      instagram: perfilReal?.social_instagram || '',
-      tiktok: perfilReal?.social_tiktok || '',
-      whatsapp: perfilReal?.social_whatsapp || ''
-    },
-    drops: []
-  };
+// Dados padrão (usados se o perfil não existir no Supabase)
+const perfilBase = {
+  nome: perfilReal?.nome || perfilNome || 'Perfil',
+  capa: perfilReal?.capa_url || 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
+  avatar: perfilReal?.avatar_url || null,
+  bio: perfilReal?.bio || 'Sem bio disponível no momento.',
+  visitas: '0',
+  reacoes: '0',
+  adeptos: '0',
+  social: {
+    instagram: perfilReal?.social_instagram || '',
+    tiktok: perfilReal?.social_tiktok || '',
+    whatsapp: perfilReal?.social_whatsapp || ''
+  },
+  drops: []
+};
 
-  // ============================================
-  // BUSCA DROPS REAIS DESSE USUÁRIO
-  // ============================================
-  if (perfilReal && typeof window.buscarDropsDoUsuarioSupabase === 'function') {
-    try {
-      const drops = await window.buscarDropsDoUsuarioSupabase(perfilReal.id);
-      perfilBase.drops = drops;
-    } catch (e) {
-      console.warn('Erro ao buscar drops do perfil:', e);
-    }
+// ============================================
+// BUSCA DROPS REAIS DESSE USUÁRIO
+// ============================================
+if (perfilReal && typeof window.buscarDropsDoUsuarioSupabase === 'function') {
+  try {
+    const drops = await window.buscarDropsDoUsuarioSupabase(perfilReal.id);
+    perfilBase.drops = drops;
+  } catch (e) {
+    console.warn('Erro ao buscar drops do perfil:', e);
   }
+}
 
-  const perfil = {
-    ...perfilBase,
-    drops: [...(perfilBase.drops || [])]
-  };
+const perfil = {
+  ...perfilBase,
+  drops: [...(perfilBase.drops || [])]
+};
 
     // ============================================
     // PREENCHE CAMPOS VISUAIS
