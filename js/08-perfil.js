@@ -104,6 +104,13 @@ if (avatarEl) {
     typeof perfil.avatar === 'string' &&
     perfil.avatar.startsWith('http');
 
+          const avatarEl = document.getElementById('perfilAvatarNex');
+if (avatarEl) {
+  const avatarValido =
+    perfil.avatar &&
+    typeof perfil.avatar === 'string' &&
+    (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
+
   if (avatarValido) {
     avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar">`;
     avatarEl.style.backgroundImage = `url('${perfil.avatar}')`;
