@@ -192,13 +192,55 @@
   }
 
   // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
-  window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
-  window.criarPublicacaoSupabase = criarPublicacaoSupabase;
-  window.buscarMinhasPublicacoesSupabase = buscarMinhasPublicacoesSupabase;
-  window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;
-  window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
+// BUSCAR PUBLICAÇÕES DE UM USUÁRIO ESPECÍFICO
+// ============================================
+async function buscarDropsDoUsuarioSupabase(usuarioId) {
+  if (!window.supabaseClient || !usuarioId) return [];
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('publicacoes')
+      .select('*')
+      .eq('autor_id', usuarioId)
+      .order('criado_em', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar drops do usuário:', error);
+      return [];
+    }
+
+    // Filtra expiradas e converte pro formato usado no perfil
+    const agora = Date.now();
+
+    return (data || [])
+      .filter((p) => {
+        if (!p.expira_em) return true;
+        return new Date(p.expira_em).getTime() > agora;
+      })
+      .map((p) => ({
+        id: p.id,
+        type: p.tipo === 'video' ? 'video' : 'image',
+        url: p.media_url,
+        legenda: p.legenda || '',
+        criadoEm: new Date(p.criado_em).getTime(),
+        expiraEm: p.expira_em,
+        duracao: p.duracao
+      }));
+  } catch (erro) {
+    console.error('Erro ao buscar drops do usuário:', erro);
+    return [];
+  }
+}
+
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
+window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
+window.criarPublicacaoSupabase = criarPublicacaoSupabase;
+window.buscarMinhasPublicacoesSupabase = buscarMinhasPublicacoesSupabase;
+window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;
+window.buscarDropsDoUsuarioSupabase = buscarDropsDoUsuarioSupabase;
+window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
 
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
