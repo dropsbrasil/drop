@@ -62,7 +62,6 @@ try {
   console.warn('Erro ao buscar perfil público:', e);
 }
 
-alert('DEBUG perfilReal:\n' + JSON.stringify(perfilReal, null, 2));
 
 // Dados padrão (usados se o perfil não existir no Supabase)
 const perfilBase = {
@@ -115,10 +114,10 @@ if (avatarEl) {
     (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
 
   if (avatarValido) {
-    avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar">`;
-    avatarEl.style.backgroundImage = `url('${perfil.avatar}')`;
-    avatarEl.textContent = '';
-  } else {
+  avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+  avatarEl.style.backgroundImage = 'none';
+  avatarEl.textContent = '';
+} else {
     avatarEl.innerHTML = '';
     avatarEl.style.backgroundImage = 'none';
     avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
