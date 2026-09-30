@@ -84,12 +84,12 @@
 
 .perfil-avatar {
   position: relative;
-  z-index: 100;
+  z-index: 9999;
   width: 132px;
   height: 132px;
   border-radius: 50%;
-  border: 5px solid #8b5cf6;
-  background: transparent;
+  border: 5px solid red;
+  background: lime;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,7 +99,6 @@
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
-
 .perfil-avatar img {
   position: absolute;
   top: 0;
