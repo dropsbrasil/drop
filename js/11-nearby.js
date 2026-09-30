@@ -921,49 +921,64 @@ function atualizarBotoesReacaoNex(
     '800 km', '1.500 km', '3.000 km', '5.000 km'
   ];
 
-  // ============================================
-  // CRIA UM CARTÃO POR DROP
-  // ============================================
-  drops.forEach((drop, index) => {
-    const card = document.createElement('div');
-    card.className = 'near-card';
+// ============================================
+// AGRUPA DROPS POR AUTOR (1 card por perfil)
+// ============================================
+const dropsPorAutor = {};
 
-    // Imagem do drop como fundo
-    if (drop.mediaUrl) {
-      card.style.backgroundImage = `url('${drop.mediaUrl}')`;
-      card.style.backgroundSize = 'cover';
-      card.style.backgroundPosition = 'center';
-    }
+drops.forEach((drop) => {
+  const autorId = drop.autorUsername || 'usuario';
+  if (!dropsPorAutor[autorId]) {
+    dropsPorAutor[autorId] = [];
+  }
+  dropsPorAutor[autorId].push(drop);
+});
 
-    // Avatar do autor (inicial do username)
-    const avatar = document.createElement('div');
-    avatar.className = 'near-avatar';
+// ============================================
+// CRIA UM CARTÃO POR AUTOR
+// ============================================
+Object.entries(dropsPorAutor).forEach(([autorId, dropsDoAutor], index) => {
+  const dropPrincipal = dropsDoAutor[0];
 
-    if (drop.autorAvatar) {
-      avatar.style.backgroundImage = `url('${drop.autorAvatar}')`;
-      avatar.style.backgroundSize = 'cover';
-      avatar.style.backgroundPosition = 'center';
-      avatar.textContent = '';
-    } else {
-      avatar.textContent = (drop.autorUsername || '?').charAt(0).toUpperCase();
-    }
+  const card = document.createElement('div');
+  card.className = 'near-card';
 
-    // @username do autor
-    const nome = document.createElement('h3');
-    nome.textContent = '@' + (drop.autorUsername || 'usuario');
+  // Imagem do drop mais recente como fundo
+  if (dropPrincipal.mediaUrl) {
+    card.style.backgroundImage = `url('${dropPrincipal.mediaUrl}')`;
+    card.style.backgroundSize = 'cover';
+    card.style.backgroundPosition = 'center';
+  }
 
-    // Distância fake
-    const dist = document.createElement('span');
-    dist.textContent = distanciasFake[index % distanciasFake.length];
+  // Avatar do autor
+  const avatar = document.createElement('div');
+  avatar.className = 'near-avatar';
 
-    card.append(avatar, nome, dist);
-    grid.appendChild(card);
+  if (dropPrincipal.autorAvatar) {
+    avatar.style.backgroundImage = `url('${dropPrincipal.autorAvatar}')`;
+    avatar.style.backgroundSize = 'cover';
+    avatar.style.backgroundPosition = 'center';
+    avatar.textContent = '';
+  } else {
+    avatar.textContent = (dropPrincipal.autorUsername || '?').charAt(0).toUpperCase();
+  }
 
-    // Clique abre o drop em tela cheia
-    card.addEventListener('click', () => {
-      abrirDropRealNearbyNex(drop, drops);
-    });
+  // @username do autor
+  const nome = document.createElement('h3');
+  nome.textContent = '@' + (dropPrincipal.autorUsername || 'usuario');
+
+  // Distância fake
+  const dist = document.createElement('span');
+  dist.textContent = distanciasFake[index % distanciasFake.length];
+
+  card.append(avatar, nome, dist);
+  grid.appendChild(card);
+
+  // Clique abre o viewer com os drops DESSE autor
+  card.addEventListener('click', () => {
+    abrirDropRealNearbyNex(dropPrincipal, drops);
   });
+});
   }
   
   // ============================================
