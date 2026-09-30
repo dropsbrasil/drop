@@ -863,103 +863,106 @@ function atualizarBotoesReacaoNex(
   // RENDERIZAR PUBLICACOES DO NEARBY
   // ============================================
 
-  function renderizarPublicacoesNearbyNex() {
-    const stories = document.querySelector('.nearby-stories');
-    const grid = document.querySelector('.nearby-grid');
+  async function renderizarPublicacoesNearbyNex() {
+  const stories = document.querySelector('.nearby-stories');
+  const grid = document.querySelector('.nearby-grid');
 
-    if (!stories || !grid) return;
+  if (!stories || !grid) return;
 
-    const conectados = lerConectadosMyDropsNex().map((item) =>
-      normalizarIdPerfilNex(item.id)
-    );
+  // Mantém o story fixo "Minhas publicações"
+  const storyFixa = stories.querySelector('.my-story');
+  stories.innerHTML = '';
+  if (storyFixa) stories.appendChild(storyFixa);
 
-    const conectadosSet = new Set(conectados);
-
-    // Mantém o story fixo "Minhas publicações"
-    const storyFixa = stories.querySelector('.my-story');
-    stories.innerHTML = '';
-    if (storyFixa) stories.appendChild(storyFixa);
-
-    // ============================================
-    // STORIES DOS CONECTADOS
-    // ============================================
-
-    conectados.forEach((id) => {
-      const perfil =
-        publicacoesNearbyNex.conectados[id] ||
-        publicacoesNearbyNex.nearby[id] ||
-        (window.perfisVisitadosNex && window.perfisVisitadosNex[id]);
-
-      if (!perfil) return;
-
-      const card = document.createElement('div');
-      card.className = 'story-card';
-
-      card.addEventListener('click', () => {
-        abrirPublicacaoConectadaNex(id);
-      });
-
-      const post = document.createElement('div');
-      post.className = 'story-post';
-      if (perfil.imagem || perfil.capa) {
-        post.style.backgroundImage = `url('${perfil.imagem || perfil.capa}')`;
-        post.style.backgroundSize = 'cover';
-        post.style.backgroundPosition = 'center';
-      }
-
-      const online = document.createElement('div');
-      online.className = 'story-online';
-
-      const avatar = document.createElement('div');
-      avatar.className = 'story-avatar-center';
-      avatar.textContent = (perfil.nome || id).charAt(0).toUpperCase();
-
-      const user = document.createElement('div');
-      user.className = 'story-user';
-      user.innerHTML = `
-        <h4>${perfil.nome || id}</h4>
-        <span>${perfil.distancia || ''}</span>
-      `;
-
-      card.append(post, online, avatar, user);
-      stories.appendChild(card);
-    });
-
-    // ============================================
-    // GRID DOS PERFIS NEARBY
-    // ============================================
-
-    grid.innerHTML = '';
-
-    Object.entries(publicacoesNearbyNex.nearby).forEach(([id, perfil]) => {
-      if (conectadosSet.has(id)) return;
-
-      const card = document.createElement('div');
-      card.className = 'near-card';
-
-      card.addEventListener('click', () => {
-        abrirPublicacaoNearbyNex(id);
-      });
-
-      if (perfil.imagem) {
-        card.style.backgroundImage = `url('${perfil.imagem}')`;
-      }
-
-      const avatar = document.createElement('div');
-      avatar.className = 'near-avatar';
-      avatar.textContent = (perfil.nome || id).charAt(0).toUpperCase();
-
-      const nome = document.createElement('h3');
-      nome.textContent = perfil.nome || id;
-
-      const dist = document.createElement('span');
-      dist.textContent = perfil.distancia || '';
-
-      card.append(avatar, nome, dist);
-      grid.appendChild(card);
-    });
+  // ============================================
+  // BUSCA DADOS REAIS DO SUPABASE
+  // ============================================
+  if (typeof window.buscarTodosOsDropsComAutor !== 'function') {
+    console.warn('buscarTodosOsDropsComAutor não disponível ainda');
+    return;
   }
 
+  let drops = [];
+
+  try {
+    drops = await window.buscarTodosOsDropsComAutor(50);
+  } catch (e) {
+    console.warn('Erro ao buscar drops do Nearby:', e);
+    return;
+  }
+
+  grid.innerHTML = '';
+
+  if (!Array.isArray(drops) || drops.length === 0) {
+    const vazio = document.createElement('div');
+    vazio.style.cssText = `
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px 20px;
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 600;
+    `;
+    vazio.textContent = 'Nenhuma publicação por perto ainda.';
+    grid.appendChild(vazio);
+    return;
+  }
+
+  // ============================================
+  // DISTÂNCIAS FAKE (por enquanto)
+  // ============================================
+  const distanciasFake = [
+    '120 m', '350 m', '620 m', '1.2 km', '1.8 km',
+    '2.4 km', '3.1 km', '4.6 km', '5.2 km', '8.3 km',
+    '12 km', '25 km', '50 km', '120 km', '350 km',
+    '800 km', '1.500 km', '3.000 km', '5.000 km'
+  ];
+
+  // ============================================
+  // CRIA UM CARTÃO POR DROP
+  // ============================================
+  drops.forEach((drop, index) => {
+    const card = document.createElement('div');
+    card.className = 'near-card';
+
+    // Imagem do drop como fundo
+    if (drop.mediaUrl) {
+      card.style.backgroundImage = `url('${drop.mediaUrl}')`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+    }
+
+    // Avatar do autor (inicial do username)
+    const avatar = document.createElement('div');
+    avatar.className = 'near-avatar';
+
+    if (drop.autorAvatar) {
+      avatar.style.backgroundImage = `url('${drop.autorAvatar}')`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+      avatar.textContent = '';
+    } else {
+      avatar.textContent = (drop.autorUsername || '?').charAt(0).toUpperCase();
+    }
+
+    // @username do autor
+    const nome = document.createElement('h3');
+    nome.textContent = '@' + (drop.autorUsername || 'usuario');
+
+    // Distância fake
+    const dist = document.createElement('span');
+    dist.textContent = distanciasFake[index % distanciasFake.length];
+
+    card.append(avatar, nome, dist);
+    grid.appendChild(card);
+
+    // Clique abre o drop em tela cheia
+    card.addEventListener('click', () => {
+      abrirDropRealNearbyNex(drop, drops);
+    });
+  });
+  }
+  
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
@@ -1045,10 +1048,51 @@ function atualizarBotoesReacaoNex(
     }
   });
 
-  // ============================================
-  // DEBUG
-  // ============================================
+// ============================================
+// ABRIR DROP REAL (novo sistema)
+// ============================================
+function abrirDropRealNearbyNex(drop, listaDeDrops) {
+  if (!drop) return;
 
-  console.log('🗺️ 11-nearby.js carregado');
+  // Monta uma "base" compatível com o viewer existente
+  // O viewer espera um objeto perfil com drops dentro
+  const perfilId = drop.autorUsername || 'usuario';
 
+  const perfil = {
+    id: perfilId,
+    nome: drop.autorNome || drop.autorUsername || 'Perfil',
+    avatar: drop.autorAvatar || null,
+    distancia: '',
+    capa: drop.mediaUrl,
+    drops: (listaDeDrops || []).map((d) => ({
+      url: d.mediaUrl,
+      type: d.tipo === 'video' ? 'video' : 'image',
+      autorId: d.autorUsername,
+      autorNome: d.autorNome,
+      dropIndex: d.id
+    }))
+  };
+
+  const base = { [perfilId]: perfil };
+
+  if (typeof window.abrirViewerPublicacaoNex === 'function') {
+    window.abrirViewerPublicacaoNex(
+      perfil,
+      'perfil',
+      perfilId,
+      0,
+      base
+    );
+  } else {
+    console.warn('abrirViewerPublicacaoNex não disponível');
+  }
+}
+
+window.abrirDropRealNearbyNex = abrirDropRealNearbyNex;
+
+// ============================================
+// DEBUG
+// ============================================
+
+console.log('🗺️ 11-nearby.js carregado');
 })();

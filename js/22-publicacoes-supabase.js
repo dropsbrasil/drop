@@ -233,6 +233,73 @@ async function buscarDropsDoUsuarioSupabase(usuarioId) {
 }
 
 // ============================================
+// BUSCAR TODOS OS DROPS COM DADOS DO AUTOR
+// ============================================
+async function buscarTodosOsDropsComAutor(limite = 50) {
+  if (!window.supabaseClient) return [];
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('publicacoes')
+      .select('*')
+      .order('criado_em', { ascending: false })
+      .limit(limite);
+
+    if (error) {
+      console.error('Erro ao buscar drops:', error);
+      return [];
+    }
+
+    const agora = Date.now();
+
+    // Filtra expiradas e converte pro formato de cartão
+    const dropsValidos = (data || []).filter((p) => {
+      if (!p.expira_em) return true;
+      return new Date(p.expira_em).getTime() > agora;
+    });
+
+    // Busca os perfis dos autores de uma vez
+    const idsAutores = [...new Set(dropsValidos.map((p) => p.autor_id))];
+
+    let perfisMap = {};
+
+    if (idsAutores.length) {
+      const { data: perfis } = await window.supabaseClient
+        .from('profiles')
+        .select('id, nome, username, avatar_url')
+        .in('id', idsAutores);
+
+      (perfis || []).forEach((p) => {
+        perfisMap[p.id] = p;
+      });
+    }
+
+    // Monta lista final
+    return dropsValidos.map((drop) => {
+      const autor = perfisMap[drop.autor_id] || {};
+
+      return {
+        id: drop.id,
+        mediaUrl: drop.media_url,
+        tipo: drop.tipo === 'video' ? 'video' : 'image',
+        legenda: drop.legenda || '',
+        criadoEm: new Date(drop.criado_em).getTime(),
+        expiraEm: drop.expira_em,
+        duracao: drop.duracao,
+
+        autorId: drop.autor_id,
+        autorUsername: autor.username || drop.autor_username || 'usuario',
+        autorNome: autor.nome || 'Usuário',
+        autorAvatar: autor.avatar_url || null
+      };
+    });
+  } catch (erro) {
+    console.error('Erro ao buscar drops com autor:', erro);
+    return [];
+  }
+}
+
+// ============================================
 // EXPÕE GLOBALMENTE
 // ============================================
 window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
@@ -240,6 +307,7 @@ window.criarPublicacaoSupabase = criarPublicacaoSupabase;
 window.buscarMinhasPublicacoesSupabase = buscarMinhasPublicacoesSupabase;
 window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;
 window.buscarDropsDoUsuarioSupabase = buscarDropsDoUsuarioSupabase;
+window.buscarTodosOsDropsComAutor = buscarTodosOsDropsComAutor;
 window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
 
   document.addEventListener('DOMContentLoaded', async () => {
