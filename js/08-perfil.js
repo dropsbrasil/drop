@@ -40,21 +40,9 @@ if (perfisBloqueadosNex.has(id)) {
   return;
 }
 
-// ⚠️ CORREÇÃO: Fecha QUALQUER viewer aberto ANTES de qualquer coisa
-// (viewer de publicação, viewer de mídia, viewer do nearby)
-document.querySelectorAll(
-  '.mydrops-publication-viewer, .nearby-drop-viewer, .nex-midia-viewer'
-).forEach((v) => v.remove());
-
-// Restaura scroll do body
+// ⚠️ CORREÇÃO: Restaura scroll do body
 document.body.style.overflow = '';
 document.body.classList.remove('viewer-aberto');
-
-// ⚠️ CORREÇÃO: Mostra a tela IMEDIATAMENTE (antes dos awaits)
-// pra dar feedback visual pro usuário
-if (typeof mostrarTela === 'function') {
-  mostrarTela('perfilVisitadoNex');
-}
 
 // Registra visita (hoje: stub; amanhã: backend)
 if (typeof window.registrarVisitaPerfil === 'function') {
