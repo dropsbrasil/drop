@@ -83,11 +83,13 @@
 }
 
 .perfil-avatar {
+  position: relative;
+  z-index: 100;
   width: 132px;
   height: 132px;
   border-radius: 50%;
   border: 5px solid #8b5cf6;
-  background: #1e293b;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,11 +101,15 @@
 }
 
 .perfil-avatar img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
   display: block;
+  z-index: 101;
 }
 
 .perfil-nome-area {
