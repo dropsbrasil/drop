@@ -204,17 +204,25 @@ function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
     : chaveReacaoDropNex(perfilId, dropIndex, url);
 
   // ⚠️ FASE 5: salva no Supabase (backend) além do localStorage
-  if (typeof window.alternarReacaoSupabase === 'function') {
-    const publicacaoId =
-      window.__dropsMapaIdsPublicacao &&
-      window.__dropsMapaIdsPublicacao[chaveDrop];
+if (typeof window.alternarReacaoSupabase === 'function') {
+  const publicacaoId =
+    window.__dropsMapaIdsPublicacao &&
+    window.__dropsMapaIdsPublicacao[chaveDrop];
 
-    if (publicacaoId) {
-      window
-        .alternarReacaoSupabase(publicacaoId, emoji)
-        .catch((err) => console.warn('Erro Supabase reação:', err));
-    }
+  alert(
+    'DEBUG FASE 5:\n' +
+    'chaveDrop = ' + chaveDrop + '\n' +
+    'publicacaoId = ' + (publicacaoId || 'VAZIO') + '\n' +
+    'mapa tem ' + Object.keys(window.__dropsMapaIdsPublicacao || {}).length + ' chaves'
+  );
+
+  if (publicacaoId) {
+    window
+      .alternarReacaoSupabase(publicacaoId, emoji)
+      .then((r) => alert('RESULTADO Supabase: ' + JSON.stringify(r)))
+      .catch((err) => alert('ERRO Supabase: ' + err.message));
   }
+}
 
   // ⚠️ Se o sistema de reações está disponível, usa ele
   if (typeof window.alternarReacaoNex === 'function') {
