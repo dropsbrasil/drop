@@ -62,6 +62,8 @@ try {
   console.warn('Erro ao buscar perfil público:', e);
 }
 
+alert('DEBUG perfilReal:\n' + JSON.stringify(perfilReal, null, 2));
+
 // Dados padrão (usados se o perfil não existir no Supabase)
 const perfilBase = {
   nome: perfilReal?.nome || perfilNome || 'Perfil',
