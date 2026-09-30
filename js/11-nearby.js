@@ -1051,36 +1051,69 @@ function atualizarBotoesReacaoNex(
 // ============================================
 // ABRIR DROP REAL (novo sistema)
 // ============================================
-function abrirDropRealNearbyNex(drop, listaDeDrops) {
-  if (!drop) return;
+function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
+  if (!dropClicado) return;
 
-  // Monta uma "base" compatível com o viewer existente
-  // O viewer espera um objeto perfil com drops dentro
-  const perfilId = drop.autorUsername || 'usuario';
+  const lista = Array.isArray(listaDeDrops) ? listaDeDrops : [];
 
-  const perfil = {
-    id: perfilId,
-    nome: drop.autorNome || drop.autorUsername || 'Perfil',
-    avatar: drop.autorAvatar || null,
-    distancia: '',
-    capa: drop.mediaUrl,
-    drops: (listaDeDrops || []).map((d) => ({
-      url: d.mediaUrl,
-      type: d.tipo === 'video' ? 'video' : 'image',
-      autorId: d.autorUsername,
-      autorNome: d.autorNome,
-      dropIndex: d.id
-    }))
-  };
+  // ============================================
+  // AGRUPA DROPS POR AUTOR
+  // ============================================
+  const dropsPorAutor = {};
 
-  const base = { [perfilId]: perfil };
+  lista.forEach((d) => {
+    const id = d.autorUsername || 'usuario';
+    if (!dropsPorAutor[id]) dropsPorAutor[id] = [];
+    dropsPorAutor[id].push(d);
+  });
 
+  // ============================================
+  // MONTA A BASE DE PERFIS (compatível com viewer)
+  // ============================================
+  const base = {};
+
+  Object.entries(dropsPorAutor).forEach(([autorId, drops]) => {
+    const primeiro = drops[0];
+
+    base[autorId] = {
+      id: autorId,
+      nome: primeiro.autorNome || autorId,
+      avatar: primeiro.autorAvatar || null,
+      distancia: '',
+      drops: drops.map((d) => ({
+        url: d.mediaUrl,
+        type: d.tipo === 'video' ? 'video' : 'image',
+        autorId: d.autorUsername,
+        autorNome: d.autorNome,
+        dropIndex: d.id
+      }))
+    };
+  });
+
+  // ============================================
+  // IDENTIFICA O AUTOR CLICADO E O ÍNDICE DO DROP
+  // ============================================
+  const autorClicado = dropClicado.autorUsername || 'usuario';
+  const perfilClicado = base[autorClicado];
+
+  if (!perfilClicado) return;
+
+  // Acha o índice do drop clicado dentro do perfil dele
+  const indexClicado = perfilClicado.drops.findIndex(
+    (d) => d.dropIndex === dropClicado.id
+  );
+
+  const dropIndexFinal = indexClicado >= 0 ? indexClicado : 0;
+
+  // ============================================
+  // ABRE O VIEWER COM TIPO 'nearby'
+  // ============================================
   if (typeof window.abrirViewerPublicacaoNex === 'function') {
     window.abrirViewerPublicacaoNex(
-      perfil,
-      'perfil',
-      perfilId,
-      0,
+      perfilClicado,
+      'nearby',       // <- tipo 'nearby' faz o botão "Visitar perfil" aparecer
+      autorClicado,
+      dropIndexFinal,
       base
     );
   } else {
@@ -1089,7 +1122,7 @@ function abrirDropRealNearbyNex(drop, listaDeDrops) {
 }
 
 window.abrirDropRealNearbyNex = abrirDropRealNearbyNex;
-
+  
 // ============================================
 // DEBUG
 // ============================================
