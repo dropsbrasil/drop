@@ -23,6 +23,52 @@ function salvarPublicacoesMyDropsNex() {
   window.MyDropsAdapterNex.salvarPublicacoes(publicacoesMyDropsNex);
 }
 
+// ============================================
+// BUSCAR PUBLICAÇÕES DO SUPABASE E MESCLAR
+// ============================================
+async function sincronizarPublicacoesSupabase() {
+  if (!window.buscarMinhasPublicacoesSupabase) return;
+
+  try {
+    const pubsSupabase = await window.buscarMinhasPublicacoesSupabase();
+
+    if (!Array.isArray(pubsSupabase)) return;
+
+    // Converte o formato do Supabase para o formato local
+    const pubsConvertidas = pubsSupabase.map((p) => ({
+      id: p.id,
+      idSupabase: p.id,
+      autorId: p.autor_username,
+      origem: p.tipo === 'video' ? 'video' : 'foto',
+      midiaTipo: p.tipo === 'video' ? 'video' : 'image',
+      mediaUrl: p.media_url,
+      legenda: p.legenda || '',
+      loop: p.loop === true,
+      criadoEm: new Date(p.criado_em).getTime(),
+      expiraEm: p.expira_em,
+      duracao: p.duracao,
+      visualizacoes: [],
+      reacoes: { heart: [], broken: [] }
+    }));
+
+    // Mescla: substitui tudo do Supabase, mantém locais não sincronizados
+    const idsSupabase = new Set(pubsConvertidas.map((p) => p.idSupabase));
+
+    const locaisNaoSincronizados = publicacoesMyDropsNex.filter(
+      (p) => !p.idSupabase && !idsSupabase.has(p.id)
+    );
+
+    publicacoesMyDropsNex = [...pubsConvertidas, ...locaisNaoSincronizados];
+
+    salvarPublicacoesMyDropsNex();
+    renderizarPublicacoesMyDropsNex();
+
+    console.log('☁️ Publicações sincronizadas:', pubsConvertidas.length);
+  } catch (erro) {
+    console.error('Erro ao sincronizar publicações:', erro);
+  }
+}
+
   // ============================================
   // REMOVER PUBLICAÇÕES EXPIRADAS
   // ============================================
@@ -1159,10 +1205,17 @@ function renderizarPublicacoesMyDropsNex() {
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Radio buttons do modal de duração
-    const modalDuracao = document.getElementById(
-      'modalDuracaoPublicacaoMyDropsNex'
-    );
+  // Sincroniza publicações com o Supabase ao abrir
+  setTimeout(() => {
+    if (typeof sincronizarPublicacoesSupabase === 'function') {
+      sincronizarPublicacoesSupabase();
+    }
+  }, 2000);
+
+  // Radio buttons do modal de duração
+  const modalDuracao = document.getElementById(
+    'modalDuracaoPublicacaoMyDropsNex'
+  );
 
     modalDuracao
       ?.querySelectorAll('input[name="duracaoPublicacaoMyDropsNex"]')
