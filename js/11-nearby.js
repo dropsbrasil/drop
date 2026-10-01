@@ -616,13 +616,16 @@ function abrirViewerPublicacaoNex(
   if (botaoEnviar) {
     botaoEnviar.addEventListener('click', enviarComentarioNearbyNex);
   }
-      // ============================================
-    // RENDERIZAR O VIEWER
-    // ============================================
+     // ============================================
+// RENDERIZAR O VIEWER
+// ============================================
 
-    function renderizar() {
-      const perfil = base[perfilAtualId];
-      if (!perfil) return;
+// ⚠️ FASE 5: garante que só busca do Supabase 1x por drop
+const dropsJaSincronizados = new Set();
+
+function renderizar() {
+  const perfil = base[perfilAtualId];
+  if (!perfil) return;
 
       const drops = obterDropsDoPerfil(perfil);
       const drop = drops[dropIndexAtual] || drops[0];
@@ -679,6 +682,7 @@ atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 }
 
 // ⚠️ FASE 5: Busca reações reais do Supabase (sincronização)
+// Só busca UMA VEZ por drop, pra não competir com o clique
 const chaveDropAtual = window.chaveDropPerfilNex
   ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
   : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
@@ -689,8 +693,11 @@ const publicacaoIdAtual =
 
 if (
   publicacaoIdAtual &&
-  typeof window.buscarReacoesSupabase === 'function'
+  typeof window.buscarReacoesSupabase === 'function' &&
+  !dropsJaSincronizados.has(chaveDropAtual)
 ) {
+  dropsJaSincronizados.add(chaveDropAtual);
+
   window
     .buscarReacoesSupabase(publicacaoIdAtual)
     .then((dadosSupabase) => {
