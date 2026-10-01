@@ -66,16 +66,9 @@
   if (!window.supabaseClient || !publicacaoId || !emoji) return null;
 
   try {
+
     const { data: { user } } = await window.supabaseClient.auth.getUser();
-
-    alert(
-      'DEBUG Auth:\n' +
-      'user = ' + (user ? user.id : 'NULL') + '\n' +
-      'email = ' + (user ? user.email : 'NULL') + '\n' +
-      'tem sessão? ' + (!!window.supabaseClient.auth.getSession)
-    );
-
-    if (!user) return null;
+if (!user) return null;
 
       const tipo = emoji === '💔' ? 'broken' : 'heart';
 
@@ -105,21 +98,13 @@
 
       // Se tem outra reação → remove antes
 if (listaExistente.length > 0) {
-  const { error: delError } = await window.supabaseClient
+  await window.supabaseClient
     .from('reacoes')
     .delete()
     .eq('usuario_id', user.id)
     .eq('publicacao_id', publicacaoId);
-
-  if (delError) {
-    alert(
-      'ERRO DELETE reacao:\n' +
-      'message = ' + delError.message + '\n' +
-      'code = ' + delError.code
-    );
-  }
 }
-
+    
       // Adiciona a nova reação
 const { error: insertError } = await window.supabaseClient
   .from('reacoes')
@@ -130,17 +115,12 @@ const { error: insertError } = await window.supabaseClient
   });
 
 if (insertError) {
-  alert(
-    'ERRO INSERT reacao:\n' +
-    'message = ' + insertError.message + '\n' +
-    'code = ' + insertError.code + '\n' +
-    'details = ' + insertError.details + '\n' +
-    'hint = ' + insertError.hint
-  );
+  console.error('Erro ao inserir reação:', insertError);
   return null;
 }
 
 return { acao: 'adicionada', tipo };
+    
     } catch (erro) {
       console.error('Erro ao alternar reação:', erro);
       return null;
