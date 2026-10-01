@@ -279,10 +279,32 @@ if (typeof window.alternarReacaoSupabase === 'function') {
   );
   }
   
-  // ============================================
-  // OBTER DROPS DE UM PERFIL
-  // ============================================
+// ============================================
+// CALCULAR TEMPO DE EXPIRAÇÃO (texto amigável)
+// ============================================
+function calcularTempoExpiracaoNex(expiraEm) {
+  if (!expiraEm) return 'Permanente';
 
+  const ms = new Date(expiraEm).getTime() - Date.now();
+
+  if (isNaN(ms)) return 'Permanente';
+  if (ms <= 0) return 'Expirado';
+
+  const seg = Math.floor(ms / 1000);
+  const min = Math.floor(seg / 60);
+  const h   = Math.floor(min / 60);
+  const d   = Math.floor(h / 24);
+
+  if (d >= 1)  return `Expira em ${d}d`;
+  if (h >= 1)  return `Expira em ${h}h`;
+  if (min >= 1) return `Expira em ${min}min`;
+
+  return `Expira em ${seg}s`;
+}
+
+// ============================================
+// OBTER DROPS DE UM PERFIL
+// ============================================
   function obterDropsDoPerfil(perfil) {
     if (Array.isArray(perfil?.drops) && perfil.drops.length) {
       return perfil.drops;
@@ -663,7 +685,9 @@ function renderizar() {
 }
 if (nome) nome.textContent = perfil.nome || 'Perfil';
       if (distancia) distancia.textContent = perfil.distancia || '';
-      if (expire) expire.textContent = drop.expireText || 'Expira em 4h';
+      if (expire) {
+  expire.textContent = calcularTempoExpiracaoNex(drop.expiraEm);
+      }
       if (counter) {
         counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
       }
@@ -1353,13 +1377,14 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
     window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
 
     return {
-      url: d.mediaUrl,
-      type: d.tipo === 'video' ? 'video' : 'image',
-      autorId: d.autorUsername,
-      autorNome: d.autorNome,
-      dropIndex: d.id,
-      publicacaoIdSupabase: d.id
-    };
+  url: d.mediaUrl,
+  type: d.tipo === 'video' ? 'video' : 'image',
+  autorId: d.autorUsername,
+  autorNome: d.autorNome,
+  dropIndex: d.id,
+  publicacaoIdSupabase: d.id,
+  expiraEm: d.expiraEm || null
+};
   })
   };
   });
