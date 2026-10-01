@@ -170,14 +170,25 @@ if (weatherLocationEl) {
         weatherLocationEl.textContent = 'Buscando localização...';
 
         const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+const lng = pos.coords.longitude;
 
-        // ⚠️ GPS 2: salva lat/lng no Supabase (pra usar no Nearby)
-        if (typeof window.salvarLocalizacaoSupabase === 'function') {
-          window.salvarLocalizacaoSupabase(lat, lng).catch((err) =>
-            console.warn('Erro ao salvar localização:', err)
-          );
-        }
+// ⚠️ NOVO: guarda em memória pra calcular distância no Nearby
+window.minhaLatitudeAtual = lat;
+window.minhaLongitudeAtual = lng;
+
+// ⚠️ GPS 2: salva lat/lng no Supabase (pra usar no Nearby)
+if (typeof window.salvarLocalizacaoSupabase === 'function') {
+  window.salvarLocalizacaoSupabase(lat, lng).catch((err) =>
+    console.warn('Erro ao salvar localização:', err)
+  );
+}
+
+// ⚠️ NOVO: re-renderiza o Nearby com a distância real
+if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
+  setTimeout(() => {
+    window.renderizarPublicacoesNearbyNex();
+  }, 200);
+}
 
         const address = await reverseGeocodeExact(lat, lng);
 

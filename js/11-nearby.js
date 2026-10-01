@@ -1168,15 +1168,60 @@ if (meuUsername) {
     return;
   }
 
-  // ============================================
-  // DISTÂNCIAS FAKE (por enquanto)
-  // ============================================
-  const distanciasFake = [
-    '120 m', '350 m', '620 m', '1.2 km', '1.8 km',
-    '2.4 km', '3.1 km', '4.6 km', '5.2 km', '8.3 km',
-    '12 km', '25 km', '50 km', '120 km', '350 km',
-    '800 km', '1.500 km', '3.000 km', '5.000 km'
-  ];
+// ============================================
+// CÁLCULO DE DISTÂNCIA REAL (Haversine)
+// ============================================
+function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // Raio da Terra em metros
+  const toRad = (g) => (g * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatarDistanciaNex(metros) {
+  if (metros == null || !Number.isFinite(metros)) return '';
+  if (metros < 1000) return `${Math.round(metros)} m`;
+  if (metros < 10000) return `${(metros / 1000).toFixed(1)} km`;
+  return `${Math.round(metros / 1000)} km`;
+}
+
+function obterDistanciaDropNex(dropPrincipal) {
+  const minhaLat = window.minhaLatitudeAtual;
+  const minhaLng = window.minhaLongitudeAtual;
+
+  const autorLat = dropPrincipal?.autorLat;
+  const autorLng = dropPrincipal?.autorLng;
+
+  // Sem localização de um dos lados → retorna vazio
+  if (
+    typeof minhaLat !== 'number' ||
+    typeof minhaLng !== 'number' ||
+    typeof autorLat !== 'number' ||
+    typeof autorLng !== 'number'
+  ) {
+    return '';
+  }
+
+  const metros = calcularDistanciaMetrosNex(
+    minhaLat,
+    minhaLng,
+    autorLat,
+    autorLng
+  );
+
+  return formatarDistanciaNex(metros);
+}
 
 // ============================================
 // AGRUPA DROPS POR AUTOR (1 card por perfil)
@@ -1236,10 +1281,11 @@ Object.entries(dropsPorAutor).forEach(([autorId, dropsDoAutor], index) => {
   const nome = document.createElement('h3');
   nome.textContent = '@' + (dropPrincipal.autorUsername || 'usuario');
 
-  // Distância fake
-  const dist = document.createElement('span');
-  dist.textContent = distanciasFake[index % distanciasFake.length];
-
+// Distância real (Haversine)
+const dist = document.createElement('span');
+const distanciaReal = obterDistanciaDropNex(dropPrincipal);
+dist.textContent = distanciaReal || '—';
+  
   card.append(avatar, nome, dist);
   grid.appendChild(card);
 
