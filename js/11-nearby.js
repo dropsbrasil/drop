@@ -623,6 +623,9 @@ function abrirViewerPublicacaoNex(
 // ⚠️ FASE 5: garante que só busca do Supabase 1x por drop
 const dropsJaSincronizados = new Set();
 
+// ⚠️ FASE 5.2: evita registrar view 2x do mesmo drop
+const viewsJaRegistradas = new Set();
+  
 function renderizar() {
   const perfil = base[perfilAtualId];
   if (!perfil) return;
@@ -720,7 +723,7 @@ if (
         }
       }
 
-      // Atualiza os botões ativos
+            // Atualiza os botões ativos
       viewer
         .querySelectorAll('.nearby-drop-reaction')
         .forEach((b) => {
@@ -734,6 +737,34 @@ if (
     .catch((err) =>
       console.warn('Erro ao buscar reações Supabase:', err)
     );
+}
+
+// ⚠️ FASE 5.2: registra visualização (só se não for o próprio autor)
+if (
+  publicacaoIdAtual &&
+  typeof window.registrarVisualizacaoSupabase === 'function' &&
+  !viewsJaRegistradas.has(chaveDropAtual)
+) {
+  const eu = String(Drops.usernameAtual || '')
+    .replace(/^@/, '')
+    .toLowerCase()
+    .trim();
+
+  const autor = String(perfilIdCalc || '')
+    .replace(/^@/, '')
+    .toLowerCase()
+    .trim();
+
+  // Só conta se NÃO for o próprio drop
+  if (autor && autor !== eu) {
+    viewsJaRegistradas.add(chaveDropAtual);
+
+    window
+      .registrarVisualizacaoSupabase(publicacaoIdAtual)
+      .catch((err) =>
+        console.warn('Erro ao registrar view:', err)
+      );
+  }
 }
 
       // ============================================

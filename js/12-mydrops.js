@@ -1006,6 +1006,23 @@ if (
     );
 }
 
+// ⚠️ FASE 5.2: Busca contagem real de visualizações do Supabase
+if (
+  publicacaoIdSupabase &&
+  typeof window.buscarVisualizacoesSupabase === 'function'
+) {
+  window
+    .buscarVisualizacoesSupabase(publicacaoIdSupabase)
+    .then((total) => {
+      if (viewsEl) {
+        viewsEl.textContent = String(total || 0);
+      }
+    })
+    .catch((err) =>
+      console.warn('Erro ao buscar views MyDrops:', err)
+    );
+}
+
       // MÍDIA
       if (media) {
         const url = String(pub.mediaUrl || '');
@@ -1124,11 +1141,30 @@ viewer.querySelectorAll('.mydrops-publication-stat-btn').forEach((btn) => {
     const tipo = btn.getAttribute('data-list');
 
     if (tipo === 'views') {
-      abrirModalListaPublicacaoMyDropsNex(
-        'Visualizações',
-        pub.visualizacoes || []
-      );
-      return;
+  // ⚠️ FASE 5.2: busca lista real do Supabase
+  const pubIdParaViews = pub.idSupabase || pub.id;
+
+  if (
+    pubIdParaViews &&
+    typeof window.buscarListaVisualizacoesSupabase === 'function'
+  ) {
+    const lista = await window.buscarListaVisualizacoesSupabase(
+      pubIdParaViews
+    );
+
+    abrirModalListaPublicacaoMyDropsNex(
+      'Visualizações',
+      lista || []
+    );
+    return;
+  }
+
+  // Fallback: comportamento antigo
+  abrirModalListaPublicacaoMyDropsNex(
+    'Visualizações',
+    pub.visualizacoes || []
+  );
+  return;
     }
 
     // ⚠️ FASE 5: busca reações reais do Supabase
