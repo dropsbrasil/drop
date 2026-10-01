@@ -164,51 +164,76 @@ if (typeof window.obterVisitasPerfil === 'function') {
     }
 
 if (weatherLocationEl) {
+  weatherLocationEl.textContent = 'Buscando localização...';
+
+  // ⚠️ iOS: até 30s pra dar tempo do GPS responder
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       try {
-        weatherLocationEl.textContent = 'Buscando localização...';
-
         const lat = pos.coords.latitude;
-const lng = pos.coords.longitude;
+        const lng = pos.coords.longitude;
 
-// ⚠️ NOVO: guarda em memória pra calcular distância no Nearby
-window.minhaLatitudeAtual = lat;
-window.minhaLongitudeAtual = lng;
+        // ⚠️ NOVO: guarda em memória pra calcular distância no Nearby
+        window.minhaLatitudeAtual = lat;
+        window.minhaLongitudeAtual = lng;
 
-// ⚠️ GPS 2: salva lat/lng no Supabase (pra usar no Nearby)
-if (typeof window.salvarLocalizacaoSupabase === 'function') {
-  window.salvarLocalizacaoSupabase(lat, lng).catch((err) =>
-    console.warn('Erro ao salvar localização:', err)
-  );
-}
+        // ⚠️ GPS 2: salva lat/lng no Supabase (pra usar no Nearby)
+        if (typeof window.salvarLocalizacaoSupabase === 'function') {
+          window.salvarLocalizacaoSupabase(lat, lng).catch((err) =>
+            console.warn('Erro ao salvar localização:', err)
+          );
+        }
 
-// ⚠️ NOVO: re-renderiza o Nearby com a distância real
-if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
-  setTimeout(() => {
-    window.renderizarPublicacoesNearbyNex();
-  }, 200);
-}
+        // ⚠️ NOVO: re-renderiza o Nearby com a distância real
+        if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
+          setTimeout(() => {
+            window.renderizarPublicacoesNearbyNex();
+          }, 200);
+        }
 
-        const address = await reverseGeocodeExact(lat, lng);
+        // Tenta pegar o endereço (com timeout próprio)
+        let address = null;
 
-        weatherLocationEl.textContent = address;
+        try {
+          address = await Promise.race([
+            reverseGeocodeExact(lat, lng),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('geocode timeout')), 8000)
+            )
+          ]);
+        } catch (geoErr) {
+          console.warn('Reverse geocode falhou:', geoErr.message);
+        }
+
+        // ⚠️ FALLBACK: se não conseguiu endereço, mostra coordenadas
+        weatherLocationEl.textContent =
+          address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       } catch (err) {
         console.error('Erro localização:', err);
         weatherLocationEl.textContent = 'Localização indisponível';
       }
     },
-        (err) => {
-          console.error('Erro geolocalização:', err);
-          weatherLocationEl.textContent = 'Localização negada';
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000
-        }
-      );
+    (err) => {
+      console.error('Erro geolocalização:', err);
+
+      // ⚠️ Mensagens mais claras por tipo de erro
+      if (err.code === 1) {
+        weatherLocationEl.textContent = 'Permissão negada';
+      } else if (err.code === 2) {
+        weatherLocationEl.textContent = 'GPS indisponível';
+      } else if (err.code === 3) {
+        weatherLocationEl.textContent = 'GPS demorou demais';
+      } else {
+        weatherLocationEl.textContent = 'Localização indisponível';
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 30000,      // ⚠️ Aumentado de 10s para 30s (iOS)
+      maximumAge: 60000    // ⚠️ Cache de 1 min (antes era 5 min)
     }
+  );
+}
 
     // ============================================
     // 6. DESSELEÇÃO AUTOMÁTICA (editor)
