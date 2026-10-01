@@ -1056,12 +1056,28 @@ function atualizarBotoesReacaoNex(
 
   let drops = [];
 
-  try {
-    drops = await window.buscarTodosOsDropsComAutor(50);
-  } catch (e) {
-    console.warn('Erro ao buscar drops do Nearby:', e);
-    return;
-  }
+try {
+  drops = await window.buscarTodosOsDropsComAutor(50);
+} catch (e) {
+  console.warn('Erro ao buscar drops do Nearby:', e);
+  return;
+}
+
+// ⚠️ Remove as MINHAS publicações do Nearby
+const meuUsername = String(Drops.usernameAtual || '')
+  .replace(/^@/, '')
+  .toLowerCase()
+  .trim();
+
+if (meuUsername) {
+  drops = drops.filter((d) => {
+    const autor = String(d.autorUsername || '')
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
+    return autor !== meuUsername;
+  });
+}
 
   grid.innerHTML = '';
 
