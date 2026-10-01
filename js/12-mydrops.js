@@ -954,9 +954,30 @@ function renderizarPublicacoesMyDropsNex() {
       const dataHora = formatarDataHoraPublicacaoMyDropsNex(pub.criadoEm);
 
       if (avatar) {
-        avatar.textContent = (Drops.usernameAtual || '?')
-          .charAt(0)
-          .toUpperCase();
+  const meuUser = String(Drops.usernameAtual || '')
+    .replace(/^@/, '')
+    .trim();
+
+  const avatarSalvo = meuUser
+    ? localStorage.getItem('mydropsAvatar_' + meuUser)
+    : null;
+
+  if (
+    avatarSalvo &&
+    typeof avatarSalvo === 'string' &&
+    (avatarSalvo.startsWith('http') ||
+      avatarSalvo.startsWith('data:image'))
+  ) {
+    avatar.style.backgroundImage = `url('${avatarSalvo}')`;
+    avatar.style.backgroundSize = 'cover';
+    avatar.style.backgroundPosition = 'center';
+    avatar.textContent = '';
+  } else {
+    avatar.style.backgroundImage = 'none';
+    avatar.textContent = (Drops.usernameAtual || '?')
+      .charAt(0)
+      .toUpperCase();
+  }
       }
       if (nome) nome.textContent = 'Minhas publicações';
       if (info) info.textContent = `${dataHora.data} • ${dataHora.hora}`;
