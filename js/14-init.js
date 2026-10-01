@@ -120,10 +120,8 @@ if (typeof window.atualizarMetricaInteracoesMyDropsNex === 'function') {
 // MÉTRICA DE VISITAS (stub — backend futuro)
 // ============================================
 
-if (typeof window.obterVisitasPerfil === 'function') {
-  const totalVisitas = window.obterVisitasPerfil(Drops.usernameAtual);
-  const elVisitas = document.getElementById('mydropsVisitasContador');
-  if (elVisitas) elVisitas.textContent = String(totalVisitas);
+if (typeof window.atualizarContadorVisitasNex === 'function') {
+  window.atualizarContadorVisitasNex();
 }
     
     

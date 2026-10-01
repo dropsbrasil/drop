@@ -1,63 +1,88 @@
 /* ============================================
    16-VISITAS.JS
-   Estrutura da métrica de visitas ao perfil
-   
-   Hoje: funções vazias (só esqueleto).
-   Amanhã: basta trocar o corpo das funções
-   para chamar o backend — a assinatura não muda.
-   
-   Assinatura:
-     perfilId   → @username (hoje) | ID interno (futuro)
-     visitanteId → Drops.usernameAtual
+   Métrica de visitas ao perfil (Supabase)
 ============================================ */
 
 (function () {
   'use strict';
 
+  async function aguardarSupabase() {
+    return new Promise((resolve) => {
+      const check = () => {
+        if (window.supabaseClient && window.Drops) resolve();
+        else setTimeout(check, 100);
+      };
+      check();
+    });
+  }
+
   // ============================================
   // REGISTRAR VISITA
   // ============================================
-  // Chamado quando alguém abre o perfil de outra pessoa.
-  //
-  // Regras (a serem aplicadas pelo backend):
-  //   - Não registra se perfilId === visitanteId
-  //   - 1 visita por par (perfil, visitante) a cada 24h
-  //   - Visita expira após 24h
-
-  function registrarVisitaPerfil(perfilId, visitanteId) {
-    // Bloqueio defensivo: próprio usuário não gera visita
+  async function registrarVisitaPerfil(perfilId, visitanteId) {
     if (!perfilId || !visitanteId) return;
     if (String(perfilId).toLowerCase() === String(visitanteId).toLowerCase()) {
       return;
     }
 
-    // Backend será conectado posteriormente
+    try {
+      if (!window.supabaseClient) return;
+
+      await window.supabaseClient.rpc('registrar_visita', {
+        username_alvo: String(perfilId).replace(/^@/, '').trim()
+      });
+    } catch (erro) {
+      console.warn('Erro ao registrar visita:', erro);
+    }
   }
 
   // ============================================
-  // OBTER TOTAL DE VISITAS DO PERFIL
+  // OBTER TOTAL DE VISITAS (últimas 24h)
   // ============================================
-  // Chamado quando o MyDrops carrega, pra exibir o contador.
-  // Retorna apenas visitas válidas (últimas 24h).
-
-  function obterVisitasPerfil(perfilId) {
+  async function obterVisitasPerfil(perfilId) {
     if (!perfilId) return 0;
 
-    // Backend será conectado posteriormente
-    return 0;
+    try {
+      if (!window.supabaseClient) return 0;
+
+      const { data, error } = await window.supabaseClient.rpc('contar_visitas', {
+        username_alvo: String(perfilId).replace(/^@/, '').trim()
+      });
+
+      if (error) {
+        console.warn('Erro ao contar visitas:', error);
+        return 0;
+      }
+
+      return Number(data) || 0;
+    } catch (erro) {
+      console.warn('Erro ao contar visitas:', erro);
+      return 0;
+    }
+  }
+
+  // ============================================
+  // ATUALIZA O CONTADOR NA TELA
+  // ============================================
+  async function atualizarContadorVisitasNex() {
+    const el = document.getElementById('mydropsVisitasContador');
+    if (!el) return;
+
+    const total = await obterVisitasPerfil(Drops.usernameAtual);
+    el.textContent = String(total);
   }
 
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
-
   window.registrarVisitaPerfil = registrarVisitaPerfil;
   window.obterVisitasPerfil = obterVisitasPerfil;
+  window.atualizarContadorVisitasNex = atualizarContadorVisitasNex;
 
-  // ============================================
-  // DEBUG
-  // ============================================
+  document.addEventListener('DOMContentLoaded', async () => {
+    await aguardarSupabase();
+    atualizarContadorVisitasNex();
+  });
 
-  console.log('👣 16-visitas.js carregado');
-
+  console.log('👣 16-visitas.js carregado (Supabase)');
 })();

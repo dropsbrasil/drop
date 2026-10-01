@@ -12,95 +12,78 @@
   'use strict';
 
   // ============================================
-  // INTERAÇÕES RECEBIDAS (quem interagiu comigo)
-  // ============================================
+// INTERAÇÕES — agora no Supabase
+// ============================================
+// As interações são gravadas via RPC registrar_interacao.
+// A leitura pra cálculo de adeptos é feita pela RPC calcular_adeptos.
+// Mantemos funções vazias pra compatibilidade com o resto do código.
 
-  function lerInteracoesRecebidasNex() {
-    return window.AdeptosAdapterNex.lerInteracoesRecebidas();
-  }
+function lerInteracoesRecebidasNex() {
+  return [];
+}
 
-  function salvarInteracoesRecebidasNex(lista) {
-    window.AdeptosAdapterNex.salvarInteracoesRecebidas(lista);
-  }
+function salvarInteracoesRecebidasNex() {}
 
-  // ============================================
-  // INTERAÇÕES ENVIADAS (eu interagi com outros)
-  // ============================================
+function lerInteracoesEnviadasNex() {
+  return window.AdeptosAdapterNex.lerInteracoesEnviadas();
+}
 
-  function lerInteracoesEnviadasNex() {
-    return window.AdeptosAdapterNex.lerInteracoesEnviadas();
-  }
-
-  function salvarInteracoesEnviadasNex(lista) {
-    window.AdeptosAdapterNex.salvarInteracoesEnviadas(lista);
-  }
-
+function salvarInteracoesEnviadasNex(lista) {
+  window.AdeptosAdapterNex.salvarInteracoesEnviadas(lista);
+}
+  
   // ============================================
   // REGISTRAR INTERAÇÃO
   // ============================================
-  // Decide automaticamente se é enviada ou recebida
-  //
-  // autorId: quem é o dono do drop (ou 'local' se for você interagindo)
-  // tipo: 'like', 'deslike', 'comment', etc
-  // dropId: identificador do drop (ex: 'julia::0')
-
   function registrarInteracaoNex(autorId, tipo, dropId) {
-    const idLimpo = String(autorId || '').trim().toLowerCase();
-    if (!idLimpo) return;
+  const idLimpo = String(autorId || '').trim().toLowerCase();
+  if (!idLimpo) return;
 
-    const eu = Drops.usernameAtual;
+  const eu = String(Drops.usernameAtual || '').trim().toLowerCase();
 
-    // Se 'local', significa que VOCÊ interagiu no drop de outra pessoa.
-    // O ID real do dono do drop está dentro do dropId.
-    let idDonoDoDrop = idLimpo;
-    let idInteragente = eu;
+  // Descobre o @username do dono do drop
+  let idDonoDoDrop = idLimpo;
+  if (idLimpo === 'local' || !idLimpo) {
+    idDonoDoDrop = String(dropId || '').split('::')[0] || '';
+  }
 
-    if (idLimpo === 'local') {
-      idDonoDoDrop = String(dropId || '').split('::')[0] || '';
-    }
+  idDonoDoDrop = idDonoDoDrop.replace(/^@/, '').trim().toLowerCase();
+  if (!idDonoDoDrop) return;
 
-    if (!idDonoDoDrop) return;
+  // Não registra auto-interação
+  if (idDonoDoDrop === eu) return;
 
-    const interacao = {
-      autorId: idDonoDoDrop,
-      interagenteId: idInteragente,
-      tipo: String(tipo || 'like').trim(),
-      dropId: String(dropId || '').trim(),
-      timestamp: Date.now()
-    };
+  // 1. Salva local (pra calcular "sou adepto de")
+try {
+  const enviadas = window.AdeptosAdapterNex.lerInteracoesEnviadas();
+  enviadas.push({
+    autorId: idDonoDoDrop,
+    interagenteId: eu,
+    paraId: idDonoDoDrop,
+    tipo: String(tipo || 'like').trim(),
+    dropId: String(dropId || '').trim(),
+    timestamp: Date.now()
+  });
+  window.AdeptosAdapterNex.salvarInteracoesEnviadas(enviadas);
+} catch (e) {
+  console.warn('Erro ao salvar interação local:', e);
+}
 
-    // Se o dono do drop é VOCÊ → RECEBIDAS
-    // Se o dono do drop é OUTRO → ENVIADAS
-    const ehMeuDrop = idDonoDoDrop === eu;
+// 2. Envia pro Supabase (a RPC cuida do resto)
+if (!window.supabaseClient) return;
 
-    if (ehMeuDrop) {
-      const recebidas = lerInteracoesRecebidasNex();
-      recebidas.push({
-        autorId: interacao.autorId,
-        interagenteId: interacao.interagenteId,
-        tipo: interacao.tipo,
-        dropId: interacao.dropId,
-        timestamp: interacao.timestamp
-      });
-      salvarInteracoesRecebidasNex(recebidas);
-
-      console.log(`📥 Interação RECEBIDA no MEU drop: ${idDonoDoDrop}`);
-      calcularAdeptosNex();
-    } else {
-      const enviadas = lerInteracoesEnviadasNex();
-      enviadas.push({
-        autorId: interacao.autorId,
-        interagenteId: interacao.interagenteId,
-        paraId: idDonoDoDrop,
-        tipo: interacao.tipo,
-        dropId: interacao.dropId,
-        timestamp: interacao.timestamp
-      });
-      salvarInteracoesEnviadasNex(enviadas);
-
-      console.log(`📤 Interação ENVIADA: Eu → ${idDonoDoDrop}`);
-      calcularAdeptosEnviadosNex();
-    }
+window.supabaseClient
+  .rpc('registrar_interacao', {
+    username_alvo: idDonoDoDrop,
+    drop_id_param: String(dropId || '').trim(),
+    tipo_param: String(tipo || 'like').trim()
+  })
+  .then(() => {
+    console.log(`📤 Interação registrada: → ${idDonoDoDrop}`);
+  })
+  .catch((err) => {
+    console.warn('Erro ao registrar interação:', err);
+  });
   }
 
   // ============================================
@@ -108,108 +91,55 @@
   // ============================================
 
   function limparInteracoesAntigasNex() {
-    const agora = Date.now();
-    const LIMITE = Drops.LIMITES.JANELA_DIAS * 24 * 60 * 60 * 1000;
-
-    // RECEBIDAS
-const recebidas = lerInteracoesRecebidasNex();
-const recebidasFiltradas = recebidas.filter((i) => {
-  const ts = Number(i?.timestamp);
-  if (!Number.isFinite(ts) || ts <= 0) return false;
-  return agora - ts < LIMITE;
-});
-
-if (recebidasFiltradas.length !== recebidas.length) {
-  salvarInteracoesRecebidasNex(recebidasFiltradas);
-}
-
-// ENVIADAS
-const enviadas = lerInteracoesEnviadasNex();
-const enviadasFiltradas = enviadas.filter((i) => {
-  const ts = Number(i?.timestamp);
-  if (!Number.isFinite(ts) || ts <= 0) return false;
-  return agora - ts < LIMITE;
-});
-
-if (enviadasFiltradas.length !== enviadas.length) {
-  salvarInteracoesEnviadasNex(enviadasFiltradas);
-}
+  // Não é mais necessário: a RPC calcular_adeptos
+  // já filtra por janela de 30 dias no banco.
   }
+  
   // ============================================
 // CALCULAR ADEPTOS (quem virou MEU adepto)
 // ============================================
 
-function calcularAdeptosNex() {
-  limparInteracoesAntigasNex();
+async function calcularAdeptosNex() {
+  if (!window.supabaseClient) return [];
 
-  const agora = Date.now();
-  const JANELA_MS = Drops.LIMITES.JANELA_DIAS * 24 * 60 * 60 * 1000;
+  try {
+    const { data, error } = await window.supabaseClient
+      .rpc('calcular_adeptos');
 
-  const interacoes = lerInteracoesRecebidasNex();
-  const conectados = lerConectadosMyDropsNex();
-
-  const porAutor = {};
-
-  interacoes.forEach((i) => {
-    // Se autorId for 'local', extrai o ID real do dono do drop
-    let autorReal = i.autorId;
-
-    if (autorReal === 'local' || !autorReal) {
-      const partes = String(i.dropId || '').split('::');
-      autorReal = partes[0] || '';
+    if (error) {
+      console.warn('Erro ao calcular adeptos:', error);
+      return [];
     }
 
-    autorReal = normalizarIdPerfilNex(autorReal);
-    if (!autorReal) return;
+    // Converte retorno da RPC pro formato antigo
+    const adeptosCalculados = (data || []).map((a) => ({
+      id: a.username || String(a.adepto_id),
+      nome: a.nome || a.username || 'Usuário',
+      avatar: a.avatar_url || (a.nome || '?').charAt(0).toUpperCase(),
+      desde: a.ultima_interacao ? new Date(a.ultima_interacao).getTime() : Date.now(),
+      ultimaInteracao: a.ultima_interacao ? new Date(a.ultima_interacao).getTime() : Date.now(),
+      totalInteracoes: Number(a.total_interacoes) || 0
+    }));
 
-    if (!porAutor[autorReal]) {
-      porAutor[autorReal] = { total: 0, ultimaInteracao: 0 };
-    }
+    // Compara com a lista antiga pra notificar
+    const adeptosAntigos = lerAdeptosNex();
+    const idsAntigos = new Set(adeptosAntigos.map((a) => a.id));
+    const idsNovos = new Set(adeptosCalculados.map((a) => a.id));
 
-    porAutor[autorReal].total += 1;
+    const entraram = adeptosCalculados.filter((a) => !idsAntigos.has(a.id));
+    const sairam = adeptosAntigos.filter((a) => !idsNovos.has(a.id));
 
-    if (i.timestamp > porAutor[autorReal].ultimaInteracao) {
-      porAutor[autorReal].ultimaInteracao = i.timestamp;
-    }
-  });
+    entraram.forEach((a) => notificarAdeptoNex(a, 'entrou'));
+    sairam.forEach((a) => notificarAdeptoNex(a, 'saiu'));
 
-  const adeptosCalculados = [];
+    salvarAdeptosNex(adeptosCalculados);
+    atualizarContadorAdeptosNex();
 
-  Object.entries(porAutor).forEach(([autorId, dados]) => {
-    const conectado = conectados.find(
-      (c) => normalizarIdPerfilNex(c.id) === normalizarIdPerfilNex(autorId)
-    );
-
-    if (!conectado) return;
-    if (agora - dados.ultimaInteracao > JANELA_MS) return;
-    if (dados.total < Drops.LIMITES.MINIMO_INTERACOES) return;
-
-    adeptosCalculados.push({
-      id: normalizarIdPerfilNex(autorId),
-      nome: conectado.nome || autorId,
-      avatar:
-        conectado.avatar ||
-        (conectado.nome || '?').charAt(0).toUpperCase(),
-      desde: dados.ultimaInteracao,
-      ultimaInteracao: dados.ultimaInteracao,
-      totalInteracoes: dados.total
-    });
-  });
-
-  const adeptosAntigos = lerAdeptosNex();
-  const idsAntigos = new Set(adeptosAntigos.map((a) => a.id));
-  const idsNovos = new Set(adeptosCalculados.map((a) => a.id));
-
-  const entraram = adeptosCalculados.filter((a) => !idsAntigos.has(a.id));
-  const sairam = adeptosAntigos.filter((a) => !idsNovos.has(a.id));
-
-  entraram.forEach((a) => notificarAdeptoNex(a, 'entrou'));
-  sairam.forEach((a) => notificarAdeptoNex(a, 'saiu'));
-
-  salvarAdeptosNex(adeptosCalculados);
-  atualizarContadorAdeptosNex();
-
-  return adeptosCalculados;
+    return adeptosCalculados;
+  } catch (erro) {
+    console.warn('Erro ao calcular adeptos:', erro);
+    return [];
+  }
 }
 
 // ============================================
