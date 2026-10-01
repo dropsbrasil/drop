@@ -1104,37 +1104,60 @@ if (
       renderizarViewer();
     };
 
-    // Botões de stats (views, heart, broken)
-    viewer.querySelectorAll('.mydrops-publication-stat-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const pub =
-          publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
-        if (!pub) return;
+// Botões de stats (views, heart, broken)
+viewer.querySelectorAll('.mydrops-publication-stat-btn').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const pub =
+      publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
+    if (!pub) return;
 
-        const tipo = btn.getAttribute('data-list');
+    const tipo = btn.getAttribute('data-list');
 
-        if (tipo === 'views') {
-          abrirModalListaPublicacaoMyDropsNex(
-            'Visualizações',
-            pub.visualizacoes || []
-          );
-        }
+    if (tipo === 'views') {
+      abrirModalListaPublicacaoMyDropsNex(
+        'Visualizações',
+        pub.visualizacoes || []
+      );
+      return;
+    }
 
-        if (tipo === 'heart') {
-          abrirModalListaPublicacaoMyDropsNex(
-            'Reações ❤️',
-            pub.reacoes?.heart || []
-          );
-        }
+    // ⚠️ FASE 5: busca reações reais do Supabase
+    const publicacaoIdSupabase = pub.idSupabase || pub.id;
 
-        if (tipo === 'broken') {
-          abrirModalListaPublicacaoMyDropsNex(
-            'Reações 💔',
-            pub.reacoes?.broken || []
-          );
-        }
-      });
-    });
+    if (
+      publicacaoIdSupabase &&
+      typeof window.buscarListaReacoesSupabase === 'function'
+    ) {
+      const tipoSupabase = tipo === 'heart' ? 'heart' : 'broken';
+
+      const lista = await window.buscarListaReacoesSupabase(
+        publicacaoIdSupabase,
+        tipoSupabase
+      );
+
+      const titulo =
+        tipoSupabase === 'heart' ? 'Reações ❤️' : 'Reações 💔';
+
+      abrirModalListaPublicacaoMyDropsNex(titulo, lista || []);
+      return;
+    }
+
+    // Fallback: comportamento antigo (localStorage)
+    if (tipo === 'heart') {
+      abrirModalListaPublicacaoMyDropsNex(
+        'Reações ❤️',
+        pub.reacoes?.heart || []
+      );
+    }
+
+    if (tipo === 'broken') {
+      abrirModalListaPublicacaoMyDropsNex(
+        'Reações 💔',
+        pub.reacoes?.broken || []
+      );
+    }
+  });
+});
 
     // Botão excluir
     const btnTrash = viewer.querySelector('.mydrops-publication-trash-btn');

@@ -127,12 +127,63 @@ return { acao: 'adicionada', tipo };
     }
   }
 
-  // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
-  window.buscarReacoesSupabase = buscarReacoesSupabase;
-  window.alternarReacaoSupabase = alternarReacaoSupabase;
+// ============================================
+// BUSCAR LISTA DE QUEM REAGIU (com nome/avatar)
+// ============================================
+async function buscarListaReacoesSupabase(publicacaoId, tipo) {
+  if (!window.supabaseClient || !publicacaoId) return [];
 
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('reacoes')
+      .select('usuario_id, tipo')
+      .eq('publicacao_id', publicacaoId)
+      .eq('tipo', tipo || 'heart');
+
+    if (error) {
+      console.error('Erro ao buscar lista de reações:', error);
+      return [];
+    }
+
+    if (!data || !data.length) return [];
+
+    // Busca perfis dos usuários
+    const ids = data.map((r) => r.usuario_id);
+
+    const { data: perfis } = await window.supabaseClient
+      .from('profiles')
+      .select('id, username, nome, avatar_url')
+      .in('id', ids);
+
+    const perfisMap = {};
+    (perfis || []).forEach((p) => {
+      perfisMap[p.id] = p;
+    });
+
+    return data.map((r) => {
+      const p = perfisMap[r.usuario_id] || {};
+      const nome = p.nome || p.username || 'Usuário';
+      const avatar = p.avatar_url || nome.charAt(0).toUpperCase();
+
+      return {
+        nome,
+        username: p.username || '',
+        avatar
+      };
+    });
+  } catch (erro) {
+    console.error('Erro ao buscar lista de reações:', erro);
+    return [];
+  }
+}
+
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
+window.buscarReacoesSupabase = buscarReacoesSupabase;
+window.alternarReacaoSupabase = alternarReacaoSupabase;
+window.buscarListaReacoesSupabase = buscarListaReacoesSupabase;
+  
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
     console.log('☁️ 23-reacoes-supabase.js pronto');
