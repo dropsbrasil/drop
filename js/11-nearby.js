@@ -642,9 +642,26 @@ function renderizar() {
       const media = viewer.querySelector('#nearbyDropMedia');
 
       if (avatar) {
-        avatar.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
-      }
-      if (nome) nome.textContent = perfil.nome || 'Perfil';
+  const avatarUrl = perfil.avatar;
+
+  if (
+    avatarUrl &&
+    typeof avatarUrl === 'string' &&
+    (avatarUrl.startsWith('http') ||
+      avatarUrl.startsWith('data:image'))
+  ) {
+    avatar.style.backgroundImage = `url('${avatarUrl}')`;
+    avatar.style.backgroundSize = 'cover';
+    avatar.style.backgroundPosition = 'center';
+    avatar.textContent = '';
+  } else {
+    avatar.style.backgroundImage = 'none';
+    avatar.textContent = (perfil.nome || '?')
+      .charAt(0)
+      .toUpperCase();
+  }
+}
+if (nome) nome.textContent = perfil.nome || 'Perfil';
       if (distancia) distancia.textContent = perfil.distancia || '';
       if (expire) expire.textContent = drop.expireText || 'Expira em 4h';
       if (counter) {
