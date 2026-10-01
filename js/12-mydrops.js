@@ -724,38 +724,48 @@ function renderizarPublicacoesMyDropsNex() {
   }
 
   function abrirModalListaPublicacaoMyDropsNex(titulo, lista) {
-    const antigo = document.querySelector('.mydrops-list-modal');
-    if (antigo) antigo.remove();
+  const antigo = document.querySelector('.mydrops-list-modal');
+  if (antigo) antigo.remove();
 
-    const itens = normalizarListaPublicacaoMyDropsNex(lista);
+  const itens = normalizarListaPublicacaoMyDropsNex(lista);
 
-    const modal = document.createElement('div');
-    modal.className = 'mydrops-list-modal';
-    modal.innerHTML = `
-      <div class="mydrops-list-modal-card">
-        <div class="mydrops-list-modal-head">
-          <strong>${escapeHTML(titulo)}</strong>
-          <button type="button" class="mydrops-list-modal-close">✕</button>
-        </div>
+  const modal = document.createElement('div');
+  modal.className = 'mydrops-list-modal';
 
-        <div class="mydrops-list-modal-body">
-          ${
-            itens.length
-              ? itens
-                  .map(
-                    (item) => `
-              <div class="mydrops-list-modal-item">
-                <div class="mydrops-list-modal-avatar">${escapeHTML(item.avatar)}</div>
-                <div class="mydrops-list-modal-name">${escapeHTML(item.nome)}</div>
-              </div>
-            `
-                  )
-                  .join('')
-              : '<div class="mydrops-list-modal-empty">Nenhum registro ainda.</div>'
-          }
-        </div>
+  const itensHTML = itens.length
+    ? itens
+        .map((item) => {
+          const avatarTexto = String(item.avatar || '?');
+          const ehURL =
+            avatarTexto.startsWith('http') ||
+            avatarTexto.startsWith('data:image');
+
+          const avatarHTML = ehURL
+            ? `<img src="${escapeHTML(avatarTexto)}" alt="">`
+            : escapeHTML(avatarTexto);
+
+          return `
+            <div class="mydrops-list-modal-item">
+              <div class="mydrops-list-modal-avatar">${avatarHTML}</div>
+              <div class="mydrops-list-modal-name">${escapeHTML(item.nome)}</div>
+            </div>
+          `;
+        })
+        .join('')
+    : '<div class="mydrops-list-modal-empty">Nenhum registro ainda.</div>';
+
+  modal.innerHTML = `
+    <div class="mydrops-list-modal-card">
+      <div class="mydrops-list-modal-head">
+        <strong>${escapeHTML(titulo)}</strong>
+        <button type="button" class="mydrops-list-modal-close">✕</button>
       </div>
-    `;
+
+      <div class="mydrops-list-modal-body">
+        ${itensHTML}
+      </div>
+    </div>
+  `;
 
     document.body.appendChild(modal);
 
