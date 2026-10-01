@@ -203,7 +203,7 @@
 .near-card {
   position: relative;
   height: 190px;
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
   padding: 14px 8px 12px;
   text-align: center;
@@ -216,32 +216,62 @@
   background-position: center;
   background-repeat: no-repeat;
   cursor: pointer;
+  isolation: isolate;
+
+  /* Bolinha de status: verde (online) por padrão */
+  --dot-color: #22c55e;
+
+  border: 1.5px solid rgba(139, 92, 246, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 18px rgba(139, 92, 246, 0.32),
+    0 10px 26px rgba(0, 0, 0, 0.5);
 }
 
+/* Versão offline: bolinha cinza */
+.near-card.offline {
+  --dot-color: #6b7280;
+}
+
+/* Post desfocado atrás */
 .near-card::before {
-  content: "";
+  content: '';
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(255,255,255,.95);
-  z-index: 2;
+  inset: -28px;
+  background: inherit;
+  filter: blur(22px) saturate(1.25);
+  z-index: -1;
+  pointer-events: none;
 }
 
+/* Vidro fosco + bolinha de status */
 .near-card::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,.20), rgba(0,0,0,.38), rgba(0,0,0,.70));
-  z-index: 1;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      circle 11px at calc(100% - 19px) 19px,
+      var(--dot-color) 0 7px,
+      rgba(255, 255, 255, 0.95) 7px 10px,
+      transparent 10px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(30, 41, 82, 0.22) 0%,
+      rgba(15, 23, 42, 0.42) 55%,
+      rgba(5, 10, 25, 0.72) 100%
+    );
+  backdrop-filter: blur(8px) saturate(1.4);
+  -webkit-backdrop-filter: blur(8px) saturate(1.4);
+  z-index: 0;
+  pointer-events: none;
 }
 
-.near-card * {
+.near-card > * {
   position: relative;
-  z-index: 3;
+  z-index: 2;
 }
 
 .card-img-1 {
