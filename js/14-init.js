@@ -163,23 +163,30 @@ if (typeof window.obterVisitasPerfil === 'function') {
       );
     }
 
-    if (weatherLocationEl) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            weatherLocationEl.textContent = 'Buscando localização...';
+if (weatherLocationEl) {
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        weatherLocationEl.textContent = 'Buscando localização...';
 
-            const address = await reverseGeocodeExact(
-              pos.coords.latitude,
-              pos.coords.longitude
-            );
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
 
-            weatherLocationEl.textContent = address;
-          } catch (err) {
-            console.error('Erro localização:', err);
-            weatherLocationEl.textContent = 'Localização indisponível';
-          }
-        },
+        // ⚠️ GPS 2: salva lat/lng no Supabase (pra usar no Nearby)
+        if (typeof window.salvarLocalizacaoSupabase === 'function') {
+          window.salvarLocalizacaoSupabase(lat, lng).catch((err) =>
+            console.warn('Erro ao salvar localização:', err)
+          );
+        }
+
+        const address = await reverseGeocodeExact(lat, lng);
+
+        weatherLocationEl.textContent = address;
+      } catch (err) {
+        console.error('Erro localização:', err);
+        weatherLocationEl.textContent = 'Localização indisponível';
+      }
+    },
         (err) => {
           console.error('Erro geolocalização:', err);
           weatherLocationEl.textContent = 'Localização negada';

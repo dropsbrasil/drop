@@ -298,12 +298,46 @@ function iniciarHeartbeatNex() {
   console.log('💓 Heartbeat iniciado');
 }
 
+// ============================================
+// SALVAR LOCALIZAÇÃO (lat/lng) no Supabase
+// ============================================
+async function salvarLocalizacaoSupabase(lat, lng) {
+  if (!window.supabaseClient) return false;
+  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return false;
+
+    const { error } = await window.supabaseClient
+      .from('profiles')
+      .update({
+        lat,
+        lng,
+        localizacao_atualizada_em: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (error) {
+      console.warn('Erro ao salvar localização:', error);
+      return false;
+    }
+
+    console.log('📍 Localização salva:', lat, lng);
+    return true;
+  } catch (err) {
+    console.warn('Erro ao salvar localização:', err);
+    return false;
+  }
+}
+
 window.sincronizarPerfilSupabase = sincronizar;
 window.atualizarPerfilSupabase = atualizarPerfilSupabase;
 window.uploadImagemSupabase = uploadImagemSupabase;
 window.buscarPerfilPublicoSupabase = buscarPerfilPublicoSupabase;
 window.enviarHeartbeatNex = enviarHeartbeatNex;
 window.iniciarHeartbeatNex = iniciarHeartbeatNex;
+window.salvarLocalizacaoSupabase = salvarLocalizacaoSupabase;
   
   document.addEventListener('DOMContentLoaded', async () => {
   await aguardarSupabase();

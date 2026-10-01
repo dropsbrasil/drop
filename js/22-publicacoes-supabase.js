@@ -266,7 +266,7 @@ async function buscarTodosOsDropsComAutor(limite = 50) {
     if (idsAutores.length) {
       const { data: perfis } = await window.supabaseClient
   .from('profiles')
-  .select('id, nome, username, avatar_url, ultima_atividade')
+  .select('id, nome, username, avatar_url, ultima_atividade, lat, lng')
   .in('id', idsAutores);
 
       (perfis || []).forEach((p) => {
@@ -287,11 +287,13 @@ async function buscarTodosOsDropsComAutor(limite = 50) {
         expiraEm: drop.expira_em,
         duracao: drop.duracao,
 
-          autorId: drop.autor_id,
+            autorId: drop.autor_id,
   autorUsername: autor.username || drop.autor_username || 'usuario',
   autorNome: autor.nome || 'Usuário',
   autorAvatar: autor.avatar_url || null,
-  autorUltimaAtividade: autor.ultima_atividade || null
+  autorUltimaAtividade: autor.ultima_atividade || null,
+  autorLat: autor.lat || null,
+  autorLng: autor.lng || null
 };
     });
   } catch (erro) {
