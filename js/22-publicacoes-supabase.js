@@ -265,9 +265,9 @@ async function buscarTodosOsDropsComAutor(limite = 50) {
 
     if (idsAutores.length) {
       const { data: perfis } = await window.supabaseClient
-        .from('profiles')
-        .select('id, nome, username, avatar_url')
-        .in('id', idsAutores);
+  .from('profiles')
+  .select('id, nome, username, avatar_url, ultima_atividade')
+  .in('id', idsAutores);
 
       (perfis || []).forEach((p) => {
         perfisMap[p.id] = p;
@@ -287,11 +287,12 @@ async function buscarTodosOsDropsComAutor(limite = 50) {
         expiraEm: drop.expira_em,
         duracao: drop.duracao,
 
-        autorId: drop.autor_id,
-        autorUsername: autor.username || drop.autor_username || 'usuario',
-        autorNome: autor.nome || 'Usuário',
-        autorAvatar: autor.avatar_url || null
-      };
+          autorId: drop.autor_id,
+  autorUsername: autor.username || drop.autor_username || 'usuario',
+  autorNome: autor.nome || 'Usuário',
+  autorAvatar: autor.avatar_url || null,
+  autorUltimaAtividade: autor.ultima_atividade || null
+};
     });
   } catch (erro) {
     console.error('Erro ao buscar drops com autor:', erro);

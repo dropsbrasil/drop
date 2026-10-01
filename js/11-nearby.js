@@ -1159,6 +1159,18 @@ Object.entries(dropsPorAutor).forEach(([autorId, dropsDoAutor], index) => {
   const card = document.createElement('div');
   card.className = 'near-card';
 
+  // ⚠️ Status online/offline (últimos 5 min = online)
+  const ultimaAtiv = dropPrincipal.autorUltimaAtividade;
+  const LIMITE_ONLINE_MS = 5 * 60 * 1000;
+
+  const estaOnline =
+    ultimaAtiv &&
+    Date.now() - new Date(ultimaAtiv).getTime() < LIMITE_ONLINE_MS;
+
+  if (!estaOnline) {
+    card.classList.add('offline');
+  }
+
   // Imagem do drop mais recente como fundo
   if (dropPrincipal.mediaUrl) {
     card.style.backgroundImage = `url('${dropPrincipal.mediaUrl}')`;

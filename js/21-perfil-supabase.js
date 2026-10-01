@@ -254,15 +254,62 @@ async function uploadImagemSupabase(bucket, dataUrl) {
     }
   }
 
-  window.sincronizarPerfilSupabase = sincronizar;
-  window.atualizarPerfilSupabase = atualizarPerfilSupabase;
-  window.uploadImagemSupabase = uploadImagemSupabase;
-  window.buscarPerfilPublicoSupabase = buscarPerfilPublicoSupabase;
+  // ============================================
+// HEARTBEAT: atualiza ultima_atividade
+// ============================================
+let heartbeatIntervaloNex = null;
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    await aguardarSupabase();
-    await sincronizar();
+async function enviarHeartbeatNex() {
+  if (!window.supabaseClient) return;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    const { error } = await window.supabaseClient
+      .from('profiles')
+      .update({ ultima_atividade: new Date().toISOString() })
+      .eq('id', user.id);
+
+    if (error) {
+      console.warn('Erro no heartbeat:', error);
+    }
+  } catch (err) {
+    console.warn('Erro no heartbeat:', err);
+  }
+}
+
+function iniciarHeartbeatNex() {
+  if (heartbeatIntervaloNex) return;
+
+  // Envia 1x imediatamente
+  enviarHeartbeatNex();
+
+  // Repete a cada 2 minutos
+  heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 2 * 60 * 1000);
+
+  // Atualiza também quando volta pro app
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      enviarHeartbeatNex();
+    }
   });
+
+  console.log('💓 Heartbeat iniciado');
+}
+
+window.sincronizarPerfilSupabase = sincronizar;
+window.atualizarPerfilSupabase = atualizarPerfilSupabase;
+window.uploadImagemSupabase = uploadImagemSupabase;
+window.buscarPerfilPublicoSupabase = buscarPerfilPublicoSupabase;
+window.enviarHeartbeatNex = enviarHeartbeatNex;
+window.iniciarHeartbeatNex = iniciarHeartbeatNex;
+  
+  document.addEventListener('DOMContentLoaded', async () => {
+  await aguardarSupabase();
+  await sincronizar();
+  iniciarHeartbeatNex();
+});
 
   console.log('☁️ 21-perfil-supabase.js carregado');
 
