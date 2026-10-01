@@ -666,10 +666,45 @@ const totalReacoes = stats.heart + stats.broken;
 atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 
       if (reacoesEl) {
-        if (totalReacoes > 0) {
+  if (totalReacoes > 0) {
+    reacoesEl.innerHTML = `
+      <span class="nearby-drop-reaction-count">❤️${stats.heart}</span>
+      <span class="nearby-drop-reaction-count">💔${stats.broken}</span>
+    `;
+    reacoesEl.style.display = 'inline-flex';
+  } else {
+    reacoesEl.innerHTML = '';
+    reacoesEl.style.display = 'none';
+  }
+}
+
+// ⚠️ FASE 5: Busca reações reais do Supabase (sincronização)
+const chaveDropAtual = window.chaveDropPerfilNex
+  ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
+  : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
+
+const publicacaoIdAtual =
+  window.__dropsMapaIdsPublicacao &&
+  window.__dropsMapaIdsPublicacao[chaveDropAtual];
+
+if (
+  publicacaoIdAtual &&
+  typeof window.buscarReacoesSupabase === 'function'
+) {
+  window
+    .buscarReacoesSupabase(publicacaoIdAtual)
+    .then((dadosSupabase) => {
+      if (!dadosSupabase) return;
+
+      const totalSupabase =
+        dadosSupabase.heart + dadosSupabase.broken;
+
+      // Atualiza o contador com dados reais
+      if (reacoesEl) {
+        if (totalSupabase > 0) {
           reacoesEl.innerHTML = `
-            <span class="nearby-drop-reaction-count">❤️${stats.heart}</span>
-            <span class="nearby-drop-reaction-count">💔${stats.broken}</span>
+            <span class="nearby-drop-reaction-count">❤️${dadosSupabase.heart}</span>
+            <span class="nearby-drop-reaction-count">💔${dadosSupabase.broken}</span>
           `;
           reacoesEl.style.display = 'inline-flex';
         } else {
@@ -677,6 +712,22 @@ atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
           reacoesEl.style.display = 'none';
         }
       }
+
+      // Atualiza os botões ativos
+      viewer
+        .querySelectorAll('.nearby-drop-reaction')
+        .forEach((b) => {
+          const emojiBtn = b.textContent.trim();
+          b.classList.toggle(
+            'ativo',
+            emojiBtn === dadosSupabase.minhaReacao
+          );
+        });
+    })
+    .catch((err) =>
+      console.warn('Erro ao buscar reações Supabase:', err)
+    );
+}
 
       // ============================================
       // MÍDIA (imagem ou vídeo)

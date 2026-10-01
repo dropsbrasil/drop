@@ -957,20 +957,44 @@ function renderizarPublicacoesMyDropsNex() {
       }
 
       if (viewsEl) {
-        viewsEl.textContent = Array.isArray(pub.visualizacoes)
-          ? pub.visualizacoes.length
-          : 0;
-      }
+  viewsEl.textContent = Array.isArray(pub.visualizacoes)
+    ? pub.visualizacoes.length
+    : 0;
+}
+if (heartEl) {
+  heartEl.textContent = Array.isArray(pub?.reacoes?.heart)
+    ? pub.reacoes.heart.length
+    : 0;
+}
+if (brokenEl) {
+  brokenEl.textContent = Array.isArray(pub?.reacoes?.broken)
+    ? pub.reacoes.broken.length
+    : 0;
+}
+
+// ⚠️ FASE 5: Busca reações reais do Supabase
+const publicacaoIdSupabase = pub.idSupabase || pub.id;
+
+if (
+  publicacaoIdSupabase &&
+  typeof window.buscarReacoesSupabase === 'function'
+) {
+  window
+    .buscarReacoesSupabase(publicacaoIdSupabase)
+    .then((dados) => {
+      if (!dados) return;
+
       if (heartEl) {
-        heartEl.textContent = Array.isArray(pub?.reacoes?.heart)
-          ? pub.reacoes.heart.length
-          : 0;
+        heartEl.textContent = String(dados.heart || 0);
       }
       if (brokenEl) {
-        brokenEl.textContent = Array.isArray(pub?.reacoes?.broken)
-          ? pub.reacoes.broken.length
-          : 0;
+        brokenEl.textContent = String(dados.broken || 0);
       }
+    })
+    .catch((err) =>
+      console.warn('Erro ao buscar reações MyDrops:', err)
+    );
+}
 
       // MÍDIA
       if (media) {
