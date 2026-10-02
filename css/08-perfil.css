@@ -280,8 +280,10 @@
 }
 
 .perfil-social {
-  grid-template-columns: repeat(3, 110px);
+  display: flex;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
 }
 
