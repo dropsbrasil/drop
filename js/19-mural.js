@@ -38,15 +38,21 @@
   // ============================================
 
   function abrirMuralNex(usernameDono = null) {
-    const modal = document.getElementById('modalMuralNex');
-    if (!modal) {
-      console.warn('⚠️ modalMuralNex não encontrado');
-      return;
-    }
+  const modal = document.getElementById('modalMuralNex');
+  if (!modal) {
+    console.warn('⚠️ modalMuralNex não encontrado');
+    return;
+  }
 
-    muralDonoUsernameNex = usernameDono
-      ? String(usernameDono).replace(/^@/, '').trim()
-      : Drops.usernameAtual;
+  // ⚠️ Se veio um Event object (click), ignora
+  if (usernameDono && typeof usernameDono === 'object') {
+    usernameDono = null;
+  }
+
+  // Se não passou, é o meu próprio mural
+  muralDonoUsernameNex = usernameDono
+    ? String(usernameDono).replace(/^@/, '').trim()
+    : Drops.usernameAtual;
 
     if (!muralDonoUsernameNex) {
       muralDonoUsernameNex = (localStorage.getItem('drops_username') || '')
@@ -1104,11 +1110,7 @@ async function carregarMuralSalvoNex() {
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    const btnAbrir = document.getElementById('btnAbrirMuralNex');
-    if (btnAbrir) {
-      btnAbrir.addEventListener('click', abrirMuralNex);
-    }
-
+  
     const btnFecharTopo = document.querySelector('.mural-topo-fechar-nex');
     if (btnFecharTopo) {
       const novoBtn = btnFecharTopo.cloneNode(true);
