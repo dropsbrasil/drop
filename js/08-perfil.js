@@ -97,6 +97,9 @@ const perfil = {
   drops: [...(perfilBase.drops || [])]
 };
 
+// ⚠️ Salva no mapa pra usar quando clicar num drop
+perfisVisitadosNex[id] = { ...perfil, id };
+
     // ============================================
     // PREENCHE CAMPOS VISUAIS
     // ============================================
