@@ -441,122 +441,76 @@
 }
 
 /* ============================================
-   MURAL NO PERFIL VISITADO
+   CARD DO MURAL (perfil visitado)
 ============================================ */
 
-.perfil-mural-section {
-  margin: 14px 14px 0;
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
-}
-
-/* ─── Header (ícone + título) ─── */
-
-.perfil-mural-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.perfil-mural-icone {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.perfil-mural-titulo {
-  font-size: 16px;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: -0.2px;
-}
-
-/* ─── Grid de miniaturas ─── */
-
-.perfil-mural-preview {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.perfil-mural-thumb {
+.perfil-mural-card {
   position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: calc(100% - 28px);
+  min-height: 110px;
+  margin: 18px 14px 12px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
   overflow: hidden;
-  background: #f5efe0;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
 
-.perfil-mural-thumb img,
-.perfil-mural-thumb video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.35) 60%, rgba(0, 0, 0, 0.55) 100%),
+    url('../assets/mural.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 
-/* ─── Estado vazio ─── */
-
-.perfil-mural-vazio {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-}
-
-.perfil-mural-vazio-icone {
-  font-size: 22px;
-  opacity: 0.5;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.perfil-mural-vazio-texto {
-  font-size: 13px;
-  font-weight: 600;
-  color: #94a3b8;
-  line-height: 1.4;
+  color: #fff;
   text-align: left;
-}
-
-/* ─── Botão de ação ─── */
-
-.perfil-mural-btn {
-  width: 100%;
-  height: 48px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
   cursor: pointer;
-  box-shadow:
-    0 8px 20px rgba(37, 99, 235, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: transform 0.15s ease, filter 0.15s ease;
+
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, filter 0.18s ease;
   -webkit-tap-highlight-color: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.perfil-mural-btn:active {
-  transform: scale(0.97);
+.perfil-mural-card:hover {
   filter: brightness(1.08);
+}
+
+.perfil-mural-card:active {
+  transform: scale(0.98);
+}
+
+.perfil-mural-card-icone {
+  font-size: 26px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.perfil-mural-card-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.perfil-mural-card-texto strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75);
+}
+
+.perfil-mural-card-texto small {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+}
+
+.perfil-mural-card-seta {
+  font-size: 18px;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
