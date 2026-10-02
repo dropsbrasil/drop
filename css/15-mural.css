@@ -752,3 +752,43 @@
 .mural-btn-limpar-nex.oculto {
   display: none !important;
 }
+/* ============================================
+   BALÃO DO AUTOR (mural)
+============================================ */
+
+.mural-balao-autor-nex {
+  position: fixed;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  transition: filter 0.15s ease, transform 0.12s ease;
+}
+
+.mural-balao-autor-nex:active {
+  transform: scale(0.95);
+  filter: brightness(1.1);
+}
+
+.mural-balao-autor-icone-nex {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.mural-balao-autor-nome-nex {
+  font-size: 13px;
+  font-weight: 800;
+  color: #93c5fd;
+}
