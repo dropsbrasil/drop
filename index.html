@@ -708,11 +708,21 @@
     </button>
 
     <button
-  type="button"
-  class="mural-topo-fechar-nex"
-  aria-label="Fechar"
->
-  ✕
+      type="button"
+      class="mural-ferramenta-nex mural-btn-limpar-nex"
+      id="muralBtnLimparNex"
+      aria-label="Limpar mural"
+      title="Limpar mural"
+    >
+      🧹
+    </button>
+
+    <button
+      type="button"
+      class="mural-topo-fechar-nex"
+      aria-label="Fechar"
+    >
+      ✕
     </button>
   </div>
 </div>
@@ -826,6 +836,28 @@
   </div>
 </div>
 
+<!-- Modal de Confirmação — Limpar Mural -->
+<div id="muralConfirmLimparNex" class="mural-texto-overlay-nex" style="display:none;">
+  <div class="mural-texto-box-nex">
+    <h3 style="color:#fff;font-size:18px;font-weight:900;margin:0 0 8px;text-align:center;">
+      🧹 Limpar todo o mural?
+    </h3>
+    <p style="color:#94a3b8;font-size:14px;line-height:1.45;margin:0 0 16px;text-align:center;">
+      Isso vai <strong style="color:#fca5a5;">apagar tudo</strong> que todos já colocaram aqui. Não dá pra desfazer.
+    </p>
+
+    <div class="mural-texto-actions-nex" style="flex-direction:column;gap:8px;">
+      <button type="button" class="mural-texto-aplicar-nex" id="muralConfirmLimparOkNex">
+        Apagar tudo
+      </button>
+      <button type="button" class="mural-texto-cancelar-nex" id="muralConfirmLimparCancelarNex">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+  
   <!-- Modal de Confirmação — Sair do Mural sem Salvar -->
 <div id="muralConfirmSairNex" class="mural-texto-overlay-nex" style="display:none;">
   <div class="mural-texto-box-nex">
