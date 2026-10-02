@@ -784,22 +784,32 @@ modal.innerHTML = `
     modal.remove();
   };
 
-  // ⚠️ Clique em item → abre o perfil
-  modal.querySelectorAll('.mydrops-list-modal-item').forEach((el) => {
-    el.style.cursor = 'pointer';
+// ⚠️ Clique em item → abre o perfil
+modal.querySelectorAll('.mydrops-list-modal-item').forEach((el) => {
+  el.style.cursor = 'pointer';
 
-    el.addEventListener('click', () => {
-      const idx = Number(el.dataset.itemIndex);
-      const item = itens[idx];
-      if (!item || !item.username) return;
+  el.addEventListener('click', () => {
+    const idx = Number(el.dataset.itemIndex);
+    const item = itens[idx];
+    if (!item || !item.username) return;
 
-      modal.remove();
+    // ⚠️ Fecha o modal de lista
+    modal.remove();
 
-      if (typeof window.abrirPerfilVisitadoNex === 'function') {
-        window.abrirPerfilVisitadoNex(item.username, item.nome);
-      }
-    });
+    // ⚠️ Fecha o viewer de publicações que está por baixo
+    const viewerAtual = document.querySelector('.mydrops-publication-viewer');
+    if (viewerAtual) viewerAtual.remove();
+    document.body.style.overflow = '';
+
+    // ⚠️ Fecha qualquer viewer de mídia aberto
+    const viewerMidia = document.querySelector('.nex-midia-viewer');
+    if (viewerMidia) viewerMidia.remove();
+
+    if (typeof window.abrirPerfilVisitadoNex === 'function') {
+      window.abrirPerfilVisitadoNex(item.username, item.nome);
+    }
   });
+});
 
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.remove();
