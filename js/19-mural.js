@@ -33,6 +33,99 @@
   let muralDonoUsernameNex = null;
   let muralAlteradoNex = false;
 
+// ============================================
+// BALÃO DO AUTOR
+// ============================================
+
+let balaoAutorNex = null;
+let balaoElementoOrigemNex = null;
+let balaoListenerGlobalNex = false;
+
+function criarBalaoAutorNex() {
+  if (balaoAutorNex) return balaoAutorNex;
+
+  balaoAutorNex = document.createElement('div');
+  balaoAutorNex.className = 'mural-balao-autor-nex';
+  balaoAutorNex.style.display = 'none';
+  document.body.appendChild(balaoAutorNex);
+
+  if (!balaoListenerGlobalNex) {
+    balaoListenerGlobalNex = true;
+
+    document.addEventListener('pointerdown', (e) => {
+      if (!balaoAutorNex || balaoAutorNex.style.display === 'none') return;
+      if (balaoAutorNex.contains(e.target)) return;
+      if (balaoElementoOrigemNex && balaoElementoOrigemNex.contains(e.target)) return;
+
+      fecharBalaoAutorNex();
+    });
+  }
+
+  return balaoAutorNex;
+}
+
+function mostrarBalaoAutorNex(el) {
+  if (!el) return;
+
+  const autorId = el.dataset.autorId;
+  const autorNome = el.dataset.autorNome || autorId;
+
+  if (!autorId) return;
+
+  const balao = criarBalaoAutorNex();
+
+  balao.innerHTML = `
+    <span class="mural-balao-autor-icone-nex">👤</span>
+    <span class="mural-balao-autor-nome-nex">@${autorId}</span>
+  `;
+
+  balaoElementoOrigemNex = el;
+
+  balao.style.display = 'flex';
+  balao.style.visibility = 'hidden';
+
+  const rect = el.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    const balaoRect = balao.getBoundingClientRect();
+
+    let left = rect.left + rect.width / 2 - balaoRect.width / 2;
+    let top = rect.bottom + 8;
+
+    if (left < 8) left = 8;
+    if (left + balaoRect.width > window.innerWidth - 8) {
+      left = window.innerWidth - balaoRect.width - 8;
+    }
+
+    if (top + balaoRect.height > window.innerHeight - 8) {
+      top = rect.top - balaoRect.height - 8;
+    }
+
+    balao.style.left = left + 'px';
+    balao.style.top = top + 'px';
+    balao.style.visibility = 'visible';
+  });
+
+  balao.onclick = (e) => {
+    e.stopPropagation();
+
+    fecharBalaoAutorNex();
+
+    if (typeof window.abrirPerfilVisitadoNex === 'function') {
+      window.abrirPerfilVisitadoNex(autorId, autorNome);
+    }
+  };
+}
+
+function fecharBalaoAutorNex() {
+  if (balaoAutorNex) {
+    balaoAutorNex.style.display = 'none';
+    balaoAutorNex.style.visibility = 'hidden';
+  }
+
+  balaoElementoOrigemNex = null;
+}
+
   // ============================================
   // ABRIR / FECHAR
   // ============================================
@@ -87,11 +180,50 @@
     modal.style.display = 'flex';
 
     setTimeout(async () => {
-      iniciarRolagemMuralNex();
-      await carregarMuralSalvoNex();
-    }, 80);
+  iniciarRolagemMuralNex();
+  aplicarCapaNoMuralNex(muralDonoUsernameNex);
+  await carregarMuralSalvoNex();
+}, 80);
   }
+async function aplicarCapaNoMuralNex(usernameDono) {
+  const canvas = document.getElementById('muralCanvasNex');
+  if (!canvas) return;
 
+  canvas.style.backgroundImage = '';
+  canvas.style.backgroundSize = '';
+  canvas.style.backgroundPosition = '';
+  canvas.style.backgroundRepeat = '';
+
+  if (!usernameDono) return;
+
+  try {
+    let capaUrl = null;
+
+    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+    const donoLimpo = String(usernameDono).toLowerCase().trim();
+
+    if (meuUser && donoLimpo && meuUser === donoLimpo) {
+      capaUrl = localStorage.getItem('mydropsCover_' + meuUser);
+    }
+
+    if (!capaUrl && typeof window.buscarPerfilPublicoSupabase === 'function') {
+      const perfil = await window.buscarPerfilPublicoSupabase(donoLimpo);
+      if (perfil && perfil.capa_url) capaUrl = perfil.capa_url;
+    }
+
+    if (capaUrl) {
+      canvas.style.backgroundImage =
+        `linear-gradient(rgba(245, 239, 224, 0.82), rgba(245, 239, 224, 0.82)), url('${capaUrl}')`;
+      canvas.style.backgroundSize = 'cover';
+      canvas.style.backgroundPosition = 'center';
+      canvas.style.backgroundRepeat = 'no-repeat';
+    }
+  } catch (err) {
+    console.warn('Erro ao aplicar capa no mural:', err);
+  }
+}
+
+  
   function tentarFecharMuralNex() {
     if (!muralAlteradoNex) {
       fecharMuralNex();
@@ -1099,11 +1231,30 @@ async function carregarMuralSalvoNex() {
     }
   });
 
-  setTimeout(redesenharTracosNex, 100);
+    setTimeout(redesenharTracosNex, 100);
+
+  // ⚠️ Adiciona clique nos elementos de OUTROS autores → mostra balão
+  const camada2 = document.getElementById('muralCamadaElementosNex');
+
+  if (camada2) {
+    camada2
+      .querySelectorAll('.mural-texto-item-nex.travado, .mural-foto-item-nex.travado')
+      .forEach((el) => {
+        if (!el.dataset.autorId) return;
+
+        el.style.cursor = 'pointer';
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          mostrarBalaoAutorNex(el);
+        });
+      });
+  }
 
   muralAlteradoNex = false;
   atualizarBotaoSalvarNex();
 }
+  
   
   // ============================================
   // EVENT LISTENERS
