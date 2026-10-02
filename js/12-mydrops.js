@@ -698,88 +698,112 @@ function renderizarPublicacoesMyDropsNex() {
   // ============================================
 
   function normalizarListaPublicacaoMyDropsNex(lista) {
-    if (!Array.isArray(lista)) return [];
+  if (!Array.isArray(lista)) return [];
 
-    return lista.map((item) => {
-      if (typeof item === 'string') {
-        return {
-          nome: item,
-          avatar: item.trim().charAt(0).toUpperCase()
-        };
-      }
-
-      if (item && typeof item === 'object') {
-        const nome = String(
-          item.nome || item.name || item.usuario || 'Pessoa'
-        ).trim();
-
-        return {
-          nome,
-          avatar: String(item.avatar || nome.charAt(0).toUpperCase() || '?')
-        };
-      }
-
-      const texto = String(item || 'Pessoa').trim();
+  return lista.map((item) => {
+    if (typeof item === 'string') {
       return {
-        nome: texto,
-        avatar: texto.charAt(0).toUpperCase()
+        nome: item,
+        username: '',
+        avatar: item.trim().charAt(0).toUpperCase()
       };
-    });
-  }
+    }
 
-  function abrirModalListaPublicacaoMyDropsNex(titulo, lista) {
-  const antigo = document.querySelector('.mydrops-list-modal');
-  if (antigo) antigo.remove();
+    if (item && typeof item === 'object') {
+      const nome = String(
+        item.nome || item.name || item.usuario || 'Pessoa'
+      ).trim();
 
-  const itens = normalizarListaPublicacaoMyDropsNex(lista);
+      const username = String(
+        item.username || item.user || item.id || ''
+      ).replace(/^@/, '').trim();
 
-  const modal = document.createElement('div');
-  modal.className = 'mydrops-list-modal';
+      return {
+        nome,
+        username,
+        avatar: String(item.avatar || nome.charAt(0).toUpperCase() || '?')
+      };
+    }
 
-  const itensHTML = itens.length
-    ? itens
-        .map((item) => {
-          const avatarTexto = String(item.avatar || '?');
-          const ehURL =
-            avatarTexto.startsWith('http') ||
-            avatarTexto.startsWith('data:image');
-
-          const avatarHTML = ehURL
-            ? `<img src="${escapeHTML(avatarTexto)}" alt="">`
-            : escapeHTML(avatarTexto);
-
-          return `
-            <div class="mydrops-list-modal-item">
-              <div class="mydrops-list-modal-avatar">${avatarHTML}</div>
-              <div class="mydrops-list-modal-name">${escapeHTML(item.nome)}</div>
-            </div>
-          `;
-        })
-        .join('')
-    : '<div class="mydrops-list-modal-empty">Nenhum registro ainda.</div>';
-
-  modal.innerHTML = `
-    <div class="mydrops-list-modal-card">
-      <div class="mydrops-list-modal-head">
-        <strong>${escapeHTML(titulo)}</strong>
-        <button type="button" class="mydrops-list-modal-close">✕</button>
-      </div>
-
-      <div class="mydrops-list-modal-body">
-        ${itensHTML}
-      </div>
-    </div>
-  `;
-
-    document.body.appendChild(modal);
-
-    modal.querySelector('.mydrops-list-modal-close').onclick = () => {
-      modal.remove();
+    const texto = String(item || 'Pessoa').trim();
+    return {
+      nome: texto,
+      username: '',
+      avatar: texto.charAt(0).toUpperCase()
     };
+  });
+  }
+  
+  function abrirModalListaPublicacaoMyDropsNex(titulo, lista) {
+const antigo = document.querySelector('.mydrops-list-modal');
+if (antigo) antigo.remove();
 
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
+const itens = normalizarListaPublicacaoMyDropsNex(lista);
+
+const modal = document.createElement('div');
+modal.className = 'mydrops-list-modal';
+
+const itensHTML = itens.length
+  ? itens
+      .map((item, index) => {
+        const avatarTexto = String(item.avatar || '?');
+        const ehURL =
+          avatarTexto.startsWith('http') ||
+          avatarTexto.startsWith('data:image');
+
+        const avatarHTML = ehURL
+          ? `<img src="${escapeHTML(avatarTexto)}" alt="">`
+          : escapeHTML(avatarTexto);
+
+        return `
+          <div class="mydrops-list-modal-item" data-item-index="${index}">
+            <div class="mydrops-list-modal-avatar">${avatarHTML}</div>
+            <div class="mydrops-list-modal-name">${escapeHTML(item.nome)}</div>
+          </div>
+        `;
+      })
+      .join('')
+  : '<div class="mydrops-list-modal-empty">Nenhum registro ainda.</div>';
+
+modal.innerHTML = `
+  <div class="mydrops-list-modal-card">
+    <div class="mydrops-list-modal-head">
+      <strong>${escapeHTML(titulo)}</strong>
+      <button type="button" class="mydrops-list-modal-close">✕</button>
+    </div>
+
+    <div class="mydrops-list-modal-body">
+      ${itensHTML}
+    </div>
+  </div>
+`;
+
+  document.body.appendChild(modal);
+
+  modal.querySelector('.mydrops-list-modal-close').onclick = () => {
+    modal.remove();
+  };
+
+  // ⚠️ Clique em item → abre o perfil
+  modal.querySelectorAll('.mydrops-list-modal-item').forEach((el) => {
+    el.style.cursor = 'pointer';
+
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.itemIndex);
+      const item = itens[idx];
+      if (!item || !item.username) return;
+
+      modal.remove();
+
+      if (typeof window.abrirPerfilVisitadoNex === 'function') {
+        window.abrirPerfilVisitadoNex(item.username, item.nome);
+      }
     });
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
   }
 
   // ============================================
