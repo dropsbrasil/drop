@@ -342,49 +342,82 @@ window.salvarLocalizacaoSupabase = salvarLocalizacaoSupabase;
 // ============================================
 // MURAL — salvar e buscar no Supabase
 // ============================================
-async function salvarMuralSupabase(dados) {
+// ============================================
+// MURAL — contribuir, buscar e limpar
+// ============================================
+
+// Salva uma contribuição no mural de alguém
+async function salvarMuralSupabase(usernameDono, dados) {
   if (!window.supabaseClient) return false;
   if (!dados || typeof dados !== 'object') return false;
+  if (!usernameDono) return false;
 
   try {
     const { error } = await window.supabaseClient
-      .rpc('salvar_mural', { dados_mural: dados });
+      .rpc('contribuir_mural', {
+        username_dono: String(usernameDono).replace(/^@/, '').trim(),
+        dados_novos: dados
+      });
 
     if (error) {
-      console.warn('Erro ao salvar mural:', error);
+      console.warn('Erro ao contribuir no mural:', error);
       return false;
     }
 
     return true;
   } catch (err) {
-    console.warn('Erro ao salvar mural:', err);
+    console.warn('Erro ao contribuir no mural:', err);
     return false;
   }
 }
 
+// Busca TODAS as contribuições do mural de alguém
 async function buscarMuralSupabase(username) {
-  if (!window.supabaseClient || !username) return null;
+  if (!window.supabaseClient || !username) return [];
 
   try {
     const { data, error } = await window.supabaseClient
-      .rpc('ler_mural_por_username', {
-        username_alvo: String(username).replace(/^@/, '').trim()
+      .rpc('ler_mural_completo', {
+        username_dono: String(username).replace(/^@/, '').trim()
       });
 
     if (error) {
       console.warn('Erro ao buscar mural:', error);
-      return null;
+      return [];
     }
 
-    return data || null;
+    return Array.isArray(data) ? data : [];
   } catch (err) {
     console.warn('Erro ao buscar mural:', err);
-    return null;
+    return [];
+  }
+}
+
+// Limpa o mural inteiro (só o dono pode)
+async function limparMuralSupabase(usernameDono) {
+  if (!window.supabaseClient || !usernameDono) return false;
+
+  try {
+    const { error } = await window.supabaseClient
+      .rpc('limpar_mural_completo', {
+        username_dono: String(usernameDono).replace(/^@/, '').trim()
+      });
+
+    if (error) {
+      console.warn('Erro ao limpar mural:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Erro ao limpar mural:', err);
+    return false;
   }
 }
 
 window.salvarMuralSupabase = salvarMuralSupabase;
 window.buscarMuralSupabase = buscarMuralSupabase;
+window.limparMuralSupabase = limparMuralSupabase;
   
   document.addEventListener('DOMContentLoaded', async () => {
   await aguardarSupabase();

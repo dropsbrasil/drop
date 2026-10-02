@@ -248,7 +248,6 @@ if (socialContainer) {
       atualizarBotaoConectarPerfilNex();
   atualizarSeloAdeptoPerfilNex(id);
 
-  // Renderiza o mural do perfil visitado
 // Renderiza o mural do perfil visitado
 renderizarMuralNoPerfilVisitadoNex(id);
   }
@@ -264,44 +263,63 @@ async function renderizarMuralNoPerfilVisitadoNex(perfilId) {
 
   if (!preview || !titulo) return;
 
-  // Atualiza o botão pra abrir o modal
-  if (btn) {
-    btn.onclick = () => abrirMuralEmBrevePerfilNex(perfilId);
-  }
+// Abre o mural colaborativo do perfil visitado
+if (btn) {
+  btn.onclick = () => {
+    if (typeof window.abrirMuralNex === 'function') {
+      window.abrirMuralNex(perfilId);
+    }
+  };
+}
 
   // Pega o nome do perfil aberto
   const nomePerfil = Drops.estado.perfilAberto || 'Perfil';
   titulo.textContent = 'Mural de ' + nomePerfil;
 
-  // Busca o mural no Supabase
-let dadosMural = null;
+ // Busca o mural no Supabase (array de contribuições)
+let contribuicoes = [];
 
 try {
   if (typeof window.buscarMuralSupabase === 'function') {
-    dadosMural = await window.buscarMuralSupabase(perfilId);
+    contribuicoes = await window.buscarMuralSupabase(perfilId);
   }
 } catch (err) {
   console.warn('Erro ao buscar mural do perfil:', err);
 }
+
+// Limpa preview
+preview.innerHTML = '';
+
+// Junta TODOS os elementos de TODAS as contribuições
+const elementos = [];
+
+if (Array.isArray(contribuicoes)) {
+  contribuicoes.forEach((contrib) => {
+    const dados = contrib.dados || {};
+    if (Array.isArray(dados.elementos)) {
+      dados.elementos.forEach((item) => {
+        elementos.push({
+          ...item,
+          autorUsername: contrib.autor_username || '',
+          autorNome: contrib.autor_nome || ''
+        });
+      });
+    }
+  });
+}
+
+if (elementos.length === 0) {
+  preview.innerHTML = `
+    <div class="perfil-mural-vazio">
+      <span class="perfil-mural-vazio-icone">✨</span>
+      <span class="perfil-mural-vazio-texto">
+        Ainda não há nada aqui.<br>Seja o primeiro a deixar sua marca.
+      </span>
+    </div>
+  `;
+  return;
+}
   
-  // Limpa preview
-  preview.innerHTML = '';
-
-  // Se não tem dados ou está vazio → estado vazio
-  const elementos = dadosMural?.elementos || [];
-
-  if (!Array.isArray(elementos) || elementos.length === 0) {
-    preview.innerHTML = `
-      <div class="perfil-mural-vazio">
-        <span class="perfil-mural-vazio-icone">✨</span>
-        <span class="perfil-mural-vazio-texto">
-          Ainda não há nada aqui.<br>Seja o primeiro a deixar sua marca.
-        </span>
-      </div>
-    `;
-    return;
-  }
-
   // Renderiza até 3 miniaturas
   const ateTres = elementos.slice(0, 3);
 
