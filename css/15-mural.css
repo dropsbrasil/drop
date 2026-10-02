@@ -733,3 +733,22 @@
 #muralConfirmContinuarNex {
   background: rgba(255, 255, 255, 0.03) !important;
 }
+/* ============================================
+   BOTÃO LIMPAR MURAL (só dono vê)
+============================================ */
+
+.mural-btn-limpar-nex {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+.mural-btn-limpar-nex:active {
+  background: rgba(239, 68, 68, 0.3) !important;
+  transform: scale(0.94);
+}
+
+/* Escondido por padrão — o JS mostra só pro dono */
+.mural-btn-limpar-nex.oculto {
+  display: none !important;
+}
