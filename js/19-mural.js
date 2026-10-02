@@ -1,14 +1,6 @@
 /* ============================================
    19-MURAL.JS
    Mural criativo: texto, desenho, fotos
-   
-   Regras:
-   - Abre carregando elementos/traços salvos (travados)
-   - Novos elementos são "pendentes"
-   - Salvar → trava tudo, botão fica cinza
-   - ✕ com pendentes → modal de confirmação
-   
-   Depende de: 00-config.js, 17-adapters.js
 ============================================ */
 
 (function () {
@@ -36,60 +28,66 @@
   let ultimoPontoNex = null;
 
   let elementoSelecionadoNex = null;
-let transformacoesNex = new WeakMap();
+  let transformacoesNex = new WeakMap();
 
-// Mural atualmente aberto (username do dono)
-let muralDonoUsernameNex = null;
-  
+  let muralDonoUsernameNex = null;
+  let muralAlteradoNex = false;
+
   // ============================================
   // ABRIR / FECHAR
   // ============================================
 
-function abrirMuralNex(usernameDono = null) {
-  const modal = document.getElementById('modalMuralNex');
-  if (!modal) {
-    console.warn('⚠️ modalMuralNex não encontrado');
-    return;
-  }
-
-  // Se não passou, é o meu próprio mural
-  muralDonoUsernameNex = usernameDono
-    ? String(usernameDono).replace(/^@/, '').trim()
-    : Drops.usernameAtual;
-
-  // ⚠️ Mostra/esconde botão "Limpar" só pro dono
-  const btnLimpar = document.getElementById('muralBtnLimparNex');
-
-  if (btnLimpar) {
-    const meuUser = String(Drops.usernameAtual || '')
-      .replace(/^@/, '')
-      .toLowerCase()
-      .trim();
-
-    const donoLimpo = String(muralDonoUsernameNex || '')
-      .replace(/^@/, '')
-      .toLowerCase()
-      .trim();
-
-    const souDono = !!meuUser && !!donoLimpo && meuUser === donoLimpo;
-
-    if (souDono) {
-      btnLimpar.classList.remove('oculto');
-    } else {
-      btnLimpar.classList.add('oculto');
+  function abrirMuralNex(usernameDono = null) {
+    const modal = document.getElementById('modalMuralNex');
+    if (!modal) {
+      console.warn('⚠️ modalMuralNex não encontrado');
+      return;
     }
+
+    muralDonoUsernameNex = usernameDono
+      ? String(usernameDono).replace(/^@/, '').trim()
+      : Drops.usernameAtual;
+
+    if (!muralDonoUsernameNex) {
+      muralDonoUsernameNex = (localStorage.getItem('drops_username') || '')
+        .trim()
+        .toLowerCase();
+    }
+
+    console.log('🎨 Abrindo mural de:', muralDonoUsernameNex);
+
+    const btnLimpar = document.getElementById('muralBtnLimparNex');
+
+    if (btnLimpar) {
+      const meuUser = String(Drops.usernameAtual || '')
+        .replace(/^@/, '')
+        .toLowerCase()
+        .trim();
+
+      const donoLimpo = String(muralDonoUsernameNex || '')
+        .replace(/^@/, '')
+        .toLowerCase()
+        .trim();
+
+      const souDono = !!meuUser && !!donoLimpo && meuUser === donoLimpo;
+
+      if (souDono) {
+        btnLimpar.classList.remove('oculto');
+      } else {
+        btnLimpar.classList.add('oculto');
+      }
+    }
+
+    modal.style.display = 'flex';
+
+    setTimeout(async () => {
+      iniciarRolagemMuralNex();
+      await carregarMuralSalvoNex();
+    }, 80);
   }
-
-  modal.style.display = 'flex';
-
-  setTimeout(async () => {
-    iniciarRolagemMuralNex();
-    await carregarMuralSalvoNex();
-  }, 80);
-}
 
   function tentarFecharMuralNex() {
-    if (!temPendentesNex()) {
+    if (!muralAlteradoNex) {
       fecharMuralNex();
       return;
     }
@@ -98,7 +96,24 @@ function abrirMuralNex(usernameDono = null) {
     if (modal) modal.style.display = 'flex';
   }
 
-  // ============================================
+  function fecharMuralNex() {
+    const modal = document.getElementById('modalMuralNex');
+    if (modal) modal.style.display = 'none';
+
+    const confirmModal = document.getElementById('muralConfirmSairNex');
+    if (confirmModal) confirmModal.style.display = 'none';
+
+    muralTextoEditandoNex = null;
+    fecharModalTextoMuralNex();
+    desativarCanetaNex();
+    desregistrarSelecaoNex();
+
+    tracosPendentesNex = [];
+    muralDonoUsernameNex = null;
+    muralAlteradoNex = false;
+  }
+  
+// ============================================
 // LIMPAR MURAL (só dono)
 // ============================================
 
@@ -131,7 +146,6 @@ async function confirmarLimparMuralNex() {
     return;
   }
 
-  // Limpa visualmente
   const camada = document.getElementById('muralCamadaElementosNex');
   if (camada) camada.innerHTML = '';
 
@@ -139,51 +153,31 @@ async function confirmarLimparMuralNex() {
   tracosPendentesNex = [];
 
   redesenharTracosNex();
+
+  muralAlteradoNex = false;
   atualizarBotaoSalvarNex();
 
   window.mostrarToastNex?.('Mural limpo!', 'sucesso');
 }
 
-  
-  function fecharMuralNex() {
-    const modal = document.getElementById('modalMuralNex');
-    if (modal) modal.style.display = 'none';
-
-    const confirmModal = document.getElementById('muralConfirmSairNex');
-    if (confirmModal) confirmModal.style.display = 'none';
-
-    muralTextoEditandoNex = null;
-    fecharModalTextoMuralNex();
-    desativarCanetaNex();
-      desregistrarSelecaoNex();
-
-  tracosPendentesNex = [];
-  muralDonoUsernameNex = null;
-  }
-  
 // ============================================
 // PENDÊNCIAS / BOTÃO SALVAR
 // ============================================
 
+function marcarAlterado() {
+  muralAlteradoNex = true;
+  atualizarBotaoSalvarNex();
+}
+
 function temPendentesNex() {
-  const camada = document.getElementById('muralCamadaElementosNex');
-  if (!camada) return false;
-
-  const elementoPendente = camada.querySelector(
-    '.mural-texto-item-nex:not(.travado), .mural-foto-item-nex:not(.travado)'
-  );
-
-  if (elementoPendente) return true;
-  if (tracosPendentesNex.length > 0) return true;
-
-  return false;
+  return muralAlteradoNex;
 }
 
 function atualizarBotaoSalvarNex() {
   const btn = document.getElementById('muralBtnSalvarNex');
   if (!btn) return;
 
-  btn.disabled = !temPendentesNex();
+  btn.disabled = !muralAlteradoNex;
 }
 
 // ============================================
@@ -301,7 +295,7 @@ function aplicarTextoMuralNex() {
   }
 
   fecharModalTextoMuralNex();
-  atualizarBotaoSalvarNex();
+  marcarAlterado();
 }
 
 function criarTextoNoMuralNex(texto, opcoes) {
@@ -359,7 +353,7 @@ function editarTextoMuralNex(el) {
   muralTextoEditandoNex = el;
   abrirModalTextoMuralNex();
 }
-  
+
 // ============================================
 // INTERAÇÃO COM TEXTO
 // ============================================
@@ -396,7 +390,12 @@ function ativarInteracaoTextoMuralNex(el) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
 
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        if (!moved) {
+          moved = true;
+          muralAlteradoNex = true;
+        }
+      }
 
       el.style.left = originLeft + dx + 'px';
       el.style.top = originTop + dy + 'px';
@@ -415,7 +414,10 @@ function ativarInteracaoTextoMuralNex(el) {
 
       pointerId = null;
 
-      if (moved) return;
+      if (moved) {
+        atualizarBotaoSalvarNex();
+        return;
+      }
 
       const agora = Date.now();
 
@@ -460,7 +462,7 @@ function deselecionarTudoMuralNex() {
 
   desregistrarSelecaoNex();
 }
-  
+
 // ============================================
 // FERRAMENTA FOTO
 // ============================================
@@ -487,7 +489,7 @@ function processarFotoMuralNex(event) {
 
   reader.onload = function (e) {
     criarFotoNoMuralNex(e.target.result);
-    atualizarBotaoSalvarNex();
+    marcarAlterado();
   };
 
   reader.onerror = function () {
@@ -589,7 +591,12 @@ function ativarInteracaoFotoMuralNex(el) {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
 
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        if (!moved) {
+          moved = true;
+          muralAlteradoNex = true;
+        }
+      }
 
       el.style.left = originLeft + dx + 'px';
       el.style.top = originTop + dy + 'px';
@@ -608,7 +615,10 @@ function ativarInteracaoFotoMuralNex(el) {
 
       pointerId = null;
 
-      if (moved) return;
+      if (moved) {
+        atualizarBotaoSalvarNex();
+        return;
+      }
 
       selecionarFotoMuralNex(el);
     };
@@ -791,7 +801,7 @@ function finalizarDesenhoNex(e) {
 
   if (tracoAtualNex.pontos.length > 1) {
     tracosPendentesNex.push(tracoAtualNex);
-    atualizarBotaoSalvarNex();
+    marcarAlterado();
   }
 
   desenhandoNex = false;
@@ -806,7 +816,7 @@ function obterPontoCanvasNex(e, canvas) {
     y: e.clientY - rect.top
   };
 }
-  
+
 // ============================================
 // CONTROLES DE SELEÇÃO
 // ============================================
@@ -865,7 +875,7 @@ function aumentarElementoNex() {
   const t = obterTransformacaoNex(elementoSelecionadoNex);
   t.escala = Math.min(3, t.escala + 0.15);
   aplicarTransformacaoNex(elementoSelecionadoNex);
-  atualizarBotaoSalvarNex();
+  marcarAlterado();
 }
 
 function diminuirElementoNex() {
@@ -874,7 +884,7 @@ function diminuirElementoNex() {
   const t = obterTransformacaoNex(elementoSelecionadoNex);
   t.escala = Math.max(0.3, t.escala - 0.15);
   aplicarTransformacaoNex(elementoSelecionadoNex);
-  atualizarBotaoSalvarNex();
+  marcarAlterado();
 }
 
 function girarElementoNex() {
@@ -883,7 +893,7 @@ function girarElementoNex() {
   const t = obterTransformacaoNex(elementoSelecionadoNex);
   t.rotacao = (t.rotacao + 15) % 360;
   aplicarTransformacaoNex(elementoSelecionadoNex);
-  atualizarBotaoSalvarNex();
+  marcarAlterado();
 }
 
 function girarElementoInversoNex() {
@@ -892,7 +902,7 @@ function girarElementoInversoNex() {
   const t = obterTransformacaoNex(elementoSelecionadoNex);
   t.rotacao = (t.rotacao - 15 + 360) % 360;
   aplicarTransformacaoNex(elementoSelecionadoNex);
-  atualizarBotaoSalvarNex();
+  marcarAlterado();
 }
 
 function excluirElementoNex() {
@@ -900,7 +910,7 @@ function excluirElementoNex() {
 
   elementoSelecionadoNex.remove();
   desregistrarSelecaoNex();
-  atualizarBotaoSalvarNex();
+  marcarAlterado();
 }
 
 // ============================================
@@ -913,7 +923,6 @@ function coletarEstadoMuralNex() {
 
   const elementos = [];
 
-  // Só os elementos NÃO travados (que eu acabei de adicionar)
   camada.querySelectorAll('.mural-texto-item-nex:not(.travado)').forEach((el) => {
     const t = obterTransformacaoNex(el);
     const conteudo = el.querySelector('.mural-texto-conteudo-nex');
@@ -945,16 +954,19 @@ function coletarEstadoMuralNex() {
     });
   });
 
+  const meusTracosSalvos = tracosSalvosNex.filter((t) => t.ehMinha);
+  const todosMeusTracos = meusTracosSalvos.concat(tracosPendentesNex);
+
   return {
     elementos,
-    tracos: tracosPendentesNex,
+    tracos: todosMeusTracos,
     versao: 1,
     atualizadoEm: Date.now()
   };
 }
 
 async function salvarMuralNex() {
-  if (!temPendentesNex()) return;
+  if (!muralAlteradoNex) return;
 
   const estado = coletarEstadoMuralNex();
   if (!estado) return;
@@ -963,7 +975,6 @@ async function salvarMuralNex() {
 
   const donoUsername = muralDonoUsernameNex || Drops.usernameAtual;
 
-  // Salva contribuição no Supabase
   let ok = false;
 
   if (typeof window.salvarMuralSupabase === 'function') {
@@ -975,21 +986,14 @@ async function salvarMuralNex() {
     return;
   }
 
-  const camada = document.getElementById('muralCamadaElementosNex');
-  if (camada) {
-    camada
-      .querySelectorAll(
-        '.mural-texto-item-nex:not(.travado), .mural-foto-item-nex:not(.travado)'
-      )
-      .forEach((el) => {
-        el.classList.add('travado');
-        el.dataset.travado = '1';
-        el.classList.remove('selecionado');
-      });
-  }
-
   tracosSalvosNex = tracosSalvosNex.concat(tracosPendentesNex);
   tracosPendentesNex = [];
+
+  tracosSalvosNex.forEach((t) => {
+    if (t.pendente) t.pendente = false;
+  });
+
+  muralAlteradoNex = false;
 
   desregistrarSelecaoNex();
   atualizarBotaoSalvarNex();
@@ -1007,22 +1011,27 @@ async function carregarMuralSalvoNex() {
 
   const donoUsername = muralDonoUsernameNex || Drops.usernameAtual;
 
-  // Busca TODAS as contribuições do mural
+  console.log('🎨 Carregando mural de:', donoUsername);
+
   let contribuicoes = [];
 
   if (typeof window.buscarMuralSupabase === 'function' && donoUsername) {
     contribuicoes = await window.buscarMuralSupabase(donoUsername);
+    console.log('🎨 Contribuições recebidas:', contribuicoes.length);
+  } else {
+    console.warn('⚠️ Sem donoUsername ou sem buscarMuralSupabase');
   }
 
   if (!Array.isArray(contribuicoes) || !contribuicoes.length) {
     redesenharTracosNex();
+
+    muralAlteradoNex = false;
     atualizarBotaoSalvarNex();
     return;
   }
 
   const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
 
-  // Junta TODAS as contribuições
   contribuicoes.forEach((contrib) => {
     const dados = contrib.dados || {};
     const autor = String(contrib.autor_username || '').toLowerCase().trim();
@@ -1085,6 +1094,8 @@ async function carregarMuralSalvoNex() {
   });
 
   setTimeout(redesenharTracosNex, 100);
+
+  muralAlteradoNex = false;
   atualizarBotaoSalvarNex();
 }
   
@@ -1098,7 +1109,6 @@ async function carregarMuralSalvoNex() {
       btnAbrir.addEventListener('click', abrirMuralNex);
     }
 
-    // Fechar
     const btnFecharTopo = document.querySelector('.mural-topo-fechar-nex');
     if (btnFecharTopo) {
       const novoBtn = btnFecharTopo.cloneNode(true);
@@ -1106,38 +1116,31 @@ async function carregarMuralSalvoNex() {
       novoBtn.addEventListener('click', tentarFecharMuralNex);
     }
 
-    // Salvar
-    // Botão Salvar
-const btnSalvar = document.getElementById('muralBtnSalvarNex');
-if (btnSalvar) {
-  btnSalvar.addEventListener('click', salvarMuralNex);
-}
+    const btnSalvar = document.getElementById('muralBtnSalvarNex');
+    if (btnSalvar) {
+      btnSalvar.addEventListener('click', salvarMuralNex);
+    }
 
-// Botão Limpar Mural
-const btnLimparMural = document.getElementById('muralBtnLimparNex');
-if (btnLimparMural) {
-  btnLimparMural.addEventListener('click', abrirConfirmLimparMuralNex);
-}
+    const btnLimparMural = document.getElementById('muralBtnLimparNex');
+    if (btnLimparMural) {
+      btnLimparMural.addEventListener('click', abrirConfirmLimparMuralNex);
+    }
 
-// Modal: botão "Apagar tudo"
-const btnConfirmLimparOk = document.getElementById('muralConfirmLimparOkNex');
-if (btnConfirmLimparOk) {
-  btnConfirmLimparOk.addEventListener('click', confirmarLimparMuralNex);
-}
+    const btnConfirmLimparOk = document.getElementById('muralConfirmLimparOkNex');
+    if (btnConfirmLimparOk) {
+      btnConfirmLimparOk.addEventListener('click', confirmarLimparMuralNex);
+    }
 
-// Modal: botão "Cancelar"
-const btnConfirmLimparCancelar = document.getElementById('muralConfirmLimparCancelarNex');
-if (btnConfirmLimparCancelar) {
-  btnConfirmLimparCancelar.addEventListener('click', fecharConfirmLimparMuralNex);
-}
+    const btnConfirmLimparCancelar = document.getElementById('muralConfirmLimparCancelarNex');
+    if (btnConfirmLimparCancelar) {
+      btnConfirmLimparCancelar.addEventListener('click', fecharConfirmLimparMuralNex);
+    }
 
-    // Texto
     const btnTexto = document.getElementById('muralBtnTextoNex');
     if (btnTexto) {
       btnTexto.addEventListener('click', abrirModalTextoMuralNex);
     }
 
-    // Foto
     const btnFoto = document.getElementById('muralBtnFotoNex');
     if (btnFoto) {
       btnFoto.addEventListener('click', abrirSeletorFotoMuralNex);
@@ -1148,20 +1151,17 @@ if (btnConfirmLimparCancelar) {
       inputFoto.addEventListener('change', processarFotoMuralNex);
     }
 
-    // Caneta
     const btnCaneta = document.getElementById('muralBtnCanetaNex');
     if (btnCaneta) {
       btnCaneta.addEventListener('click', alternarCanetaNex);
     }
 
-    // Paleta
     document.querySelectorAll('.mural-cor-nex').forEach((btnCor) => {
       btnCor.addEventListener('click', () => {
         trocarCorCanetaNex(btnCor.dataset.cor);
       });
     });
 
-    // Canvas de desenho
     const canvasDesenho = document.getElementById('muralDesenhoNex');
     if (canvasDesenho) {
       canvasDesenho.addEventListener('pointerdown', iniciarDesenhoNex);
@@ -1171,11 +1171,9 @@ if (btnConfirmLimparCancelar) {
       canvasDesenho.addEventListener('pointerleave', finalizarDesenhoNex);
     }
 
-    // Primeira cor
     const primeiraCor = document.querySelector('.mural-cor-nex');
     if (primeiraCor) primeiraCor.classList.add('selecionada');
 
-    // Controles
     const btnMenos = document.getElementById('muralBtnMenosNex');
     if (btnMenos) btnMenos.addEventListener('click', diminuirElementoNex);
 
@@ -1193,7 +1191,6 @@ if (btnConfirmLimparCancelar) {
     const btnLixeira = document.getElementById('muralBtnLixeiraNex');
     if (btnLixeira) btnLixeira.addEventListener('click', excluirElementoNex);
 
-    // Modal de texto
     const btnCancelar = document.getElementById('muralTextoCancelarNex');
     if (btnCancelar) {
       btnCancelar.addEventListener('click', fecharModalTextoMuralNex);
@@ -1204,18 +1201,15 @@ if (btnConfirmLimparCancelar) {
       btnAplicar.addEventListener('click', aplicarTextoMuralNex);
     }
 
-    // Modal de confirmação ao sair
     const btnSalvarSair = document.getElementById('muralConfirmSalvarSairNex');
-if (btnSalvarSair) {
-  btnSalvarSair.addEventListener('click', async () => {
-    await salvarMuralNex();
-    fecharMuralNex();
-  });
-}
+    if (btnSalvarSair) {
+      btnSalvarSair.addEventListener('click', async () => {
+        await salvarMuralNex();
+        fecharMuralNex();
+      });
+    }
 
-    const btnSairSemSalvar = document.getElementById(
-      'muralConfirmSairSemSalvarNex'
-    );
+    const btnSairSemSalvar = document.getElementById('muralConfirmSairSemSalvarNex');
     if (btnSairSemSalvar) {
       btnSairSemSalvar.addEventListener('click', () => {
         fecharMuralNex();
@@ -1230,7 +1224,6 @@ if (btnSalvarSair) {
       });
     }
 
-    // Clique fora → deseleciona
     const scrollMural = document.getElementById('muralScrollNex');
     if (scrollMural) {
       scrollMural.addEventListener('pointerdown', (e) => {
@@ -1243,7 +1236,6 @@ if (btnSalvarSair) {
       });
     }
 
-    // Estado inicial do botão
     atualizarBotaoSalvarNex();
   });
 
@@ -1252,10 +1244,10 @@ if (btnSalvarSair) {
   // ============================================
 
   window.abrirMuralNex = abrirMuralNex;
-window.fecharMuralNex = fecharMuralNex;
-window.abrirConfirmLimparMuralNex = abrirConfirmLimparMuralNex;
-window.fecharConfirmLimparMuralNex = fecharConfirmLimparMuralNex;
-window.confirmarLimparMuralNex = confirmarLimparMuralNex;
+  window.fecharMuralNex = fecharMuralNex;
+  window.abrirConfirmLimparMuralNex = abrirConfirmLimparMuralNex;
+  window.fecharConfirmLimparMuralNex = fecharConfirmLimparMuralNex;
+  window.confirmarLimparMuralNex = confirmarLimparMuralNex;
   window.tentarFecharMuralNex = tentarFecharMuralNex;
   window.rolarMuralNex = rolarMuralNex;
   window.atualizarAvisosLimiteNex = atualizarAvisosLimiteNex;
@@ -1286,10 +1278,6 @@ window.confirmarLimparMuralNex = confirmarLimparMuralNex;
   window.coletarEstadoMuralNex = coletarEstadoMuralNex;
   window.atualizarBotaoSalvarNex = atualizarBotaoSalvarNex;
   window.temPendentesNex = temPendentesNex;
-
-  // ============================================
-  // DEBUG
-  // ============================================
 
   console.log('📌 19-mural.js carregado');
 
