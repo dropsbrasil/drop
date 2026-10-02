@@ -78,26 +78,35 @@ function mostrarBalaoAutorNex(el) {
   const el_autorId = el.dataset.autorId || '';
 const el_autorNome = el.dataset.autorNome || el_autorId;
 
-// Busca avatar do cache
-let avatarUrl = '';
-try {
-  avatarUrl = localStorage.getItem('mydropsAvatar_' + el_autorId) || '';
-} catch (_) {}
-
 const inicial = String(el_autorNome || '?').trim().charAt(0).toUpperCase() || '?';
 
-const avatarHTML = avatarUrl &&
-  (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:image'))
-  ? `<img src="${avatarUrl}" alt="">`
-  : `<span>${inicial}</span>`;
-
+// Renderiza com inicial primeiro (rápido)
 balao.innerHTML = `
-  <div class="mural-balao-avatar-nex">${avatarHTML}</div>
+  <div class="mural-balao-avatar-nex" id="muralBalaoAvatarNex"><span>${inicial}</span></div>
   <div class="mural-balao-info-nex">
     <div class="mural-balao-nome-nex">${el_autorNome}</div>
     <div class="mural-balao-user-nex">@${el_autorId}</div>
   </div>
 `;
+
+// ⚠️ Busca o avatar no Supabase (em background)
+if (
+  typeof window.buscarPerfilPublicoSupabase === 'function' &&
+  el_autorId
+) {
+  window.buscarPerfilPublicoSupabase(el_autorId)
+    .then((perfil) => {
+      if (!perfil || !perfil.avatar_url) return;
+
+      const avatarEl = document.getElementById('muralBalaoAvatarNex');
+      if (!avatarEl) return;
+
+      avatarEl.innerHTML = `<img src="${perfil.avatar_url}" alt="">`;
+    })
+    .catch((err) => {
+      console.warn('Erro ao buscar avatar do balão:', err);
+    });
+}
 
   balaoElementoOrigemNex = el;
 
@@ -133,11 +142,18 @@ balao.innerHTML = `
   const idFinal = el_autorId;
   const nomeFinal = el_autorNome;
 
+  // 1. Fecha o balão
   fecharBalaoAutorNex();
 
-  if (typeof window.abrirPerfilVisitadoNex === 'function') {
-    window.abrirPerfilVisitadoNex(idFinal, nomeFinal);
-  }
+  // 2. Fecha o mural
+  fecharMuralNex();
+
+  // 3. Abre o perfil (com delay mínimo pra dar tempo do DOM atualizar)
+  setTimeout(() => {
+    if (typeof window.abrirPerfilVisitadoNex === 'function') {
+      window.abrirPerfilVisitadoNex(idFinal, nomeFinal);
+    }
+  }, 120);
 };
 }
 
