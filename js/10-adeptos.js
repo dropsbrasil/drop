@@ -445,6 +445,32 @@ function renderizarMeusAdeptosNex() {
   });
 }
 
+  // ============================================
+// CONTADOR DE INTERAÇÕES (30 dias)
+// ============================================
+
+async function atualizarMetricaInteracoesMyDropsNex() {
+  if (!window.supabaseClient) return;
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .rpc('contar_interacoes_recebidas');
+
+    if (error) {
+      console.warn('Erro ao contar interações:', error);
+      return;
+    }
+
+    const total = Number(data) || 0;
+
+    const el = document.getElementById('mydropsInteracoesContador');
+    if (el) el.textContent = String(total);
+  } catch (erro) {
+    console.warn('Erro ao contar interações:', erro);
+  }
+}
+
+  
 // ============================================
 // CONTADOR DE ADEPTOS
 // ============================================
@@ -478,6 +504,7 @@ function atualizarContadorAdeptosNex() {
   // Adeptos
   window.lerAdeptosNex = lerAdeptosNex;
   window.salvarAdeptosNex = salvarAdeptosNex;
+  window.atualizarMetricaInteracoesMyDropsNex = atualizarMetricaInteracoesMyDropsNex;
   window.lerSouAdeptoDeNex = lerSouAdeptoDeNex;
   window.calcularAdeptosNex = calcularAdeptosNex;
   window.calcularAdeptosEnviadosNex = calcularAdeptosEnviadosNex;
