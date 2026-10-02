@@ -83,12 +83,64 @@
 // RENDERIZAR CONECTADOS
 // ============================================
 
-function renderizarConectadosMyDropsNex() {
+async function renderizarConectadosMyDropsNex() {
   const container = document.getElementById('listaConectadosMyDropsNex');
   if (!container) return;
 
-  const lista = lerConectadosMyDropsNex();
+  let lista = lerConectadosMyDropsNex();
   container.innerHTML = '';
+
+  // ⚠️ Busca avatares atualizados no Supabase
+  if (lista.length && window.supabaseClient) {
+    try {
+      const usernames = lista
+        .map((p) => String(p.id || '').replace(/^@/, '').trim().toLowerCase())
+        .filter(Boolean);
+
+      if (usernames.length) {
+        const { data: perfisAtualizados } = await window.supabaseClient
+          .from('profiles')
+          .select('username, nome, avatar_url')
+          .in('username', usernames);
+
+        if (Array.isArray(perfisAtualizados)) {
+          let mudou = false;
+
+          const mapaPerfis = {};
+          perfisAtualizados.forEach((p) => {
+            const key = String(p.username || '').toLowerCase();
+            if (key) mapaPerfis[key] = p;
+          });
+
+          lista = lista.map((p) => {
+            const key = String(p.id || '').replace(/^@/, '').trim().toLowerCase();
+            const atualizado = mapaPerfis[key];
+
+            if (!atualizado) return p;
+
+            const avatarNovo = atualizado.avatar_url || p.avatar;
+            const nomeNovo = atualizado.nome || p.nome;
+
+            if (avatarNovo !== p.avatar || nomeNovo !== p.nome) {
+              mudou = true;
+            }
+
+            return {
+              ...p,
+              nome: nomeNovo,
+              avatar: avatarNovo
+            };
+          });
+
+          if (mudou) {
+            salvarConectadosMyDropsNex(lista);
+          }
+        }
+      }
+    } catch (erro) {
+      console.warn('Erro ao atualizar avatares conectados:', erro);
+    }
+  }
 
   if (!lista.length) {
     const vazio = document.createElement('div');
@@ -112,9 +164,28 @@ function renderizarConectadosMyDropsNex() {
     });
 
     const avatar = document.createElement('div');
-    avatar.className = 'connected-avatar';
-    avatar.textContent =
-      perfil.avatar || (perfil.nome || '?').charAt(0).toUpperCase();
+avatar.className = 'connected-avatar';
+
+const avatarValor = String(perfil.avatar || '');
+
+const avatarEhUrl =
+  avatarValor.startsWith('http') ||
+  avatarValor.startsWith('data:image');
+
+if (avatarEhUrl) {
+  const img = document.createElement('img');
+  img.src = avatarValor;
+  img.alt = perfil.nome || 'Avatar';
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'cover';
+  img.style.borderRadius = '50%';
+  img.style.display = 'block';
+  avatar.appendChild(img);
+} else {
+  avatar.textContent =
+    avatarValor || (perfil.nome || '?').charAt(0).toUpperCase();
+}
 
     const info = document.createElement('div');
     info.className = 'connected-info';
@@ -181,12 +252,64 @@ function renderizarConectadosMyDropsNex() {
 // RENDERIZAR DESCONECTADOS
 // ============================================
 
-function renderizarDesconectadosMyDropsNex() {
+async function renderizarDesconectadosMyDropsNex() {
   const container = document.getElementById('listaDesconectadosNex');
   if (!container) return;
 
-  const lista = lerDesconectadosMyDropsNex();
+  let lista = lerDesconectadosMyDropsNex();
   container.innerHTML = '';
+
+  // ⚠️ Busca avatares atualizados no Supabase
+  if (lista.length && window.supabaseClient) {
+    try {
+      const usernames = lista
+        .map((p) => String(p.id || '').replace(/^@/, '').trim().toLowerCase())
+        .filter(Boolean);
+
+      if (usernames.length) {
+        const { data: perfisAtualizados } = await window.supabaseClient
+          .from('profiles')
+          .select('username, nome, avatar_url')
+          .in('username', usernames);
+
+        if (Array.isArray(perfisAtualizados)) {
+          let mudou = false;
+
+          const mapaPerfis = {};
+          perfisAtualizados.forEach((p) => {
+            const key = String(p.username || '').toLowerCase();
+            if (key) mapaPerfis[key] = p;
+          });
+
+          lista = lista.map((p) => {
+            const key = String(p.id || '').replace(/^@/, '').trim().toLowerCase();
+            const atualizado = mapaPerfis[key];
+
+            if (!atualizado) return p;
+
+            const avatarNovo = atualizado.avatar_url || p.avatar;
+            const nomeNovo = atualizado.nome || p.nome;
+
+            if (avatarNovo !== p.avatar || nomeNovo !== p.nome) {
+              mudou = true;
+            }
+
+            return {
+              ...p,
+              nome: nomeNovo,
+              avatar: avatarNovo
+            };
+          });
+
+          if (mudou) {
+            salvarDesconectadosMyDropsNex(lista);
+          }
+        }
+      }
+    } catch (erro) {
+      console.warn('Erro ao atualizar avatares desconectados:', erro);
+    }
+  }
 
   if (!lista.length) {
     const vazio = document.createElement('div');
@@ -215,10 +338,19 @@ function renderizarDesconectadosMyDropsNex() {
           })
         : '';
 
-    item.innerHTML = `
-      <div class="desconectado-avatar-nex">
-        ${perfil.avatar || (perfil.nome || '?').charAt(0).toUpperCase()}
-      </div>
+    const avatarValor = String(perfil.avatar || '');
+const avatarEhUrl =
+  avatarValor.startsWith('http') ||
+  avatarValor.startsWith('data:image');
+
+const avatarHTML = avatarEhUrl
+  ? `<img src="${avatarValor}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`
+  : (avatarValor || (perfil.nome || '?').charAt(0).toUpperCase());
+
+item.innerHTML = `
+  <div class="desconectado-avatar-nex">
+    ${avatarHTML}
+  </div>
 
       <div class="desconectado-info-nex">
         <div class="desconectado-nome-nex">${perfil.nome || 'Perfil'}</div>
