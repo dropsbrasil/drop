@@ -1141,8 +1141,7 @@ function atualizarBotoesReacaoNex(
   // ============================================
   // RENDERIZAR PUBLICACOES DO NEARBY
   // ============================================
-
-  async function renderizarPublicacoesNearbyNex() {
+async function renderizarPublicacoesNearbyNex() {
   const stories = document.querySelector('.nearby-stories');
   const grid = document.querySelector('.nearby-grid');
 
@@ -1163,28 +1162,28 @@ function atualizarBotoesReacaoNex(
 
   let drops = [];
 
-try {
-  drops = await window.buscarTodosOsDropsComAutor(50);
-} catch (e) {
-  console.warn('Erro ao buscar drops do Nearby:', e);
-  return;
-}
+  try {
+    drops = await window.buscarTodosOsDropsComAutor(50);
+  } catch (e) {
+    console.warn('Erro ao buscar drops do Nearby:', e);
+    return;
+  }
 
-// ⚠️ Remove as MINHAS publicações do Nearby
-const meuUsername = String(Drops.usernameAtual || '')
-  .replace(/^@/, '')
-  .toLowerCase()
-  .trim();
+  // ⚠️ Remove as MINHAS publicações
+  const meuUsername = String(Drops.usernameAtual || '')
+    .replace(/^@/, '')
+    .toLowerCase()
+    .trim();
 
-if (meuUsername) {
-  drops = drops.filter((d) => {
-    const autor = String(d.autorUsername || '')
-      .replace(/^@/, '')
-      .toLowerCase()
-      .trim();
-    return autor !== meuUsername;
-  });
-}
+  if (meuUsername) {
+    drops = drops.filter((d) => {
+      const autor = String(d.autorUsername || '')
+        .replace(/^@/, '')
+        .toLowerCase()
+        .trim();
+      return autor !== meuUsername;
+    });
+  }
 
   grid.innerHTML = '';
 
@@ -1203,133 +1202,207 @@ if (meuUsername) {
     return;
   }
 
-// ============================================
-// CÁLCULO DE DISTÂNCIA REAL (Haversine)
-// ============================================
-function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
-  const R = 6371000; // Raio da Terra em metros
-  const toRad = (g) => (g * Math.PI) / 180;
+  // ============================================
+  // CÁLCULO DE DISTÂNCIA REAL (Haversine)
+  // ============================================
+  function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = (g) => (g * Math.PI) / 180;
 
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
 
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function formatarDistanciaNex(metros) {
-  if (metros == null || !Number.isFinite(metros)) return '';
-  if (metros < 1000) return `${Math.round(metros)} m`;
-  if (metros < 10000) return `${(metros / 1000).toFixed(1)} km`;
-  return `${Math.round(metros / 1000)} km`;
-}
-
-function obterDistanciaDropNex(dropPrincipal) {
-  const minhaLat = window.minhaLatitudeAtual;
-  const minhaLng = window.minhaLongitudeAtual;
-
-  const autorLat = dropPrincipal?.autorLat;
-  const autorLng = dropPrincipal?.autorLng;
-
-  // Sem localização de um dos lados → retorna vazio
-  if (
-    typeof minhaLat !== 'number' ||
-    typeof minhaLng !== 'number' ||
-    typeof autorLat !== 'number' ||
-    typeof autorLng !== 'number'
-  ) {
-    return '';
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
-  const metros = calcularDistanciaMetrosNex(
-    minhaLat,
-    minhaLng,
-    autorLat,
-    autorLng
+  function formatarDistanciaNex(metros) {
+    if (metros == null || !Number.isFinite(metros)) return '';
+    if (metros < 1000) return `${Math.round(metros)} m`;
+    if (metros < 10000) return `${(metros / 1000).toFixed(1)} km`;
+    return `${Math.round(metros / 1000)} km`;
+  }
+
+  function obterDistanciaDropNex(dropPrincipal) {
+    const minhaLat = window.minhaLatitudeAtual;
+    const minhaLng = window.minhaLongitudeAtual;
+
+    const autorLat = dropPrincipal?.autorLat;
+    const autorLng = dropPrincipal?.autorLng;
+
+    if (
+      typeof minhaLat !== 'number' ||
+      typeof minhaLng !== 'number' ||
+      typeof autorLat !== 'number' ||
+      typeof autorLng !== 'number'
+    ) {
+      return '';
+    }
+
+    const metros = calcularDistanciaMetrosNex(
+      minhaLat,
+      minhaLng,
+      autorLat,
+      autorLng
+    );
+
+    return formatarDistanciaNex(metros);
+  }
+
+  // ============================================
+  // SEPARA CONECTADOS vs NÃO-CONECTADOS
+  // ============================================
+  const conectadosLista = lerConectadosMyDropsNex();
+  const idsConectados = new Set(
+    conectadosLista.map((c) =>
+      String(c.id || '').replace(/^@/, '').toLowerCase().trim()
+    )
   );
 
-  return formatarDistanciaNex(metros);
-}
+  // Agrupa drops por autor
+  const dropsPorAutor = {};
 
-// ============================================
-// AGRUPA DROPS POR AUTOR (1 card por perfil)
-// ============================================
-const dropsPorAutor = {};
+  drops.forEach((drop) => {
+    const autorId = String(drop.autorUsername || 'usuario')
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
 
-drops.forEach((drop) => {
-  const autorId = drop.autorUsername || 'usuario';
-  if (!dropsPorAutor[autorId]) {
-    dropsPorAutor[autorId] = [];
-  }
-  dropsPorAutor[autorId].push(drop);
-});
-
-// ============================================
-// CRIA UM CARTÃO POR AUTOR
-// ============================================
-Object.entries(dropsPorAutor).forEach(([autorId, dropsDoAutor], index) => {
-  const dropPrincipal = dropsDoAutor[0];
-
-  const card = document.createElement('div');
-  card.className = 'near-card';
-
-  // ⚠️ Status online/offline (últimos 5 min = online)
-  const ultimaAtiv = dropPrincipal.autorUltimaAtividade;
-  const LIMITE_ONLINE_MS = 5 * 60 * 1000;
-
-  const estaOnline =
-    ultimaAtiv &&
-    Date.now() - new Date(ultimaAtiv).getTime() < LIMITE_ONLINE_MS;
-
-  if (!estaOnline) {
-    card.classList.add('offline');
-  }
-
-  // Imagem do drop mais recente como fundo
-  if (dropPrincipal.mediaUrl) {
-    card.style.backgroundImage = `url('${dropPrincipal.mediaUrl}')`;
-    card.style.backgroundSize = 'cover';
-    card.style.backgroundPosition = 'center';
-  }
-
-  // Avatar do autor
-  const avatar = document.createElement('div');
-  avatar.className = 'near-avatar';
-
-  if (dropPrincipal.autorAvatar) {
-    avatar.style.backgroundImage = `url('${dropPrincipal.autorAvatar}')`;
-    avatar.style.backgroundSize = 'cover';
-    avatar.style.backgroundPosition = 'center';
-    avatar.textContent = '';
-  } else {
-    avatar.textContent = (dropPrincipal.autorUsername || '?').charAt(0).toUpperCase();
-  }
-
-  // @username do autor
-  const nome = document.createElement('h3');
-  nome.textContent = '@' + (dropPrincipal.autorUsername || 'usuario');
-
-// Distância real (Haversine)
-const dist = document.createElement('span');
-const distanciaReal = obterDistanciaDropNex(dropPrincipal);
-dist.textContent = distanciaReal || '—';
-  
-  card.append(avatar, nome, dist);
-  grid.appendChild(card);
-
-  // Clique abre o viewer com os drops DESSE autor
-  card.addEventListener('click', () => {
-    abrirDropRealNearbyNex(dropPrincipal, drops);
+    if (!dropsPorAutor[autorId]) {
+      dropsPorAutor[autorId] = [];
+    }
+    dropsPorAutor[autorId].push(drop);
   });
-});
-  }
+
+  // Separa
+  const autoresConectados = [];
+  const autoresNaoConectados = [];
+
+  Object.entries(dropsPorAutor).forEach(([autorId, lista]) => {
+    if (idsConectados.has(autorId)) {
+      autoresConectados.push({ autorId, drops: lista });
+    } else {
+      autoresNaoConectados.push({ autorId, drops: lista });
+    }
+  });
+
+  // ============================================
+  // RENDERIZA CONECTADOS (dentro do .nearby-stories)
+  // ============================================
+  autoresConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
+    const dropPrincipal = dropsDoAutor[0];
+
+    const card = document.createElement('div');
+    card.className = 'story-card my-story';
+
+    // Avatar
+    const avatar = document.createElement('div');
+    avatar.className = 'story-avatar';
+
+    if (dropPrincipal.autorAvatar) {
+      avatar.style.backgroundImage = `url('${dropPrincipal.autorAvatar}')`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+      avatar.textContent = '';
+    } else {
+      avatar.textContent = (dropPrincipal.autorUsername || '?')
+        .charAt(0)
+        .toUpperCase();
+    }
+
+    // Bolinha de status
+    const status = document.createElement('div');
+    const ultimaAtiv = dropPrincipal.autorUltimaAtividade;
+    const LIMITE_ONLINE_MS = 5 * 60 * 1000;
+
+    const estaOnline =
+      ultimaAtiv &&
+      Date.now() - new Date(ultimaAtiv).getTime() < LIMITE_ONLINE_MS;
+
+    status.className = estaOnline ? 'story-online' : 'story-offline';
+
+    // Nome
+    const nome = document.createElement('h4');
+    nome.textContent = '@' + (dropPrincipal.autorUsername || 'usuario');
+
+    // Distância
+    const dist = document.createElement('span');
+    dist.textContent = obterDistanciaDropNex(dropPrincipal) || '—';
+
+    card.appendChild(avatar);
+    card.appendChild(status);
+    card.appendChild(nome);
+    card.appendChild(dist);
+
+    // Clique abre o drop
+    card.addEventListener('click', () => {
+      abrirDropRealNearbyNex(dropPrincipal, drops);
+    });
+
+    stories.appendChild(card);
+  });
+
+  // ============================================
+  // RENDERIZA NÃO-CONECTADOS (no grid)
+  // ============================================
+  autoresNaoConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
+    const dropPrincipal = dropsDoAutor[0];
+
+    const card = document.createElement('div');
+    card.className = 'near-card';
+
+    const ultimaAtiv = dropPrincipal.autorUltimaAtividade;
+    const LIMITE_ONLINE_MS = 5 * 60 * 1000;
+
+    const estaOnline =
+      ultimaAtiv &&
+      Date.now() - new Date(ultimaAtiv).getTime() < LIMITE_ONLINE_MS;
+
+    if (!estaOnline) {
+      card.classList.add('offline');
+    }
+
+    if (dropPrincipal.mediaUrl) {
+      card.style.backgroundImage = `url('${dropPrincipal.mediaUrl}')`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+    }
+
+    const avatar = document.createElement('div');
+    avatar.className = 'near-avatar';
+
+    if (dropPrincipal.autorAvatar) {
+      avatar.style.backgroundImage = `url('${dropPrincipal.autorAvatar}')`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+      avatar.textContent = '';
+    } else {
+      avatar.textContent = (dropPrincipal.autorUsername || '?')
+        .charAt(0)
+        .toUpperCase();
+    }
+
+    const nome = document.createElement('h3');
+    nome.textContent = '@' + (dropPrincipal.autorUsername || 'usuario');
+
+    const dist = document.createElement('span');
+    dist.textContent = obterDistanciaDropNex(dropPrincipal) || '—';
+
+    card.append(avatar, nome, dist);
+    grid.appendChild(card);
+
+    card.addEventListener('click', () => {
+      abrirDropRealNearbyNex(dropPrincipal, drops);
+    });
+  });
+}
   
   // ============================================
   // EXPÕE GLOBALMENTE
