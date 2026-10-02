@@ -1093,22 +1093,23 @@ function onbMostrarErroVerifica(mensagem) {
   /* ============================================
    TELA DE USERNAME
 ============================================ */
-const USERNAMES_OCUPADOS = [
-  'jqmarques',
+const USERNAMES_RESERVADOS = [
   'admin',
   'drops',
-  'teste',
-  'user',
-  'julia',
-  'lucas',
-  'ana',
-  'rafael',
+  'dropsapp',
   'suporte',
   'contato',
   'oficial',
-  'dropsapp',
   'equipe',
-  'moderador'
+  'moderador',
+  'root',
+  'sistema',
+  'ajuda',
+  'help',
+  'sobre',
+  'perfil',
+  'conta',
+  'config'
 ];
 
 function onbValidarFormatoUsername(valor) {
@@ -1133,13 +1134,37 @@ function onbValidarFormatoUsername(valor) {
   return { ok: true, msg: '' };
 }
 
-function onbVerificarDisponibilidade(user) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const disponivel = !USERNAMES_OCUPADOS.includes(user.toLowerCase());
-      resolve(disponivel);
-    }, 400);
-  });
+async function onbVerificarDisponibilidade(user) {
+  const nomeLimpo = String(user || '').toLowerCase().trim();
+  if (!nomeLimpo) return false;
+
+  // 1. Bloqueia nomes reservados
+  if (USERNAMES_RESERVADOS.includes(nomeLimpo)) {
+    return false;
+  }
+
+  // 2. Consulta o Supabase
+  if (!window.supabaseClient) {
+    console.warn('⚠️ Supabase não disponível pra verificar @');
+    return true;
+  }
+
+  try {
+    const { data, error } = await window.supabaseClient.rpc(
+      'username_disponivel',
+      { username_busca: nomeLimpo }
+    );
+
+    if (error) {
+      console.warn('Erro ao verificar username:', error);
+      return false;
+    }
+
+    return data === true;
+  } catch (err) {
+    console.warn('Erro ao verificar username:', err);
+    return false;
+  }
 }
 
 function onbGerarSugestoes(base) {
@@ -1158,7 +1183,7 @@ function onbGerarSugestoes(base) {
 
   for (const tentativa of tentativas) {
     if (sugestoes.length >= 4) break;
-    if (!USERNAMES_OCUPADOS.includes(tentativa) && tentativa.length <= 20) {
+    if (!USERNAMES_RESERVADOS.includes(tentativa) && tentativa.length <= 20) {
       sugestoes.push(tentativa);
     }
   }
@@ -1166,7 +1191,7 @@ function onbGerarSugestoes(base) {
   let contador = 3;
   while (sugestoes.length < 4 && contador < 100) {
     const candidato = baseLimpa + contador;
-    if (!USERNAMES_OCUPADOS.includes(candidato) && candidato.length <= 20) {
+    if (!USERNAMES_RESERVADOS.includes(candidato) && candidato.length <= 20) {
       sugestoes.push(candidato);
     }
     contador++;
@@ -1271,14 +1296,24 @@ function onbConfigurarUsername() {
   input.addEventListener('input', onbVerificarUsername);
 }
 
-function onbFinalizarUsername() {
+async function onbFinalizarUsername() {
   const input = document.getElementById('onbInputUser');
   if (!input) return;
 
   const user = input.value.toLowerCase().trim();
 
   if (!onbValidarFormatoUsername(user).ok) return;
-  if (USERNAMES_OCUPADOS.includes(user)) return;
+
+  const disponivel = await onbVerificarDisponibilidade(user);
+
+  if (!disponivel) {
+    const status = document.getElementById('onbUserStatus');
+    if (status) {
+      status.textContent = `❌ @${user} já está em uso`;
+      status.className = 'onb-status-erro';
+    }
+    return;
+  }
 
   localStorage.setItem('drops_username', user);
   console.log('✅ Username salvo:', user);
