@@ -51,10 +51,10 @@
 
     modal.style.display = 'flex';
 
-    setTimeout(() => {
-      iniciarRolagemMuralNex();
-      carregarMuralSalvoNex();
-    }, 80);
+    setTimeout(async () => {
+  iniciarRolagemMuralNex();
+  await carregarMuralSalvoNex();
+}, 80);
   }
 
   function tentarFecharMuralNex() {
@@ -873,14 +873,25 @@ function coletarEstadoMuralNex() {
   };
 }
 
-function salvarMuralNex() {
+async function salvarMuralNex() {
   if (!temPendentesNex()) return;
-  if (!window.MuralAdapterNex) return;
 
   const estado = coletarEstadoMuralNex();
   if (!estado) return;
 
-  const ok = window.MuralAdapterNex.salvarMural(estado);
+  window.mostrarToastNex?.('Salvando...', 'info');
+
+  // Salva no Supabase
+  let ok = false;
+
+  if (typeof window.salvarMuralSupabase === 'function') {
+    ok = await window.salvarMuralSupabase(estado);
+  }
+
+  // Fallback local (se Supabase falhar)
+  if (!ok && window.MuralAdapterNex) {
+    ok = window.MuralAdapterNex.salvarMural(estado);
+  }
 
   if (!ok) {
     window.mostrarToastNex?.('Falha ao salvar a arte.', 'erro');
@@ -909,7 +920,7 @@ function salvarMuralNex() {
   window.mostrarToastNex?.('Arte salva!', 'sucesso');
 }
 
-function carregarMuralSalvoNex() {
+async function carregarMuralSalvoNex() {
   const camada = document.getElementById('muralCamadaElementosNex');
   if (!camada) return;
 
@@ -917,13 +928,21 @@ function carregarMuralSalvoNex() {
   tracosSalvosNex = [];
   tracosPendentesNex = [];
 
-  if (!window.MuralAdapterNex) {
-    atualizarBotaoSalvarNex();
-    return;
+  // Busca no Supabase primeiro
+  let dados = null;
+
+  if (
+    typeof window.buscarMuralSupabase === 'function' &&
+    Drops.usernameAtual
+  ) {
+    dados = await window.buscarMuralSupabase(Drops.usernameAtual);
   }
 
-  const dados = window.MuralAdapterNex.lerMural();
-
+  // Fallback localStorage
+  if (!dados && window.MuralAdapterNex) {
+    dados = window.MuralAdapterNex.lerMural();
+  }
+  
   if (!dados) {
     redesenharTracosNex();
     atualizarBotaoSalvarNex();

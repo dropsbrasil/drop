@@ -249,14 +249,15 @@ if (socialContainer) {
   atualizarSeloAdeptoPerfilNex(id);
 
   // Renderiza o mural do perfil visitado
-  renderizarMuralNoPerfilVisitadoNex(id);
+// Renderiza o mural do perfil visitado
+renderizarMuralNoPerfilVisitadoNex(id);
   }
 
 // ============================================
 // MURAL NO PERFIL VISITADO
 // ============================================
 
-function renderizarMuralNoPerfilVisitadoNex(perfilId) {
+async function renderizarMuralNoPerfilVisitadoNex(perfilId) {
   const preview = document.getElementById('perfilMuralPreviewNex');
   const titulo = document.getElementById('perfilMuralTituloNex');
   const btn = document.getElementById('perfilMuralBtnNex');
@@ -272,16 +273,17 @@ function renderizarMuralNoPerfilVisitadoNex(perfilId) {
   const nomePerfil = Drops.estado.perfilAberto || 'Perfil';
   titulo.textContent = 'Mural de ' + nomePerfil;
 
-  // Busca o mural desse perfil (via adapter — hoje retorna vazio)
-  let dadosMural = null;
+  // Busca o mural no Supabase
+let dadosMural = null;
 
-  if (
-    window.PerfilAdapterNex &&
-    typeof window.PerfilAdapterNex.lerMuralDoPerfil === 'function'
-  ) {
-    dadosMural = window.PerfilAdapterNex.lerMuralDoPerfil(perfilId);
+try {
+  if (typeof window.buscarMuralSupabase === 'function') {
+    dadosMural = await window.buscarMuralSupabase(perfilId);
   }
-
+} catch (err) {
+  console.warn('Erro ao buscar mural do perfil:', err);
+}
+  
   // Limpa preview
   preview.innerHTML = '';
 

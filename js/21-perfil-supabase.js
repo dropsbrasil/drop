@@ -338,6 +338,53 @@ window.buscarPerfilPublicoSupabase = buscarPerfilPublicoSupabase;
 window.enviarHeartbeatNex = enviarHeartbeatNex;
 window.iniciarHeartbeatNex = iniciarHeartbeatNex;
 window.salvarLocalizacaoSupabase = salvarLocalizacaoSupabase;
+
+// ============================================
+// MURAL — salvar e buscar no Supabase
+// ============================================
+async function salvarMuralSupabase(dados) {
+  if (!window.supabaseClient) return false;
+  if (!dados || typeof dados !== 'object') return false;
+
+  try {
+    const { error } = await window.supabaseClient
+      .rpc('salvar_mural', { dados_mural: dados });
+
+    if (error) {
+      console.warn('Erro ao salvar mural:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Erro ao salvar mural:', err);
+    return false;
+  }
+}
+
+async function buscarMuralSupabase(username) {
+  if (!window.supabaseClient || !username) return null;
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .rpc('ler_mural_por_username', {
+        username_alvo: String(username).replace(/^@/, '').trim()
+      });
+
+    if (error) {
+      console.warn('Erro ao buscar mural:', error);
+      return null;
+    }
+
+    return data || null;
+  } catch (err) {
+    console.warn('Erro ao buscar mural:', err);
+    return null;
+  }
+}
+
+window.salvarMuralSupabase = salvarMuralSupabase;
+window.buscarMuralSupabase = buscarMuralSupabase;
   
   document.addEventListener('DOMContentLoaded', async () => {
   await aguardarSupabase();
