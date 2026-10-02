@@ -36,20 +36,21 @@ async function sincronizarPublicacoesSupabase() {
 
     // Converte o formato do Supabase para o formato local
     const pubsConvertidas = pubsSupabase.map((p) => ({
-      id: p.id,
-      idSupabase: p.id,
-      autorId: p.autor_username,
-      origem: p.tipo === 'video' ? 'video' : 'foto',
-      midiaTipo: p.tipo === 'video' ? 'video' : 'image',
-      mediaUrl: p.media_url,
-      legenda: p.legenda || '',
-      loop: p.loop === true,
-      criadoEm: new Date(p.criado_em).getTime(),
-      expiraEm: p.expira_em,
-      duracao: p.duracao,
-      visualizacoes: [],
-      reacoes: { heart: [], broken: [] }
-    }));
+  id: p.id,
+  idSupabase: p.id,
+  autorId: p.autor_username,
+  origem: p.tipo === 'video' ? 'video' : 'foto',
+  midiaTipo: p.tipo === 'video' ? 'video' : 'image',
+  mediaUrl: p.media_url,
+  legenda: p.legenda || '',
+  loop: p.loop === true,
+  criadoEm: new Date(p.criado_em).getTime(),
+  expiraEm: p.expira_em,
+  duracao: p.duracao,
+  selos: p.selos || null,
+  visualizacoes: [],
+  reacoes: { heart: [], broken: [] }
+}));
 
     // Mescla: substitui tudo do Supabase, mantém locais não sincronizados
     const idsSupabase = new Set(pubsConvertidas.map((p) => p.idSupabase));
@@ -453,17 +454,18 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     }
 
     publicacao = {
-      id: gerarIdPublicacaoMyDropsNex(),
-      autorId: Drops.usernameAtual,
-      origem,
-      midiaTipo: 'video',
-      mediaUrl,
-      loop: !!videoInfo.loop,
-      criadoEm: Date.now(),
-      expiraEm: duracao.expiraEm,
-      duracao: duracao.modo,
-      legenda: legenda || ''
-    };
+  id: gerarIdPublicacaoMyDropsNex(),
+  autorId: Drops.usernameAtual,
+  origem,
+  midiaTipo: 'video',
+  mediaUrl,
+  loop: !!videoInfo.loop,
+  criadoEm: Date.now(),
+  expiraEm: duracao.expiraEm,
+  duracao: duracao.modo,
+  legenda: legenda || '',
+  selos: window.obterSelosAtuais?.() || null
+};
   } else {
     // ============================================
     // IMAGEM
@@ -477,17 +479,18 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     }
 
     publicacao = {
-      id: gerarIdPublicacaoMyDropsNex(),
-      autorId: Drops.usernameAtual,
-      origem,
-      midiaTipo: 'image',
-      mediaUrl,
-      loop: false,
-      criadoEm: Date.now(),
-      expiraEm: duracao.expiraEm,
-      duracao: duracao.modo,
-      legenda: legenda || ''
-    };
+  id: gerarIdPublicacaoMyDropsNex(),
+  autorId: Drops.usernameAtual,
+  origem,
+  midiaTipo: 'image',
+  mediaUrl,
+  loop: false,
+  criadoEm: Date.now(),
+  expiraEm: duracao.expiraEm,
+  duracao: duracao.modo,
+  legenda: legenda || '',
+  selos: window.obterSelosAtuais?.() || null
+};
   }
 
   // ============================================
@@ -506,13 +509,14 @@ try {
 
   if (urlMidia) {
     const pubSupabase = await window.criarPublicacaoSupabase?.({
-      tipo: publicacao.midiaTipo === 'video' ? 'video' : 'foto',
-      mediaUrl: urlMidia,
-      legenda: publicacao.legenda || '',
-      loop: publicacao.loop === true,
-      duracao: publicacao.duracao || '24h',
-      expiraEm: publicacao.expiraEm || null
-    });
+  tipo: publicacao.midiaTipo === 'video' ? 'video' : 'foto',
+  mediaUrl: urlMidia,
+  legenda: publicacao.legenda || '',
+  loop: publicacao.loop === true,
+  duracao: publicacao.duracao || '24h',
+  expiraEm: publicacao.expiraEm || null,
+  selos: publicacao.selos || window.obterSelosAtuais?.() || null
+});
 
     if (pubSupabase) {
       // Guarda o ID do Supabase pra poder apagar depois
@@ -980,8 +984,20 @@ function renderizarPublicacoesMyDropsNex() {
   }
       }
       if (nome) nome.textContent = 'Minhas publicações';
-      if (info) info.textContent = `${dataHora.data} • ${dataHora.hora}`;
-      if (counter) {
+if (info) info.textContent = `${dataHora.data} • ${dataHora.hora}`;
+
+// ⚠️ Renderiza os selos de origem
+const selosAntigos = viewer.querySelector('.selos-origem');
+if (selosAntigos) selosAntigos.remove();
+
+if (pub.selos && typeof window.gerarHTMLSelos === 'function') {
+  const metaWrap = viewer.querySelector('.nearby-drop-user-meta');
+  if (metaWrap) {
+    metaWrap.insertAdjacentHTML('beforeend', window.gerarHTMLSelos(pub.selos));
+  }
+}
+
+if (counter) {
         counter.textContent = `${publicacaoViewerIndexMyDropsNex + 1}/${
           publicacoesViewerMyDropsNex.length
         }`;

@@ -79,15 +79,16 @@
       const { data, error } = await window.supabaseClient
         .from('publicacoes')
         .insert({
-          autor_id: user.id,
-          autor_username: username,
-          tipo: publicacao.tipo || 'foto',
-          media_url: publicacao.mediaUrl || '',
-          legenda: publicacao.legenda || '',
-          loop: publicacao.loop === true,
-          duracao: publicacao.duracao || '24h',
-          expira_em: publicacao.expiraEm || null
-        })
+  autor_id: user.id,
+  autor_username: username,
+  tipo: publicacao.tipo || 'foto',
+  media_url: publicacao.mediaUrl || '',
+  legenda: publicacao.legenda || '',
+  loop: publicacao.loop === true,
+  duracao: publicacao.duracao || '24h',
+  expira_em: publicacao.expiraEm || null,
+  selos: publicacao.selos || null
+})
         .select()
         .single();
 
@@ -218,14 +219,15 @@ async function buscarDropsDoUsuarioSupabase(usuarioId) {
         return new Date(p.expira_em).getTime() > agora;
       })
       .map((p) => ({
-        id: p.id,
-        type: p.tipo === 'video' ? 'video' : 'image',
-        url: p.media_url,
-        legenda: p.legenda || '',
-        criadoEm: new Date(p.criado_em).getTime(),
-        expiraEm: p.expira_em,
-        duracao: p.duracao
-      }));
+  id: p.id,
+  type: p.tipo === 'video' ? 'video' : 'image',
+  url: p.media_url,
+  legenda: p.legenda || '',
+  criadoEm: new Date(p.criado_em).getTime(),
+  expiraEm: p.expira_em,
+  duracao: p.duracao,
+  selos: p.selos || null
+}));
   } catch (erro) {
     console.error('Erro ao buscar drops do usuário:', erro);
     return [];
@@ -292,10 +294,11 @@ async function buscarTodosOsDropsComAutor(limite = 50) {
   autorNome: autor.nome || 'Usuário',
   autorAvatar: autor.avatar_url || null,
   autorUltimaAtividade: autor.ultima_atividade || null,
-  autorLat: autor.lat || null,
-  autorLng: autor.lng || null
-};
-    });
+      autorLat: autor.lat || null,
+    autorLng: autor.lng || null,
+    selos: drop.selos || null
+  };
+});
   } catch (erro) {
     console.error('Erro ao buscar drops com autor:', erro);
     return [];

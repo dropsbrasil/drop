@@ -688,6 +688,17 @@ if (nome) nome.textContent = perfil.nome || 'Perfil';
       if (expire) {
   expire.textContent = calcularTempoExpiracaoNex(drop.expiraEm);
       }
+
+      // ⚠️ Renderiza os selos de origem do drop
+      const selosAntigosNearby = viewer.querySelector('.selos-origem');
+      if (selosAntigosNearby) selosAntigosNearby.remove();
+
+      if (drop.selos && typeof window.gerarHTMLSelos === 'function') {
+        const metaWrapNearby = viewer.querySelector('.nearby-drop-user-meta');
+        if (metaWrapNearby) {
+          metaWrapNearby.insertAdjacentHTML('beforeend', window.gerarHTMLSelos(drop.selos));
+        }
+      }
       if (counter) {
         counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
       }
@@ -1446,14 +1457,15 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
 
     window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
 
-    return {
+        return {
   url: d.mediaUrl,
   type: d.tipo === 'video' ? 'video' : 'image',
   autorId: d.autorUsername,
   autorNome: d.autorNome,
   dropIndex: d.id,
   publicacaoIdSupabase: d.id,
-  expiraEm: d.expiraEm || null
+  expiraEm: d.expiraEm || null,
+  selos: d.selos || null
 };
   })
   };
