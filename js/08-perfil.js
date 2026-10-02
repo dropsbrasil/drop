@@ -129,6 +129,47 @@ if (avatarEl) {
     const nomeEl = document.getElementById('perfilNomeNex');
     if (nomeEl) nomeEl.textContent = perfil.nome;
 
+  // ============================================
+// BOTÕES SOCIAIS — esconde os vazios
+// ============================================
+const socialBtns = document.querySelectorAll('.perfil-social button');
+const socialConfig = [
+  { tipo: 'instagram', valor: perfil.social?.instagram || '' },
+  { tipo: 'tiktok', valor: perfil.social?.tiktok || '' },
+  { tipo: 'whatsapp', valor: perfil.social?.whatsapp || '' }
+];
+
+let algumSocialPreenchido = false;
+
+socialBtns.forEach((btn, i) => {
+  const cfg = socialConfig[i];
+  if (!cfg) return;
+
+  const temValor = String(cfg.valor || '').trim() !== '';
+
+  if (temValor) {
+    btn.style.display = '';
+    algumSocialPreenchido = true;
+
+    // ⚠️ Adiciona o clique pra abrir o link
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const link = window.montarLinkSocialNex
+        ? window.montarLinkSocialNex(cfg.tipo, cfg.valor)
+        : '';
+      if (link) window.open(link, '_blank');
+    };
+  } else {
+    btn.style.display = 'none';
+    btn.onclick = null;
+  }
+});
+
+const socialContainer = document.querySelector('.perfil-social');
+if (socialContainer) {
+  socialContainer.style.display = algumSocialPreenchido ? '' : 'none';
+}
+
     const perfilUsernameEl = document.getElementById('perfilUsernameNex');
     if (perfilUsernameEl) {
       const userLimpo = String(id).replace(/^@/, '').trim();

@@ -1136,21 +1136,95 @@ if (
     });
 
     viewer.querySelector('.mydrops-publication-nav-left').onclick = () => {
-      if (publicacaoViewerIndexMyDropsNex <= 0) return;
-      publicacaoViewerIndexMyDropsNex -= 1;
-      renderizarViewer();
-    };
+  if (publicacaoViewerIndexMyDropsNex <= 0) return;
+  publicacaoViewerIndexMyDropsNex -= 1;
+  renderizarViewer();
+};
 
-    viewer.querySelector('.mydrops-publication-nav-right').onclick = () => {
-      if (
-        publicacaoViewerIndexMyDropsNex >=
-        publicacoesViewerMyDropsNex.length - 1
-      ) {
-        return;
-      }
+viewer.querySelector('.mydrops-publication-nav-right').onclick = () => {
+  if (
+    publicacaoViewerIndexMyDropsNex >=
+    publicacoesViewerMyDropsNex.length - 1
+  ) {
+    return;
+  }
+  publicacaoViewerIndexMyDropsNex += 1;
+  renderizarViewer();
+};
+
+// ============================================
+// SWIPE (arrastar) — horizontal troca publicação
+// ============================================
+
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartTime = 0;
+let swipeAtivo = false;
+
+const LIMITE_SWIPE = 50;
+const TEMPO_MAX_SWIPE = 800;
+
+viewer.addEventListener('touchstart', (e) => {
+  if (e.touches.length !== 1) return;
+
+  const alvo = e.target;
+  if (
+    alvo.closest('.nearby-drop-close') ||
+    alvo.closest('.mydrops-publication-nav-btn') ||
+    alvo.closest('.mydrops-publication-footer') ||
+    alvo.closest('.mydrops-publication-stats') ||
+    alvo.closest('.mydrops-publication-trash-btn') ||
+    alvo.closest('.mydrops-viewer-legenda') ||
+    alvo.closest('video') ||
+    alvo.closest('input') ||
+    alvo.closest('button')
+  ) {
+    swipeAtivo = false;
+    return;
+  }
+
+  swipeAtivo = true;
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+  swipeStartTime = Date.now();
+}, { passive: true });
+
+viewer.addEventListener('touchend', (e) => {
+  if (!swipeAtivo) return;
+  swipeAtivo = false;
+
+  if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+  const dx = e.changedTouches[0].clientX - swipeStartX;
+  const dy = e.changedTouches[0].clientY - swipeStartY;
+  const dt = Date.now() - swipeStartTime;
+
+  if (dt > TEMPO_MAX_SWIPE) return;
+
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  // Só navega se o gesto foi claramente horizontal
+  if (absX < LIMITE_SWIPE) return;
+  if (absX < absY * 1.3) return;
+
+  if (dx < 0) {
+    // arrastou para a ESQUERDA → próxima publicação
+    if (
+      publicacaoViewerIndexMyDropsNex <
+      publicacoesViewerMyDropsNex.length - 1
+    ) {
       publicacaoViewerIndexMyDropsNex += 1;
       renderizarViewer();
-    };
+    }
+  } else {
+    // arrastou para a DIREITA → publicação anterior
+    if (publicacaoViewerIndexMyDropsNex > 0) {
+      publicacaoViewerIndexMyDropsNex -= 1;
+      renderizarViewer();
+    }
+  }
+}, { passive: true });
 
 // Botões de stats (views, heart, broken)
 viewer.querySelectorAll('.mydrops-publication-stat-btn').forEach((btn) => {

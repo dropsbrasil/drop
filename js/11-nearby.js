@@ -802,10 +802,34 @@ if (
 
     window
       .registrarVisualizacaoSupabase(publicacaoIdAtual)
+      .then(() => {
+        // ⚠️ Depois de registrar, busca o número real
+        if (views && typeof window.buscarVisualizacoesSupabase === 'function') {
+          window.buscarVisualizacoesSupabase(publicacaoIdAtual)
+            .then((total) => {
+              if (views) views.textContent = String(total || 0);
+            })
+            .catch((err) => console.warn('Erro ao buscar views:', err));
+        }
+      })
       .catch((err) =>
         console.warn('Erro ao registrar view:', err)
       );
   }
+}
+
+// ⚠️ NOVO: busca views mesmo se já registrou antes (pra mostrar contagem real)
+if (
+  publicacaoIdAtual &&
+  typeof window.buscarVisualizacoesSupabase === 'function' &&
+  views &&
+  viewsJaRegistradas.has(chaveDropAtual)
+) {
+  window.buscarVisualizacoesSupabase(publicacaoIdAtual)
+    .then((total) => {
+      if (views) views.textContent = String(total || 0);
+    })
+    .catch((err) => console.warn('Erro ao buscar views:', err));
 }
 
       // ============================================
