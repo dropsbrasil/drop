@@ -257,113 +257,52 @@ renderizarMuralNoPerfilVisitadoNex(id);
 // ============================================
 
 async function renderizarMuralNoPerfilVisitadoNex(perfilId) {
-  const preview = document.getElementById('perfilMuralPreviewNex');
-  const titulo = document.getElementById('perfilMuralTituloNex');
   const btn = document.getElementById('perfilMuralBtnNex');
+  const contador = document.getElementById('perfilMuralContadorNex');
 
-  if (!preview || !titulo) return;
+  if (!btn) return;
 
-// Abre o mural colaborativo do perfil visitado
-if (btn) {
   btn.onclick = () => {
     if (typeof window.abrirMuralNex === 'function') {
       window.abrirMuralNex(perfilId);
     }
   };
-}
 
-  // Pega o nome do perfil aberto
-  const nomePerfil = Drops.estado.perfilAberto || 'Perfil';
-  titulo.textContent = 'Mural de ' + nomePerfil;
+  let contribuicoes = [];
 
- // Busca o mural no Supabase (array de contribuições)
-let contribuicoes = [];
-
-try {
-  if (typeof window.buscarMuralSupabase === 'function') {
-    contribuicoes = await window.buscarMuralSupabase(perfilId);
-  }
-} catch (err) {
-  console.warn('Erro ao buscar mural do perfil:', err);
-}
-
-// Limpa preview
-preview.innerHTML = '';
-
-// Junta TODOS os elementos de TODAS as contribuições
-const elementos = [];
-
-if (Array.isArray(contribuicoes)) {
-  contribuicoes.forEach((contrib) => {
-    const dados = contrib.dados || {};
-    if (Array.isArray(dados.elementos)) {
-      dados.elementos.forEach((item) => {
-        elementos.push({
-          ...item,
-          autorUsername: contrib.autor_username || '',
-          autorNome: contrib.autor_nome || ''
-        });
-      });
+  try {
+    if (typeof window.buscarMuralSupabase === 'function') {
+      contribuicoes = await window.buscarMuralSupabase(perfilId);
     }
-  });
-}
+  } catch (err) {
+    console.warn('Erro ao buscar mural do perfil:', err);
+  }
 
-if (elementos.length === 0) {
-  preview.innerHTML = `
-    <div class="perfil-mural-vazio">
-      <span class="perfil-mural-vazio-icone">✨</span>
-      <span class="perfil-mural-vazio-texto">
-        Ainda não há nada aqui.<br>Seja o primeiro a deixar sua marca.
-      </span>
-    </div>
-  `;
-  return;
+  let totalElementos = 0;
+
+  if (Array.isArray(contribuicoes)) {
+    contribuicoes.forEach((contrib) => {
+      const dados = contrib.dados || {};
+      if (Array.isArray(dados.elementos)) {
+        totalElementos += dados.elementos.length;
+      }
+      if (Array.isArray(dados.tracos)) {
+        totalElementos += dados.tracos.length;
+      }
+    });
+  }
+
+  if (contador) {
+    if (totalElementos === 0) {
+      contador.textContent = 'Deixe sua marca';
+    } else if (totalElementos === 1) {
+      contador.textContent = '1 marca já aqui';
+    } else {
+      contador.textContent = `${totalElementos} marcas já aqui`;
+    }
+  }
 }
   
-  // Renderiza até 3 miniaturas
-  const ateTres = elementos.slice(0, 3);
-
-  ateTres.forEach((item) => {
-    const thumb = document.createElement('div');
-    thumb.className = 'perfil-mural-thumb';
-
-    if (item.tipo === 'foto' && item.dataUrl) {
-      const img = document.createElement('img');
-      img.src = item.dataUrl;
-      img.alt = 'Mural';
-      thumb.appendChild(img);
-    } else if (item.tipo === 'texto' && item.texto) {
-      // Texto vira mini-card
-      const txt = document.createElement('div');
-      txt.style.cssText = `
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px;
-        font-size: 11px;
-        font-weight: 700;
-        color: #1f2937;
-        text-align: center;
-        line-height: 1.2;
-        background: #f5efe0;
-        word-break: break-word;
-        overflow: hidden;
-      `;
-      txt.textContent = item.texto;
-      thumb.appendChild(txt);
-    } else {
-      // Traço (canvas) ou tipo desconhecido → placeholder
-      thumb.innerHTML = `
-        <div style="width:100%;height:100%;background:#f5efe0;display:flex;align-items:center;justify-content:center;font-size:22px;">🖍️</div>
-      `;
-    }
-
-    preview.appendChild(thumb);
-  });
-}
-
 // ============================================
 // MODAL "MURAL EM BREVE"
 // ============================================
