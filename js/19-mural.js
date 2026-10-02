@@ -181,48 +181,9 @@ function fecharBalaoAutorNex() {
 
     setTimeout(async () => {
   iniciarRolagemMuralNex();
-  aplicarCapaNoMuralNex(muralDonoUsernameNex);
   await carregarMuralSalvoNex();
 }, 80);
   }
-async function aplicarCapaNoMuralNex(usernameDono) {
-  const canvas = document.getElementById('muralCanvasNex');
-  if (!canvas) return;
-
-  canvas.style.backgroundImage = '';
-  canvas.style.backgroundSize = '';
-  canvas.style.backgroundPosition = '';
-  canvas.style.backgroundRepeat = '';
-
-  if (!usernameDono) return;
-
-  try {
-    let capaUrl = null;
-
-    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
-    const donoLimpo = String(usernameDono).toLowerCase().trim();
-
-    if (meuUser && donoLimpo && meuUser === donoLimpo) {
-      capaUrl = localStorage.getItem('mydropsCover_' + meuUser);
-    }
-
-    if (!capaUrl && typeof window.buscarPerfilPublicoSupabase === 'function') {
-      const perfil = await window.buscarPerfilPublicoSupabase(donoLimpo);
-      if (perfil && perfil.capa_url) capaUrl = perfil.capa_url;
-    }
-
-    if (capaUrl) {
-      canvas.style.backgroundImage =
-        `linear-gradient(rgba(245, 239, 224, 0.82), rgba(245, 239, 224, 0.82)), url('${capaUrl}')`;
-      canvas.style.backgroundSize = 'cover';
-      canvas.style.backgroundPosition = 'center';
-      canvas.style.backgroundRepeat = 'no-repeat';
-    }
-  } catch (err) {
-    console.warn('Erro ao aplicar capa no mural:', err);
-  }
-}
-
   
   function tentarFecharMuralNex() {
     if (!muralAlteradoNex) {
