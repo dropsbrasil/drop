@@ -50,15 +50,16 @@ function criarBalaoAutorNex() {
   document.body.appendChild(balaoAutorNex);
 
   if (!balaoListenerGlobalNex) {
-    balaoListenerGlobalNex = true;
+  balaoListenerGlobalNex = true;
 
-    document.addEventListener('pointerdown', (e) => {
-      if (!balaoAutorNex || balaoAutorNex.style.display === 'none') return;
-      if (balaoAutorNex.contains(e.target)) return;
-      if (balaoElementoOrigemNex && balaoElementoOrigemNex.contains(e.target)) return;
+  // ⚠️ 'click' em vez de 'pointerdown' pra não disparar antes do onClick do balão
+  document.addEventListener('click', (e) => {
+    if (!balaoAutorNex || balaoAutorNex.style.display === 'none') return;
+    if (balaoAutorNex.contains(e.target)) return;
+    if (balaoElementoOrigemNex && balaoElementoOrigemNex.contains(e.target)) return;
 
-      fecharBalaoAutorNex();
-    });
+    fecharBalaoAutorNex();
+  });
   }
 
   return balaoAutorNex;
@@ -74,10 +75,29 @@ function mostrarBalaoAutorNex(el) {
 
   const balao = criarBalaoAutorNex();
 
-  balao.innerHTML = `
-    <span class="mural-balao-autor-icone-nex">👤</span>
-    <span class="mural-balao-autor-nome-nex">@${autorId}</span>
-  `;
+  const el_autorId = el.dataset.autorId || '';
+const el_autorNome = el.dataset.autorNome || el_autorId;
+
+// Busca avatar do cache
+let avatarUrl = '';
+try {
+  avatarUrl = localStorage.getItem('mydropsAvatar_' + el_autorId) || '';
+} catch (_) {}
+
+const inicial = String(el_autorNome || '?').trim().charAt(0).toUpperCase() || '?';
+
+const avatarHTML = avatarUrl &&
+  (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:image'))
+  ? `<img src="${avatarUrl}" alt="">`
+  : `<span>${inicial}</span>`;
+
+balao.innerHTML = `
+  <div class="mural-balao-avatar-nex">${avatarHTML}</div>
+  <div class="mural-balao-info-nex">
+    <div class="mural-balao-nome-nex">${el_autorNome}</div>
+    <div class="mural-balao-user-nex">@${el_autorId}</div>
+  </div>
+`;
 
   balaoElementoOrigemNex = el;
 
@@ -107,14 +127,18 @@ function mostrarBalaoAutorNex(el) {
   });
 
   balao.onclick = (e) => {
-    e.stopPropagation();
+  e.stopPropagation();
+  e.preventDefault();
 
-    fecharBalaoAutorNex();
+  const idFinal = el_autorId;
+  const nomeFinal = el_autorNome;
 
-    if (typeof window.abrirPerfilVisitadoNex === 'function') {
-      window.abrirPerfilVisitadoNex(autorId, autorNome);
-    }
-  };
+  fecharBalaoAutorNex();
+
+  if (typeof window.abrirPerfilVisitadoNex === 'function') {
+    window.abrirPerfilVisitadoNex(idFinal, nomeFinal);
+  }
+};
 }
 
 function fecharBalaoAutorNex() {
