@@ -104,9 +104,31 @@
         }
       }
 
-      // ----- IMAGEM -----
-      if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
-        const ehDropDePerfil = !!msg.anexo.perfilId;
+      // ----- COMENTÁRIO DO NEARBY -----
+if (msg.anexo.type === 'nearby-comment') {
+  html += `
+    <div class="msg-nearby-comment">
+      <div class="msg-nearby-comment-head">
+        <span class="msg-nearby-comment-icone">💬</span>
+        <span class="msg-nearby-comment-texto">
+          Comentou o drop de ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
+        </span>
+      </div>
+
+      <div class="msg-anexo-card">
+        <img
+          class="msg-midia-thumb"
+          src="${escapeHTML(msg.anexo.url)}"
+          alt="Drop"
+          onclick="abrirMidiaChatNex('${escapeHTML(msg.anexo.url)}', 'imagem')">
+      </div>
+    </div>
+  `;
+}
+
+// ----- IMAGEM -----
+if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
+  const ehDropDePerfil = !!msg.anexo.perfilId;
 
         if (ehDropDePerfil) {
           // ---- DROP DE PERFIL ----

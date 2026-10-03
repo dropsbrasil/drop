@@ -565,7 +565,7 @@ function abrirViewerPublicacaoNex(
   // ENVIAR COMENTÁRIO
   // ============================================
 
-  function enviarComentarioNearbyNex() {
+  async function enviarComentarioNearbyNex() {
     const texto = (inputComentario?.value || '').trim();
     if (!texto) return;
 
@@ -597,25 +597,95 @@ function abrirViewerPublicacaoNex(
       }
     };
 
-    if (typeof registrarMensagemRecebidaNex === 'function') {
-      registrarMensagemRecebidaNex(nomeContato, mensagemNearby, false);
-    } else {
-      if (!conversas[chaveConversa]) {
-        conversas[chaveConversa] = [];
-      }
-      conversas[chaveConversa].push(mensagemNearby);
-    }
+// ⚠️ Envia pro Supabase (pra outra pessoa receber)
+const usernameDestino =
+  (window.__convUsernamesNex && window.__convUsernamesNex[nomeContato]) ||
+  perfil.id ||
+  nomeContato;
 
-    if (typeof marcarConversaComoNaoLidaNex === 'function') {
-      marcarConversaComoNaoLidaNex(nomeContato, false);
-    }
+// ⚠️ Garante que a conversa existe no Supabase
+let convId = null;
 
-    if (
-      typeof renderChat === 'function' &&
-      Drops.estado.conversaAtual === chaveConversa
-    ) {
-      renderChat(chaveConversa);
+if (typeof window.obterOuCriarConversaSupabase === 'function') {
+  try {
+    convId = await window.obterOuCriarConversaSupabase(usernameDestino);
+
+    if (convId) {
+      window.__convIdsNex = window.__convIdsNex || {};
+      window.__convIdsNex[nomeContato] = convId;
+
+      window.__convUsernamesNex = window.__convUsernamesNex || {};
+      window.__convUsernamesNex[nomeContato] = usernameDestino;
     }
+  } catch (err) {
+    console.warn('Erro ao criar conversa no Supabase:', err);
+  }
+}
+
+// ⚠️ Envia a mensagem pro Supabase
+let msgSupabase = null;
+
+if (
+  convId &&
+  typeof window.enviarMensagemSupabase === 'function'
+) {
+  try {
+    msgSupabase = await window.enviarMensagemSupabase({
+      conversa_id: convId,
+      tipo: 'imagem',
+      texto: texto,
+      media_url: mensagemNearby.anexo?.url || null,
+      media_meta: {
+        origem: 'nearby',
+        perfilNome: nomeContato,
+        perfilId: perfil.id || '',
+        dropIndex: dropIndexAtual
+      },
+      resposta_a_id: null
+    });
+
+    if (msgSupabase && msgSupabase.id) {
+      mensagemNearby._supabaseId = msgSupabase.id;
+    }
+  } catch (err) {
+    console.warn('Erro ao enviar comentário pro Supabase:', err);
+  }
+}
+
+// ⚠️ Adiciona localmente
+if (typeof registrarMensagemRecebidaNex === 'function') {
+  registrarMensagemRecebidaNex(nomeContato, mensagemNearby, false);
+} else {
+  if (!conversas[chaveConversa]) {
+    conversas[chaveConversa] = [];
+  }
+  conversas[chaveConversa].push(mensagemNearby);
+}
+
+// ⚠️ Se o card não existir, cria
+if (
+  typeof window.criarCardConversaNex === 'function' &&
+  typeof window.obterCardConversaNex === 'function' &&
+  !window.obterCardConversaNex(nomeContato)
+) {
+  window.criarCardConversaNex(
+    nomeContato,
+    false,
+    { text: texto },
+    'enviada'
+  );
+}
+
+if (typeof marcarConversaComoNaoLidaNex === 'function') {
+  marcarConversaComoNaoLidaNex(nomeContato, false);
+}
+
+if (
+  typeof renderChat === 'function' &&
+  Drops.estado.conversaAtual === chaveConversa
+) {
+  renderChat(chaveConversa);
+}
 
     if (inputComentario) {
       inputComentario.value = 'Você enviou um comentário.';

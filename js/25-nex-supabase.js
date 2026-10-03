@@ -279,29 +279,40 @@ async function carregarConversaSupabase(nome) {
         }
       };
     } else if (m.tipo === 'album') {
-      const midias = meta.midias || meta.urls || [];
+  const midias = meta.midias || meta.urls || [];
 
-      // ⚠️ Se só tem 1 mídia, trata como imagem/vídeo normal
-      if (midias.length === 1) {
-        const unica = midias[0];
-        const url = typeof unica === 'string' ? unica : unica.url;
-        const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
-        anexo = {
-          type: tipoUnica === 'video' ? 'video' : 'imagem',
-          url: url
-        };
-      } else {
-        anexo = {
-          type: 'album',
-          midias: midias,
-          urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
-        };
-      }
-    } else if (m.media_url && m.tipo !== 'audio') {
-      anexo = {
-        type: m.tipo === 'video' ? 'video' : 'imagem',
-        url: m.media_url
-      };
+  // ⚠️ Se só tem 1 mídia, trata como imagem/vídeo normal
+  if (midias.length === 1) {
+    const unica = midias[0];
+    const url = typeof unica === 'string' ? unica : unica.url;
+    const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
+    anexo = {
+      type: tipoUnica === 'video' ? 'video' : 'imagem',
+      url: url
+    };
+  } else {
+    anexo = {
+      type: 'album',
+      midias: midias,
+      urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
+    };
+  }
+} else if (m.media_url && m.tipo !== 'audio') {
+  // ⚠️ Comentário do Nearby vira um tipo especial
+  if (meta.origem === 'nearby') {
+    anexo = {
+      type: 'nearby-comment',
+      url: m.media_url,
+      perfilNome: meta.perfilNome || '',
+      perfilId: meta.perfilId || '',
+      dropIndex: meta.dropIndex || 0
+    };
+  } else {
+    anexo = {
+      type: m.tipo === 'video' ? 'video' : 'imagem',
+      url: m.media_url
+    };
+  }
     }
 
     // ⚠️ Reconstrói a resposta com texto e nome
@@ -667,29 +678,40 @@ async function processarMensagemRealtimeNex(msg) {
         size: 0
       }
     };
-  } else if (msg.tipo === 'album') {
-    const midiasNova = metaNova.midias || metaNova.urls || [];
+} else if (msg.tipo === 'album') {
+  const midiasNova = metaNova.midias || metaNova.urls || [];
 
-    if (midiasNova.length === 1) {
-      const unica = midiasNova[0];
-      const url = typeof unica === 'string' ? unica : unica.url;
-      const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
-      anexoNova = {
-        type: tipoUnica === 'video' ? 'video' : 'imagem',
-        url: url
-      };
-    } else {
-      anexoNova = {
-        type: 'album',
-        midias: midiasNova,
-        urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
-      };
-    }
-  } else if (msg.media_url && msg.tipo !== 'audio') {
+  if (midiasNova.length === 1) {
+    const unica = midiasNova[0];
+    const url = typeof unica === 'string' ? unica : unica.url;
+    const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
+    anexoNova = {
+      type: tipoUnica === 'video' ? 'video' : 'imagem',
+      url: url
+    };
+  } else {
+    anexoNova = {
+      type: 'album',
+      midias: midiasNova,
+      urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
+    };
+  }
+} else if (msg.media_url && msg.tipo !== 'audio') {
+  // ⚠️ Comentário do Nearby vira um tipo especial
+  if (metaNova.origem === 'nearby') {
+    anexoNova = {
+      type: 'nearby-comment',
+      url: msg.media_url,
+      perfilNome: metaNova.perfilNome || '',
+      perfilId: metaNova.perfilId || '',
+      dropIndex: metaNova.dropIndex || 0
+    };
+  } else {
     anexoNova = {
       type: msg.tipo === 'video' ? 'video' : 'imagem',
       url: msg.media_url
     };
+  }
   }
 
   // ⚠️ Reconstrói a resposta com texto e nome
@@ -790,10 +812,20 @@ async function processarMensagemRealtimeNex(msg) {
                 };
               }
             } else if (m.media_url && m.tipo !== 'audio') {
-              anexoRecarga = {
-                type: m.tipo === 'video' ? 'video' : 'imagem',
-                url: m.media_url
-              };
+  if (metaRecarga.origem === 'nearby') {
+    anexoRecarga = {
+      type: 'nearby-comment',
+      url: m.media_url,
+      perfilNome: metaRecarga.perfilNome || '',
+      perfilId: metaRecarga.perfilId || '',
+      dropIndex: metaRecarga.dropIndex || 0
+    };
+  } else {
+    anexoRecarga = {
+      type: m.tipo === 'video' ? 'video' : 'imagem',
+      url: m.media_url
+    };
+  }
             }
 
             let respostaRecarga = null;
