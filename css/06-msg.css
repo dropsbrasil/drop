@@ -989,3 +989,35 @@
   color: #94a3b8;
   font-style: italic;
 }
+
+/* ⚠️ Selo de comentário do Nearby */
+.msg-nearby-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.msg-nearby-comment-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.msg-nearby-comment-icone {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.msg-nearby-comment-texto {
+  font-size: 13px;
+  font-weight: 800;
+  color: #92400e;
+  line-height: 1.2;
+}
