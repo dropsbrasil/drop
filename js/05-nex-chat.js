@@ -181,7 +181,47 @@ window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
   chatName.addEventListener('click', chatName.__clickPerfilHandler);
 }
 
-if (chatBio) chatBio.innerText = bio;
+if (chatBio) {
+  // ⚠️ Busca a bio real no Supabase
+  const usernameBio =
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+
+  chatBio.textContent = 'Carregando...';
+  chatBio.classList.remove('marquee-ativo');
+
+  if (usernameBio && window.supabaseClient) {
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('bio')
+        .eq(
+          'username',
+          String(usernameBio).toLowerCase().replace(/^@/, '').trim()
+        )
+        .maybeSingle();
+
+      const bioReal = (perfil?.bio || '').trim();
+
+      const textoBio = bioReal || 'Sem bio ainda.';
+chatBio.textContent = textoBio;
+chatBio.setAttribute('data-texto', textoBio);
+      
+      // ⚠️ Verifica se precisa rolar (depois do texto entrar no DOM)
+      setTimeout(() => {
+        if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
+          chatBio.classList.add('marquee-ativo');
+        }
+      }, 100);
+      } catch (err) {
+    console.warn('Erro ao buscar bio no chat:', err);
+    chatBio.textContent = bio || 'Sem bio ainda.';
+    chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
+  }
+} else {
+  chatBio.textContent = bio || 'Sem bio ainda.';
+  chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
+  }
+}
 // ⚠️ O status real é preenchido por atualizarPresencaChatNex()
 if (chatStatus) {
   chatStatus.innerText = '';
