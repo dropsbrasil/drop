@@ -19,6 +19,54 @@
   let textoOriginalEdicaoNex = '';
   let msgDestacadaNex = null;
 
+// ⚠️ Cache de avatares por username
+const cacheAvataresNex = {};
+const avataresEmBuscaNex = new Set();
+
+async function buscarAvatarNex(username) {
+  if (!username) return null;
+  if (cacheAvataresNex[username]) return cacheAvataresNex[username];
+  if (avataresEmBuscaNex.has(username)) return null;
+
+  avataresEmBuscaNex.add(username);
+
+  try {
+    // ⚠️ Se for o MEU username, busca direto do Supabase Auth
+    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+    const userLimpo = String(username).toLowerCase().replace(/^@/, '').trim();
+
+    if (meuUser && userLimpo === meuUser && window.supabaseClient) {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+
+      if (user) {
+        const { data: perfil } = await window.supabaseClient
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (perfil?.avatar_url) {
+          cacheAvataresNex[username] = perfil.avatar_url;
+          return perfil.avatar_url;
+        }
+      }
+    }
+
+    // Para outros, usa a RPC pública
+    if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+      const perfil = await window.buscarPerfilPublicoSupabase(username);
+      const url = perfil?.avatar_url || null;
+      cacheAvataresNex[username] = url;
+      return url;
+    }
+  } catch (err) {
+    console.warn('Erro ao buscar avatar:', err);
+  } finally {
+    avataresEmBuscaNex.delete(username);
+  }
+
+  return null;
+}
   // ============================================
   // ABRIR CHAT
   // ============================================
@@ -230,11 +278,24 @@ if (chatAvatar) {
       }
 
       const lado = msg.side === 'right' ? 'right' : 'left';
-      const nomeExibido = msg.nome || (lado === 'right' ? 'Eu' : nome);
-      const avatarTexto = (msg.avatar || nomeExibido || 'U')
-        .toString()
-        .slice(0, 2)
-        .toUpperCase();
+const nomeExibido = msg.nome || (lado === 'right' ? 'Eu' : nome);
+const avatarTexto = (msg.avatar || nomeExibido || 'U')
+  .toString()
+  .slice(0, 2)
+  .toUpperCase();
+
+// ⚠️ Determina o username real pra buscar o avatar
+let usernameAvatarMsg = '';
+
+if (lado === 'right') {
+  usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
+} else {
+  usernameAvatarMsg =
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+}
+
+const avatarUrlCache = cacheAvataresNex[usernameAvatarMsg] || null;
+const msgIdUnico = msg.id || gerarIdMensagemNex();
 
       const dataExibida = msg.data || 'Hoje';
       const horaExibida = msg.hora || msg.time || '';
@@ -276,9 +337,13 @@ if (chatAvatar) {
 
           <div class="msg-header ${lado}">
             ${
-              lado === 'left'
-                ? `<div class="msg-avatar">${avatarTexto}</div>`
-                : ''
+  lado === 'left'
+    ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
+        avatarUrlCache
+          ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
+          : escapeHTML(avatarTexto)
+      }</div>`
+    : ''
             }
 
             ${
@@ -305,15 +370,19 @@ if (chatAvatar) {
             </div>
 
             ${
-              lado === 'left'
-                ? `<button
-                    type="button"
-                    class="msg-menu-btn"
-                    aria-label="Mais opções"
-                    onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
-                    ⋮
-                  </button>`
-                : `<div class="msg-avatar">${avatarTexto}</div>`
+  lado === 'left'
+    ? `<button
+        type="button"
+        class="msg-menu-btn"
+        aria-label="Mais opções"
+        onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
+        ⋮
+      </button>`
+    : `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
+        avatarUrlCache
+          ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
+          : escapeHTML(avatarTexto)
+      }</div>`
             }
           </div>
 
@@ -388,6 +457,22 @@ if (chatAvatar) {
 
     area.scrollTop = area.scrollHeight;
 
+// ⚠️ Busca os avatares reais de quem ainda não está no cache
+area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
+  const username = el.dataset.avatarUser;
+  const fallback = el.dataset.avatarFallback || '?';
+
+  if (!username) return;
+  if (cacheAvataresNex[username]) return;
+
+  const url = await buscarAvatarNex(username);
+
+  if (url && el.isConnected) {
+    el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+  } else if (el.isConnected && !el.querySelector('img')) {
+    el.textContent = fallback;
+  }
+});
     document.querySelectorAll('.btn-fotos-open').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
