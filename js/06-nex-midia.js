@@ -112,6 +112,10 @@ if (msg.anexo.type === 'nearby-comment') {
     ? 'Você comentou esse Drop'
     : 'Comentário sobre esse Drop';
 
+  const perfilId = escapeHTML(msg.anexo.perfilId || '');
+  const perfilNome = escapeHTML(msg.anexo.perfilNome || '');
+  const dropIndex = Number(msg.anexo.dropIndex || 0);
+
   html += `
     <div class="msg-nearby-comment">
       <div class="msg-nearby-comment-head">
@@ -125,9 +129,17 @@ if (msg.anexo.type === 'nearby-comment') {
         <img
           class="msg-midia-thumb"
           src="${escapeHTML(msg.anexo.url)}"
-          alt="Drop"
-          onclick="abrirMidiaChatNex('${escapeHTML(msg.anexo.url)}', 'imagem')">
+          alt="Drop">
       </div>
+
+      <button
+        type="button"
+        class="msg-nearby-comment-btn"
+        data-perfil-id="${perfilId}"
+        data-perfil-nome="${perfilNome}"
+        data-drop-index="${dropIndex}">
+        👁️ Ver Drop
+      </button>
     </div>
   `;
 }

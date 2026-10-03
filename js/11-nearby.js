@@ -1517,18 +1517,34 @@ async function renderizarPublicacoesNearbyNex() {
       window.__listenerMidiaNex = true;
 
       document.addEventListener('click', (e) => {
-        // Botão "Visitar perfil" no card de drop
-        const btnPerfil = e.target.closest('.msg-drop-profile-btn');
-        if (btnPerfil) {
-          e.preventDefault();
-          e.stopPropagation();
+  // ⚠️ Botão "Ver Drop" no comentário do Nearby
+  const btnComentario = e.target.closest('.msg-nearby-comment-btn');
+  if (btnComentario) {
+    e.preventDefault();
+    e.stopPropagation();
 
-          abrirPerfilVisitadoNex(
-            btnPerfil.dataset.perfilId || '',
-            btnPerfil.dataset.perfilNome || ''
-          );
-          return;
-        }
+    const perfilId = btnComentario.dataset.perfilId || '';
+    const perfilNome = btnComentario.dataset.perfilNome || '';
+    const dropIndex = Number(btnComentario.dataset.dropIndex || 0);
+
+    if (typeof window.abrirDropComentadoNex === 'function') {
+      window.abrirDropComentadoNex(perfilId, perfilNome, dropIndex);
+    }
+    return;
+  }
+
+  // Botão "Visitar perfil" no card de drop
+  const btnPerfil = e.target.closest('.msg-drop-profile-btn');
+  if (btnPerfil) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    abrirPerfilVisitadoNex(
+      btnPerfil.dataset.perfilId || '',
+      btnPerfil.dataset.perfilNome || ''
+    );
+    return;
+  }
 
         // Clique no card do drop
         const dropPreview = e.target.closest('.msg-drop-preview-open');
