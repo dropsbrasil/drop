@@ -233,10 +233,14 @@
 // ============================================
 // CARREGAR CONVERSA COMPLETA (para o chat)
 // ============================================
-async function carregarConversaSupabase(nome) {
-  const convId = await obterOuCriarConversaSupabase(nome);
-  if (!convId) return null;
+async async function carregarConversaSupabase(nome) {
+  // ⚠️ Usa o username real, não o nome de exibição
+  const usernameReal =
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
 
+  const convId = await obterOuCriarConversaSupabase(usernameReal);
+  if (!convId) return null;
+  
   // Guarda o ID da conversa pra usar depois
   window.__convIdsNex = window.__convIdsNex || {};
   window.__convIdsNex[nome] = convId;
@@ -315,9 +319,13 @@ async function sincronizarCardsNexSupabase() {
       }
 
       // Guarda o ID da conversa
-      window.__convIdsNex = window.__convIdsNex || {};
-      window.__convIdsNex[nomeExibicao] = conv.conversa_id;
+window.__convIdsNex = window.__convIdsNex || {};
+window.__convIdsNex[nomeExibicao] = conv.conversa_id;
 
+// ⚠️ NOVO: guarda o username real
+window.__convUsernamesNex = window.__convUsernamesNex || {};
+window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+      
       // Cria o card se não existir
       const cardExistente = typeof window.obterCardConversaNex === 'function'
         ? window.obterCardConversaNex(nomeExibicao)
