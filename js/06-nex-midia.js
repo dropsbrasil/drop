@@ -25,18 +25,22 @@
     // ============================================
 
     if (msg.anexo) {
-      // ----- DOCUMENTO PDF -----
-      if (msg.anexo.documento) {
+      // ----- DOCUMENTO PDF (formato novo) -----
+      if (msg.anexo.documento && !msg.anexo.perfilId) {
+        const pdfUrl = msg.anexo.documento.url;
+        const pdfNome = msg.anexo.documento.name || 'Documento PDF';
+        const pdfThumb = msg.anexo.documento.thumbnail || '';
+
         html += `
           <div class="msg-anexo msg-pdf-card">
             <div class="msg-pdf-cover">
               ${
-                msg.anexo.documento.thumbnail
-                  ? `<img class="msg-pdf-thumb" src="${escapeHTML(msg.anexo.documento.thumbnail)}" alt="Prévia do PDF">`
+                pdfThumb
+                  ? `<img class="msg-pdf-thumb" src="${escapeHTML(pdfThumb)}" alt="Prévia do PDF">`
                   : `<div class="msg-pdf-icon">📄</div>`
               }
               <div class="msg-pdf-filename">
-                ${escapeHTML(msg.anexo.documento.name || 'Documento PDF')}
+                ${escapeHTML(pdfNome)}
               </div>
               <div class="msg-pdf-subtitle">Arquivo PDF</div>
             </div>
@@ -44,117 +48,173 @@
             <button
               type="button"
               class="msg-open-anexo-btn msg-pdf-view-btn"
-              onclick="window.open('${escapeHTML(msg.anexo.documento.url)}','_blank')">
+              onclick="window.open('${escapeHTML(pdfUrl)}','_blank')">
               Visualizar arquivo
             </button>
           </div>
         `;
       }
 
-      // ----- LOCALIZAÇÃO (formato novo) -----
-      if (msg.anexo.localizacao) {
-        html += `
-          <div class="msg-location-card">
-            <div class="msg-location-header">
-              <div class="msg-location-icon">📍</div>
+      // ----- LOCALIZAÇÃO (formato novo E antigo unificados) -----
+      if (msg.anexo.localizacao || msg.anexo.type === 'location') {
+        const loc = msg.anexo.localizacao || msg.anexo;
+        const lat = loc.lat;
+        const lng = loc.lng;
+        const endereco = loc.address || 'Localização';
 
-              <div class="msg-location-header-text">
-                <div class="msg-location-title">Me encontre aqui:</div>
-                <div class="msg-location-status">Localização pronta</div>
+        if (lat != null && lng != null) {
+          html += `
+            <div class="msg-location-card">
+              <div class="msg-location-header">
+                <div class="msg-location-icon">📍</div>
+
+                <div class="msg-location-header-text">
+                  <div class="msg-location-title">Me encontre aqui:</div>
+                  <div class="msg-location-status">Localização pronta</div>
+                </div>
+              </div>
+
+              <div class="msg-location-address">
+                ${escapeHTML(endereco)}
+              </div>
+
+              <button
+                type="button"
+                class="msg-location-btn"
+                onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
+                Ver rota
+              </button>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="msg-location-card">
+              <div class="msg-location-header">
+                <div class="msg-location-icon">📍</div>
+                <div class="msg-location-header-text">
+                  <div class="msg-location-title">Localização</div>
+                  <div class="msg-location-status">Indisponível</div>
+                </div>
+              </div>
+              <div class="msg-location-address">
+                ${escapeHTML(endereco)}
               </div>
             </div>
-
-            <div class="msg-location-address">
-              ${escapeHTML(msg.anexo.localizacao.address || 'Localização')}
-            </div>
-
-            <button
-              type="button"
-              class="msg-location-btn"
-              onclick="abrirMapaLocalizacaoNex(${msg.anexo.localizacao.lat}, ${msg.anexo.localizacao.lng})">
-              Ver rota
-            </button>
-          </div>
-        `;
+          `;
+        }
       }
 
       // ----- IMAGEM -----
       if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
-        html += `
-          <div
-            class="msg-drop-preview-open"
-            data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-            data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
-            data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
+        const ehDropDePerfil = !!msg.anexo.perfilId;
 
-            <div class="msg-drop-preview-head">
-              <div class="msg-drop-preview-title">
-                Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
+        if (ehDropDePerfil) {
+          // ---- DROP DE PERFIL ----
+          html += `
+            <div
+              class="msg-drop-preview-open"
+              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
+              data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
+
+              <div class="msg-drop-preview-head">
+                <div class="msg-drop-preview-title">
+                  Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
+                </div>
+
+                <div class="msg-drop-preview-date">
+                  ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
+                </div>
               </div>
 
-              <div class="msg-drop-preview-date">
-                ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
+              <div class="msg-anexo-card">
+                <img
+                  class="msg-midia-thumb"
+                  src="${escapeHTML(msg.anexo.url)}"
+                  alt="Mídia">
               </div>
+
+              <button
+                type="button"
+                class="msg-drop-profile-btn"
+                data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+                data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
+                👣 Visitar perfil
+              </button>
             </div>
-
+          `;
+        } else {
+          // ---- FOTO NORMAL (enviada pelo chat) ----
+          html += `
             <div class="msg-anexo-card">
               <img
                 class="msg-midia-thumb"
                 src="${escapeHTML(msg.anexo.url)}"
-                alt="Mídia">
+                alt="Mídia"
+                onclick="abrirMidiaChatNex('${escapeHTML(msg.anexo.url)}', 'imagem')">
             </div>
-
-            <button
-              type="button"
-              class="msg-drop-profile-btn"
-              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
-              👣 Visitar perfil
-            </button>
-          </div>
-        `;
+          `;
+        }
       }
 
       // ----- VÍDEO -----
       if (msg.anexo.type === 'video') {
-        html += `
-          <div
-            class="msg-drop-preview-open"
-            data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-            data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
-            data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
+        const ehDropDePerfil = !!msg.anexo.perfilId;
 
-            <div class="msg-drop-preview-head">
-              <div class="msg-drop-preview-title">
-                Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
+        if (ehDropDePerfil) {
+          // ---- DROP DE PERFIL ----
+          html += `
+            <div
+              class="msg-drop-preview-open"
+              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
+              data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
+
+              <div class="msg-drop-preview-head">
+                <div class="msg-drop-preview-title">
+                  Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
+                </div>
+
+                <div class="msg-drop-preview-date">
+                  ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
+                </div>
               </div>
 
-              <div class="msg-drop-preview-date">
-                ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
+              <div class="msg-anexo-card">
+                <div class="msg-video-thumb">
+                  <video
+                    src="${escapeHTML(msg.anexo.url)}"
+                    muted
+                    playsinline>
+                  </video>
+
+                  <div class="play-overlay">▶</div>
+                </div>
               </div>
+
+              <button
+                type="button"
+                class="msg-drop-profile-btn"
+                data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+                data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
+                👣 Visitar perfil
+              </button>
             </div>
-
+          `;
+        } else {
+          // ---- VÍDEO NORMAL (enviado pelo chat) ----
+          html += `
             <div class="msg-anexo-card">
               <div class="msg-video-thumb">
                 <video
                   src="${escapeHTML(msg.anexo.url)}"
-                  muted
+                  controls
                   playsinline>
                 </video>
-
-                <div class="play-overlay">▶</div>
               </div>
             </div>
-
-            <button
-              type="button"
-              class="msg-drop-profile-btn"
-              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
-              👣 Visitar perfil
-            </button>
-          </div>
-        `;
+          `;
+        }
       }
 
       // ----- ÁLBUM / MÚLTIPLAS IMAGENS -----
@@ -217,7 +277,11 @@
       }
 
       // ----- PDF (formato antigo) -----
-      if (msg.anexo.type === 'pdf' && !msg.anexo.documento) {
+      if (
+        msg.anexo.type === 'pdf' &&
+        !msg.anexo.documento &&
+        !msg.anexo.perfilId
+      ) {
         html += `
           <div class="msg-anexo msg-pdf-card">
             <div class="msg-pdf-cover">
@@ -238,33 +302,6 @@
         `;
       }
 
-      // ----- LOCALIZAÇÃO (formato antigo) -----
-      if (msg.anexo.type === 'location' && !msg.anexo.localizacao) {
-        html += `
-          <div class="msg-location-card">
-            <div class="msg-location-header">
-              <div class="msg-location-icon">📍</div>
-
-              <div class="msg-location-header-text">
-                <div class="msg-location-title">Me encontre aqui:</div>
-                <div class="msg-location-status">Localização pronta</div>
-              </div>
-            </div>
-
-            <div class="msg-location-address">
-              ${escapeHTML(msg.anexo.address || 'Localização')}
-            </div>
-
-            <button
-              type="button"
-              class="msg-location-btn"
-              onclick="abrirMapaLocalizacaoNex(${msg.anexo.lat}, ${msg.anexo.lng})">
-              Ver rota
-            </button>
-          </div>
-        `;
-      }
-
       // ----- ÁUDIO (formato antigo) -----
       if (msg.anexo.type === 'audio') {
         html += `
@@ -274,117 +311,116 @@
         `;
       }
     }
+      // ============================================
+  // MÚLTIPLAS MÍDIAS (msg.midias)
+  // ============================================
 
-    // ============================================
-    // MÚLTIPLAS MÍDIAS (msg.midias)
-    // ============================================
+  if (Array.isArray(msg.midias) && msg.midias.length) {
+    const listaMidias = encodeURIComponent(JSON.stringify(msg.midias));
 
-    if (Array.isArray(msg.midias) && msg.midias.length) {
-      const listaMidias = encodeURIComponent(JSON.stringify(msg.midias));
+    const qtdMidias = msg.midias.length;
+    const classeGrade =
+      qtdMidias >= 4
+        ? 'msg-midias-grid-4'
+        : qtdMidias === 3
+          ? 'msg-midias-grid-3'
+          : qtdMidias === 2
+            ? 'msg-midias-grid-2'
+            : 'msg-midias-grid-1';
 
-      const qtdMidias = msg.midias.length;
-      const classeGrade =
-        qtdMidias >= 4
-          ? 'msg-midias-grid-4'
-          : qtdMidias === 3
-            ? 'msg-midias-grid-3'
-            : qtdMidias === 2
-              ? 'msg-midias-grid-2'
-              : 'msg-midias-grid-1';
+    html += `
+      <div class="msg-midias-grid ${classeGrade}">
+        ${msg.midias
+          .slice(0, 4)
+          .map((midia, index) => {
+            const reacaoMidia = obterReacaoMidiaNex({
+              url: midia.url,
+              type: midia.type
+            });
 
-      html += `
-        <div class="msg-midias-grid ${classeGrade}">
-          ${msg.midias
-            .slice(0, 4)
-            .map((midia, index) => {
-              const reacaoMidia = obterReacaoMidiaNex({
-                url: midia.url,
-                type: midia.type
-              });
+            return `
+              <div
+                class="msg-grid-item msg-grid-item-${index + 1}"
+                ${qtdMidias === 1 ? `onclick="abrirMidiaChatNex('${midia.url}','${midia.type}')" ` : ''}>
 
-              return `
-                <div
-                  class="msg-grid-item msg-grid-item-${index + 1}"
-                  ${qtdMidias === 1 ? `onclick="abrirMidiaChatNex('${midia.url}','${midia.type}')" ` : ''}>
+                ${
+                  midia.type === 'video'
+                    ? `
+                      <video
+                        src="${midia.url}"
+                        muted
+                        playsinline>
+                      </video>
+                      <div class="play-overlay">▶</div>
+                    `
+                    : `<img src="${midia.url}">`
+                }
 
-                  ${
-                    midia.type === 'video'
-                      ? `
-                        <video
-                          src="${midia.url}"
-                          muted
-                          playsinline>
-                        </video>
-                        <div class="play-overlay">▶</div>
-                      `
-                      : `<img src="${midia.url}">`
-                  }
+                ${
+                  reacaoMidia
+                    ? `
+                  <div class="msg-reaction-preview">
+                    ${escapeHTML(reacaoMidia)}
+                  </div>
+                `
+                    : ''
+                }
+              </div>
+            `;
+          })
+          .join('')}
+      </div>
 
-                  ${
-                    reacaoMidia
-                      ? `
-                    <div class="msg-reaction-preview">
-                      ${escapeHTML(reacaoMidia)}
-                    </div>
-                  `
-                      : ''
-                  }
-                </div>
-              `;
-            })
-            .join('')}
-        </div>
-
-        ${
-          qtdMidias > 1
-            ? `
-          <button
-            class="msg-open-anexo-btn btn-fotos-open"
-            type="button"
-            data-list="${listaMidias}">
-            🖼️ Ver mídias
-          </button>
-        `
-            : ''
-        }
-      `;
-    }
-
-    // ============================================
-    // ÁUDIO (msg.audio)
-    // ============================================
-
-    if (msg.audio) {
-      html += `
-        <div class="audio-msg">
-          <div class="audio-top">
-            <div class="audio-bar">
-              <div class="audio-progress"></div>
-            </div>
-
-            <span class="audio-time">00:00</span>
-          </div>
-
-          <button
-            class="audio-open-btn"
-            type="button"
-            onclick="toggleAudioNex(this)">
-            ▶ Ouvir áudio
-          </button>
-
-          <audio
-            preload="metadata"
-            src="${escapeHTML(msg.audio)}"
-            hidden>
-          </audio>
-        </div>
-      `;
-    }
-
-    return html;
+      ${
+        qtdMidias > 1
+          ? `
+        <button
+          class="msg-open-anexo-btn btn-fotos-open"
+          type="button"
+          data-list="${listaMidias}">
+          🖼️ Ver mídias
+        </button>
+      `
+          : ''
+      }
+    `;
   }
 
   // ============================================
+  // ÁUDIO (msg.audio)
+  // ============================================
+
+  if (msg.audio) {
+    html += `
+      <div class="audio-msg">
+        <div class="audio-top">
+          <div class="audio-bar">
+            <div class="audio-progress"></div>
+          </div>
+
+          <span class="audio-time">00:00</span>
+        </div>
+
+        <button
+          class="audio-open-btn"
+          type="button"
+          onclick="toggleAudioNex(this)">
+          ▶ Ouvir áudio
+        </button>
+
+        <audio
+          preload="metadata"
+          src="${escapeHTML(msg.audio)}"
+          hidden>
+        </audio>
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+// ============================================
 // ESTADO DOS PREVIEWS
 // ============================================
 
@@ -644,8 +680,7 @@ function limparPreviaDocumentoNex() {
   const micBtn = document.getElementById('micBtn');
   if (micBtn) micBtn.style.display = 'flex';
 }
-
-// ============================================
+  // ============================================
 // PREVIEW DE LOCALIZAÇÃO
 // ============================================
 
@@ -1059,7 +1094,6 @@ function toggleAudioNex(btn) {
 
   if (!player || !progress || !time) return;
 
-  // Pausa os outros áudios
   document.querySelectorAll('.audio-msg audio').forEach((audioEl) => {
     if (audioEl !== player) {
       audioEl.pause();
@@ -1135,7 +1169,6 @@ function limparTodosPreviewsNex() {
 window.getPreviewMidiasNex = () => previewMidiasNex;
 window.setPreviewMidiasNex = (v) => { previewMidiasNex = v; };
 
-// ⚠️ CORREÇÃO: getter da mídia única (câmera)
 window.getPreviewMidiaNex = () => previewMidiaNex;
 window.setPreviewMidiaNex = (v) => { previewMidiaNex = v; };
 window.getDocumentoPreviewNex = () => documentoPreviewNex;
@@ -1143,385 +1176,386 @@ window.setDocumentoPreviewNex = (v) => { documentoPreviewNex = v; };
 window.getLocalizacaoPreviaNex = () => localizacaoPreviaNex;
 window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
 window.getAudioUrlNex = () => audioUrlNex;
+
+      // ============================================
+    // ÁLBUM (SELEÇÃO MÚLTIPLA)
     // ============================================
-  // ÁLBUM (SELEÇÃO MÚLTIPLA)
-  // ============================================
 
-  let albumSlotsNex = Array(12).fill(null);
-  let albumDeleteModeNex = false;
+    let albumSlotsNex = Array(12).fill(null);
+    let albumDeleteModeNex = false;
 
-  function atualizarAlbumModalNex() {
-    const modal = document.getElementById('albumModalNex');
-    const grid = document.getElementById('albumGridNex');
-    const addBtn = document.getElementById('albumAddBtnNex');
+    function atualizarAlbumModalNex() {
+      const modal = document.getElementById('albumModalNex');
+      const grid = document.getElementById('albumGridNex');
+      const addBtn = document.getElementById('albumAddBtnNex');
 
-    if (!modal || !grid || !addBtn) return;
+      if (!modal || !grid || !addBtn) return;
 
-    const preenchidos = albumSlotsNex.filter(Boolean).length;
-    addBtn.classList.toggle('hidden', preenchidos >= 12);
+      const preenchidos = albumSlotsNex.filter(Boolean).length;
+      addBtn.classList.toggle('hidden', preenchidos >= 12);
 
-    grid.innerHTML = albumSlotsNex
-      .map((midia, index) => {
-        if (!midia) {
+      grid.innerHTML = albumSlotsNex
+        .map((midia, index) => {
+          if (!midia) {
+            return `
+              <div class="album-slot">
+                <div class="album-slot-empty">+</div>
+              </div>
+            `;
+          }
+
           return `
-            <div class="album-slot">
-              <div class="album-slot-empty">+</div>
+            <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
+              ${
+                midia.type === 'video'
+                  ? `<video src="${midia.url}" muted playsinline></video>`
+                  : `<img src="${midia.url}" alt="">`
+              }
+
+              ${
+                albumDeleteModeNex
+                  ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
+                  : ''
+              }
             </div>
           `;
-        }
-
-        return `
-          <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
-            ${
-              midia.type === 'video'
-                ? `<video src="${midia.url}" muted playsinline></video>`
-                : `<img src="${midia.url}" alt="">`
-            }
-
-            ${
-              albumDeleteModeNex
-                ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
-                : ''
-            }
-          </div>
-        `;
-      })
-      .join('');
-  }
-
-  function fecharAlbumNex() {
-    const modal = document.getElementById('albumModalNex');
-    if (!modal) return;
-
-    modal.hidden = true;
-    modal.style.setProperty('display', 'none', 'important');
-    modal.style.visibility = 'hidden';
-    modal.style.opacity = '0';
-    modal.style.pointerEvents = 'none';
-
-    albumDeleteModeNex = false;
-  }
-
-  function toggleExcluirAlbumNex() {
-    albumDeleteModeNex = !albumDeleteModeNex;
-    atualizarAlbumModalNex();
-  }
-
-  function removerSlotAlbumNex(index) {
-    if (index < 0 || index >= albumSlotsNex.length) return;
-
-    albumSlotsNex[index] = null;
-    albumDeleteModeNex = false;
-    atualizarAlbumModalNex();
-  }
-
-  function abrirAlbumNex() {
-    const menu = document.getElementById('menuAnexoNex');
-    if (menu) menu.style.display = 'none';
-
-    const modal = document.getElementById('albumModalNex');
-    if (!modal) return;
-
-    modal.hidden = false;
-    modal.style.setProperty('display', 'block', 'important');
-    modal.style.visibility = 'visible';
-    modal.style.opacity = '1';
-    modal.style.pointerEvents = 'auto';
-
-    albumDeleteModeNex = false;
-    atualizarAlbumModalNex();
-  }
-
-  function enviarAlbumNex() {
-    const midias = albumSlotsNex
-      .filter(Boolean)
-      .map((item) => ({
-        url: item.url,
-        type: item.type === 'video' ? 'video' : 'imagem'
-      }));
-
-    const conversaAtual = Drops.estado.conversaAtual;
-    if (!midias.length || !conversaAtual) return;
-
-    if (!conversas[conversaAtual]) {
-      conversas[conversaAtual] = [];
+        })
+        .join('');
     }
 
-    conversas[conversaAtual].push({
-      id: gerarIdMensagemNex(),
-      timestamp: Date.now(),
-      side: 'right',
-      nome: 'Eu',
-      avatar: 'EU',
-      data: new Date().toLocaleDateString('pt-BR'),
-      hora: new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: 'enviado',
-      anexo: {
-        type: 'album',
-        midias: [...midias],
-        urls: midias.map((item) => item.url)
+    function fecharAlbumNex() {
+      const modal = document.getElementById('albumModalNex');
+      if (!modal) return;
+
+      modal.hidden = true;
+      modal.style.setProperty('display', 'none', 'important');
+      modal.style.visibility = 'hidden';
+      modal.style.opacity = '0';
+      modal.style.pointerEvents = 'none';
+
+      albumDeleteModeNex = false;
+    }
+
+    function toggleExcluirAlbumNex() {
+      albumDeleteModeNex = !albumDeleteModeNex;
+      atualizarAlbumModalNex();
+    }
+
+    function removerSlotAlbumNex(index) {
+      if (index < 0 || index >= albumSlotsNex.length) return;
+
+      albumSlotsNex[index] = null;
+      albumDeleteModeNex = false;
+      atualizarAlbumModalNex();
+    }
+
+    function abrirAlbumNex() {
+      const menu = document.getElementById('menuAnexoNex');
+      if (menu) menu.style.display = 'none';
+
+      const modal = document.getElementById('albumModalNex');
+      if (!modal) return;
+
+      modal.hidden = false;
+      modal.style.setProperty('display', 'block', 'important');
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
+
+      albumDeleteModeNex = false;
+      atualizarAlbumModalNex();
+    }
+
+    function enviarAlbumNex() {
+      const midias = albumSlotsNex
+        .filter(Boolean)
+        .map((item) => ({
+          url: item.url,
+          type: item.type === 'video' ? 'video' : 'imagem'
+        }));
+
+      const conversaAtual = Drops.estado.conversaAtual;
+      if (!midias.length || !conversaAtual) return;
+
+      if (!conversas[conversaAtual]) {
+        conversas[conversaAtual] = [];
+      }
+
+      conversas[conversaAtual].push({
+        id: gerarIdMensagemNex(),
+        timestamp: Date.now(),
+        side: 'right',
+        nome: 'Eu',
+        avatar: 'EU',
+        data: new Date().toLocaleDateString('pt-BR'),
+        hora: new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        status: 'enviado',
+        anexo: {
+          type: 'album',
+          midias: [...midias],
+          urls: midias.map((item) => item.url)
+        }
+      });
+
+      fecharAlbumNex();
+      renderChat(conversaAtual);
+    }
+
+    // Listener global para remover slot do álbum
+    if (!window.__albumRemoveListenerNex) {
+      window.__albumRemoveListenerNex = true;
+
+      const removerAlbumHandlerNex = (e) => {
+        const btn = e.target.closest('[data-album-remove]');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const index = Number(btn.dataset.albumRemove);
+        if (Number.isNaN(index)) return;
+
+        removerSlotAlbumNex(index);
+      };
+
+      document.addEventListener('click', removerAlbumHandlerNex, true);
+      document.addEventListener('pointerup', removerAlbumHandlerNex, true);
+      document.addEventListener('touchend', removerAlbumHandlerNex, true);
+    }
+
+    // ============================================
+    // MENU DE ANEXO / CÂMERA LATERAL
+    // ============================================
+
+    function abrirCameraMenuNex() {
+      const menuAnexo = document.getElementById('menuAnexoNex');
+      const menuCamera = document.getElementById('menuCameraLateralNex');
+
+      if (menuAnexo) menuAnexo.style.display = 'none';
+      if (menuCamera) menuCamera.classList.add('aberto');
+    }
+
+    function fecharCameraMenuNex() {
+      const menuCamera = document.getElementById('menuCameraLateralNex');
+      if (menuCamera) menuCamera.classList.remove('aberto');
+    }
+
+    function abrirCameraFotoNex() {
+      fecharCameraMenuNex();
+      document.getElementById('inputCameraFotoNex')?.click();
+    }
+
+    function abrirCameraVideoNex() {
+      fecharCameraMenuNex();
+      document.getElementById('inputCameraVideoNex')?.click();
+    }
+
+    function abrirSeletorArquivoNex(id) {
+      const input = document.getElementById(id);
+      if (!input) return;
+
+      input.value = '';
+
+      if (typeof input.showPicker === 'function') {
+        try {
+          input.showPicker();
+          return;
+        } catch (e) {}
+      }
+
+      input.click();
+    }
+
+    function abrirMidiasNex() {
+      const menu = document.getElementById('menuAnexoNex');
+      if (menu) menu.style.display = 'none';
+
+      abrirSeletorArquivoNex('inputMidiasNex');
+    }
+
+    function abrirAnexoNex(tipo) {
+      const menu = document.getElementById('menuAnexoNex');
+      if (menu) menu.style.display = 'none';
+
+      if (tipo === 'docs') {
+        document.getElementById('inputDocsNex')?.click();
+        return;
+      }
+
+      if (tipo === 'localizacao') {
+        capturarLocalizacaoFixaNex();
+        return;
+      }
+    }
+
+    function toggleMenuAnexoNex() {
+      const menu = document.getElementById('menuAnexoNex');
+      if (!menu) return;
+
+      if (menu.style.display === 'flex') {
+        menu.style.display = 'none';
+      } else {
+        menu.style.display = 'flex';
+      }
+    }
+
+    // Fecha menu anexo ao clicar fora
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('menuAnexoNex');
+      const btn = document.getElementById('btnAnexoNex');
+
+      if (!menu || !btn) return;
+
+      const clicouNoMenu = menu.contains(e.target);
+      const clicouNoBotao = btn.contains(e.target);
+
+      if (!clicouNoMenu && !clicouNoBotao) {
+        menu.style.display = 'none';
       }
     });
 
-    fecharAlbumNex();
-    renderChat(conversaAtual);
-  }
+    // ============================================
+    // INPUTS (câmera, docs, álbum, mídias)
+    // ============================================
 
-  // Listener global para remover slot do álbum
-  if (!window.__albumRemoveListenerNex) {
-    window.__albumRemoveListenerNex = true;
+    function initInputsNex() {
+      // Câmera foto
+      const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
+      if (inputCameraFotoNex) {
+        inputCameraFotoNex.addEventListener('change', () => {
+          const file = inputCameraFotoNex.files?.[0];
+          if (!file) return;
 
-    const removerAlbumHandlerNex = (e) => {
-      const btn = e.target.closest('[data-album-remove]');
-      if (!btn) return;
+          const url = URL.createObjectURL(file);
 
-      e.preventDefault();
-      e.stopPropagation();
+          previewMidiaNex = { type: 'imagem', url };
+          mostrarPreviaMidiaNex(previewMidiaNex);
 
-      const index = Number(btn.dataset.albumRemove);
-      if (Number.isNaN(index)) return;
+          inputCameraFotoNex.value = '';
+        });
+      }
 
-      removerSlotAlbumNex(index);
-    };
+      // Câmera vídeo
+      const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
+      if (inputCameraVideoNex) {
+        inputCameraVideoNex.addEventListener('change', () => {
+          const file = inputCameraVideoNex.files?.[0];
+          if (!file) return;
 
-    document.addEventListener('click', removerAlbumHandlerNex, true);
-    document.addEventListener('pointerup', removerAlbumHandlerNex, true);
-    document.addEventListener('touchend', removerAlbumHandlerNex, true);
-  }
+          const url = URL.createObjectURL(file);
 
-  // ============================================
-  // MENU DE ANEXO / CÂMERA LATERAL
-  // ============================================
+          previewMidiaNex = { type: 'video', url };
+          mostrarPreviaMidiaNex(previewMidiaNex);
 
-  function abrirCameraMenuNex() {
-    const menuAnexo = document.getElementById('menuAnexoNex');
-    const menuCamera = document.getElementById('menuCameraLateralNex');
+          inputCameraVideoNex.value = '';
+        });
+      }
 
-    if (menuAnexo) menuAnexo.style.display = 'none';
-    if (menuCamera) menuCamera.classList.add('aberto');
-  }
+      // Docs (PDF)
+      const inputDocsNex = document.getElementById('inputDocsNex');
+      if (inputDocsNex) {
+        inputDocsNex.addEventListener('change', async () => {
+          const file = inputDocsNex.files?.[0];
+          if (!file) return;
 
-  function fecharCameraMenuNex() {
-    const menuCamera = document.getElementById('menuCameraLateralNex');
-    if (menuCamera) menuCamera.classList.remove('aberto');
-  }
+          if (
+            file.type !== 'application/pdf' &&
+            !file.name.toLowerCase().endsWith('.pdf')
+          ) {
+            alert('Por enquanto esse botão aceita PDF.');
+            inputDocsNex.value = '';
+            return;
+          }
 
-  function abrirCameraFotoNex() {
-    fecharCameraMenuNex();
-    document.getElementById('inputCameraFotoNex')?.click();
-  }
+          const url = URL.createObjectURL(file);
 
-  function abrirCameraVideoNex() {
-    fecharCameraMenuNex();
-    document.getElementById('inputCameraVideoNex')?.click();
-  }
+          documentoPreviewNex = {
+            type: 'pdf',
+            url,
+            name: file.name,
+            size: file.size,
+            thumbnail: '',
+            loadingThumbnail: true
+          };
 
-  function abrirSeletorArquivoNex(id) {
-    const input = document.getElementById(id);
-    if (!input) return;
+          mostrarPreviaDocumentoNex(documentoPreviewNex);
 
-    input.value = '';
+          const thumb = await gerarMiniaturaPdfNex(file);
 
-    if (typeof input.showPicker === 'function') {
-      try {
-        input.showPicker();
-        return;
-      } catch (e) {}
-    }
+          if (!documentoPreviewNex || documentoPreviewNex.url !== url) return;
 
-    input.click();
-  }
+          documentoPreviewNex = {
+            ...documentoPreviewNex,
+            loadingThumbnail: false,
+            thumbnail: thumb || ''
+          };
 
-  function abrirMidiasNex() {
-    const menu = document.getElementById('menuAnexoNex');
-    if (menu) menu.style.display = 'none';
+          mostrarPreviaDocumentoNex(documentoPreviewNex);
 
-    abrirSeletorArquivoNex('inputMidiasNex');
-  }
-
-  function abrirAnexoNex(tipo) {
-    const menu = document.getElementById('menuAnexoNex');
-    if (menu) menu.style.display = 'none';
-
-    if (tipo === 'docs') {
-      document.getElementById('inputDocsNex')?.click();
-      return;
-    }
-
-    if (tipo === 'localizacao') {
-      capturarLocalizacaoFixaNex();
-      return;
-    }
-  }
-
-  function toggleMenuAnexoNex() {
-    const menu = document.getElementById('menuAnexoNex');
-    if (!menu) return;
-
-    if (menu.style.display === 'flex') {
-      menu.style.display = 'none';
-    } else {
-      menu.style.display = 'flex';
-    }
-  }
-
-  // Fecha menu anexo ao clicar fora
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('menuAnexoNex');
-    const btn = document.getElementById('btnAnexoNex');
-
-    if (!menu || !btn) return;
-
-    const clicouNoMenu = menu.contains(e.target);
-    const clicouNoBotao = btn.contains(e.target);
-
-    if (!clicouNoMenu && !clicouNoBotao) {
-      menu.style.display = 'none';
-    }
-  });
-
-  // ============================================
-  // INPUTS (câmera, docs, álbum, mídias)
-  // ============================================
-
-  function initInputsNex() {
-    // Câmera foto
-    const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
-    if (inputCameraFotoNex) {
-      inputCameraFotoNex.addEventListener('change', () => {
-        const file = inputCameraFotoNex.files?.[0];
-        if (!file) return;
-
-        const url = URL.createObjectURL(file);
-
-        previewMidiaNex = { type: 'imagem', url };
-        mostrarPreviaMidiaNex(previewMidiaNex);
-
-        inputCameraFotoNex.value = '';
-      });
-    }
-
-    // Câmera vídeo
-    const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
-    if (inputCameraVideoNex) {
-      inputCameraVideoNex.addEventListener('change', () => {
-        const file = inputCameraVideoNex.files?.[0];
-        if (!file) return;
-
-        const url = URL.createObjectURL(file);
-
-        previewMidiaNex = { type: 'video', url };
-        mostrarPreviaMidiaNex(previewMidiaNex);
-
-        inputCameraVideoNex.value = '';
-      });
-    }
-
-    // Docs (PDF)
-    const inputDocsNex = document.getElementById('inputDocsNex');
-    if (inputDocsNex) {
-      inputDocsNex.addEventListener('change', async () => {
-        const file = inputDocsNex.files?.[0];
-        if (!file) return;
-
-        if (
-          file.type !== 'application/pdf' &&
-          !file.name.toLowerCase().endsWith('.pdf')
-        ) {
-          alert('Por enquanto esse botão aceita PDF.');
           inputDocsNex.value = '';
-          return;
-        }
+        });
+      }
 
-        const url = URL.createObjectURL(file);
+      // Álbum
+      const inputAlbumNex = document.getElementById('inputAlbumNex');
+      if (inputAlbumNex) {
+        inputAlbumNex.addEventListener('change', () => {
+          const files = Array.from(inputAlbumNex.files || []).filter(
+            (file) =>
+              file.type.startsWith('image/') ||
+              file.type.startsWith('video/')
+          );
 
-        documentoPreviewNex = {
-          type: 'pdf',
-          url,
-          name: file.name,
-          size: file.size,
-          thumbnail: '',
-          loadingThumbnail: true
-        };
+          if (!files.length) return;
 
-        mostrarPreviaDocumentoNex(documentoPreviewNex);
+          files.forEach((file) => {
+            const slotLivre = albumSlotsNex.findIndex((item) => item === null);
+            if (slotLivre === -1) return;
 
-        const thumb = await gerarMiniaturaPdfNex(file);
+            albumSlotsNex[slotLivre] = {
+              type: file.type.startsWith('video/') ? 'video' : 'imagem',
+              url: URL.createObjectURL(file)
+            };
+          });
 
-        if (!documentoPreviewNex || documentoPreviewNex.url !== url) return;
+          albumDeleteModeNex = false;
+          atualizarAlbumModalNex();
+          inputAlbumNex.value = '';
+        });
+      }
 
-        documentoPreviewNex = {
-          ...documentoPreviewNex,
-          loadingThumbnail: false,
-          thumbnail: thumb || ''
-        };
+      // Múltiplas mídias (envio direto)
+      const inputMidiasNex = document.getElementById('inputMidiasNex');
+      if (inputMidiasNex) {
+        inputMidiasNex.addEventListener('change', () => {
+          const files = Array.from(inputMidiasNex.files || []);
+          if (!files.length) return;
 
-        mostrarPreviaDocumentoNex(documentoPreviewNex);
-
-        inputDocsNex.value = '';
-      });
-    }
-
-    // Álbum
-    const inputAlbumNex = document.getElementById('inputAlbumNex');
-    if (inputAlbumNex) {
-      inputAlbumNex.addEventListener('change', () => {
-        const files = Array.from(inputAlbumNex.files || []).filter(
-          (file) =>
-            file.type.startsWith('image/') ||
-            file.type.startsWith('video/')
-        );
-
-        if (!files.length) return;
-
-        files.forEach((file) => {
-          const slotLivre = albumSlotsNex.findIndex((item) => item === null);
-          if (slotLivre === -1) return;
-
-          albumSlotsNex[slotLivre] = {
+          previewMidiasNex = files.map((file) => ({
             type: file.type.startsWith('video/') ? 'video' : 'imagem',
             url: URL.createObjectURL(file)
-          };
+          }));
+
+          mostrarPreviewMidiasNex();
+          inputMidiasNex.value = '';
         });
-
-        albumDeleteModeNex = false;
-        atualizarAlbumModalNex();
-        inputAlbumNex.value = '';
-      });
+      }
     }
 
-    // Múltiplas mídias (envio direto)
-    const inputMidiasNex = document.getElementById('inputMidiasNex');
-    if (inputMidiasNex) {
-      inputMidiasNex.addEventListener('change', () => {
-        const files = Array.from(inputMidiasNex.files || []);
-        if (!files.length) return;
+    // ============================================
+    // EXPÕE GLOBALMENTE
+    // ============================================
 
-        previewMidiasNex = files.map((file) => ({
-          type: file.type.startsWith('video/') ? 'video' : 'imagem',
-          url: URL.createObjectURL(file)
-        }));
+  // HTML de anexos (usado pelo renderChat)
+  window.montarAnexosHTMLNex = montarAnexosHTMLNex;
 
-        mostrarPreviewMidiasNex();
-        inputMidiasNex.value = '';
-      });
-    }
-  }
-
-  // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
-
-// ⚠️ CORREÇÃO: HTML de anexos (usado pelo renderChat)
-window.montarAnexosHTMLNex = montarAnexosHTMLNex;
-
-// Anexos e previews
-window.mostrarPreviaMidiaNex = mostrarPreviaMidiaNex;
-window.limparPreviaMidiaNex = limparPreviaMidiaNex;
-window.abrirPreviewMidiaNex = abrirPreviewMidiaNex;
+  // Anexos e previews
+  window.mostrarPreviaMidiaNex = mostrarPreviaMidiaNex;
+  window.limparPreviaMidiaNex = limparPreviaMidiaNex;
+  window.abrirPreviewMidiaNex = abrirPreviewMidiaNex;
   window.mostrarPreviewMidiasNex = mostrarPreviewMidiasNex;
   window.toggleExcluirMidiasNex = toggleExcluirMidiasNex;
   window.removerMidiaPreviewNex = removerMidiaPreviewNex;
