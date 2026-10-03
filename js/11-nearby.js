@@ -125,16 +125,64 @@
   // num drop recebido no chat)
   // ============================================
 
-  function abrirDropComentadoNex(perfilId, perfilNome, dropIndex = 0) {
-    const achado = buscarPerfilNearbyNex(perfilId, perfilNome);
-    if (!achado) return;
+  async function abrirDropComentadoNex(perfilId, perfilNome, dropIndex = 0) {
+  // ⚠️ Tenta primeiro nos dados fixos
+  const achado = buscarPerfilNearbyNex(perfilId, perfilNome);
 
+  if (achado) {
     abrirViewerPublicacaoNex(
       achado.perfil,
       achado.tipo,
       achado.id,
       dropIndex
     );
+    return;
+  }
+
+  // ⚠️ Não achou nos fixos → busca os drops REAIS do Supabase
+  const usernameLimpo = String(perfilId || '')
+    .replace(/^@/, '')
+    .toLowerCase()
+    .trim();
+
+  if (!usernameLimpo) return;
+
+  // Busca todos os drops com autor
+  if (typeof window.buscarTodosOsDropsComAutor !== 'function') return;
+
+  let drops = [];
+
+  try {
+    drops = await window.buscarTodosOsDropsComAutor(100);
+  } catch (err) {
+    console.warn('Erro ao buscar drops para abrir comentário:', err);
+    return;
+  }
+
+  // Filtra só os do autor
+  const dropsDoAutor = drops.filter((d) => {
+    const autor = String(d.autorUsername || '')
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
+    return autor === usernameLimpo;
+  });
+
+  if (!dropsDoAutor.length) {
+    window.mostrarToastNex?.('Drop não encontrado.', 'info');
+    return;
+  }
+
+  // ⚠️ Chama a função que já monta a base e abre o viewer
+  if (typeof window.abrirDropRealNearbyNex === 'function') {
+    // Pega o drop específico pelo índice
+    const dropAlvo = dropsDoAutor[dropIndex] || dropsDoAutor[0];
+
+    // ⚠️ Passa a lista completa (pra navegação entre perfis)
+    window.abrirDropRealNearbyNex(dropAlvo, drops);
+  } else {
+    window.mostrarToastNex?.('Viewer não disponível.', 'erro');
+  }
   }
 
   // ============================================
