@@ -225,231 +225,219 @@
       return false;
     }
   }
-  
   // ============================================
-  // CARREGAR CONVERSA COMPLETA (para o chat)
-  // ============================================
-  async function carregarConversaSupabase(nome) {
-    // Usa o username real, não o nome de exibição
-    const usernameReal =
-      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+// CARREGAR CONVERSA COMPLETA (para o chat)
+// ============================================
+async function carregarConversaSupabase(nome) {
+  // Usa o username real, não o nome de exibição
+  const usernameReal =
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
 
-    const convId = await obterOuCriarConversaSupabase(usernameReal);
-    if (!convId) return null;
+  const convId = await obterOuCriarConversaSupabase(usernameReal);
+  if (!convId) return null;
 
-    window.__convIdsNex = window.__convIdsNex || {};
-    window.__convIdsNex[nome] = convId;
+  window.__convIdsNex = window.__convIdsNex || {};
+  window.__convIdsNex[nome] = convId;
 
-    const mensagens = await buscarMensagensSupabase(convId);
+  const mensagens = await buscarMensagensSupabase(convId);
 
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    const meuId = user?.id || null;
+  const { data: { user } } = await window.supabaseClient.auth.getUser();
+  const meuId = user?.id || null;
 
-    const convertidas = (mensagens || []).map((m) => {
-      const dataObj = new Date(m.criado_em);
-      const ehMinha = m.autor_id === meuId;
+  const convertidas = (mensagens || []).map((m) => {
+    const dataObj = new Date(m.criado_em);
+    const ehMinha = m.autor_id === meuId;
 
-      // Reconstrói o anexo com base no tipo
-let anexo = null;
-const meta = m.media_meta || {};
+    // Reconstrói o anexo com base no tipo
+    let anexo = null;
+    const meta = m.media_meta || {};
 
-if (m.tipo === 'audio') {
-  // Áudio: usa o campo separado
-  return {
-    id: m.id,
-    timestamp: dataObj.getTime(),
-    side: ehMinha ? 'right' : 'left',
-    nome: ehMinha ? 'Eu' : nome,
-    avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
-    data: dataObj.toLocaleDateString('pt-BR'),
-    hora: dataObj.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    status: 'enviado',
-    text: m.texto || '',
-    audio: m.media_url || null,
-    resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
-    edited: m.editada === true,
-    deleted: m.apagada_para_todos === true,
-    _supabaseId: m.id
-  };
-}
+    if (m.tipo === 'location') {
+      const loc = meta.localizacao || {
+        lat: meta.lat,
+        lng: meta.lng,
+        address: meta.address
+      };
 
-if (m.tipo === 'audio') {
-  anexo = null;
-} else if (m.tipo === 'location') {
-  const loc = meta.localizacao || {
-    lat: meta.lat,
-    lng: meta.lng,
-    address: meta.address
-  };
+      anexo = {
+        type: 'location',
+        lat: loc.lat,
+        lng: loc.lng,
+        address: loc.address || 'Localização',
+        localizacao: loc
+      };
+    } else if (m.tipo === 'pdf') {
+      anexo = {
+        type: 'pdf',
+        url: m.media_url,
+        name: meta.name || 'Documento PDF',
+        documento: meta.documento || {
+          url: m.media_url,
+          name: meta.name || 'Documento PDF',
+          thumbnail: '',
+          size: 0
+        }
+      };
+    } else if (m.tipo === 'album') {
+      const midias = meta.midias || meta.urls || [];
 
-  anexo = {
-    type: 'location',
-    lat: loc.lat,
-    lng: loc.lng,
-    address: loc.address || 'Localização',
-    localizacao: loc
-  };
-} else if (m.tipo === 'pdf') {
-  anexo = {
-    type: 'pdf',
-    url: m.media_url,
-    name: meta.name || 'Documento PDF',
-    documento: meta.documento || {
-      url: m.media_url,
-      name: meta.name || 'Documento PDF',
-      thumbnail: '',
-      size: 0
-    }
-  };
-} else if (m.tipo === 'album') {
-  const midias = meta.midias || meta.urls || [];
-  // ⚠️ Se só tem 1 mídia, trata como imagem/vídeo normal
-  if (midias.length === 1) {
-    const unica = midias[0];
-    const url = typeof unica === 'string' ? unica : unica.url;
-    const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
-    anexo = {
-      type: tipoUnica === 'video' ? 'video' : 'imagem',
-      url: url
-    };
-  } else {
-    anexo = {
-      type: 'album',
-      midias: midias,
-      urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
-    };
-  }
-} else if (m.media_url) {
-  anexo = {
-    type: m.tipo === 'video' ? 'video' : 'imagem',
-    url: m.media_url
-  };
-}
-
-return {
-  id: m.id,
-  timestamp: dataObj.getTime(),
-  side: ehMinha ? 'right' : 'left',
-  nome: ehMinha ? 'Eu' : nome,
-  avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
-  data: dataObj.toLocaleDateString('pt-BR'),
-  hora: dataObj.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }),
-  status: 'enviado',
-  text: m.texto || '',
-  anexo,
-  resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
-  edited: m.editada === true,
-  deleted: m.apagada_para_todos === true,
-  _supabaseId: m.id
-};
-    });
-
-    if (typeof window.conversas === 'object') {
-      window.conversas[nome] = convertidas;
+      // ⚠️ Se só tem 1 mídia, trata como imagem/vídeo normal
+      if (midias.length === 1) {
+        const unica = midias[0];
+        const url = typeof unica === 'string' ? unica : unica.url;
+        const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
+        anexo = {
+          type: tipoUnica === 'video' ? 'video' : 'imagem',
+          url: url
+        };
+      } else {
+        anexo = {
+          type: 'album',
+          midias: midias,
+          urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
+        };
+      }
+    } else if (m.media_url && m.tipo !== 'audio') {
+      anexo = {
+        type: m.tipo === 'video' ? 'video' : 'imagem',
+        url: m.media_url
+      };
     }
 
-    return convertidas;
+    // ⚠️ Reconstrói a resposta com texto e nome
+    let respostaCompleta = null;
+
+    if (m.resposta_a_id) {
+      const infoResposta = meta.resposta_info || {};
+      respostaCompleta = {
+        id: m.resposta_a_id,
+        nome: infoResposta.nome || '',
+        texto: infoResposta.texto || '',
+        side: infoResposta.side || 'left'
+      };
+    }
+
+    return {
+      id: m.id,
+      timestamp: dataObj.getTime(),
+      side: ehMinha ? 'right' : 'left',
+      nome: ehMinha ? 'Eu' : nome,
+      avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
+      data: dataObj.toLocaleDateString('pt-BR'),
+      hora: dataObj.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: 'enviado',
+      text: m.texto || '',
+      audio: m.tipo === 'audio' ? m.media_url : null,
+      anexo,
+      resposta: respostaCompleta,
+      edited: m.editada === true,
+      deleted: m.apagada_para_todos === true,
+      _supabaseId: m.id
+    };
+  });
+
+  if (typeof window.conversas === 'object') {
+    window.conversas[nome] = convertidas;
   }
 
-  // ============================================
-  // SINCRONIZAR CARDS DO NEX
-  // ============================================
-  async function sincronizarCardsNexSupabase() {
-    if (!window.supabaseClient) return;
+  return convertidas;
+}
 
-    if (window.__sincronizandoCardsNex) return;
-    window.__sincronizandoCardsNex = true;
+// ============================================
+// SINCRONIZAR CARDS DO NEX
+// ============================================
+async function sincronizarCardsNexSupabase() {
+  if (!window.supabaseClient) return;
 
-    try {
-      const lista = await listarMinhasConversasSupabase();
+  if (window.__sincronizandoCardsNex) return;
+  window.__sincronizandoCardsNex = true;
 
-      if (!Array.isArray(lista) || !lista.length) {
-        window.__sincronizandoCardsNex = false;
-        return;
-      }
+  try {
+    const lista = await listarMinhasConversasSupabase();
 
-      const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
-
-      // Pega o ID do usuário logado 1x (pra saber se a última msg é minha)
-      const { data: { user: usuarioLogado } } =
-        await window.supabaseClient.auth.getUser();
-      const meuId = usuarioLogado?.id || null;
-
-      for (const conv of lista) {
-        const usernameOutro = String(conv.outro_username || '')
-          .toLowerCase()
-          .trim();
-        if (!usernameOutro) continue;
-        if (usernameOutro === meuUser) continue;
-
-        const nomeExibicao =
-          conv.outro_nome || conv.outro_username || 'Usuário';
-
-        if (
-          typeof window.conversas === 'object' &&
-          !window.conversas[nomeExibicao]
-        ) {
-          window.conversas[nomeExibicao] = [];
-        }
-
-        // Guarda ID + username real
-        window.__convIdsNex = window.__convIdsNex || {};
-        window.__convIdsNex[nomeExibicao] = conv.conversa_id;
-
-        window.__convUsernamesNex = window.__convUsernamesNex || {};
-        window.__convUsernamesNex[nomeExibicao] = usernameOutro;
-
-        // Cria o card se não existir
-        const cardExistente =
-          typeof window.obterCardConversaNex === 'function'
-            ? window.obterCardConversaNex(nomeExibicao)
-            : document.querySelector(
-                `.nex-chat[data-chat="${nomeExibicao}"]`
-              );
-
-        if (cardExistente) {
-          if (conv.ultima_msg_texto) {
-            const p = cardExistente.querySelector('.nex-info p');
-            if (p) p.textContent = conv.ultima_msg_texto;
-          }
-          continue;
-        }
-
-        // Cria o card novo
-        if (typeof window.criarCardConversaNex === 'function') {
-          const conectado =
-            typeof window.estaConectadoNoMyDropsNex === 'function'
-              ? window.estaConectadoNoMyDropsNex(usernameOutro)
-              : false;
-
-          const preview = conv.ultima_msg_texto || 'Nova conversa';
-
-          const ehMinhaUltimaMsg =
-            conv.ultima_msg_autor_id &&
-            meuId &&
-            conv.ultima_msg_autor_id === meuId;
-
-          window.criarCardConversaNex(
-            nomeExibicao,
-            conectado,
-            { text: preview },
-            ehMinhaUltimaMsg ? 'enviada' : 'recebida'
-          );
-        }
-      }
-    } catch (err) {
-      console.warn('Erro ao sincronizar cards:', err);
-    } finally {
+    if (!Array.isArray(lista) || !lista.length) {
       window.__sincronizandoCardsNex = false;
+      return;
     }
-  }
 
+    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+
+    // Pega o ID do usuário logado 1x (pra saber se a última msg é minha)
+    const { data: { user: usuarioLogado } } =
+      await window.supabaseClient.auth.getUser();
+    const meuId = usuarioLogado?.id || null;
+
+    for (const conv of lista) {
+      const usernameOutro = String(conv.outro_username || '')
+        .toLowerCase()
+        .trim();
+      if (!usernameOutro) continue;
+      if (usernameOutro === meuUser) continue;
+
+      const nomeExibicao =
+        conv.outro_nome || conv.outro_username || 'Usuário';
+
+      if (
+        typeof window.conversas === 'object' &&
+        !window.conversas[nomeExibicao]
+      ) {
+        window.conversas[nomeExibicao] = [];
+      }
+
+      // Guarda ID + username real
+      window.__convIdsNex = window.__convIdsNex || {};
+      window.__convIdsNex[nomeExibicao] = conv.conversa_id;
+
+      window.__convUsernamesNex = window.__convUsernamesNex || {};
+      window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+
+      // Cria o card se não existir
+      const cardExistente =
+        typeof window.obterCardConversaNex === 'function'
+          ? window.obterCardConversaNex(nomeExibicao)
+          : document.querySelector(
+              `.nex-chat[data-chat="${nomeExibicao}"]`
+            );
+
+      if (cardExistente) {
+        if (conv.ultima_msg_texto) {
+          const p = cardExistente.querySelector('.nex-info p');
+          if (p) p.textContent = conv.ultima_msg_texto;
+        }
+        continue;
+      }
+
+      // Cria o card novo
+      if (typeof window.criarCardConversaNex === 'function') {
+        const conectado =
+          typeof window.estaConectadoNoMyDropsNex === 'function'
+            ? window.estaConectadoNoMyDropsNex(usernameOutro)
+            : false;
+
+        const preview = conv.ultima_msg_texto || 'Nova conversa';
+
+        const ehMinhaUltimaMsg =
+          conv.ultima_msg_autor_id &&
+          meuId &&
+          conv.ultima_msg_autor_id === meuId;
+
+        window.criarCardConversaNex(
+          nomeExibicao,
+          conectado,
+          { text: preview },
+          ehMinhaUltimaMsg ? 'enviada' : 'recebida'
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao sincronizar cards:', err);
+  } finally {
+    window.__sincronizandoCardsNex = false;
+  }
+}
   // ============================================
 // REALTIME — escuta mensagens novas
 // ============================================
@@ -539,18 +527,44 @@ async function processarAtualizacaoMensagemNex(msg) {
   if (!local) return;
 
   // Atualiza os campos que mudaram
-if (msg.apagada_para_todos) {
-  local.deleted = true;
-  local.deletedAt = Date.now();
-  local.deletedText = '🗑️ Mensagem apagada';
-  local.text = '';
-} else {
-  // ⚠️ Sempre atualiza texto E edited
-  if (typeof msg.texto === 'string' && msg.texto.length > 0) {
-    local.text = msg.texto;
+  if (msg.apagada_para_todos) {
+    local.deleted = true;
+    local.deletedAt = Date.now();
+
+    // ⚠️ Mensagem é minha ou do outro?
+    const ehMinha = local.side === 'right';
+
+    if (ehMinha) {
+      local.deletedText = '🗑️ Mensagem apagada';
+    } else {
+      local.deletedText = `⚠️ Mensagem apagada pelo ${nomeContato}`;
+    }
+
+    local.text = '';
+
+    // ⚠️ Remove do banco local depois de 5-10s (igual quem apagou)
+    setTimeout(() => {
+      const listaAtual = window.conversas[nomeContato];
+      if (!Array.isArray(listaAtual)) return;
+
+      const index = listaAtual.indexOf(local);
+      if (index !== -1) {
+        listaAtual.splice(index, 1);
+
+        if (Drops.estado.conversaAtual === nomeContato) {
+          if (typeof window.renderChat === 'function') {
+            window.renderChat(nomeContato);
+          }
+        }
+      }
+    }, ehMinha ? 5000 : 10000);
+  } else {
+    // ⚠️ Sempre atualiza texto E edited
+    if (typeof msg.texto === 'string' && msg.texto.length > 0) {
+      local.text = msg.texto;
+    }
+    local.edited = msg.editada === true;
   }
-  local.edited = msg.editada === true;
-}
 
   // Re-renderiza se o chat estiver aberto
   if (Drops.estado.conversaAtual === nomeContato) {
@@ -559,7 +573,7 @@ if (msg.apagada_para_todos) {
     }
   }
 }
-  
+
 async function processarMensagemRealtimeNex(msg) {
   if (!msg || !msg.conversa_id) return;
 
@@ -604,138 +618,209 @@ async function processarMensagemRealtimeNex(msg) {
 
   const dataObj = new Date(msg.criado_em);
 
-// Reconstrói o anexo com base no tipo
-let anexoNova = null;
-const metaNova = msg.media_meta || {};
+  // Reconstrói o anexo com base no tipo
+  let anexoNova = null;
+  const metaNova = msg.media_meta || {};
 
-if (msg.tipo === 'audio') {
-  anexoNova = null;
-} else if (msg.tipo === 'location') {
-  const loc = metaNova.localizacao || {
-    lat: metaNova.lat,
-    lng: metaNova.lng,
-    address: metaNova.address
-  };
-  anexoNova = {
-    type: 'location',
-    lat: loc.lat,
-    lng: loc.lng,
-    address: loc.address || 'Localização',
-    localizacao: loc
-  };
-} else if (msg.tipo === 'pdf') {
-  anexoNova = {
-    type: 'pdf',
-    url: msg.media_url,
-    name: metaNova.name || 'Documento PDF',
-    documento: metaNova.documento || {
+  if (msg.tipo === 'location') {
+    const loc = metaNova.localizacao || {
+      lat: metaNova.lat,
+      lng: metaNova.lng,
+      address: metaNova.address
+    };
+    anexoNova = {
+      type: 'location',
+      lat: loc.lat,
+      lng: loc.lng,
+      address: loc.address || 'Localização',
+      localizacao: loc
+    };
+  } else if (msg.tipo === 'pdf') {
+    anexoNova = {
+      type: 'pdf',
       url: msg.media_url,
       name: metaNova.name || 'Documento PDF',
-      thumbnail: '',
-      size: 0
-    }
-  };
-} else if (msg.tipo === 'album') {
-  const midiasNova = metaNova.midias || metaNova.urls || [];
-  if (midiasNova.length === 1) {
-    const unica = midiasNova[0];
-    const url = typeof unica === 'string' ? unica : unica.url;
-    const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
-    anexoNova = {
-      type: tipoUnica === 'video' ? 'video' : 'imagem',
-      url: url
-    };
-  } else {
-    anexoNova = {
-      type: 'album',
-      midias: midiasNova,
-      urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
-    };
-  }
-} else if (msg.media_url) {
-  anexoNova = {
-    type: msg.tipo === 'video' ? 'video' : 'imagem',
-    url: msg.media_url
-  };
-}
-
-const nova = {
-  id: msg.id,
-  timestamp: dataObj.getTime(),
-  side: 'left',
-  nome: nomeContato,
-  avatar: (nomeContato || '?').charAt(0).toUpperCase(),
-  data: dataObj.toLocaleDateString('pt-BR'),
-  hora: dataObj.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }),
-  status: 'recebido',
-  text: msg.texto || '',
-  audio: msg.tipo === 'audio' ? msg.media_url : null,
-  anexo: anexoNova,
-  resposta: msg.resposta_a_id ? { id: msg.resposta_a_id } : null,
-  edited: msg.editada === true,
-  deleted: msg.apagada_para_todos === true,
-  _supabaseId: msg.id
-};
-
-// ⚠️ Se tem resposta_a_id e a msg original não está local, carrega tudo
-if (msg.resposta_a_id) {
-  const jaTemOriginal = window.conversas[nomeContato].some(
-    (m) => m._supabaseId === msg.resposta_a_id || m.id === msg.resposta_a_id
-  );
-
-  if (!jaTemOriginal) {
-    // Recarrega a conversa do Supabase pra ter a msg original
-    try {
-      const convId = window.__convIdsNex[nomeContato];
-      if (
-        convId &&
-        typeof window.buscarMensagensSupabase === 'function'
-      ) {
-        const todas = await window.buscarMensagensSupabase(convId);
-        const { data: { user } } = await window.supabaseClient.auth.getUser();
-        const meuId = user?.id || null;
-
-        window.conversas[nomeContato] = (todas || []).map((m) => {
-          const d = new Date(m.criado_em);
-          const ehMinha = m.autor_id === meuId;
-          return {
-            id: m.id,
-            timestamp: d.getTime(),
-            side: ehMinha ? 'right' : 'left',
-            nome: ehMinha ? 'Eu' : nomeContato,
-            avatar: ehMinha ? 'EU' : (nomeContato || '?').charAt(0).toUpperCase(),
-            data: d.toLocaleDateString('pt-BR'),
-            hora: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            status: 'enviado',
-            text: m.texto || '',
-            anexo: m.media_url
-              ? { type: m.tipo === 'video' ? 'video' : 'imagem', url: m.media_url }
-              : null,
-            resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
-            edited: m.editada === true,
-            deleted: m.apagada_para_todos === true,
-            _supabaseId: m.id
-          };
-        });
-
-        // Sai daqui — a lista já foi toda recarregada
-        if (Drops.estado.conversaAtual === nomeContato) {
-          if (typeof window.renderChat === 'function') {
-            window.renderChat(nomeContato);
-          }
-        }
-        return;
+      documento: metaNova.documento || {
+        url: msg.media_url,
+        name: metaNova.name || 'Documento PDF',
+        thumbnail: '',
+        size: 0
       }
-    } catch (err) {
-      console.warn('Erro ao recarregar conversa:', err);
+    };
+  } else if (msg.tipo === 'album') {
+    const midiasNova = metaNova.midias || metaNova.urls || [];
+
+    if (midiasNova.length === 1) {
+      const unica = midiasNova[0];
+      const url = typeof unica === 'string' ? unica : unica.url;
+      const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
+      anexoNova = {
+        type: tipoUnica === 'video' ? 'video' : 'imagem',
+        url: url
+      };
+    } else {
+      anexoNova = {
+        type: 'album',
+        midias: midiasNova,
+        urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
+      };
+    }
+  } else if (msg.media_url && msg.tipo !== 'audio') {
+    anexoNova = {
+      type: msg.tipo === 'video' ? 'video' : 'imagem',
+      url: msg.media_url
+    };
+  }
+
+  // ⚠️ Reconstrói a resposta com texto e nome
+  let respostaNova = null;
+
+  if (msg.resposta_a_id) {
+    const infoResposta = metaNova.resposta_info || {};
+    respostaNova = {
+      id: msg.resposta_a_id,
+      nome: infoResposta.nome || '',
+      texto: infoResposta.texto || '',
+      side: infoResposta.side || 'left'
+    };
+  }
+
+  const nova = {
+    id: msg.id,
+    timestamp: dataObj.getTime(),
+    side: 'left',
+    nome: nomeContato,
+    avatar: (nomeContato || '?').charAt(0).toUpperCase(),
+    data: dataObj.toLocaleDateString('pt-BR'),
+    hora: dataObj.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    status: 'recebido',
+    text: msg.texto || '',
+    audio: msg.tipo === 'audio' ? msg.media_url : null,
+    anexo: anexoNova,
+    resposta: respostaNova,
+    edited: msg.editada === true,
+    deleted: msg.apagada_para_todos === true,
+    _supabaseId: msg.id
+  };
+
+  // ⚠️ Se tem resposta_a_id e a msg original não está local, carrega tudo
+  if (msg.resposta_a_id) {
+    const jaTemOriginal = window.conversas[nomeContato].some(
+      (m) => m._supabaseId === msg.resposta_a_id || m.id === msg.resposta_a_id
+    );
+
+    if (!jaTemOriginal) {
+      // Recarrega a conversa do Supabase pra ter a msg original
+      try {
+        const convId = window.__convIdsNex[nomeContato];
+        if (
+          convId &&
+          typeof window.buscarMensagensSupabase === 'function'
+        ) {
+          const todas = await window.buscarMensagensSupabase(convId);
+          const { data: { user } } = await window.supabaseClient.auth.getUser();
+          const meuId = user?.id || null;
+
+          window.conversas[nomeContato] = (todas || []).map((m) => {
+            const d = new Date(m.criado_em);
+            const ehMinha = m.autor_id === meuId;
+
+            let metaRecarga = m.media_meta || {};
+            let anexoRecarga = null;
+
+            if (m.tipo === 'location') {
+              const loc = metaRecarga.localizacao || {
+                lat: metaRecarga.lat,
+                lng: metaRecarga.lng,
+                address: metaRecarga.address
+              };
+              anexoRecarga = {
+                type: 'location',
+                lat: loc.lat,
+                lng: loc.lng,
+                address: loc.address || 'Localização',
+                localizacao: loc
+              };
+            } else if (m.tipo === 'pdf') {
+              anexoRecarga = {
+                type: 'pdf',
+                url: m.media_url,
+                name: metaRecarga.name || 'Documento PDF',
+                documento: metaRecarga.documento || {
+                  url: m.media_url,
+                  name: metaRecarga.name || 'Documento PDF',
+                  thumbnail: '',
+                  size: 0
+                }
+              };
+            } else if (m.tipo === 'album') {
+              const mids = metaRecarga.midias || metaRecarga.urls || [];
+              if (mids.length === 1) {
+                const u = typeof mids[0] === 'string' ? mids[0] : mids[0].url;
+                const t = (typeof mids[0] === 'object' && mids[0].type) || 'imagem';
+                anexoRecarga = { type: t === 'video' ? 'video' : 'imagem', url: u };
+              } else {
+                anexoRecarga = {
+                  type: 'album',
+                  midias: mids,
+                  urls: mids.map((x) => (typeof x === 'string' ? x : x.url))
+                };
+              }
+            } else if (m.media_url && m.tipo !== 'audio') {
+              anexoRecarga = {
+                type: m.tipo === 'video' ? 'video' : 'imagem',
+                url: m.media_url
+              };
+            }
+
+            let respostaRecarga = null;
+            if (m.resposta_a_id) {
+              const info = metaRecarga.resposta_info || {};
+              respostaRecarga = {
+                id: m.resposta_a_id,
+                nome: info.nome || '',
+                texto: info.texto || '',
+                side: info.side || 'left'
+              };
+            }
+
+            return {
+              id: m.id,
+              timestamp: d.getTime(),
+              side: ehMinha ? 'right' : 'left',
+              nome: ehMinha ? 'Eu' : nomeContato,
+              avatar: ehMinha ? 'EU' : (nomeContato || '?').charAt(0).toUpperCase(),
+              data: d.toLocaleDateString('pt-BR'),
+              hora: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              status: 'enviado',
+              text: m.texto || '',
+              audio: m.tipo === 'audio' ? m.media_url : null,
+              anexo: anexoRecarga,
+              resposta: respostaRecarga,
+              edited: m.editada === true,
+              deleted: m.apagada_para_todos === true,
+              _supabaseId: m.id
+            };
+          });
+
+          // Sai daqui — a lista já foi toda recarregada
+          if (Drops.estado.conversaAtual === nomeContato) {
+            if (typeof window.renderChat === 'function') {
+              window.renderChat(nomeContato);
+            }
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn('Erro ao recarregar conversa:', err);
+      }
     }
   }
-}
 
-window.conversas[nomeContato].push(nova);
+  window.conversas[nomeContato].push(nova);
 
   // Se o chat dessa pessoa está aberto, re-renderiza
   const conversaAberta = Drops.estado.conversaAtual;
@@ -763,104 +848,102 @@ window.conversas[nomeContato].push(nova);
     await sincronizarCardsNexSupabase();
   }
 }
-
+    // ============================================
+  // UPLOAD DE MÍDIA DO NEX
   // ============================================
-// UPLOAD DE MÍDIA DO NEX
-// ============================================
-// Aceita: URL blob (camera/galeria), data URL, ou File
-// Retorna: URL pública do Supabase Storage
-async function uploadMidiaNexSupabase(arquivo, tipo) {
-  if (!window.supabaseClient || !arquivo) return null;
+  // Aceita: URL blob (camera/galeria), data URL, ou File
+  // Retorna: URL pública do Supabase Storage
+  async function uploadMidiaNexSupabase(arquivo, tipo) {
+    if (!window.supabaseClient || !arquivo) return null;
 
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return null;
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return null;
 
-    let blob = null;
-    let extensao = 'bin';
+      let blob = null;
+      let extensao = 'bin';
 
-    // --- Caso 1: File/Blob direto ---
-    if (arquivo instanceof File || arquivo instanceof Blob) {
-      blob = arquivo;
-      extensao = (arquivo.name || '').split('.').pop() || 'bin';
+      // --- Caso 1: File/Blob direto ---
+      if (arquivo instanceof File || arquivo instanceof Blob) {
+        blob = arquivo;
+        extensao = (arquivo.name || '').split('.').pop() || 'bin';
 
-    // --- Caso 2: URL (blob:, http:, https:) ---
-    } else if (typeof arquivo === 'string' && /^(blob:|https?:)/.test(arquivo)) {
-      const res = await fetch(arquivo);
-      blob = await res.blob();
+      // --- Caso 2: URL (blob:, http:, https:) ---
+      } else if (typeof arquivo === 'string' && /^(blob:|https?:)/.test(arquivo)) {
+        const res = await fetch(arquivo);
+        blob = await res.blob();
 
-      if (blob.type.includes('video')) extensao = 'mp4';
-      else if (blob.type.includes('audio')) extensao = 'webm';
-      else if (blob.type.includes('png')) extensao = 'png';
-      else if (blob.type.includes('pdf')) extensao = 'pdf';
-      else extensao = 'jpg';
+        if (blob.type.includes('video')) extensao = 'mp4';
+        else if (blob.type.includes('audio')) extensao = 'webm';
+        else if (blob.type.includes('png')) extensao = 'png';
+        else if (blob.type.includes('pdf')) extensao = 'pdf';
+        else extensao = 'jpg';
 
-    // --- Caso 3: Data URL (base64) ---
-    } else if (typeof arquivo === 'string' && arquivo.startsWith('data:')) {
-      const res = await fetch(arquivo);
-      blob = await res.blob();
+      // --- Caso 3: Data URL (base64) ---
+      } else if (typeof arquivo === 'string' && arquivo.startsWith('data:')) {
+        const res = await fetch(arquivo);
+        blob = await res.blob();
 
-      if (blob.type.includes('video')) extensao = 'mp4';
-      else if (blob.type.includes('audio')) extensao = 'webm';
-      else if (blob.type.includes('png')) extensao = 'png';
-      else if (blob.type.includes('pdf')) extensao = 'pdf';
-      else extensao = 'jpg';
-    }
+        if (blob.type.includes('video')) extensao = 'mp4';
+        else if (blob.type.includes('audio')) extensao = 'webm';
+        else if (blob.type.includes('png')) extensao = 'png';
+        else if (blob.type.includes('pdf')) extensao = 'pdf';
+        else extensao = 'jpg';
+      }
 
-    if (!blob) {
-      console.warn('Tipo de arquivo não suportado:', arquivo);
+      if (!blob) {
+        console.warn('Tipo de arquivo não suportado:', arquivo);
+        return null;
+      }
+
+      // Nome único
+      const nomeArquivo = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
+
+      // Detecta contentType correto pela extensão
+      let contentType = blob.type;
+
+      if (!contentType || contentType === 'application/octet-stream') {
+        if (extensao === 'jpg' || extensao === 'jpeg') {
+          contentType = 'image/jpeg';
+        } else if (extensao === 'png') {
+          contentType = 'image/png';
+        } else if (extensao === 'mp4') {
+          contentType = 'video/mp4';
+        } else if (extensao === 'webm') {
+          contentType = 'audio/webm';
+        } else if (extensao === 'pdf') {
+          contentType = 'application/pdf';
+        } else {
+          contentType = 'application/octet-stream';
+        }
+      }
+
+      // Upload
+      const { error: uploadError } = await window.supabaseClient.storage
+        .from('nex')
+        .upload(nomeArquivo, blob, {
+          contentType: contentType,
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.warn('Erro no upload:', uploadError);
+        return null;
+      }
+
+      // URL pública
+      const { data: urlData } = window.supabaseClient.storage
+        .from('nex')
+        .getPublicUrl(nomeArquivo);
+
+      console.log('☁️ Upload NEX OK:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.warn('Erro no upload:', err);
       return null;
     }
-
-    // Nome único
-const nomeArquivo = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
-
-// Detecta contentType correto pela extensão
-let contentType = blob.type;
-
-if (!contentType || contentType === 'application/octet-stream') {
-  if (extensao === 'jpg' || extensao === 'jpeg') {
-    contentType = 'image/jpeg';
-  } else if (extensao === 'png') {
-    contentType = 'image/png';
-  } else if (extensao === 'mp4') {
-    contentType = 'video/mp4';
-  } else if (extensao === 'webm') {
-    contentType = 'audio/webm';
-  } else if (extensao === 'pdf') {
-    contentType = 'application/pdf';
-  } else {
-    contentType = 'application/octet-stream';
   }
-}
 
-// Upload
-const { error: uploadError } = await window.supabaseClient.storage
-  .from('nex')
-  .upload(nomeArquivo, blob, {
-    contentType: contentType,
-    upsert: false
-  });
-
-    if (uploadError) {
-      console.warn('Erro no upload:', uploadError);
-      return null;
-    }
-
-    // URL pública
-    const { data: urlData } = window.supabaseClient.storage
-      .from('nex')
-      .getPublicUrl(nomeArquivo);
-
-    console.log('☁️ Upload NEX OK:', urlData.publicUrl);
-    return urlData.publicUrl;
-  } catch (err) {
-    console.warn('Erro no upload:', err);
-    return null;
-  }
-}
-
-  
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
@@ -873,10 +956,9 @@ const { error: uploadError } = await window.supabaseClient.storage
   window.apagarPraMimSupabase = apagarPraMimSupabase;
   window.apagarPraTodosSupabase = apagarPraTodosSupabase;
   window.sincronizarCardsNexSupabase = sincronizarCardsNexSupabase;
-window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
+  window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
   window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
 
-  
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
     console.log('☁️ 25-nex-supabase.js pronto');

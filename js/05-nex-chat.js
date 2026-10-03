@@ -492,7 +492,7 @@ const msgIdUnico = msg.id || gerarIdMensagemNex();
                 class="reply-linked-top"
                 onclick="irParaMensagemNex('${msg.resposta.id}')">
                 <span class="reply-arrow">↖</span>
-                <span>Resposta Vinculada</span>
+                <span>Resposta a ${escapeHTML(msg.resposta.nome || 'você')}: ${escapeHTML((msg.resposta.texto || '').slice(0, 40))}${msg.resposta.texto && msg.resposta.texto.length > 40 ? '...' : ''}</span>
                 <span class="reply-count-pill">
                   ${ordemResposta}/${totalRespostasDaOriginal}
                 </span>
@@ -865,13 +865,28 @@ if (mensagem.audio) {
   tipo = 'texto';
 }
 
+// ⚠️ Junta o media_meta com os dados da resposta
+let metaCompleta = mediaMeta || {};
+
+if (mensagem.resposta) {
+  metaCompleta = {
+    ...metaCompleta,
+    resposta_info: {
+      id: mensagem.resposta.id,
+      nome: mensagem.resposta.nome || '',
+      texto: mensagem.resposta.texto || '',
+      side: mensagem.resposta.side || 'left'
+    }
+  };
+}
+
 try {
   msgSupabase = await window.enviarMensagemSupabase({
     conversa_id: convId,
     tipo,
     texto: mensagem.text || null,
     media_url: mediaUrl,
-    media_meta: mediaMeta,
+    media_meta: Object.keys(metaCompleta).length ? metaCompleta : null,
     resposta_a_id: mensagem.resposta?.id || null
   });
 
