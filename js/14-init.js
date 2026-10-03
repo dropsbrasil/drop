@@ -58,6 +58,13 @@ if (typeof iniciarRealtimeNexSupabase === 'function') {
   }, 2000);
 }
 
+// ⚠️ Pede permissão pra enviar notificações
+if (typeof pedirPermissaoNotificacaoNex === 'function') {
+  setTimeout(() => {
+    pedirPermissaoNotificacaoNex();
+  }, 3000);
+}
+
     // ============================================
 // 2. MOSTRA A TELA INICIAL (restaura a última)
 // ============================================

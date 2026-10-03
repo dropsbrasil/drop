@@ -838,6 +838,11 @@ if (conversaAberta === nomeContato) {
   if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
     window.marcarConversaComoNaoLidaNex(nomeContato);
   }
+
+  // ⚠️ Notifica o usuário (vibração + notificação do sistema)
+  if (typeof window.notificarMensagemNovaNex === 'function') {
+    window.notificarMensagemNovaNex(nomeContato, nova);
+  }
 }
 
   // Atualiza preview do card
@@ -950,9 +955,91 @@ if (conversaAberta === nomeContato) {
   }
 
   // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
-  window.carregarConversaSupabase = carregarConversaSupabase;
+// NOTIFICAÇÃO DE MENSAGEM NOVA
+// ============================================
+
+function notificarMensagemNovaNex(nomeContato, mensagem) {
+  if (!mensagem) return;
+
+  // ⚠️ Vibra o celular (funciona em Android)
+  if (navigator.vibrate) {
+    try {
+      navigator.vibrate([200, 100, 200]);
+    } catch (e) {}
+  }
+
+  // ⚠️ Mostra notificação do sistema (funciona em Android e iOS)
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  const titulo = String(nomeContato || 'Nova mensagem');
+  let corpo = '📎 Mídia';
+
+  if (mensagem.text) {
+    corpo = String(mensagem.text).slice(0, 80);
+  } else if (mensagem.audio) {
+    corpo = '🎙️ Áudio';
+  } else if (mensagem.anexo?.type === 'imagem' || mensagem.anexo?.type === 'image') {
+    corpo = '📷 Foto';
+  } else if (mensagem.anexo?.type === 'video') {
+    corpo = '🎥 Vídeo';
+  } else if (mensagem.anexo?.type === 'pdf') {
+    corpo = '📄 PDF';
+  } else if (mensagem.anexo?.type === 'location') {
+    corpo = '📍 Localização';
+  } else if (mensagem.anexo?.type === 'album') {
+    corpo = '🎴 Álbum';
+  }
+
+  try {
+    const notif = new Notification(titulo, {
+      body: corpo,
+      icon: './assets/drops-icon.png',
+      badge: './assets/drops-icon.png',
+      tag: 'nex-' + nomeContato,
+      renotify: true
+    });
+
+    // Ao clicar na notificação, abre o chat
+    notif.onclick = () => {
+      window.focus();
+      if (typeof window.abrirChatNex === 'function') {
+        const card = document.querySelector(
+          `.nex-chat[data-chat="${nomeContato}"]`
+        );
+        if (card) window.abrirChatNex(card);
+      }
+      notif.close();
+    };
+
+    // Fecha automaticamente depois de 6s
+    setTimeout(() => notif.close(), 6000);
+  } catch (e) {
+    console.warn('Erro ao mostrar notificação:', e);
+  }
+}
+
+// ============================================
+// PEDIR PERMISSÃO DE NOTIFICAÇÃO
+// ============================================
+
+async function pedirPermissaoNotificacaoNex() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+
+  try {
+    const resultado = await Notification.requestPermission();
+    return resultado === 'granted';
+  } catch (e) {
+    return false;
+  }
+}
+
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
+window.carregarConversaSupabase = carregarConversaSupabase;
   window.obterOuCriarConversaSupabase = obterOuCriarConversaSupabase;
   window.listarMinhasConversasSupabase = listarMinhasConversasSupabase;
   window.buscarMensagensSupabase = buscarMensagensSupabase;
@@ -961,9 +1048,11 @@ if (conversaAberta === nomeContato) {
   window.apagarPraMimSupabase = apagarPraMimSupabase;
   window.apagarPraTodosSupabase = apagarPraTodosSupabase;
   window.sincronizarCardsNexSupabase = sincronizarCardsNexSupabase;
-  window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
-  window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
-
+window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
+window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
+window.notificarMensagemNovaNex = notificarMensagemNovaNex;
+window.pedirPermissaoNotificacaoNex = pedirPermissaoNotificacaoNex;
+  
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
     console.log('☁️ 25-nex-supabase.js pronto');
