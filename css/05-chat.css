@@ -457,3 +457,15 @@
 .chat-user-meta h3:active {
   opacity: .6;
 }
+.msg-avatar {
+  overflow: hidden;
+  position: relative;
+}
+
+.msg-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
