@@ -408,51 +408,86 @@
 
     if (texto) mensagem.text = texto;
 
-    // --- Mídia única ---
-    const midiaUnica =
-      typeof window.getPreviewMidiaNex === 'function'
-        ? window.getPreviewMidiaNex()
-        : null;
+// --- Mídia única (câmera/galeria) ---
+const midiaUnica =
+  typeof window.getPreviewMidiaNex === 'function'
+    ? window.getPreviewMidiaNex()
+    : null;
 
-    if (midiaUnica && midiaUnica.url) {
-      mensagem.anexo = {
-        type: midiaUnica.type === 'video' ? 'video' : 'imagem',
-        url: midiaUnica.url
-      };
+if (midiaUnica && midiaUnica.url) {
+  // ⚠️ Faz upload pro Storage
+  let urlFinal = midiaUnica.url;
+
+  if (typeof window.uploadMidiaNexSupabase === 'function') {
+    window.mostrarToastNex?.('Enviando mídia...', 'info');
+    const urlStorage = await window.uploadMidiaNexSupabase(midiaUnica.url);
+    if (urlStorage) urlFinal = urlStorage;
+    else window.mostrarToastNex?.('Falha ao enviar mídia.', 'erro');
+  }
+
+  mensagem.anexo = {
+    type: midiaUnica.type === 'video' ? 'video' : 'imagem',
+    url: urlFinal
+  };
+}
+
+    // --- Múltiplas mídias (álbum/galeria) ---
+const midias =
+  typeof window.getPreviewMidiasNex === 'function'
+    ? window.getPreviewMidiasNex()
+    : null;
+
+if (Array.isArray(midias) && midias.length) {
+  // ⚠️ Faz upload de cada uma
+  const midiasEnviadas = [];
+
+  if (typeof window.uploadMidiaNexSupabase === 'function') {
+    window.mostrarToastNex?.('Enviando mídias...', 'info');
+
+    for (const m of midias) {
+      const urlStorage = await window.uploadMidiaNexSupabase(m.url);
+      if (urlStorage) {
+        midiasEnviadas.push({
+          url: urlStorage,
+          type: m.type === 'video' ? 'video' : 'imagem'
+        });
+      }
     }
+  }
 
-    // --- Múltiplas mídias ---
-    const midias =
-      typeof window.getPreviewMidiasNex === 'function'
-        ? window.getPreviewMidiasNex()
-        : null;
-
-    if (Array.isArray(midias) && midias.length) {
-      mensagem.midias = midias.map((m) => ({
-        url: m.url,
-        type: m.type === 'video' ? 'video' : 'imagem'
-      }));
-    }
+  if (midiasEnviadas.length) {
+    mensagem.midias = midiasEnviadas;
+  }
+}
 
     // --- Documento (PDF) ---
-    const documento =
-      typeof window.getDocumentoPreviewNex === 'function'
-        ? window.getDocumentoPreviewNex()
-        : null;
+const documento =
+  typeof window.getDocumentoPreviewNex === 'function'
+    ? window.getDocumentoPreviewNex()
+    : null;
 
-    if (documento && documento.url && !mensagem.anexo) {
-      mensagem.anexo = {
-        type: 'pdf',
-        url: documento.url,
-        name: documento.name || 'Documento PDF',
-        documento: {
-          url: documento.url,
-          name: documento.name || 'Documento PDF',
-          thumbnail: documento.thumbnail || '',
-          size: documento.size || 0
-        }
-      };
+if (documento && documento.url && !mensagem.anexo) {
+  // ⚠️ Faz upload do PDF
+  let urlPdf = documento.url;
+
+  if (typeof window.uploadMidiaNexSupabase === 'function') {
+    window.mostrarToastNex?.('Enviando PDF...', 'info');
+    const urlStorage = await window.uploadMidiaNexSupabase(documento.url);
+    if (urlStorage) urlPdf = urlStorage;
+  }
+
+  mensagem.anexo = {
+    type: 'pdf',
+    url: urlPdf,
+    name: documento.name || 'Documento PDF',
+    documento: {
+      url: urlPdf,
+      name: documento.name || 'Documento PDF',
+      thumbnail: documento.thumbnail || '',
+      size: documento.size || 0
     }
+  };
+}
 
     // --- Localização ---
     const localizacao =
@@ -475,14 +510,23 @@
     }
 
     // --- Áudio ---
-    const audioUrl =
-      typeof window.getAudioUrlNex === 'function'
-        ? window.getAudioUrlNex()
-        : '';
+const audioUrl =
+  typeof window.getAudioUrlNex === 'function'
+    ? window.getAudioUrlNex()
+    : '';
 
-    if (audioUrl) {
-      mensagem.audio = audioUrl;
-    }
+if (audioUrl) {
+  // ⚠️ Faz upload do áudio
+  let urlAudio = audioUrl;
+
+  if (typeof window.uploadMidiaNexSupabase === 'function') {
+    window.mostrarToastNex?.('Enviando áudio...', 'info');
+    const urlStorage = await window.uploadMidiaNexSupabase(audioUrl);
+    if (urlStorage) urlAudio = urlStorage;
+  }
+
+  mensagem.audio = urlAudio;
+}
 
     // ⚠️ Envia pro Supabase primeiro
     let msgSupabase = null;
