@@ -110,32 +110,58 @@
   // ============================================
 
   function sincronizarConversasComConectadosMyDropsNex() {
-    Object.entries(estadoConversasNex).forEach(([nome, estado]) => {
-      const conectado = window.estaConectadoNoMyDropsNex(nome);
-      estado.connected = conectado;
+  Object.entries(estadoConversasNex).forEach(([nome, estado]) => {
+    const conectado = window.estaConectadoNoMyDropsNex(nome);
+    estado.connected = conectado;
 
-      const card = obterCardConversaNex(nome);
-      if (!card) return;
+    const card = obterCardConversaNex(nome);
+    if (!card) return;
 
-      card.dataset.connected = conectado ? 'yes' : 'no';
+    card.dataset.connected = conectado ? 'yes' : 'no';
 
-      // Mensagem ainda não lida
-      if (estado.unread || card.classList.contains('unread-chat')) {
-        card.classList.add('unread-chat');
-        moverCardConversaNex(nome, 'nex-naolidas', true);
-        return;
-      }
+    // Mensagem ainda não lida
+    if (estado.unread || card.classList.contains('unread-chat')) {
+      card.classList.add('unread-chat');
+      moverCardConversaNex(nome, 'nex-naolidas', true);
+      return;
+    }
 
-      // Mensagem já lida
-      card.classList.remove('unread-chat');
+    // Mensagem já lida
+    card.classList.remove('unread-chat');
 
-      moverCardConversaNex(
-        nome,
-        conectado ? 'nex-conectados' : 'nex-geral',
-        true
-      );
-    });
+    moverCardConversaNex(
+      nome,
+      conectado ? 'nex-conectados' : 'nex-geral',
+      true
+    );
+  });
+
+  // ⚠️ Atualiza status online/offline de todos os cards
+  atualizarStatusTodosCardsNex();
+}
+
+// ⚠️ Atualiza o status de todos os cards visíveis
+async function atualizarStatusTodosCardsNex() {
+  if (typeof window.buscarStatusNex !== 'function') return;
+
+  const cards = document.querySelectorAll('.nex-chat');
+
+  for (const card of cards) {
+    const dotEl = card.querySelector('.nex-status-dot');
+    if (!dotEl) continue;
+
+    const username = dotEl.dataset.statusUser;
+    if (!username) continue;
+
+    try {
+      const online = await window.buscarStatusNex(username);
+      dotEl.classList.toggle('online', !!online);
+      dotEl.classList.toggle('offline', !online);
+    } catch (err) {
+      // silencioso
+    }
   }
+}
 
   // ============================================
   // OBTER CARD DE UMA CONVERSA
@@ -263,23 +289,52 @@
     card.dataset.chat = nome;
     card.dataset.connected = conectado ? 'yes' : 'no';
 
-    card.innerHTML = `
-      <div class="nex-left">
-        <div class="nex-avatar ${conectado ? 'ring-blue' : ''}">
-          ${inicial}
-        </div>
+    // ⚠️ Pega o username real (do mapa) ou o nome
+const usernameReal =
+  (window.__convUsernamesNex && window.__convUsernamesNex[nome]) ||
+  nome.toLowerCase().replace(/^@/, '').trim();
 
-        <div class="nex-info">
-          <h3>${nome}</h3>
-          <p>${textoPreview}</p>
-        </div>
-      </div>
+card.innerHTML = `
+  <div class="nex-left">
+    <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
+         data-avatar-user="${escapeHTML(usernameReal)}"
+         data-avatar-fallback="${escapeHTML(inicial)}">
+      ${inicial}
+    </div>
 
-      <div class="nex-right">
-        ${conectado ? '<div class="online-dot"></div>' : ''}
-        <small>${hora}</small>
-      </div>
-    `;
+    <div class="nex-info">
+      <h3>${escapeHTML(nome)}</h3>
+      <p>${escapeHTML(textoPreview)}</p>
+    </div>
+  </div>
+
+  <div class="nex-right">
+    <div class="nex-status-dot offline"
+         data-status-user="${escapeHTML(usernameReal)}"></div>
+    <small>${escapeHTML(hora)}</small>
+  </div>
+`;
+
+// ⚠️ Busca avatar real (se a função estiver disponível)
+if (typeof window.buscarAvatarNex === 'function') {
+  window.buscarAvatarNex(usernameReal).then((url) => {
+    if (!url) return;
+    const avatarEl = card.querySelector('.nex-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+    }
+  });
+}
+
+// ⚠️ Busca status real
+if (typeof window.buscarStatusNex === 'function') {
+  window.buscarStatusNex(usernameReal).then((online) => {
+    const dotEl = card.querySelector('.nex-status-dot');
+    if (!dotEl) return;
+    dotEl.classList.toggle('online', !!online);
+    dotEl.classList.toggle('offline', !online);
+  });
+}
 
     card.addEventListener('click', function () {
   if (typeof window.abrirChatNex === 'function') {
@@ -400,11 +455,12 @@
   // ============================================
 
   window.criarCardConversaNex = criarCardConversaNex;
-  window.marcarConversaComoLidaNex = marcarConversaComoLidaNex;
-  window.marcarConversaRespondidaNex = marcarConversaRespondidaNex;
-  window.removerConversaExpiradaNex = removerConversaExpiradaNex;
-  window.executarAutoLimpezaNex = executarAutoLimpezaNex;
-
+window.marcarConversaComoLidaNex = marcarConversaComoLidaNex;
+window.marcarConversaRespondidaNex = marcarConversaRespondidaNex;
+window.removerConversaExpiradaNex = removerConversaExpiradaNex;
+window.executarAutoLimpezaNex = executarAutoLimpezaNex;
+window.atualizarStatusTodosCardsNex = atualizarStatusTodosCardsNex;
+  
   // ============================================
   // DEBUG
   // ============================================

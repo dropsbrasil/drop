@@ -91,9 +91,24 @@ if (typeof iniciarRealtimeNexSupabase === 'function') {
     }
 
 // ============================================
+// 3.5. ATUALIZA STATUS DOS CARDS DO NEX (30s)
+// ============================================
+
+if (typeof window.atualizarStatusTodosCardsNex === 'function') {
+  setInterval(() => {
+    // Só roda se o NEX estiver aberto
+    const nexAtivo = document.getElementById('nex')?.classList.contains('active');
+    if (nexAtivo) {
+      window.atualizarStatusTodosCardsNex();
+    }
+  }, 30 * 1000);
+}
+
+// ============================================
 // 4. AUTO-LIMPEZA DE CONVERSAS (a cada 10 min)
 // ============================================
 
+    
 if (typeof executarAutoLimpezaNex === 'function') {
   executarAutoLimpezaNex();
   setInterval(executarAutoLimpezaNex, 10 * 60 * 1000);

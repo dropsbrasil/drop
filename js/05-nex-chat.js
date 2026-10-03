@@ -1466,12 +1466,40 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
   window.irParaProximaRespostaNex = irParaProximaRespostaNex;
 
   // Funções principais do chat
-  window.abrirChatNex = abrirChatNex;
-  window.voltarChatNex = voltarChatNex;
-  window.renderChat = renderChat;
-  window.enviarMsgNex = enviarMsgNex;
-  window.cancelarRespostaNex = cancelarRespostaNex;
+window.abrirChatNex = abrirChatNex;
+window.voltarChatNex = voltarChatNex;
+window.renderChat = renderChat;
+window.enviarMsgNex = enviarMsgNex;
+window.cancelarRespostaNex = cancelarRespostaNex;
 
+// ⚠️ Funções usadas pela lista do NEX
+window.buscarAvatarNex = buscarAvatarNex;
+
+// ⚠️ Busca status online/offline por username (usado nos cards)
+window.buscarStatusNex = async function (username) {
+  if (!username || !window.supabaseClient) return false;
+
+  try {
+    const { data: perfil } = await window.supabaseClient
+      .from('profiles')
+      .select('ultima_atividade')
+      .eq(
+        'username',
+        String(username).toLowerCase().replace(/^@/, '').trim()
+      )
+      .maybeSingle();
+
+    const ultima = perfil?.ultima_atividade;
+    const LIMITE_ONLINE_MS = 30 * 1000;
+
+    return !!(ultima &&
+      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+  } catch (err) {
+    console.warn('Erro ao buscar status:', err);
+    return false;
+  }
+};
+  
   // ============================================
   // DEBUG
   // ============================================
