@@ -38,22 +38,17 @@
 // 1.5. RENDERIZA OS CARDS INICIAIS DAS CONVERSAS
 // ============================================
 
-if (typeof criarCardConversaNex === 'function') {
-  Object.keys(conversas).forEach((nome) => {
-    // Só cria se ainda não existir
-    if (!obterCardConversaNex(nome)) {
-      const conectado = estaConectadoNoMyDropsNex(nome);
+// ============================================
+// 1.5. RENDERIZA OS CARDS INICIAIS DAS CONVERSAS
+// ============================================
 
-      criarCardConversaNex(
-        nome,
-        conectado,
-        { text: '' },
-        'recebida'
-      );
-    }
-  });
-
-  console.log('💬 Cards iniciais criados');
+// ⚠️ Sincroniza conversas reais do Supabase (em background)
+if (typeof sincronizarCardsNexSupabase === 'function') {
+  setTimeout(() => {
+    sincronizarCardsNexSupabase().then(() => {
+      console.log('💬 Cards do Supabase sincronizados');
+    });
+  }, 1500);
 }
 
     // ============================================

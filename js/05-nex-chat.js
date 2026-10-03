@@ -115,6 +115,13 @@ window.setCardAbertoNex(null);
 // ⚠️ CORREÇÃO: remove a classe correta
 document.body.classList.remove('chat-aberto');
 document.body.classList.remove('chat-open'); // limpeza de resíduo antigo
+
+// ⚠️ Sincroniza cards do Supabase ao voltar
+if (typeof window.sincronizarCardsNexSupabase === 'function') {
+  setTimeout(() => {
+    window.sincronizarCardsNexSupabase();
+  }, 300);
+}
   }
 
   // ============================================

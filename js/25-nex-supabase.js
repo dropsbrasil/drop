@@ -280,6 +280,80 @@ async function carregarConversaSupabase(nome) {
 
   return convertidas;
 }
+// ============================================
+// SINCRONIZAR CARDS DO NEX
+// ============================================
+async function sincronizarCardsNexSupabase() {
+  if (!window.supabaseClient) return;
+
+  // Evita duplicação
+  if (window.__sincronizandoCardsNex) return;
+  window.__sincronizandoCardsNex = true;
+
+  try {
+    const lista = await listarMinhasConversasSupabase();
+
+    if (!Array.isArray(lista) || !lista.length) {
+      window.__sincronizandoCardsNex = false;
+      return;
+    }
+
+    // Nome real do usuário logado (pra não criar card de si mesmo)
+    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+
+    for (const conv of lista) {
+      const usernameOutro = String(conv.outro_username || '').toLowerCase().trim();
+      if (!usernameOutro) continue;
+      if (usernameOutro === meuUser) continue;
+
+      // Nome de exibição
+      const nomeExibicao = conv.outro_nome || conv.outro_username || 'Usuário';
+
+      // Registra a conversa vazia se ainda não existir
+      if (typeof window.conversas === 'object' && !window.conversas[nomeExibicao]) {
+        window.conversas[nomeExibicao] = [];
+      }
+
+      // Guarda o ID da conversa
+      window.__convIdsNex = window.__convIdsNex || {};
+      window.__convIdsNex[nomeExibicao] = conv.conversa_id;
+
+      // Cria o card se não existir
+      const cardExistente = typeof window.obterCardConversaNex === 'function'
+        ? window.obterCardConversaNex(nomeExibicao)
+        : document.querySelector(`.nex-chat[data-chat="${nomeExibicao}"]`);
+
+      if (cardExistente) {
+        // Atualiza preview se tiver mensagem nova
+        if (conv.ultima_msg_texto) {
+          const p = cardExistente.querySelector('.nex-info p');
+          if (p) p.textContent = conv.ultima_msg_texto;
+        }
+        continue;
+      }
+
+      // Cria o card novo
+      if (typeof window.criarCardConversaNex === 'function') {
+        const conectado = typeof window.estaConectadoNoMyDropsNex === 'function'
+          ? window.estaConectadoNoMyDropsNex(usernameOutro)
+          : false;
+
+        const preview = conv.ultima_msg_texto || 'Nova conversa';
+
+        window.criarCardConversaNex(
+          nomeExibicao,
+          conectado,
+          { text: preview },
+          'recebida'
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('Erro ao sincronizar cards:', err);
+  } finally {
+    window.__sincronizandoCardsNex = false;
+  }
+}
 
   
   // ============================================
@@ -293,6 +367,7 @@ async function carregarConversaSupabase(nome) {
   window.editarMensagemSupabase = editarMensagemSupabase;
   window.apagarPraMimSupabase = apagarPraMimSupabase;
   window.apagarPraTodosSupabase = apagarPraTodosSupabase;
+  window.sincronizarCardsNexSupabase = sincronizarCardsNexSupabase;
 
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
