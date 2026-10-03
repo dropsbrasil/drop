@@ -24,11 +24,11 @@
   // ============================================
 
   async function abrirChatNex(el) {
-  const card = el?.closest?.('.nex-chat') || el;
-  const nome =
-    card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
+    const card = el?.closest?.('.nex-chat') || el;
+    const nome =
+      card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
 
-  if (!nome) return;
+    if (!nome) return;
 
     Drops.estado.conversaAtual = nome;
     window.setConversaAbertaNex(nome);
@@ -51,12 +51,11 @@
     }
 
     if (chat) {
-  chat.style.display = 'block';
-  chat.classList.add('active');
-}
+      chat.style.display = 'block';
+      chat.classList.add('active');
+    }
 
-// ⚠️ CORREÇÃO: usa classe no body em vez de style inline na tabbar
-document.body.classList.add('chat-aberto');
+    document.body.classList.add('chat-aberto');
 
     const bio =
       el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
@@ -71,25 +70,25 @@ document.body.classList.add('chat-aberto');
     if (chatStatus) chatStatus.innerText = connected ? '🟢 online' : '⚪ offline';
     if (chatAvatar) chatAvatar.innerText = nome.charAt(0).toUpperCase();
 
-    // ⚠️ Carrega conversa + mensagens do Supabase
-  if (typeof window.carregarConversaSupabase === 'function') {
-    try {
-      await window.carregarConversaSupabase(nome);
-    } catch (err) {
-      console.warn('Erro ao carregar conversa do Supabase:', err);
+    // Carrega conversa + mensagens do Supabase
+    if (typeof window.carregarConversaSupabase === 'function') {
+      try {
+        await window.carregarConversaSupabase(nome);
+      } catch (err) {
+        console.warn('Erro ao carregar conversa do Supabase:', err);
+      }
     }
-  }
 
-  if (!conversas[nome]) {
-    conversas[nome] = [];
-  }
+    if (!conversas[nome]) {
+      conversas[nome] = [];
+    }
 
-  renderChat(nome);
-  document.getElementById('chatInput')?.focus();
+    renderChat(nome);
+    document.getElementById('chatInput')?.focus();
   }
 
   // ============================================
-   // VOLTAR DO CHAT
+  // VOLTAR DO CHAT
   // ============================================
 
   function voltarChatNex() {
@@ -102,26 +101,25 @@ document.body.classList.add('chat-aberto');
     }
 
     if (nex) {
-  nex.style.display = 'block';
-  nex.classList.add('active');
-}
+      nex.style.display = 'block';
+      nex.classList.add('active');
+    }
 
-mostrarNexTab(Drops.estado.abaNex);
+    mostrarNexTab(Drops.estado.abaNex);
 
-window.setConversaAbertaNex('');
-window.setOrigemAberturaNex('');
-window.setCardAbertoNex(null);
+    window.setConversaAbertaNex('');
+    window.setOrigemAberturaNex('');
+    window.setCardAbertoNex(null);
 
-// ⚠️ CORREÇÃO: remove a classe correta
-document.body.classList.remove('chat-aberto');
-document.body.classList.remove('chat-open'); // limpeza de resíduo antigo
+    document.body.classList.remove('chat-aberto');
+    document.body.classList.remove('chat-open');
 
-// ⚠️ Sincroniza cards do Supabase ao voltar
-if (typeof window.sincronizarCardsNexSupabase === 'function') {
-  setTimeout(() => {
-    window.sincronizarCardsNexSupabase();
-  }, 300);
-}
+    // Sincroniza cards do Supabase ao voltar
+    if (typeof window.sincronizarCardsNexSupabase === 'function') {
+      setTimeout(() => {
+        window.sincronizarCardsNexSupabase();
+      }, 300);
+    }
   }
 
   // ============================================
@@ -136,13 +134,11 @@ if (typeof window.sincronizarCardsNexSupabase === 'function') {
 
     const msgs = conversas[nome] || [];
 
-    // Garante IDs e timestamps
     msgs.forEach((msg) => {
       if (!msg.id) msg.id = gerarIdMensagemNex();
       if (!msg.timestamp) msg.timestamp = Date.now();
     });
 
-    // Monta mapa de respostas (quem respondeu quem)
     const respostasPorOriginalNex = new Map();
 
     msgs.forEach((msg) => {
@@ -165,9 +161,7 @@ if (typeof window.sincronizarCardsNexSupabase === 'function') {
       });
     }
 
-    // Renderiza cada mensagem
     msgs.forEach((msg) => {
-      // Pula mensagens apagadas há mais de 5s
       if (msg.deleted && msg.deletedAt) {
         const passou5s = Date.now() - msg.deletedAt > 5000;
         if (passou5s) return;
@@ -203,17 +197,9 @@ if (typeof window.sincronizarCardsNexSupabase === 'function') {
 
       let anexosHTML = '';
 
-      // ============================================
-      // ANEXOS (serão processados em 06-nex-midia.js)
-      // ============================================
-      // Chama função global se existir
       if (typeof window.montarAnexosHTMLNex === 'function') {
         anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
       }
-
-      // ============================================
-      // HTML DA MENSAGEM
-      // ============================================
 
       card.innerHTML = msg.deleted
         ? `
@@ -340,7 +326,6 @@ if (typeof window.sincronizarCardsNexSupabase === 'function') {
 
     area.scrollTop = area.scrollHeight;
 
-    // Listeners de botões específicos
     document.querySelectorAll('.btn-fotos-open').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -353,214 +338,210 @@ if (typeof window.sincronizarCardsNexSupabase === 'function') {
   }
 
   // ============================================
-  // ENVIAR MENSAGEM (texto)
+  // ENVIAR MENSAGEM
   // ============================================
 
   async function enviarMsgNex() {
-  const input = document.getElementById('chatInput');
-  const texto = input ? input.value.trim() : '';
+    const input = document.getElementById('chatInput');
+    const texto = input ? input.value.trim() : '';
 
-  const temAudio = typeof window.temAudioNex === 'function'
-    ? window.temAudioNex()
-    : false;
-  const temMidia = typeof window.temMidiasNex === 'function'
-    ? window.temMidiasNex()
-    : false;
-  const temMidiaUnica = typeof window.getPreviewMidiaNex === 'function'
-    ? !!window.getPreviewMidiaNex()
-    : false;
-  const temDocumento = typeof window.temDocumentoNex === 'function'
-    ? window.temDocumentoNex()
-    : false;
-  const temLocalizacao = typeof window.temLocalizacaoNex === 'function'
-    ? window.temLocalizacaoNex()
-    : false;
+    const temAudio = typeof window.temAudioNex === 'function'
+      ? window.temAudioNex()
+      : false;
+    const temMidia = typeof window.temMidiasNex === 'function'
+      ? window.temMidiasNex()
+      : false;
+    const temMidiaUnica = typeof window.getPreviewMidiaNex === 'function'
+      ? !!window.getPreviewMidiaNex()
+      : false;
+    const temDocumento = typeof window.temDocumentoNex === 'function'
+      ? window.temDocumentoNex()
+      : false;
+    const temLocalizacao = typeof window.temLocalizacaoNex === 'function'
+      ? window.temLocalizacaoNex()
+      : false;
 
-  if (
-    !texto &&
-    !temAudio &&
-    !temMidia &&
-    !temMidiaUnica &&
-    !temDocumento &&
-    !temLocalizacao
-  ) {
-    return;
-  }
+    if (
+      !texto &&
+      !temAudio &&
+      !temMidia &&
+      !temMidiaUnica &&
+      !temDocumento &&
+      !temLocalizacao
+    ) {
+      return;
+    }
 
-  const conversaAtual = Drops.estado.conversaAtual;
+    const conversaAtual = Drops.estado.conversaAtual;
 
-  if (!conversas[conversaAtual]) {
-    conversas[conversaAtual] = [];
-  }
+    if (!conversas[conversaAtual]) {
+      conversas[conversaAtual] = [];
+    }
 
-  const mensagem = {
-    id: gerarIdMensagemNex(),
-    timestamp: Date.now(),
-    side: 'right',
-    nome: 'Eu',
-    avatar: 'EU',
-    data: new Date().toLocaleDateString('pt-BR'),
-    hora: new Date().toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    status: 'enviado'
-  };
-
-  // Resposta
-  if (respostaSelecionadaNex) {
-    mensagem.resposta = {
-      id: respostaSelecionadaNex.id,
-      nome: respostaSelecionadaNex.nome || '',
-      texto: respostaSelecionadaNex.text || '',
-      side: respostaSelecionadaNex.side || 'left'
+    const mensagem = {
+      id: gerarIdMensagemNex(),
+      timestamp: Date.now(),
+      side: 'right',
+      nome: 'Eu',
+      avatar: 'EU',
+      data: new Date().toLocaleDateString('pt-BR'),
+      hora: new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: 'enviado'
     };
-  }
 
-  if (texto) mensagem.text = texto;
+    // Resposta
+    if (respostaSelecionadaNex) {
+      // ⚠️ Usa o ID do Supabase se existir (não o local)
+      const idParaResposta =
+        respostaSelecionadaNex._supabaseId || respostaSelecionadaNex.id;
 
-  // ============================================
-  // ⚠️ CORREÇÃO: ANEXAR MÍDIAS / DOC / LOC / ÁUDIO
-  // ============================================
+      mensagem.resposta = {
+        id: idParaResposta,
+        nome: respostaSelecionadaNex.nome || '',
+        texto: respostaSelecionadaNex.text || '',
+        side: respostaSelecionadaNex.side || 'left'
+      };
+    }
 
-  // --- Mídia única (foto/vídeo da câmera) ---
-  const midiaUnica =
-    typeof window.getPreviewMidiaNex === 'function'
-      ? window.getPreviewMidiaNex()
-      : null;
+    if (texto) mensagem.text = texto;
 
-  if (midiaUnica && midiaUnica.url) {
-    mensagem.anexo = {
-      type: midiaUnica.type === 'video' ? 'video' : 'imagem',
-      url: midiaUnica.url
-    };
-  }
+    // --- Mídia única ---
+    const midiaUnica =
+      typeof window.getPreviewMidiaNex === 'function'
+        ? window.getPreviewMidiaNex()
+        : null;
 
-  // --- Múltiplas mídias (galeria) ---
-  const midias =
-    typeof window.getPreviewMidiasNex === 'function'
-      ? window.getPreviewMidiasNex()
-      : null;
+    if (midiaUnica && midiaUnica.url) {
+      mensagem.anexo = {
+        type: midiaUnica.type === 'video' ? 'video' : 'imagem',
+        url: midiaUnica.url
+      };
+    }
 
-  if (Array.isArray(midias) && midias.length) {
-    mensagem.midias = midias.map((m) => ({
-      url: m.url,
-      type: m.type === 'video' ? 'video' : 'imagem'
-    }));
-  }
+    // --- Múltiplas mídias ---
+    const midias =
+      typeof window.getPreviewMidiasNex === 'function'
+        ? window.getPreviewMidiasNex()
+        : null;
 
-  // --- Documento (PDF) ---
-  const documento =
-    typeof window.getDocumentoPreviewNex === 'function'
-      ? window.getDocumentoPreviewNex()
-      : null;
+    if (Array.isArray(midias) && midias.length) {
+      mensagem.midias = midias.map((m) => ({
+        url: m.url,
+        type: m.type === 'video' ? 'video' : 'imagem'
+      }));
+    }
 
-  if (documento && documento.url && !mensagem.anexo) {
-    mensagem.anexo = {
-      type: 'pdf',
-      url: documento.url,
-      name: documento.name || 'Documento PDF',
-      documento: {
+    // --- Documento (PDF) ---
+    const documento =
+      typeof window.getDocumentoPreviewNex === 'function'
+        ? window.getDocumentoPreviewNex()
+        : null;
+
+    if (documento && documento.url && !mensagem.anexo) {
+      mensagem.anexo = {
+        type: 'pdf',
         url: documento.url,
         name: documento.name || 'Documento PDF',
-        thumbnail: documento.thumbnail || '',
-        size: documento.size || 0
-      }
-    };
-  }
+        documento: {
+          url: documento.url,
+          name: documento.name || 'Documento PDF',
+          thumbnail: documento.thumbnail || '',
+          size: documento.size || 0
+        }
+      };
+    }
 
-  // --- Localização ---
-  const localizacao =
-    typeof window.getLocalizacaoPreviaNex === 'function'
-      ? window.getLocalizacaoPreviaNex()
-      : null;
+    // --- Localização ---
+    const localizacao =
+      typeof window.getLocalizacaoPreviaNex === 'function'
+        ? window.getLocalizacaoPreviaNex()
+        : null;
 
-  if (localizacao && localizacao.lat != null && !mensagem.anexo) {
-    mensagem.anexo = {
-      type: 'location',
-      lat: localizacao.lat,
-      lng: localizacao.lng,
-      address: localizacao.address || 'Localização',
-      localizacao: {
+    if (localizacao && localizacao.lat != null && !mensagem.anexo) {
+      mensagem.anexo = {
+        type: 'location',
         lat: localizacao.lat,
         lng: localizacao.lng,
-        address: localizacao.address || 'Localização'
-      }
-    };
-  }
-
-  // --- Áudio ---
-  const audioUrl =
-    typeof window.getAudioUrlNex === 'function'
-      ? window.getAudioUrlNex()
-      : '';
-
-  if (audioUrl) {
-    mensagem.audio = audioUrl;
-  }
-
-  // ⚠️ Envia pro Supabase primeiro
-let msgSupabase = null;
-
-if (
-  typeof window.enviarMensagemSupabase === 'function' &&
-  window.__convIdsNex &&
-  window.__convIdsNex[conversaAtual]
-) {
-  const convId = window.__convIdsNex[conversaAtual];
-
-  // Descobre o tipo
-  let tipo = 'texto';
-  let mediaUrl = null;
-
-  if (mensagem.audio) {
-    tipo = 'audio';
-    mediaUrl = mensagem.audio;
-  } else if (mensagem.anexo) {
-    tipo = mensagem.anexo.type === 'video' ? 'video' : 'imagem';
-    mediaUrl = mensagem.anexo.url || null;
-  } else if (mensagem.midias && mensagem.midias.length) {
-    tipo = 'album';
-    mediaUrl = mensagem.midias[0].url || null;
-  } else if (mensagem.text) {
-    tipo = 'texto';
-  }
-
-  try {
-    msgSupabase = await window.enviarMensagemSupabase({
-      conversa_id: convId,
-      tipo,
-      texto: mensagem.text || null,
-      media_url: mediaUrl,
-      media_meta: mensagem.midias ? { midias: mensagem.midias } : null,
-      resposta_a_id: mensagem.resposta?.id || null
-    });
-
-    // Atualiza o ID local com o ID do Supabase
-    if (msgSupabase && msgSupabase.id) {
-      mensagem._supabaseId = msgSupabase.id;
+        address: localizacao.address || 'Localização',
+        localizacao: {
+          lat: localizacao.lat,
+          lng: localizacao.lng,
+          address: localizacao.address || 'Localização'
+        }
+      };
     }
-  } catch (err) {
-    console.warn('Erro ao enviar pro Supabase:', err);
-  }
-}
 
-conversas[conversaAtual].push(mensagem);
+    // --- Áudio ---
+    const audioUrl =
+      typeof window.getAudioUrlNex === 'function'
+        ? window.getAudioUrlNex()
+        : '';
 
-// Limpa input
-if (input) input.value = '';
+    if (audioUrl) {
+      mensagem.audio = audioUrl;
+    }
 
-  // Limpa previews
-  if (typeof window.limparTodosPreviewsNex === 'function') {
-    window.limparTodosPreviewsNex();
-  }
+    // ⚠️ Envia pro Supabase primeiro
+    let msgSupabase = null;
 
-  if (respostaSelecionadaNex) {
-    cancelarRespostaNex();
-  }
+    if (
+      typeof window.enviarMensagemSupabase === 'function' &&
+      window.__convIdsNex &&
+      window.__convIdsNex[conversaAtual]
+    ) {
+      const convId = window.__convIdsNex[conversaAtual];
 
-  marcarConversaRespondidaNex(conversaAtual);
-  renderChat(conversaAtual);
+      let tipo = 'texto';
+      let mediaUrl = null;
+
+      if (mensagem.audio) {
+        tipo = 'audio';
+        mediaUrl = mensagem.audio;
+      } else if (mensagem.anexo) {
+        tipo = mensagem.anexo.type === 'video' ? 'video' : 'imagem';
+        mediaUrl = mensagem.anexo.url || null;
+      } else if (mensagem.midias && mensagem.midias.length) {
+        tipo = 'album';
+        mediaUrl = mensagem.midias[0].url || null;
+      } else if (mensagem.text) {
+        tipo = 'texto';
+      }
+
+      try {
+        msgSupabase = await window.enviarMensagemSupabase({
+          conversa_id: convId,
+          tipo,
+          texto: mensagem.text || null,
+          media_url: mediaUrl,
+          media_meta: mensagem.midias ? { midias: mensagem.midias } : null,
+          resposta_a_id: mensagem.resposta?.id || null
+        });
+
+        if (msgSupabase && msgSupabase.id) {
+          mensagem._supabaseId = msgSupabase.id;
+        }
+      } catch (err) {
+        console.warn('Erro ao enviar pro Supabase:', err);
+      }
+    }
+
+    conversas[conversaAtual].push(mensagem);
+
+    if (input) input.value = '';
+
+    if (typeof window.limparTodosPreviewsNex === 'function') {
+      window.limparTodosPreviewsNex();
+    }
+
+    if (respostaSelecionadaNex) {
+      cancelarRespostaNex();
+    }
+
+    marcarConversaRespondidaNex(conversaAtual);
+    renderChat(conversaAtual);
   }
 
   // ============================================
@@ -576,6 +557,7 @@ if (input) input.value = '';
     preview.style.display = 'none';
     preview.innerHTML = '';
   }
+  
 // ============================================
 // ABRIR MENU DE MENSAGEM
 // ============================================
@@ -597,28 +579,28 @@ function abrirMenuMsgNex(botao, msgId) {
   menu.innerHTML =
     lado === 'left'
       ? `
-      <button type="button" onclick="acaoResponderNex()">💬 Responder</button>
+    <button type="button" onclick="acaoResponderNex()">💬 Responder</button>
 
-      <button
-        type="button"
-        class="danger"
-        onclick="window.acaoApagarPraMimNex()">
-        🗑️ Apagar pra mim
-      </button>
+    <button
+      type="button"
+      class="danger"
+      onclick="window.acaoApagarPraMimNex()">
+      🗑️ Apagar pra mim
+    </button>
 
-      <button
-        type="button"
-        class="cancelar"
-        onclick="fecharMenuMsgNex()">
-        Cancelar
-      </button>
-    `
+    <button
+      type="button"
+      class="cancelar"
+      onclick="fecharMenuMsgNex()">
+      Cancelar
+    </button>
+  `
       : `
-      <button type="button" onclick="window.acaoResponderNex()">💬 Responder</button>
-      <button type="button" onclick="window.acaoReeditarNex()">✍🏼 Reeditar</button>
-      <button type="button" class="danger" onclick="window.acaoApagarMsgNex()">🗑️ Apagar para todos</button>
-      <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
-    `;
+    <button type="button" onclick="window.acaoResponderNex()">💬 Responder</button>
+    <button type="button" onclick="window.acaoReeditarNex()">✍🏼 Reeditar</button>
+    <button type="button" class="danger" onclick="window.acaoApagarMsgNex()">🗑️ Apagar para todos</button>
+    <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
+  `;
 
   menu.style.display = 'flex';
   menu.style.visibility = 'visible';
@@ -708,13 +690,29 @@ function fecharConfirmDeleteMeNex() {
   mensagemParaApagarNex = null;
 }
 
-function confirmarApagarPraMimNex() {
+async function confirmarApagarPraMimNex() {
   if (!mensagemParaApagarNex) return;
 
-  const idMsg =
-    typeof mensagemParaApagarNex === 'string'
-      ? mensagemParaApagarNex
-      : mensagemParaApagarNex.id;
+  const msg = mensagemParaApagarNex;
+  const idMsg = typeof msg === 'string' ? msg : msg.id;
+
+  // ⚠️ Pega o ID do Supabase
+  const idSupabase =
+    typeof msg === 'object'
+      ? (msg._supabaseId || msg.id)
+      : msg;
+
+  // ⚠️ Salva no Supabase (oculta)
+  if (
+    typeof window.apagarPraMimSupabase === 'function' &&
+    idSupabase
+  ) {
+    try {
+      await window.apagarPraMimSupabase(idSupabase);
+    } catch (err) {
+      console.warn('Erro ao ocultar no Supabase:', err);
+    }
+  }
 
   const conversaAtual = Drops.estado.conversaAtual;
   const lista = conversas[conversaAtual] || [];
@@ -754,13 +752,27 @@ function fecharConfirmDeleteNex() {
   mensagemParaApagarNex = null;
 }
 
-function confirmarApagarMsgNex() {
+async function confirmarApagarMsgNex() {
   if (!mensagemParaApagarNex) return;
 
   const msg = mensagemParaApagarNex;
   const nomePessoa = msg.nome || 'usuário';
 
   fecharConfirmDeleteNex();
+
+  // ⚠️ Salva no Supabase (marca pra todos)
+  const idSupabase = msg._supabaseId || msg.id;
+
+  if (
+    typeof window.apagarPraTodosSupabase === 'function' &&
+    idSupabase
+  ) {
+    try {
+      await window.apagarPraTodosSupabase(idSupabase);
+    } catch (err) {
+      console.warn('Erro ao apagar no Supabase:', err);
+    }
+  }
 
   msg.deleted = true;
   msg.deletedAt = Date.now();
@@ -837,7 +849,7 @@ function atualizarBotaoEdicaoNex() {
   btn.disabled = !mudou;
 }
 
-function concluirEdicaoNex() {
+async function concluirEdicaoNex() {
   if (!mensagemEmEdicaoNex) return;
 
   const input = document.getElementById('editarMsgInputNex');
@@ -847,6 +859,21 @@ function concluirEdicaoNex() {
   const textoOriginal = textoOriginalEdicaoNex;
 
   if (novoTexto.trim() === textoOriginal.trim()) return;
+
+  // ⚠️ Salva no Supabase
+  const idSupabase =
+    mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
+
+  if (
+    typeof window.editarMensagemSupabase === 'function' &&
+    idSupabase
+  ) {
+    try {
+      await window.editarMensagemSupabase(idSupabase, novoTexto);
+    } catch (err) {
+      console.warn('Erro ao editar no Supabase:', err);
+    }
+  }
 
   mensagemEmEdicaoNex.text = novoTexto;
   mensagemEmEdicaoNex.edited = true;
@@ -962,12 +989,13 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
 
   destacarMensagemNex(proxima.id, 'amarelo');
 }
-    // ============================================
+
+  
+  // ============================================
   // EVENTOS GLOBAIS DE CLIQUE (FECHAR MENUS)
   // ============================================
 
   document.addEventListener('click', (e) => {
-    // MENU DE MENSAGEM
     const menu = document.getElementById('msgMenuNex');
 
     if (
@@ -979,7 +1007,6 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
       fecharMenuMsgNex();
     }
 
-    // MODAL DE EDIÇÃO
     const modal = document.getElementById('editarMsgModalNex');
 
     if (
@@ -990,7 +1017,6 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
       fecharModalEdicaoNex();
     }
 
-    // MODAL DE APAGAR
     const deleteModal = document.getElementById('confirmDeleteModalNex');
 
     if (
@@ -1029,7 +1055,6 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Input de texto: Enter envia
     const input = document.getElementById('chatInput');
     if (input) {
       input.addEventListener('keydown', (e) => {
@@ -1040,19 +1065,16 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
       });
     }
 
-    // Botão Concluir Edição
     const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
     if (btnConcluir) {
       btnConcluir.addEventListener('click', concluirEdicaoNex);
     }
 
-    // Input de edição: verifica mudanças
     const inputEdicao = document.getElementById('editarMsgInputNex');
     if (inputEdicao) {
       inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
     }
 
-    // Botão fechar edição
     const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
     if (btnFecharEdicao) {
       btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
@@ -1060,7 +1082,7 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
   });
 
   // ============================================
-  // EXPÕE GLOBALMENTE (final)
+  // EXPÕE GLOBALMENTE
   // ============================================
 
   // Funções principais
@@ -1088,16 +1110,13 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
   window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
   window.irParaProximaRespostaNex = irParaProximaRespostaNex;
 
+  // Funções principais do chat
+  window.abrirChatNex = abrirChatNex;
+  window.voltarChatNex = voltarChatNex;
+  window.renderChat = renderChat;
+  window.enviarMsgNex = enviarMsgNex;
+  window.cancelarRespostaNex = cancelarRespostaNex;
 
-  // ============================================
-// EXPÕE FUNÇÕES PRINCIPAIS DO CHAT
-// ============================================
-
-window.abrirChatNex = abrirChatNex;
-window.voltarChatNex = voltarChatNex;
-window.renderChat = renderChat;
-window.enviarMsgNex = enviarMsgNex;
-window.cancelarRespostaNex = cancelarRespostaNex;
   // ============================================
   // DEBUG
   // ============================================
