@@ -1,8 +1,6 @@
 /* ============================================
    07-NEX-ALBUM.JS
    Visualizador de mídia, reações e comentários em mídia
-   
-   Depende de: 00-config.js, 03-utils.js, 05-nex-chat.js
 ============================================ */
 
 (function () {
@@ -14,29 +12,7 @@
 
   let midiasViewerAtualNex = [];
   let midiaViewerIndexNex = 0;
-
-  // ============================================
-  // REAÇÕES EM MÍDIA (armazenamento em memória)
-  // ============================================
-
-  const reacoesMidiasNex = new Map();
-
-  function obterReacaoMidiaNex(midia) {
-    return reacoesMidiasNex.get(chaveMidiaReacaoNex(midia)) || '';
-  }
-
-  function registrarReacaoMidiaNex(emoji) {
-    const midia = midiasViewerAtualNex[midiaViewerIndexNex];
-    if (!midia) return;
-
-    reacoesMidiasNex.set(chaveMidiaReacaoNex(midia), emoji);
-    renderMidiaViewerNex();
-
-    // Atualiza o chat
-    if (typeof renderChat === 'function' && Drops.estado.conversaAtual) {
-      renderChat(Drops.estado.conversaAtual);
-    }
-  }
+  let viewerContextoNex = null; // { mensagemId, midiaIndex }
 
   // ============================================
   // ABRIR VIEWER DE MÍDIAS
@@ -45,20 +21,24 @@
   function abrirVisualizadorMidiasNex(
     lista,
     indexInicial = 0,
-    mostrarComentario = true
+    mostrarComentario = true,
+    contexto = null
   ) {
     midiasViewerAtualNex = Array.isArray(lista) ? lista : [];
+    viewerContextoNex = contexto || null;
 
     midiaViewerIndexNex = Math.max(
       0,
       Math.min(indexInicial, midiasViewerAtualNex.length - 1)
     );
 
-    // Remove viewer antigo se existir
     const antigo = document.querySelector('.nex-midia-viewer');
     if (antigo) antigo.remove();
 
     if (!midiasViewerAtualNex.length) return;
+
+    const totalMidias = midiasViewerAtualNex.length;
+    const mostrarContador = totalMidias > 1;
 
     const viewer = document.createElement('div');
     viewer.className = 'nex-midia-viewer';
@@ -69,18 +49,28 @@
       <div class="viewer-topbar">
         <div class="viewer-top-left">
           <div class="viewer-title">Mídias compartilhadas no NEX</div>
-          <div class="viewer-counter" id="viewerCounterNex"></div>
+          ${mostrarContador ? `<div class="viewer-counter" id="viewerCounterNex"></div>` : ''}
         </div>
 
         <button class="viewer-close" type="button" aria-label="Voltar">➥</button>
       </div>
 
-      <button class="viewer-arrow viewer-arrow-left" type="button" aria-label="Anterior">
-        ‹
-      </button>
+      ${
+        mostrarContador
+          ? `
+        <button class="viewer-arrow viewer-arrow-left" type="button" aria-label="Anterior">‹</button>
+        <button class="viewer-arrow viewer-arrow-right" type="button" aria-label="Próxima">›</button>
+      `
+          : ''
+      }
 
       <div class="viewer-card">
         <div class="viewer-media" id="viewerMediaNex"></div>
+
+        <div class="viewer-reaction-badge" id="viewerReactionBadgeNex" style="display:none;">
+          <span id="viewerReactionEmojiNex"></span>
+          <span id="viewerReactionCountNex"></span>
+        </div>
 
         ${
           mostrarComentario
@@ -91,13 +81,23 @@
               id="viewerCommentInputNex"
               placeholder="Escreva um comentário..."></textarea>
 
-            <button type="button" class="viewer-reaction" aria-label="Reagir com coração">❤️</button>
-            <button type="button" class="viewer-reaction" aria-label="Reagir com coração partido">💔</button>
+            <button
+              type="button"
+              class="viewer-reaction viewer-reaction-heart"
+              data-reacao="heart"
+              aria-label="Reagir com coração">❤️</button>
+
+            <button
+              type="button"
+              class="viewer-reaction viewer-reaction-broken"
+              data-reacao="broken"
+              aria-label="Reagir com coração partido">💔</button>
 
             <button
               type="button"
               class="viewer-comment-send"
-              onclick="enviarComentarioMidiaNex()">
+              id="viewerCommentSendNex"
+              disabled>
               ᯓ➤
             </button>
           </div>
@@ -105,10 +105,6 @@
             : ''
         }
       </div>
-
-      <button class="viewer-arrow viewer-arrow-right" type="button" aria-label="Próxima">
-        ›
-      </button>
     `;
 
     document.body.appendChild(viewer);
@@ -116,25 +112,103 @@
     // Botão fechar
     viewer.querySelector('.viewer-close').onclick = () => {
       viewer.remove();
+      viewerContextoNex = null;
     };
 
     // Setas
-    viewer.querySelector('.viewer-arrow-left').onclick = () => {
-      navegarMidiaViewerNex(-1);
-    };
+    const leftBtn = viewer.querySelector('.viewer-arrow-left');
+    const rightBtn = viewer.querySelector('.viewer-arrow-right');
 
-    viewer.querySelector('.viewer-arrow-right').onclick = () => {
-      navegarMidiaViewerNex(1);
-    };
+    if (leftBtn) leftBtn.onclick = () => navegarMidiaViewerNex(-1);
+    if (rightBtn) rightBtn.onclick = () => navegarMidiaViewerNex(1);
 
-    // Reações
+    // Botões de reação
     viewer.querySelectorAll('.viewer-reaction').forEach((btn) => {
       btn.addEventListener('click', () => {
-        registrarReacaoMidiaNex(btn.textContent.trim());
+        const tipo = btn.dataset.reacao;
+        acaoReagirMidiaNex(tipo);
       });
     });
 
+    // Input de comentário — botão cinza/azul
+    const inputComentario = viewer.querySelector('#viewerCommentInputNex');
+    const btnEnviar = viewer.querySelector('#viewerCommentSendNex');
+
+    if (inputComentario && btnEnviar) {
+      const atualizarBotao = () => {
+        const tem = inputComentario.value.trim().length > 0;
+        btnEnviar.disabled = !tem;
+        btnEnviar.classList.toggle('is-active', tem);
+      };
+
+      inputComentario.addEventListener('input', atualizarBotao);
+      atualizarBotao();
+
+      // Enter envia
+      inputComentario.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (!btnEnviar.disabled) acaoEnviarComentarioMidiaNex();
+        }
+      });
+    }
+
+    // Swipe
+    configurarSwipeViewerNex(viewer);
+
     renderMidiaViewerNex();
+  }
+
+  // ============================================
+  // SWIPE
+  // ============================================
+
+  function configurarSwipeViewerNex(viewer) {
+    let startX = 0, startY = 0, startTime = 0, ativo = false;
+    const LIMITE = 50;
+    const TEMPO = 800;
+
+    viewer.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+
+      const alvo = e.target;
+      if (
+        alvo.closest('.viewer-comment-box') ||
+        alvo.closest('.viewer-close') ||
+        alvo.closest('.viewer-arrow') ||
+        alvo.closest('input') ||
+        alvo.closest('textarea') ||
+        alvo.closest('video')
+      ) {
+        ativo = false;
+        return;
+      }
+
+      ativo = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    }, { passive: true });
+
+    viewer.addEventListener('touchend', (e) => {
+      if (!ativo) return;
+      ativo = false;
+      if (!e.changedTouches || !e.changedTouches.length) return;
+
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      const dt = Date.now() - startTime;
+
+      if (dt > TEMPO) return;
+
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      if (absX > LIMITE && absX > absY * 1.3) {
+        if (dx < 0) navegarMidiaViewerNex(1);
+        else navegarMidiaViewerNex(-1);
+      }
+    }, { passive: true });
   }
 
   // ============================================
@@ -151,6 +225,12 @@
     if (novoIndice < 0 || novoIndice >= midiasViewerAtualNex.length) return;
 
     midiaViewerIndexNex = novoIndice;
+
+    // Atualiza contexto do viewer
+    if (viewerContextoNex) {
+      viewerContextoNex.midiaIndex = novoIndice;
+    }
+
     renderMidiaViewerNex();
   }
 
@@ -158,7 +238,7 @@
   // RENDERIZAR VIEWER
   // ============================================
 
-  function renderMidiaViewerNex() {
+  async function renderMidiaViewerNex() {
     const viewer = document.querySelector('.nex-midia-viewer');
     if (!viewer) return;
 
@@ -174,16 +254,12 @@
     const rightBtn = viewer.querySelector('.viewer-arrow-right');
 
     if (counter) {
-      counter.innerText = `${midiaViewerIndexNex + 1} / ${
-        midiasViewerAtualNex.length
-      }`;
+      counter.innerText = `${midiaViewerIndexNex + 1} / ${midiasViewerAtualNex.length}`;
     }
 
     if (media) {
       const url = String(midia.url || '');
-      const tipo = String(
-        midia.type || midia.tipo || midia.mimeType || ''
-      ).toLowerCase();
+      const tipo = String(midia.type || midia.tipo || '').toLowerCase();
 
       const ehVideo =
         tipo.includes('video') ||
@@ -228,27 +304,90 @@
       }
     }
 
-    // Preview de reação
-    const reacaoAtual = obterReacaoMidiaNex(midia);
-    let previewReacao = viewer.querySelector('.viewer-reaction-preview');
+    // Atualiza botões de reação
+    await atualizarBotoesReacaoViewerNex();
 
-    if (!previewReacao) {
-      previewReacao = document.createElement('div');
-      previewReacao.className = 'viewer-reaction-preview';
-      viewer.appendChild(previewReacao);
-    }
-
-    previewReacao.textContent = reacaoAtual;
-    previewReacao.style.display = reacaoAtual ? 'flex' : 'none';
-
-    // Estado das setas
-    if (leftBtn) {
-      leftBtn.disabled = midiaViewerIndexNex === 0;
-    }
-
+    // Atualiza setas
+    if (leftBtn) leftBtn.disabled = midiaViewerIndexNex === 0;
     if (rightBtn) {
-      rightBtn.disabled =
-        midiaViewerIndexNex >= midiasViewerAtualNex.length - 1;
+      rightBtn.disabled = midiaViewerIndexNex >= midiasViewerAtualNex.length - 1;
+    }
+  }
+
+  // ============================================
+  // ATUALIZAR BOTÕES DE REAÇÃO NO VIEWER
+  // ============================================
+
+  async function atualizarBotoesReacaoViewerNex() {
+    const viewer = document.querySelector('.nex-midia-viewer');
+    if (!viewer) return;
+
+    if (!viewerContextoNex || !viewerContextoNex.mensagemId) return;
+
+    const { mensagemId, midiaIndex } = viewerContextoNex;
+
+    if (typeof window.buscarReacoesMidiaNex !== 'function') return;
+
+    const reacoes = await window.buscarReacoesMidiaNex(mensagemId, midiaIndex);
+
+    // Atualiza botões
+    viewer.querySelectorAll('.viewer-reaction').forEach((btn) => {
+      const tipo = btn.dataset.reacao;
+      const ativo = reacoes.minhaReacao === tipo;
+      btn.classList.toggle('ativo', ativo);
+
+      // Remove contador antigo
+      const contAntigo = btn.querySelector('.viewer-reaction-count');
+      if (contAntigo) contAntigo.remove();
+
+      // Adiciona contador se > 0
+      const total = tipo === 'heart' ? reacoes.heart : reacoes.broken;
+      if (total > 0) {
+        const span = document.createElement('span');
+        span.className = 'viewer-reaction-count';
+        span.textContent = String(total);
+        btn.appendChild(span);
+      }
+    });
+
+    // Badge no centro (canto inferior da mídia)
+    const badge = viewer.querySelector('#viewerReactionBadgeNex');
+    const badgeEmoji = viewer.querySelector('#viewerReactionEmojiNex');
+    const badgeCount = viewer.querySelector('#viewerReactionCountNex');
+
+    if (badge && badgeEmoji && badgeCount) {
+      const temAlguma = (reacoes.heart + reacoes.broken) > 0;
+
+      if (temAlguma && reacoes.minhaReacao) {
+        badgeEmoji.textContent = reacoes.minhaReacao === 'heart' ? '❤️' : '💔';
+        badgeCount.textContent = String(
+          reacoes.minhaReacao === 'heart' ? reacoes.heart : reacoes.broken
+        );
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  // ============================================
+  // AÇÃO: REAGIR
+  // ============================================
+
+  async function acaoReagirMidiaNex(tipo) {
+    if (!viewerContextoNex || !viewerContextoNex.mensagemId) return;
+
+    const { mensagemId, midiaIndex } = viewerContextoNex;
+
+    if (typeof window.alternarReacaoMidiaNex !== 'function') return;
+
+    await window.alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo);
+
+    await atualizarBotoesReacaoViewerNex();
+
+    // Atualiza o badge no chat
+    if (typeof window.atualizarBadgeReacaoMidiaNex === 'function') {
+      window.atualizarBadgeReacaoMidiaNex(mensagemId, midiaIndex);
     }
   }
 
@@ -256,24 +395,20 @@
   // ABRIR MÍDIA ÚNICA
   // ============================================
 
-  function abrirMidiaChatNex(url, tipo) {
+  function abrirMidiaChatNex(url, tipo, contexto = null) {
     abrirVisualizadorMidiasNex(
-      [
-        {
-          url,
-          type: tipo === 'video' ? 'video' : 'imagem'
-        }
-      ],
+      [{ url, type: tipo === 'video' ? 'video' : 'imagem' }],
       0,
-      true
+      true,
+      contexto
     );
   }
 
   // ============================================
-  // ABRIR ÁLBUM / MÚLTIPLAS MÍDIAS
+  // ABRIR ÁLBUM
   // ============================================
 
-  function abrirFotosViewerNex(listaEncoded) {
+  function abrirFotosViewerNex(listaEncoded, contexto = null) {
     let lista = [];
 
     try {
@@ -288,7 +423,7 @@
     const midias = normalizarAlbumNex(lista);
     if (!midias.length) return;
 
-    abrirVisualizadorMidiasNex(midias, 0, true);
+    abrirVisualizadorMidiasNex(midias, 0, true, contexto);
   }
 
   function abrirMidiasChatNex(listaEncoded) {
@@ -296,10 +431,10 @@
   }
 
   // ============================================
-  // COMENTAR MÍDIA
+  // ENVIAR COMENTÁRIO (vira reply da mídia)
   // ============================================
 
-  function enviarComentarioMidiaNex() {
+  async function acaoEnviarComentarioMidiaNex() {
     const viewer = document.querySelector('.nex-midia-viewer');
     if (!viewer || !Drops.estado.conversaAtual) return;
 
@@ -315,43 +450,113 @@
       conversas[conversaAtual] = [];
     }
 
-    conversas[conversaAtual].push({
+    // ⚠️ Monta o reply apontando pra mídia original
+    let resposta = null;
+
+    if (viewerContextoNex && viewerContextoNex.mensagemId) {
+      const msgs = conversas[conversaAtual] || [];
+      const msgOriginal = msgs.find(
+        (m) =>
+          String(m.id) === String(viewerContextoNex.mensagemId) ||
+          String(m._supabaseId) === String(viewerContextoNex.mensagemId)
+      );
+
+      if (msgOriginal) {
+        resposta = {
+          id: msgOriginal._supabaseId || msgOriginal.id,
+          nome: msgOriginal.nome || 'Eu',
+          texto: msgOriginal.text || '📎 Mídia',
+          side: msgOriginal.side || 'left'
+        };
+      }
+    }
+
+    const hora = new Date().toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const mensagem = {
       id: gerarIdMensagemNex(),
       timestamp: Date.now(),
       side: 'right',
       nome: 'Eu',
       avatar: 'EU',
-      ...obterDataHoraNex(),
+      data: new Date().toLocaleDateString('pt-BR'),
+      hora,
       status: 'enviado',
-      text: texto,
-      anexo: {
-        type: midia.type === 'video' ? 'video' : 'imagem',
-        url: midia.url
+      text: texto
+    };
+
+    if (resposta) mensagem.resposta = resposta;
+
+    // ⚠️ Envia pro Supabase
+    const convId =
+      window.__convIdsNex && window.__convIdsNex[conversaAtual];
+
+    if (
+      convId &&
+      typeof window.enviarMensagemSupabase === 'function'
+    ) {
+      let meta = {};
+
+      if (resposta) {
+        meta.resposta_info = {
+          id: resposta.id,
+          nome: resposta.nome,
+          texto: resposta.texto,
+          side: resposta.side
+        };
       }
-    });
+
+      try {
+        const msgSupabase = await window.enviarMensagemSupabase({
+          conversa_id: convId,
+          tipo: 'texto',
+          texto: texto,
+          media_url: null,
+          media_meta: Object.keys(meta).length ? meta : null,
+          resposta_a_id: resposta?.id || null
+        });
+
+        if (msgSupabase && msgSupabase.id) {
+          mensagem._supabaseId = msgSupabase.id;
+        }
+      } catch (err) {
+        console.warn('Erro ao enviar comentário pro Supabase:', err);
+      }
+    }
+
+    conversas[conversaAtual].push(mensagem);
 
     input.value = '';
-    renderChat(conversaAtual);
+    const btnEnviar = viewer.querySelector('#viewerCommentSendNex');
+    if (btnEnviar) {
+      btnEnviar.disabled = true;
+      btnEnviar.classList.remove('is-active');
+    }
+
+    if (typeof window.renderChat === 'function') {
+      window.renderChat(conversaAtual);
+    }
+
+    if (typeof window.mostrarToastNex === 'function') {
+      window.mostrarToastNex('Comentário enviado!', 'sucesso');
+    }
   }
 
   // ============================================
-  // EXPÕE GLOBALMENTE
+  // EXPÕE
   // ============================================
-
   window.abrirVisualizadorMidiasNex = abrirVisualizadorMidiasNex;
   window.navegarMidiaViewerNex = navegarMidiaViewerNex;
   window.renderMidiaViewerNex = renderMidiaViewerNex;
   window.abrirMidiaChatNex = abrirMidiaChatNex;
   window.abrirFotosViewerNex = abrirFotosViewerNex;
   window.abrirMidiasChatNex = abrirMidiasChatNex;
-  window.enviarComentarioMidiaNex = enviarComentarioMidiaNex;
-  window.registrarReacaoMidiaNex = registrarReacaoMidiaNex;
-  window.obterReacaoMidiaNex = obterReacaoMidiaNex;
-
-  // ============================================
-  // DEBUG
-  // ============================================
+  window.enviarComentarioMidiaNex = acaoEnviarComentarioMidiaNex;
+  window.atualizarBotoesReacaoViewerNex = atualizarBotoesReacaoViewerNex;
+  window.acaoReagirMidiaNex = acaoReagirMidiaNex;
 
   console.log('🖼️ 07-nex-album.js carregado');
-
 })();

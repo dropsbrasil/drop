@@ -184,16 +184,20 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
             </div>
           `;
         } else {
-          // ---- FOTO NORMAL (enviada pelo chat) ----
-          html += `
-            <div class="msg-anexo-card">
-              <img
-                class="msg-midia-thumb"
-                src="${escapeHTML(msg.anexo.url)}"
-                alt="Mídia"
-                onclick="abrirMidiaChatNex('${escapeHTML(msg.anexo.url)}', 'imagem')">
-            </div>
-          `;
+  // ---- FOTO NORMAL (enviada pelo chat) ----
+  const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
+  const urlSafe = escapeHTML(msg.anexo.url);
+
+  html += `
+    <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+      <img
+        class="msg-midia-thumb"
+        src="${urlSafe}"
+        alt="Mídia"
+        onclick="window.abrirMidiaComContextoNex('${urlSafe}', 'imagem', '${msgIdSafe}', 0)">
+      <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
+    </div>
+  `;
         }
       }
 
@@ -242,18 +246,22 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
             </div>
           `;
         } else {
-          // ---- VÍDEO NORMAL (enviado pelo chat) ----
-          html += `
-            <div class="msg-anexo-card">
-              <div class="msg-video-thumb">
-                <video
-                  src="${escapeHTML(msg.anexo.url)}"
-                  controls
-                  playsinline>
-                </video>
-              </div>
-            </div>
-          `;
+  // ---- VÍDEO NORMAL (enviado pelo chat) ----
+  const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
+  const urlSafe = escapeHTML(msg.anexo.url);
+
+  html += `
+    <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+      <div class="msg-video-thumb">
+        <video
+          src="${urlSafe}"
+          controls
+          playsinline>
+        </video>
+      </div>
+      <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
+    </div>
+  `;
         }
       }
 
@@ -1592,8 +1600,16 @@ window.getAudioUrlNex = () => audioUrlNex;
   // HTML de anexos (usado pelo renderChat)
   window.montarAnexosHTMLNex = montarAnexosHTMLNex;
 
-  // Anexos e previews
-  window.mostrarPreviaMidiaNex = mostrarPreviaMidiaNex;
+ window.abrirMidiaComContextoNex = function (url, tipo, msgId, midiaIndex) {
+  if (typeof window.abrirMidiaChatNex === 'function') {
+    window.abrirMidiaChatNex(url, tipo, {
+      mensagemId: String(msgId || ''),
+      midiaIndex: Number(midiaIndex || 0)
+    });
+  }
+};
+
+window.mostrarPreviaMidiaNex = mostrarPreviaMidiaNex;
   window.limparPreviaMidiaNex = limparPreviaMidiaNex;
   window.abrirPreviewMidiaNex = abrirPreviewMidiaNex;
   window.mostrarPreviewMidiasNex = mostrarPreviewMidiasNex;

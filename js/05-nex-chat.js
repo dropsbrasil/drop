@@ -331,10 +331,73 @@ if (chatAvatar) {
   }
 
   // ============================================
-  // RENDERIZAR CHAT
-  // ============================================
+// BADGES DE REAÇÃO NAS MÍDIAS
+// ============================================
 
-  function renderChat(nome) {
+async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) {
+  if (!msgId) return;
+
+  const seletor = `.msg-midia-badge-slot[data-badge-msg-id="${msgId}"][data-badge-midia-index="${midiaIndex}"]`;
+  const slot = document.querySelector(seletor);
+  if (!slot) return;
+
+  if (typeof window.buscarReacoesMidiaNex !== 'function') return;
+
+  const reacoes = await window.buscarReacoesMidiaNex(msgId, midiaIndex);
+  const total = (reacoes.heart || 0) + (reacoes.broken || 0);
+
+  if (total === 0) {
+    slot.classList.remove('visivel', 'minha-reacao');
+    slot.innerHTML = '';
+    return;
+  }
+
+  // ⚠️ Qual emoji mostrar? Prioridade: minha reação > mais votada
+  let emojiMostrar = '';
+  let countMostrar = 0;
+
+  if (reacoes.minhaReacao) {
+    emojiMostrar = reacoes.minhaReacao === 'heart' ? '❤️' : '💔';
+    countMostrar =
+      reacoes.minhaReacao === 'heart' ? reacoes.heart : reacoes.broken;
+  } else if (reacoes.heart >= reacoes.broken) {
+    emojiMostrar = '❤️';
+    countMostrar = reacoes.heart;
+  } else {
+    emojiMostrar = '💔';
+    countMostrar = reacoes.broken;
+  }
+
+  slot.innerHTML = `
+    <span class="badge-emoji">${emojiMostrar}</span>
+    <span class="badge-count">${countMostrar}</span>
+  `;
+
+  slot.classList.add('visivel');
+  slot.classList.toggle('minha-reacao', !!reacoes.minhaReacao);
+}
+
+async function atualizarTodosBadgesReacaoMidiaNex() {
+  const area = document.getElementById('chatMsgs');
+  if (!area) return;
+
+  const slots = area.querySelectorAll('.msg-midia-badge-slot');
+
+  for (const slot of slots) {
+    const msgId = slot.dataset.badgeMsgId;
+    const midiaIndex = Number(slot.dataset.badgeMidiaIndex || 0);
+
+    if (!msgId) continue;
+
+    await atualizarBadgeReacaoMidiaNex(msgId, midiaIndex);
+  }
+}
+
+// ============================================
+// RENDERIZAR CHAT
+// ============================================
+
+function renderChat(nome) {
     const area = document.getElementById('chatMsgs');
     if (!area) return;
 
@@ -584,6 +647,9 @@ const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
     });
 
     area.scrollTop = area.scrollHeight;
+
+    // ⚠️ Busca e atualiza as reações das mídias visíveis
+    atualizarTodosBadgesReacaoMidiaNex();
 
 // ⚠️ Busca os avatares reais de quem ainda não está no cache
 area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
@@ -1527,6 +1593,8 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
 window.abrirChatNex = abrirChatNex;
 window.voltarChatNex = voltarChatNex;
 window.renderChat = renderChat;
+window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
+window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
 window.enviarMsgNex = enviarMsgNex;
 window.cancelarRespostaNex = cancelarRespostaNex;
 
