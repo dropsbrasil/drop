@@ -233,7 +233,7 @@
 // ============================================
 // CARREGAR CONVERSA COMPLETA (para o chat)
 // ============================================
-async async function carregarConversaSupabase(nome) {
+async function carregarConversaSupabase(nome) {
   // ⚠️ Usa o username real, não o nome de exibição
   const usernameReal =
     (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
