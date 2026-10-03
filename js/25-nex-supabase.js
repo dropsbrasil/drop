@@ -822,18 +822,23 @@ async function processarMensagemRealtimeNex(msg) {
 
   window.conversas[nomeContato].push(nova);
 
-  // Se o chat dessa pessoa está aberto, re-renderiza
-  const conversaAberta = Drops.estado.conversaAtual;
-  if (conversaAberta === nomeContato) {
-    if (typeof window.renderChat === 'function') {
+// Se o chat dessa pessoa está aberto, re-renderiza
+const conversaAberta = Drops.estado.conversaAtual;
+if (conversaAberta === nomeContato) {
+  if (typeof window.renderChat === 'function') {
+    // ⚠️ Duplo render pra garantir que as tags apareçam juntas
+    window.renderChat(nomeContato);
+
+    requestAnimationFrame(() => {
       window.renderChat(nomeContato);
-    }
-  } else {
-    // Senão, marca como não lida
-    if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
-      window.marcarConversaComoNaoLidaNex(nomeContato);
-    }
+    });
   }
+} else {
+  // Senão, marca como não lida
+  if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
+    window.marcarConversaComoNaoLidaNex(nomeContato);
+  }
+}
 
   // Atualiza preview do card
   const card = typeof window.obterCardConversaNex === 'function'

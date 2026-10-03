@@ -353,7 +353,6 @@ msgs.forEach((msg) => {
   const originalId = msg.resposta?.id;
   if (!originalId) return;
 
-  // ⚠️ Usa o ID do Supabase quando existir, senão o ID local
   const chaveOriginal = String(originalId);
 
   const lista = respostasPorOriginalNex.get(chaveOriginal) || [];
@@ -367,6 +366,10 @@ const idSupabaseParaLocalNex = new Map();
 msgs.forEach((msg) => {
   if (msg._supabaseId) {
     idSupabaseParaLocalNex.set(String(msg._supabaseId), String(msg.id));
+  }
+  // ⚠️ Também mapeia o próprio ID (caso já sejam iguais)
+  if (msg.id) {
+    idSupabaseParaLocalNex.set(String(msg.id), String(msg.id));
   }
 });
 
