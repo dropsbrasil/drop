@@ -469,3 +469,39 @@
   border-radius: 50%;
   display: block;
 }
+.chat-user-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chat-user-status::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #9ca3af;
+  transition: background .2s ease, box-shadow .2s ease;
+}
+
+.chat-user-status.online {
+  color: #16a34a;
+}
+
+.chat-user-status.online::before {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .22);
+}
+
+.chat-user-status.offline {
+  color: #64748b;
+}
+
+.chat-user-status.offline::before {
+  background: #9ca3af;
+  box-shadow: none;
+}
