@@ -65,11 +65,73 @@
     const chatStatus = document.getElementById('chatStatus');
     const chatAvatar = document.getElementById('chatAvatar');
 
-    if (chatName) chatName.innerText = nome;
-    if (chatBio) chatBio.innerText = bio;
-    if (chatStatus) chatStatus.innerText = connected ? '🟢 online' : '⚪ offline';
-    if (chatAvatar) chatAvatar.innerText = nome.charAt(0).toUpperCase();
+    if (chatName) {
+  chatName.innerText = nome;
+  chatName.style.cursor = 'pointer';
 
+  // ⚠️ Remove listener antigo antes de adicionar (evita duplicar)
+  if (chatName.__clickPerfilHandler) {
+    chatName.removeEventListener('click', chatName.__clickPerfilHandler);
+  }
+
+  chatName.__clickPerfilHandler = () => {
+    const usernameReal =
+      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+    if (typeof window.abrirPerfilVisitadoNex === 'function') {
+      window.abrirPerfilVisitadoNex(usernameReal, nome);
+    }
+  };
+
+  chatName.addEventListener('click', chatName.__clickPerfilHandler);
+}
+
+if (chatBio) chatBio.innerText = bio;
+if (chatStatus) chatStatus.innerText = connected ? '🟢 online' : '⚪ offline';
+
+// Avatar: mostra inicial primeiro (feedback rápido)
+if (chatAvatar) {
+  chatAvatar.innerText = nome.charAt(0).toUpperCase();
+  chatAvatar.style.backgroundImage = 'none';
+  chatAvatar.style.cursor = 'pointer';
+}
+
+// ⚠️ Busca o avatar real no Supabase e substitui
+const usernameAvatar =
+  (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+
+if (
+  usernameAvatar &&
+  typeof window.buscarPerfilPublicoSupabase === 'function'
+) {
+  try {
+    const perfil = await window.buscarPerfilPublicoSupabase(usernameAvatar);
+
+    if (perfil && perfil.avatar_url && chatAvatar) {
+      chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+      chatAvatar.style.backgroundImage = 'none';
+    }
+  } catch (err) {
+    console.warn('Erro ao buscar avatar no chat:', err);
+  }
+}
+
+// ⚠️ Avatar também abre o perfil
+if (chatAvatar) {
+  if (chatAvatar.__clickPerfilHandler) {
+    chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
+  }
+
+  chatAvatar.__clickPerfilHandler = () => {
+    const usernameReal =
+      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+    if (typeof window.abrirPerfilVisitadoNex === 'function') {
+      window.abrirPerfilVisitadoNex(usernameReal, nome);
+    }
+  };
+
+  chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
+}
+    
     // Carrega conversa + mensagens do Supabase
     if (typeof window.carregarConversaSupabase === 'function') {
       try {
