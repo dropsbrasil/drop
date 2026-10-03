@@ -100,6 +100,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 180px;
+  display: block;
+  position: relative;
+}
+
+/* ⚠️ Quando a bio não couber, ativa o efeito marquee */
+.chat-user-meta p.marquee-ativo {
+  text-overflow: clip;
+  max-width: 180px;
+  overflow: hidden;
+}
+
+.chat-user-meta p.marquee-ativo::before {
+  content: attr(data-texto);
+  display: inline-block;
+  padding-left: 100%;
+  animation: marqueeBioNex 12s linear infinite;
+  will-change: transform;
+}
+
+.chat-user-meta p.marquee-ativo {
+  font-size: 0; /* esconde o texto original */
+}
+
+.chat-user-meta p.marquee-ativo::before {
+  font-size: 12px;
+}
+
+@keyframes marqueeBioNex {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .chat-user-status {
