@@ -87,8 +87,15 @@ if (typeof mostrarTela === 'function') {
     // ============================================
 
     if (typeof renderizarConectadosMyDropsNex === 'function') {
-      renderizarConectadosMyDropsNex();
-    }
+  renderizarConectadosMyDropsNex();
+}
+
+// ⚠️ Verifica visibilidade da aba "Não lidas" após carregar
+setTimeout(() => {
+  if (typeof window.atualizarAbaNaoLidasNex === 'function') {
+    window.atualizarAbaNaoLidasNex();
+  }
+}, 1500);
 
     if (typeof renderizarPublicacoesNearbyNex === 'function') {
       renderizarPublicacoesNearbyNex();

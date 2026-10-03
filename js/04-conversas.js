@@ -207,12 +207,17 @@ async function atualizarStatusTodosCardsNex() {
 
     const card = obterCardConversaNex(nome);
 
-    if (card) {
-      card.classList.add('unread-chat');
-      moverCardConversaNex(nome, 'nex-naolidas', true);
-    }
+      if (card) {
+    card.classList.add('unread-chat');
+    moverCardConversaNex(nome, 'nex-naolidas', true);
   }
 
+  // ⚠️ Garante que a aba apareça
+  if (typeof atualizarAbaNaoLidasNex === 'function') {
+    atualizarAbaNaoLidasNex();
+  }
+  }
+  
   // ============================================
   // REGISTRAR MENSAGEM RECEBIDA
   // ============================================
@@ -345,7 +350,39 @@ if (typeof window.buscarStatusNex === 'function') {
 });
 
     lista.prepend(card);
+
+  // ⚠️ Atualiza visibilidade da aba "Não lidas"
+  if (typeof atualizarAbaNaoLidasNex === 'function') {
+    atualizarAbaNaoLidasNex();
   }
+}
+
+// ============================================
+// ATUALIZAR VISIBILIDADE DA ABA "NÃO LIDAS"
+// ============================================
+
+function atualizarAbaNaoLidasNex() {
+  const tabsEl = document.querySelector('.nex-tabs');
+  const listaNaoLidas = document.getElementById('nex-naolidas');
+
+  if (!tabsEl || !listaNaoLidas) return;
+
+  // ⚠️ Tem alguma conversa na aba "Não lidas"?
+  const temNaoLidas = listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
+
+  if (temNaoLidas) {
+    tabsEl.classList.remove('sem-naolidas');
+  } else {
+    tabsEl.classList.add('sem-naolidas');
+
+    // ⚠️ Se a aba ativa era "Não lidas", muda pra "Geral"
+    if (Drops.estado.abaNex === 'naolidas') {
+      if (typeof window.mostrarNexTab === 'function') {
+        window.mostrarNexTab('geral');
+      }
+    }
+  }
+}
 
   // ============================================
   // MARCAR COMO LIDA
@@ -377,11 +414,16 @@ if (typeof window.buscarStatusNex === 'function') {
       el.dataset.connected = conectado ? 'yes' : 'no';
     }
 
-    moverCardConversaNex(
-      nome,
-      conectado ? 'nex-conectados' : 'nex-geral',
-      true
-    );
+      moverCardConversaNex(
+    nome,
+    conectado ? 'nex-conectados' : 'nex-geral',
+    true
+  );
+
+  // ⚠️ Verifica se a aba "Não lidas" ainda tem itens
+  if (typeof atualizarAbaNaoLidasNex === 'function') {
+    atualizarAbaNaoLidasNex();
+  }
   }
 
   // ============================================
@@ -454,7 +496,8 @@ if (typeof window.buscarStatusNex === 'function') {
   // EXPÕE GLOBALMENTE (parte 2)
   // ============================================
 
-  window.criarCardConversaNex = criarCardConversaNex;
+window.criarCardConversaNex = criarCardConversaNex;
+window.atualizarAbaNaoLidasNex = atualizarAbaNaoLidasNex;
 window.marcarConversaComoLidaNex = marcarConversaComoLidaNex;
 window.marcarConversaRespondidaNex = marcarConversaRespondidaNex;
 window.removerConversaExpiradaNex = removerConversaExpiradaNex;
