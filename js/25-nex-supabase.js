@@ -524,28 +524,83 @@ async function processarMensagemRealtimeNex(msg) {
   const dataObj = new Date(msg.criado_em);
 
   const nova = {
-    id: msg.id,
-    timestamp: dataObj.getTime(),
-    side: 'left',
-    nome: nomeContato,
-    avatar: (nomeContato || '?').charAt(0).toUpperCase(),
-    data: dataObj.toLocaleDateString('pt-BR'),
-    hora: dataObj.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    status: 'recebido',
-    text: msg.texto || '',
-    anexo: msg.media_url
-      ? { type: msg.tipo === 'video' ? 'video' : 'imagem', url: msg.media_url }
-      : null,
-    resposta: msg.resposta_a_id ? { id: msg.resposta_a_id } : null,
-    edited: msg.editada === true,
-    deleted: msg.apagada_para_todos === true,
-    _supabaseId: msg.id
-  };
+  id: msg.id,
+  timestamp: dataObj.getTime(),
+  side: 'left',
+  nome: nomeContato,
+  avatar: (nomeContato || '?').charAt(0).toUpperCase(),
+  data: dataObj.toLocaleDateString('pt-BR'),
+  hora: dataObj.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }),
+  status: 'recebido',
+  text: msg.texto || '',
+  anexo: msg.media_url
+    ? { type: msg.tipo === 'video' ? 'video' : 'imagem', url: msg.media_url }
+    : null,
+  resposta: msg.resposta_a_id ? { id: msg.resposta_a_id } : null,
+  edited: msg.editada === true,
+  deleted: msg.apagada_para_todos === true,
+  _supabaseId: msg.id
+};
 
-  window.conversas[nomeContato].push(nova);
+// ⚠️ Se tem resposta_a_id e a msg original não está local, carrega tudo
+if (msg.resposta_a_id) {
+  const jaTemOriginal = window.conversas[nomeContato].some(
+    (m) => m._supabaseId === msg.resposta_a_id || m.id === msg.resposta_a_id
+  );
+
+  if (!jaTemOriginal) {
+    // Recarrega a conversa do Supabase pra ter a msg original
+    try {
+      const convId = window.__convIdsNex[nomeContato];
+      if (
+        convId &&
+        typeof window.buscarMensagensSupabase === 'function'
+      ) {
+        const todas = await window.buscarMensagensSupabase(convId);
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        const meuId = user?.id || null;
+
+        window.conversas[nomeContato] = (todas || []).map((m) => {
+          const d = new Date(m.criado_em);
+          const ehMinha = m.autor_id === meuId;
+          return {
+            id: m.id,
+            timestamp: d.getTime(),
+            side: ehMinha ? 'right' : 'left',
+            nome: ehMinha ? 'Eu' : nomeContato,
+            avatar: ehMinha ? 'EU' : (nomeContato || '?').charAt(0).toUpperCase(),
+            data: d.toLocaleDateString('pt-BR'),
+            hora: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            status: 'enviado',
+            text: m.texto || '',
+            anexo: m.media_url
+              ? { type: m.tipo === 'video' ? 'video' : 'imagem', url: m.media_url }
+              : null,
+            resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
+            edited: m.editada === true,
+            deleted: m.apagada_para_todos === true,
+            _supabaseId: m.id
+          };
+        });
+
+        // Sai daqui — a lista já foi toda recarregada
+        if (Drops.estado.conversaAtual === nomeContato) {
+          if (typeof window.renderChat === 'function') {
+            window.renderChat(nomeContato);
+          }
+        }
+        return;
+      }
+    } catch (err) {
+      console.warn('Erro ao recarregar conversa:', err);
+    }
+  }
+}
+
+window.conversas[nomeContato].push(nova);
 
   // Se o chat dessa pessoa está aberto, re-renderiza
   const conversaAberta = Drops.estado.conversaAtual;
