@@ -400,12 +400,29 @@ async function iniciarRealtimeNexSupabase() {
           const msg = payload.new;
           if (!msg) return;
 
-          // ⚠️ Se a mensagem foi enviada por mim, já foi adicionada localmente
+          // Se a mensagem foi enviada por mim, já foi adicionada localmente
           if (msg.autor_id === user.id) return;
 
           console.log('📩 Nova mensagem recebida via Realtime:', msg);
-
           processarMensagemRealtimeNex(msg);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'mensagens'
+        },
+        (payload) => {
+          const msg = payload.new;
+          if (!msg) return;
+
+          // Ignora se a atualização foi feita por mim (já refletida local)
+          if (msg.autor_id === user.id) return;
+
+          console.log('✏️ Mensagem atualizada via Realtime:', msg);
+          processarAtualizacaoMensagemNex(msg);
         }
       )
       .subscribe((status) => {
@@ -416,6 +433,52 @@ async function iniciarRealtimeNexSupabase() {
   }
 }
 
+// ============================================
+// PROCESSA UPDATE (edição / apagar pra todos)
+// ============================================
+async function processarAtualizacaoMensagemNex(msg) {
+  if (!msg || !msg.id) return;
+
+  // Descobre em qual conversa
+  let nomeContato = null;
+
+  if (window.__convIdsNex) {
+    for (const [nome, id] of Object.entries(window.__convIdsNex)) {
+      if (id === msg.conversa_id) {
+        nomeContato = nome;
+        break;
+      }
+    }
+  }
+
+  if (!nomeContato) return;
+
+  const lista = window.conversas[nomeContato] || [];
+  const local = lista.find(
+    (m) => m._supabaseId === msg.id || m.id === msg.id
+  );
+
+  if (!local) return;
+
+  // Atualiza os campos que mudaram
+  if (msg.apagada_para_todos) {
+    local.deleted = true;
+    local.deletedAt = Date.now();
+    local.deletedText = '🗑️ Mensagem apagada';
+    local.text = '';
+  } else {
+    local.text = msg.texto || '';
+    local.edited = msg.editada === true;
+  }
+
+  // Re-renderiza se o chat estiver aberto
+  if (Drops.estado.conversaAtual === nomeContato) {
+    if (typeof window.renderChat === 'function') {
+      window.renderChat(nomeContato);
+    }
+  }
+}
+  
 async function processarMensagemRealtimeNex(msg) {
   if (!msg || !msg.conversa_id) return;
 
