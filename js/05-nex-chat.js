@@ -349,7 +349,7 @@ document.body.classList.remove('chat-open'); // limpeza de resíduo antigo
   // ENVIAR MENSAGEM (texto)
   // ============================================
 
-  function enviarMsgNex() {
+  async function enviarMsgNex() {
   const input = document.getElementById('chatInput');
   const texto = input ? input.value.trim() : '';
 
@@ -492,10 +492,56 @@ document.body.classList.remove('chat-open'); // limpeza de resíduo antigo
     mensagem.audio = audioUrl;
   }
 
-  conversas[conversaAtual].push(mensagem);
+  // ⚠️ Envia pro Supabase primeiro
+let msgSupabase = null;
 
-  // Limpa input
-  if (input) input.value = '';
+if (
+  typeof window.enviarMensagemSupabase === 'function' &&
+  window.__convIdsNex &&
+  window.__convIdsNex[conversaAtual]
+) {
+  const convId = window.__convIdsNex[conversaAtual];
+
+  // Descobre o tipo
+  let tipo = 'texto';
+  let mediaUrl = null;
+
+  if (mensagem.audio) {
+    tipo = 'audio';
+    mediaUrl = mensagem.audio;
+  } else if (mensagem.anexo) {
+    tipo = mensagem.anexo.type === 'video' ? 'video' : 'imagem';
+    mediaUrl = mensagem.anexo.url || null;
+  } else if (mensagem.midias && mensagem.midias.length) {
+    tipo = 'album';
+    mediaUrl = mensagem.midias[0].url || null;
+  } else if (mensagem.text) {
+    tipo = 'texto';
+  }
+
+  try {
+    msgSupabase = await window.enviarMensagemSupabase({
+      conversa_id: convId,
+      tipo,
+      texto: mensagem.text || null,
+      media_url: mediaUrl,
+      media_meta: mensagem.midias ? { midias: mensagem.midias } : null,
+      resposta_a_id: mensagem.resposta?.id || null
+    });
+
+    // Atualiza o ID local com o ID do Supabase
+    if (msgSupabase && msgSupabase.id) {
+      mensagem._supabaseId = msgSupabase.id;
+    }
+  } catch (err) {
+    console.warn('Erro ao enviar pro Supabase:', err);
+  }
+}
+
+conversas[conversaAtual].push(mensagem);
+
+// Limpa input
+if (input) input.value = '';
 
   // Limpa previews
   if (typeof window.limparTodosPreviewsNex === 'function') {
