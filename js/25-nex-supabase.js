@@ -71,7 +71,6 @@
     if (!window.supabaseClient || !conversaId) return [];
 
     try {
-      // 1. Busca as mensagens
       const { data: mensagens, error } = await window.supabaseClient
         .from('mensagens')
         .select('*')
@@ -85,7 +84,6 @@
 
       if (!Array.isArray(mensagens) || !mensagens.length) return [];
 
-      // 2. Busca quais mensagens EU ocultei
       const { data: ocultas } = await window.supabaseClient
         .from('mensagens_ocultas')
         .select('mensagem_id');
@@ -94,7 +92,6 @@
         (ocultas || []).map((o) => o.mensagem_id)
       );
 
-      // 3. Filtra as ocultas
       return mensagens.filter((m) => !idsOcultas.has(m.id));
     } catch (err) {
       console.warn('Erro ao buscar mensagens:', err);
@@ -128,11 +125,10 @@
         .single();
 
       if (error) {
-  console.warn('Erro ao enviar mensagem:', error);
-  return null;
+        console.warn('Erro ao enviar mensagem:', error);
+        return null;
       }
 
-      // Atualiza atualizado_em da conversa
       await window.supabaseClient
         .from('conversas')
         .update({ atualizado_em: new Date().toISOString() })
@@ -140,8 +136,8 @@
 
       return data;
     } catch (err) {
-  console.warn('Erro ao enviar mensagem:', err);
-  return null;
+      console.warn('Erro ao enviar mensagem:', err);
+      return null;
     }
   }
 
@@ -189,7 +185,6 @@
           usuario_id: user.id
         });
 
-      // Ignora se já existe
       if (error && error.code !== '23505') {
         console.warn('Erro ao ocultar mensagem:', error);
         return false;
@@ -230,140 +225,153 @@
       return false;
     }
   }
-// ============================================
-// CARREGAR CONVERSA COMPLETA (para o chat)
-// ============================================
-async function carregarConversaSupabase(nome) {
-  // ⚠️ Usa o username real, não o nome de exibição
-  const usernameReal =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
-  const convId = await obterOuCriarConversaSupabase(usernameReal);
-  if (!convId) return null;
   
-  // Guarda o ID da conversa pra usar depois
-  window.__convIdsNex = window.__convIdsNex || {};
-  window.__convIdsNex[nome] = convId;
+  // ============================================
+  // CARREGAR CONVERSA COMPLETA (para o chat)
+  // ============================================
+  async function carregarConversaSupabase(nome) {
+    // Usa o username real, não o nome de exibição
+    const usernameReal =
+      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
 
-  const mensagens = await buscarMensagensSupabase(convId);
+    const convId = await obterOuCriarConversaSupabase(usernameReal);
+    if (!convId) return null;
 
-  const { data: { user } } = await window.supabaseClient.auth.getUser();
-  const meuId = user?.id || null;
+    window.__convIdsNex = window.__convIdsNex || {};
+    window.__convIdsNex[nome] = convId;
 
-  // Converte formato Supabase → formato local
-  const convertidas = (mensagens || []).map((m) => {
-    const dataObj = new Date(m.criado_em);
-    const ehMinha = m.autor_id === meuId;
+    const mensagens = await buscarMensagensSupabase(convId);
 
-    return {
-      id: m.id,
-      timestamp: dataObj.getTime(),
-      side: ehMinha ? 'right' : 'left',
-      nome: ehMinha ? 'Eu' : nome,
-      avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
-      data: dataObj.toLocaleDateString('pt-BR'),
-      hora: dataObj.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: 'enviado',
-      text: m.texto || '',
-      anexo: m.media_url
-        ? { type: m.tipo === 'video' ? 'video' : 'imagem', url: m.media_url }
-        : null,
-      resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
-      edited: m.editada === true,
-      deleted: m.apagada_para_todos === true,
-      _supabaseId: m.id
-    };
-  });
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    const meuId = user?.id || null;
 
-  if (typeof window.conversas === 'object') {
-    window.conversas[nome] = convertidas;
-  }
+    const convertidas = (mensagens || []).map((m) => {
+      const dataObj = new Date(m.criado_em);
+      const ehMinha = m.autor_id === meuId;
 
-  return convertidas;
-}
-// ============================================
-// SINCRONIZAR CARDS DO NEX
-// ============================================
-async function sincronizarCardsNexSupabase() {
-  if (!window.supabaseClient) return;
+      return {
+        id: m.id,
+        timestamp: dataObj.getTime(),
+        side: ehMinha ? 'right' : 'left',
+        nome: ehMinha ? 'Eu' : nome,
+        avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
+        data: dataObj.toLocaleDateString('pt-BR'),
+        hora: dataObj.toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        status: 'enviado',
+        text: m.texto || '',
+        anexo: m.media_url
+          ? { type: m.tipo === 'video' ? 'video' : 'imagem', url: m.media_url }
+          : null,
+        resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
+        edited: m.editada === true,
+        deleted: m.apagada_para_todos === true,
+        _supabaseId: m.id
+      };
+    });
 
-  // Evita duplicação
-  if (window.__sincronizandoCardsNex) return;
-  window.__sincronizandoCardsNex = true;
-
-  try {
-    const lista = await listarMinhasConversasSupabase();
-
-    if (!Array.isArray(lista) || !lista.length) {
-      window.__sincronizandoCardsNex = false;
-      return;
+    if (typeof window.conversas === 'object') {
+      window.conversas[nome] = convertidas;
     }
 
-    // Nome real do usuário logado (pra não criar card de si mesmo)
-    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+    return convertidas;
+  }
 
-    for (const conv of lista) {
-      const usernameOutro = String(conv.outro_username || '').toLowerCase().trim();
-      if (!usernameOutro) continue;
-      if (usernameOutro === meuUser) continue;
+  // ============================================
+  // SINCRONIZAR CARDS DO NEX
+  // ============================================
+  async function sincronizarCardsNexSupabase() {
+    if (!window.supabaseClient) return;
 
-      // Nome de exibição
-      const nomeExibicao = conv.outro_nome || conv.outro_username || 'Usuário';
+    if (window.__sincronizandoCardsNex) return;
+    window.__sincronizandoCardsNex = true;
 
-      // Registra a conversa vazia se ainda não existir
-      if (typeof window.conversas === 'object' && !window.conversas[nomeExibicao]) {
-        window.conversas[nomeExibicao] = [];
+    try {
+      const lista = await listarMinhasConversasSupabase();
+
+      if (!Array.isArray(lista) || !lista.length) {
+        window.__sincronizandoCardsNex = false;
+        return;
       }
 
-      // Guarda o ID da conversa
-window.__convIdsNex = window.__convIdsNex || {};
-window.__convIdsNex[nomeExibicao] = conv.conversa_id;
+      const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
 
-// ⚠️ NOVO: guarda o username real
-window.__convUsernamesNex = window.__convUsernamesNex || {};
-window.__convUsernamesNex[nomeExibicao] = usernameOutro;
-      
-      // Cria o card se não existir
-      const cardExistente = typeof window.obterCardConversaNex === 'function'
-        ? window.obterCardConversaNex(nomeExibicao)
-        : document.querySelector(`.nex-chat[data-chat="${nomeExibicao}"]`);
+      // Pega o ID do usuário logado 1x (pra saber se a última msg é minha)
+      const { data: { user: usuarioLogado } } =
+        await window.supabaseClient.auth.getUser();
+      const meuId = usuarioLogado?.id || null;
 
-      if (cardExistente) {
-        // Atualiza preview se tiver mensagem nova
-        if (conv.ultima_msg_texto) {
-          const p = cardExistente.querySelector('.nex-info p');
-          if (p) p.textContent = conv.ultima_msg_texto;
+      for (const conv of lista) {
+        const usernameOutro = String(conv.outro_username || '')
+          .toLowerCase()
+          .trim();
+        if (!usernameOutro) continue;
+        if (usernameOutro === meuUser) continue;
+
+        const nomeExibicao =
+          conv.outro_nome || conv.outro_username || 'Usuário';
+
+        if (
+          typeof window.conversas === 'object' &&
+          !window.conversas[nomeExibicao]
+        ) {
+          window.conversas[nomeExibicao] = [];
         }
-        continue;
+
+        // Guarda ID + username real
+        window.__convIdsNex = window.__convIdsNex || {};
+        window.__convIdsNex[nomeExibicao] = conv.conversa_id;
+
+        window.__convUsernamesNex = window.__convUsernamesNex || {};
+        window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+
+        // Cria o card se não existir
+        const cardExistente =
+          typeof window.obterCardConversaNex === 'function'
+            ? window.obterCardConversaNex(nomeExibicao)
+            : document.querySelector(
+                `.nex-chat[data-chat="${nomeExibicao}"]`
+              );
+
+        if (cardExistente) {
+          if (conv.ultima_msg_texto) {
+            const p = cardExistente.querySelector('.nex-info p');
+            if (p) p.textContent = conv.ultima_msg_texto;
+          }
+          continue;
+        }
+
+        // Cria o card novo
+        if (typeof window.criarCardConversaNex === 'function') {
+          const conectado =
+            typeof window.estaConectadoNoMyDropsNex === 'function'
+              ? window.estaConectadoNoMyDropsNex(usernameOutro)
+              : false;
+
+          const preview = conv.ultima_msg_texto || 'Nova conversa';
+
+          const ehMinhaUltimaMsg =
+            conv.ultima_msg_autor_id &&
+            meuId &&
+            conv.ultima_msg_autor_id === meuId;
+
+          window.criarCardConversaNex(
+            nomeExibicao,
+            conectado,
+            { text: preview },
+            ehMinhaUltimaMsg ? 'enviada' : 'recebida'
+          );
+        }
       }
-
-      // Cria o card novo
-      if (typeof window.criarCardConversaNex === 'function') {
-        const conectado = typeof window.estaConectadoNoMyDropsNex === 'function'
-          ? window.estaConectadoNoMyDropsNex(usernameOutro)
-          : false;
-
-        const preview = conv.ultima_msg_texto || 'Nova conversa';
-
-        window.criarCardConversaNex(
-          nomeExibicao,
-          conectado,
-          { text: preview },
-          'recebida'
-        );
-      }
+    } catch (err) {
+      console.warn('Erro ao sincronizar cards:', err);
+    } finally {
+      window.__sincronizandoCardsNex = false;
     }
-  } catch (err) {
-    console.warn('Erro ao sincronizar cards:', err);
-  } finally {
-    window.__sincronizandoCardsNex = false;
   }
-}
 
-  
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
