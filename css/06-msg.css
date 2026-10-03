@@ -1040,3 +1040,46 @@
   transform: scale(0.97);
   filter: brightness(1.08);
 }
+/* ⚠️ Badge de reação em mídia do chat */
+.msg-midia-badge-slot {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 12;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(13,20,36,.88);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  pointer-events: none;
+}
+
+.msg-midia-badge-slot.visivel {
+  display: inline-flex;
+}
+
+.msg-midia-badge-slot .badge-emoji {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.msg-midia-badge-slot .badge-count {
+  line-height: 1;
+}
+
+/* Se for a MINHA reação, fica destacado */
+.msg-midia-badge-slot.minha-reacao {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 16px rgba(37,99,235,.5);
+}
+
+/* ⚠️ Foto/vídeo normal precisa ter posição relativa pro badge ancorar */
+.msg-anexo-card[data-midia-msg-id] {
+  position: relative;
+}

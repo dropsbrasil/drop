@@ -61,23 +61,17 @@
   position: static;
   transform: none;
   z-index: 30;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
   color: #fff;
   font-size: 13px;
   font-weight: 800;
   text-shadow: 0 2px 12px rgba(0,0,0,.45);
-}
-
-.nex-midia-viewer .viewer-counter::after {
-  content: '';
-  width: 120px;
-  height: 7px;
+  background: rgba(255,255,255,.12);
+  padding: 4px 10px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #8fd0ff, #2d8cff);
-  box-shadow: 0 0 12px rgba(45,140,255,.45);
+  backdrop-filter: blur(8px);
 }
 
 /* ============================================
@@ -99,7 +93,6 @@
   justify-content: center;
   box-shadow: 0 10px 24px rgba(45,140,255,.32);
   cursor: pointer;
-  transform: none;
   transition: .2s ease;
 }
 
@@ -116,14 +109,14 @@
   top: 50%;
   transform: translateY(-50%);
   z-index: 35;
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
   background: rgba(255,255,255,.16);
   backdrop-filter: blur(12px);
-  color: #6bb7ff;
-  font-size: 26px;
+  color: #fff;
+  font-size: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,6 +190,34 @@
 }
 
 /* ============================================
+   BADGE DE REAÇÃO NO CENTRO (canto inferior)
+============================================ */
+
+.nex-midia-viewer .viewer-reaction-badge {
+  position: absolute;
+  bottom: 110px;
+  right: 22px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(13,20,36,.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.35);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.nex-midia-viewer .viewer-reaction-badge span:first-child {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ============================================
    TEXTO DE ERRO
 ============================================ */
 
@@ -219,7 +240,7 @@
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 12px;
   min-height: 62px;
   border-radius: 22px;
@@ -253,22 +274,8 @@
 }
 
 /* ============================================
-   BOTÕES DO RODAPÉ
+   BOTÕES DE REAÇÃO
 ============================================ */
-
-.nex-midia-viewer .viewer-reaction,
-.nex-midia-viewer .viewer-comment-send {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-  cursor: pointer;
-}
 
 .nex-midia-viewer .viewer-reaction {
   width: 42px;
@@ -285,11 +292,40 @@
   justify-content: center;
   cursor: pointer;
   transition: .18s ease;
+  position: relative;
 }
 
 .nex-midia-viewer .viewer-reaction:active {
   transform: scale(.92);
 }
+
+.nex-midia-viewer .viewer-reaction.ativo {
+  background: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,.45), 0 6px 16px rgba(37,99,235,.45);
+}
+
+.nex-midia-viewer .viewer-reaction-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid rgba(13,20,36,.92);
+}
+
+/* ============================================
+   BOTÃO ENVIAR COMENTÁRIO (cinza → azul)
+============================================ */
 
 .nex-midia-viewer .viewer-comment-send {
   width: 46px;
@@ -298,7 +334,7 @@
   border: none;
   outline: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, #74b9ff, #4d96ff);
+  background: #475569;
   color: #fff;
   font-size: 18px;
   font-weight: 700;
@@ -306,31 +342,21 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(77,150,255,.35);
   transition: .18s ease;
+  opacity: .7;
+}
+
+.nex-midia-viewer .viewer-comment-send.is-active {
+  background: linear-gradient(135deg, #74b9ff, #4d96ff);
+  opacity: 1;
+  box-shadow: 0 6px 18px rgba(77,150,255,.45);
 }
 
 .nex-midia-viewer .viewer-comment-send:active {
   transform: scale(.94);
 }
 
-/* ============================================
-   PREVIEW DE REAÇÃO
-============================================ */
-
-.nex-midia-viewer .viewer-reaction-preview {
-  position: absolute;
-  right: 18px;
-  bottom: 92px;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(13,20,36,.92);
-  box-shadow: 0 10px 24px rgba(0,0,0,.35);
-  z-index: 50;
-  font-size: 30px;
-  pointer-events: none;
+.nex-midia-viewer .viewer-comment-send:disabled {
+  cursor: not-allowed;
+  opacity: .55;
 }
