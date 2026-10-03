@@ -23,12 +23,12 @@
   // ABRIR CHAT
   // ============================================
 
-  function abrirChatNex(el) {
-    const card = el?.closest?.('.nex-chat') || el;
-    const nome =
-      card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
+  async function abrirChatNex(el) {
+  const card = el?.closest?.('.nex-chat') || el;
+  const nome =
+    card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
 
-    if (!nome) return;
+  if (!nome) return;
 
     Drops.estado.conversaAtual = nome;
     window.setConversaAbertaNex(nome);
@@ -71,12 +71,21 @@ document.body.classList.add('chat-aberto');
     if (chatStatus) chatStatus.innerText = connected ? '🟢 online' : '⚪ offline';
     if (chatAvatar) chatAvatar.innerText = nome.charAt(0).toUpperCase();
 
-    if (!conversas[nome]) {
-      conversas[nome] = [];
+    // ⚠️ Carrega conversa + mensagens do Supabase
+  if (typeof window.carregarConversaSupabase === 'function') {
+    try {
+      await window.carregarConversaSupabase(nome);
+    } catch (err) {
+      console.warn('Erro ao carregar conversa do Supabase:', err);
     }
+  }
 
-    renderChat(nome);
-    document.getElementById('chatInput')?.focus();
+  if (!conversas[nome]) {
+    conversas[nome] = [];
+  }
+
+  renderChat(nome);
+  document.getElementById('chatInput')?.focus();
   }
 
   // ============================================
