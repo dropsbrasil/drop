@@ -135,22 +135,30 @@
     const btnEnviar = viewer.querySelector('#viewerCommentSendNex');
 
     if (inputComentario && btnEnviar) {
-      const atualizarBotao = () => {
-        const tem = inputComentario.value.trim().length > 0;
-        btnEnviar.disabled = !tem;
-        btnEnviar.classList.toggle('is-active', tem);
-      };
+  const atualizarBotao = () => {
+    const tem = inputComentario.value.trim().length > 0;
+    btnEnviar.disabled = !tem;
+    btnEnviar.classList.toggle('is-active', tem);
+  };
 
-      inputComentario.addEventListener('input', atualizarBotao);
-      atualizarBotao();
+  inputComentario.addEventListener('input', atualizarBotao);
+  atualizarBotao();
 
-      // Enter envia
-      inputComentario.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          if (!btnEnviar.disabled) acaoEnviarComentarioMidiaNex();
-        }
-      });
+  // ⚠️ BOTÃO DE ENVIAR — CLIQUE
+  btnEnviar.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (btnEnviar.disabled) return;
+    acaoEnviarComentarioMidiaNex();
+  });
+
+  // Enter envia
+  inputComentario.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!btnEnviar.disabled) acaoEnviarComentarioMidiaNex();
+    }
+  });
     }
 
     // Swipe
@@ -374,22 +382,40 @@
   // AÇÃO: REAGIR
   // ============================================
 
-  async function acaoReagirMidiaNex(tipo) {
-    if (!viewerContextoNex || !viewerContextoNex.mensagemId) return;
-
-    const { mensagemId, midiaIndex } = viewerContextoNex;
-
-    if (typeof window.alternarReacaoMidiaNex !== 'function') return;
-
-    await window.alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo);
-
-    await atualizarBotoesReacaoViewerNex();
-
-    // Atualiza o badge no chat
-    if (typeof window.atualizarBadgeReacaoMidiaNex === 'function') {
-      window.atualizarBadgeReacaoMidiaNex(mensagemId, midiaIndex);
-    }
+async function acaoReagirMidiaNex(tipo) {
+  if (!viewerContextoNex || !viewerContextoNex.mensagemId) {
+    window.mostrarToastNex?.('Mídia sem ID. Envie uma nova.', 'info');
+    return;
   }
+
+  const { mensagemId, midiaIndex } = viewerContextoNex;
+
+  // ⚠️ Só funciona com UUID do Supabase
+  const ehUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mensagemId);
+
+  if (!ehUUID) {
+    window.mostrarToastNex?.('Mídia antiga. Envie uma nova pra reagir.', 'info');
+    return;
+  }
+
+  if (typeof window.alternarReacaoMidiaNex !== 'function') {
+    window.mostrarToastNex?.('Sistema de reações indisponível.', 'erro');
+    return;
+  }
+
+  const resultado = await window.alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo);
+
+  if (!resultado) {
+    window.mostrarToastNex?.('Falha ao reagir.', 'erro');
+    return;
+  }
+
+  await atualizarBotoesReacaoViewerNex();
+
+  if (typeof window.atualizarBadgeReacaoMidiaNex === 'function') {
+    window.atualizarBadgeReacaoMidiaNex(mensagemId, midiaIndex);
+  }
+}
 
   // ============================================
   // ABRIR MÍDIA ÚNICA
