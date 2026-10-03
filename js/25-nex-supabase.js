@@ -276,7 +276,9 @@ if (m.tipo === 'audio') {
   };
 }
 
-if (m.tipo === 'location') {
+if (m.tipo === 'audio') {
+  anexo = null;
+} else if (m.tipo === 'location') {
   const loc = meta.localizacao || {
     lat: meta.lat,
     lng: meta.lng,
@@ -595,7 +597,9 @@ async function processarMensagemRealtimeNex(msg) {
 let anexoNova = null;
 const metaNova = msg.media_meta || {};
 
-if (msg.tipo === 'location') {
+if (msg.tipo === 'audio') {
+  anexoNova = null;
+} else if (msg.tipo === 'location') {
   const loc = metaNova.localizacao || {
     lat: metaNova.lat,
     lng: metaNova.lng,
