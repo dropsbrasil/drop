@@ -129,7 +129,6 @@
 
       if (error) {
   console.warn('Erro ao enviar mensagem:', error);
-  alert('❌ ERRO SUPABASE:\n' + JSON.stringify(error));
   return null;
       }
 
@@ -142,7 +141,6 @@
       return data;
     } catch (err) {
   console.warn('Erro ao enviar mensagem:', err);
-  alert('❌ ERRO CATCH:\n' + String(err));
   return null;
     }
   }
