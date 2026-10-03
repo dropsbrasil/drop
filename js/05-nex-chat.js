@@ -106,12 +106,60 @@ async function buscarAvatarNex(username) {
     document.body.classList.add('chat-aberto');
 
     const bio =
-      el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
+  el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
 
-    const chatName = document.getElementById('chatName');
-    const chatBio = document.getElementById('chatBio');
-    const chatStatus = document.getElementById('chatStatus');
-    const chatAvatar = document.getElementById('chatAvatar');
+const chatName = document.getElementById('chatName');
+const chatBio = document.getElementById('chatBio');
+const chatStatus = document.getElementById('chatStatus');
+const chatAvatar = document.getElementById('chatAvatar');
+
+// ⚠️ Função que calcula presença real pelo ultima_atividade
+async function atualizarPresencaChatNex() {
+  const usernameReal =
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+
+  if (!usernameReal || !window.supabaseClient) return;
+
+  try {
+    const { data: perfil } = await window.supabaseClient
+      .from('profiles')
+      .select('ultima_atividade')
+      .eq(
+        'username',
+        String(usernameReal).toLowerCase().replace(/^@/, '').trim()
+      )
+      .maybeSingle();
+
+    const ultima = perfil?.ultima_atividade;
+    const LIMITE_ONLINE_MS = 30 * 1000;
+
+    const estaOnline =
+      ultima &&
+      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
+
+    if (chatStatus) {
+      chatStatus.innerText = estaOnline ? 'online' : 'offline';
+      chatStatus.classList.toggle('online', !!estaOnline);
+      chatStatus.classList.toggle('offline', !estaOnline);
+    }
+  } catch (err) {
+    console.warn('Erro ao buscar presença:', err);
+    if (chatStatus) {
+      chatStatus.innerText = 'offline';
+      chatStatus.classList.add('offline');
+      chatStatus.classList.remove('online');
+    }
+  }
+}
+
+// Atualiza na hora que abre
+atualizarPresencaChatNex();
+
+// ⚠️ Atualiza a cada 30s enquanto o chat estiver aberto
+if (window.__presencaIntervalNex) {
+  clearInterval(window.__presencaIntervalNex);
+}
+window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
 
     if (chatName) {
   chatName.innerText = nome;
@@ -134,7 +182,11 @@ async function buscarAvatarNex(username) {
 }
 
 if (chatBio) chatBio.innerText = bio;
-if (chatStatus) chatStatus.innerText = connected ? '🟢 online' : '⚪ offline';
+// ⚠️ O status real é preenchido por atualizarPresencaChatNex()
+if (chatStatus) {
+  chatStatus.innerText = '';
+  chatStatus.classList.remove('online', 'offline');
+}
 
 // Avatar: mostra inicial primeiro (feedback rápido)
 if (chatAvatar) {
@@ -202,8 +254,14 @@ if (chatAvatar) {
   // ============================================
 
   function voltarChatNex() {
-    const chat = document.getElementById('chatNex');
-    const nex = document.getElementById('nex');
+  // ⚠️ Para o timer de presença
+  if (window.__presencaIntervalNex) {
+    clearInterval(window.__presencaIntervalNex);
+    window.__presencaIntervalNex = null;
+  }
+
+  const chat = document.getElementById('chatNex');
+  const nex = document.getElementById('nex');
 
     if (chat) {
       chat.style.display = 'none';

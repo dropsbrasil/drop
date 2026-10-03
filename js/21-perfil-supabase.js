@@ -285,8 +285,8 @@ function iniciarHeartbeatNex() {
   // Envia 1x imediatamente
   enviarHeartbeatNex();
 
-  // Repete a cada 2 minutos
-  heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 2 * 60 * 1000);
+  // ⚠️ Atualiza a cada 15 segundos (rápido)
+  heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 15 * 1000);
 
   // Atualiza também quando volta pro app
   document.addEventListener('visibilitychange', () => {
@@ -295,7 +295,21 @@ function iniciarHeartbeatNex() {
     }
   });
 
-  console.log('💓 Heartbeat iniciado');
+  // ⚠️ Atualiza também quando o usuário interage (clique, digitação)
+  let ultimoEnvioInteracao = 0;
+  const handlerInteracao = () => {
+    const agora = Date.now();
+    // Evita spammar: só reenvia se passou mais de 10s
+    if (agora - ultimoEnvioInteracao < 10000) return;
+    ultimoEnvioInteracao = agora;
+    enviarHeartbeatNex();
+  };
+
+  ['click', 'keydown', 'touchstart', 'scroll'].forEach((evt) => {
+    document.addEventListener(evt, handlerInteracao, { passive: true });
+  });
+
+  console.log('💓 Heartbeat iniciado (15s)');
 }
 
 // ============================================
