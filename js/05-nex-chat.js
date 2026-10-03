@@ -559,9 +559,9 @@ const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
             qtdCitacoes > 0
               ? `
             <button
-              type="button"
-              class="reply-cited-bottom"
-              onclick="irParaRespostaFilhaNex('${msg.id}')">
+  type="button"
+  class="reply-cited-bottom"
+  onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
               <span>Msg foi citada</span>
               <span class="reply-cited-meta">
                 ${
@@ -1365,16 +1365,29 @@ function irParaMensagemNex(msgId) {
   destacarMensagemNex(msgId, 'verde');
 }
 
-function irParaRespostaFilhaNex(msgIdOriginal) {
+function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
   const msgs = conversas[Drops.estado.conversaAtual] || [];
 
-  const respostas = msgs.filter(
-    (m) => m.resposta && m.resposta.id === msgIdOriginal
-  );
+  // ⚠️ Aceita tanto o ID local quanto o UUID do Supabase
+  const idsValidos = [
+    String(msgIdOriginal || ''),
+    String(msgIdSupabaseOriginal || '')
+  ].filter(Boolean);
+
+  const respostas = msgs.filter((m) => {
+    if (!m.resposta) return false;
+
+    const idResposta = String(m.resposta.id || '');
+    return idsValidos.includes(idResposta);
+  });
 
   if (!respostas.length) return;
 
-  destacarMensagemNex(respostas[0].id, 'amarelo');
+  // ⚠️ Pega o ID local da resposta pra destacar
+  const primeiraResposta = respostas[0];
+  const idParaDestacar = primeiraResposta.id || primeiraResposta._supabaseId;
+
+  destacarMensagemNex(idParaDestacar, 'amarelo');
 }
 
 function irParaProximaRespostaNex(originalId, ordemAtual) {
