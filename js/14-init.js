@@ -79,6 +79,13 @@ if (typeof iniciarRealtimeNexSupabase === 'function') {
   }, 2000);
 }
 
+// ⚠️ Inicia o Realtime das reações de mídia
+if (typeof iniciarRealtimeReacoesMidiaNex === 'function') {
+  setTimeout(() => {
+    iniciarRealtimeReacoesMidiaNex();
+  }, 2500);
+}
+
 // ⚠️ Pede permissão pra enviar notificações
 if (typeof pedirPermissaoNotificacaoNex === 'function') {
   setTimeout(() => {
