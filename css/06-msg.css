@@ -1021,3 +1021,22 @@
   color: #92400e;
   line-height: 1.2;
 }
+/* ⚠️ Botão "Ver Drop" dentro do card de comentário do Nearby */
+.msg-nearby-comment-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.msg-nearby-comment-btn:active {
+  transform: scale(0.97);
+  filter: brightness(1.08);
+}
