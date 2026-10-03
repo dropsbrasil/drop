@@ -306,11 +306,22 @@ if (m.tipo === 'audio') {
   };
 } else if (m.tipo === 'album') {
   const midias = meta.midias || meta.urls || [];
-  anexo = {
-    type: 'album',
-    midias: midias,
-    urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
-  };
+  // ⚠️ Se só tem 1 mídia, trata como imagem/vídeo normal
+  if (midias.length === 1) {
+    const unica = midias[0];
+    const url = typeof unica === 'string' ? unica : unica.url;
+    const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
+    anexo = {
+      type: tipoUnica === 'video' ? 'video' : 'imagem',
+      url: url
+    };
+  } else {
+    anexo = {
+      type: 'album',
+      midias: midias,
+      urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
+    };
+  }
 } else if (m.media_url) {
   anexo = {
     type: m.tipo === 'video' ? 'video' : 'imagem',
@@ -626,11 +637,21 @@ if (msg.tipo === 'audio') {
   };
 } else if (msg.tipo === 'album') {
   const midiasNova = metaNova.midias || metaNova.urls || [];
-  anexoNova = {
-    type: 'album',
-    midias: midiasNova,
-    urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
-  };
+  if (midiasNova.length === 1) {
+    const unica = midiasNova[0];
+    const url = typeof unica === 'string' ? unica : unica.url;
+    const tipoUnica = (typeof unica === 'object' && unica.type) || 'imagem';
+    anexoNova = {
+      type: tipoUnica === 'video' ? 'video' : 'imagem',
+      url: url
+    };
+  } else {
+    anexoNova = {
+      type: 'album',
+      midias: midiasNova,
+      urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
+    };
+  }
 } else if (msg.media_url) {
   anexoNova = {
     type: msg.tipo === 'video' ? 'video' : 'imagem',
