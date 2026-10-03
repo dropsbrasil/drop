@@ -51,6 +51,13 @@ if (typeof sincronizarCardsNexSupabase === 'function') {
   }, 1500);
 }
 
+// ⚠️ Inicia o Realtime do NEX
+if (typeof iniciarRealtimeNexSupabase === 'function') {
+  setTimeout(() => {
+    iniciarRealtimeNexSupabase();
+  }, 2000);
+}
+
     // ============================================
     // 2. MOSTRA A TELA INICIAL
     // ============================================

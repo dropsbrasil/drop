@@ -373,6 +373,146 @@
   }
 
   // ============================================
+// REALTIME — escuta mensagens novas
+// ============================================
+let canalRealtimeNex = null;
+
+async function iniciarRealtimeNexSupabase() {
+  if (!window.supabaseClient) return;
+  if (canalRealtimeNex) return;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    console.log('📡 Iniciando Realtime do NEX...');
+
+    canalRealtimeNex = window.supabaseClient
+      .channel('nex-mensagens')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensagens'
+        },
+        (payload) => {
+          const msg = payload.new;
+          if (!msg) return;
+
+          // ⚠️ Se a mensagem foi enviada por mim, já foi adicionada localmente
+          if (msg.autor_id === user.id) return;
+
+          console.log('📩 Nova mensagem recebida via Realtime:', msg);
+
+          processarMensagemRealtimeNex(msg);
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime status:', status);
+      });
+  } catch (err) {
+    console.warn('Erro ao iniciar Realtime:', err);
+  }
+}
+
+async function processarMensagemRealtimeNex(msg) {
+  if (!msg || !msg.conversa_id) return;
+
+  // Descobre qual é o nome de exibição dessa conversa
+  let nomeContato = null;
+
+  if (window.__convIdsNex) {
+    for (const [nome, id] of Object.entries(window.__convIdsNex)) {
+      if (id === msg.conversa_id) {
+        nomeContato = nome;
+        break;
+      }
+    }
+  }
+
+  // Se não achou, precisa sincronizar cards pra descobrir
+  if (!nomeContato) {
+    await sincronizarCardsNexSupabase();
+
+    if (window.__convIdsNex) {
+      for (const [nome, id] of Object.entries(window.__convIdsNex)) {
+        if (id === msg.conversa_id) {
+          nomeContato = nome;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!nomeContato) return;
+
+  // Adiciona em memória
+  if (!window.conversas[nomeContato]) {
+    window.conversas[nomeContato] = [];
+  }
+
+  // Evita duplicação
+  const jaExiste = window.conversas[nomeContato].some(
+    (m) => m.id === msg.id || m._supabaseId === msg.id
+  );
+  if (jaExiste) return;
+
+  const dataObj = new Date(msg.criado_em);
+
+  const nova = {
+    id: msg.id,
+    timestamp: dataObj.getTime(),
+    side: 'left',
+    nome: nomeContato,
+    avatar: (nomeContato || '?').charAt(0).toUpperCase(),
+    data: dataObj.toLocaleDateString('pt-BR'),
+    hora: dataObj.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    status: 'recebido',
+    text: msg.texto || '',
+    anexo: msg.media_url
+      ? { type: msg.tipo === 'video' ? 'video' : 'imagem', url: msg.media_url }
+      : null,
+    resposta: msg.resposta_a_id ? { id: msg.resposta_a_id } : null,
+    edited: msg.editada === true,
+    deleted: msg.apagada_para_todos === true,
+    _supabaseId: msg.id
+  };
+
+  window.conversas[nomeContato].push(nova);
+
+  // Se o chat dessa pessoa está aberto, re-renderiza
+  const conversaAberta = Drops.estado.conversaAtual;
+  if (conversaAberta === nomeContato) {
+    if (typeof window.renderChat === 'function') {
+      window.renderChat(nomeContato);
+    }
+  } else {
+    // Senão, marca como não lida
+    if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
+      window.marcarConversaComoNaoLidaNex(nomeContato);
+    }
+  }
+
+  // Atualiza preview do card
+  const card = typeof window.obterCardConversaNex === 'function'
+    ? window.obterCardConversaNex(nomeContato)
+    : null;
+
+  if (card) {
+    const p = card.querySelector('.nex-info p');
+    if (p) p.textContent = nova.text || '📎 Mídia';
+  } else {
+    // Card não existe, cria
+    await sincronizarCardsNexSupabase();
+  }
+}
+
+  
+  // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
   window.carregarConversaSupabase = carregarConversaSupabase;
@@ -384,7 +524,8 @@
   window.apagarPraMimSupabase = apagarPraMimSupabase;
   window.apagarPraTodosSupabase = apagarPraTodosSupabase;
   window.sincronizarCardsNexSupabase = sincronizarCardsNexSupabase;
-
+window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
+  
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
     console.log('☁️ 25-nex-supabase.js pronto');
