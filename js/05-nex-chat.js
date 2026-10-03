@@ -349,24 +349,39 @@ if (chatAvatar) {
 
     const respostasPorOriginalNex = new Map();
 
-    msgs.forEach((msg) => {
-      const originalId = msg.resposta?.id;
-      if (!originalId) return;
+msgs.forEach((msg) => {
+  const originalId = msg.resposta?.id;
+  if (!originalId) return;
 
-      const lista = respostasPorOriginalNex.get(originalId) || [];
-      lista.push(msg);
-      respostasPorOriginalNex.set(originalId, lista);
-    });
+  // ⚠️ Usa o ID do Supabase quando existir, senão o ID local
+  const chaveOriginal = String(originalId);
+
+  const lista = respostasPorOriginalNex.get(chaveOriginal) || [];
+  lista.push(msg);
+  respostasPorOriginalNex.set(chaveOriginal, lista);
+});
+
+// ⚠️ Mapa auxiliar: ID do Supabase → ID local da mensagem
+const idSupabaseParaLocalNex = new Map();
+
+msgs.forEach((msg) => {
+  if (msg._supabaseId) {
+    idSupabaseParaLocalNex.set(String(msg._supabaseId), String(msg.id));
+  }
+});
 
     const qtdCitacoesPorOriginalNex = new Map();
     const ordemRespostaPorMsgIdNex = new Map();
 
     for (const [originalId, lista] of respostasPorOriginalNex.entries()) {
-      qtdCitacoesPorOriginalNex.set(originalId, lista.length);
+  qtdCitacoesPorOriginalNex.set(originalId, lista.length);
 
-      lista.forEach((msg, index) => {
-        ordemRespostaPorMsgIdNex.set(msg.id, index + 1);
-      });
+  lista.forEach((msg, index) => {
+    ordemRespostaPorMsgIdNex.set(String(msg.id), index + 1);
+    if (msg._supabaseId) {
+      ordemRespostaPorMsgIdNex.set(String(msg._supabaseId), index + 1);
+    }
+  });
     }
 
     msgs.forEach((msg) => {
@@ -410,8 +425,20 @@ const msgIdUnico = msg.id || gerarIdMensagemNex();
         msg.deleted ? ' msg-card-apagada' : ''
       }${classeSistema}`;
 
-      const qtdCitacoes = qtdCitacoesPorOriginalNex.get(msg.id) || 0;
-      const ordemResposta = ordemRespostaPorMsgIdNex.get(msg.id) || 0;
+ // ⚠️ Procura citações usando tanto o ID local quanto o ID do Supabase
+const idLocal = String(msg.id);
+const idSupabase = String(msg._supabaseId || '');
+
+const qtdCitacoesLocal = qtdCitacoesPorOriginalNex.get(idLocal) || 0;
+const qtdCitacoesSupabase = idSupabase
+  ? (qtdCitacoesPorOriginalNex.get(idSupabase) || 0)
+  : 0;
+
+const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
+      const ordemResposta =
+  ordemRespostaPorMsgIdNex.get(String(msg.id)) ||
+  ordemRespostaPorMsgIdNex.get(String(msg._supabaseId || '')) ||
+  0;
       const totalRespostasDaOriginal = msg.resposta
         ? (respostasPorOriginalNex.get(msg.resposta.id) || []).length
         : 0;
