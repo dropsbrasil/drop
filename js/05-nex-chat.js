@@ -576,30 +576,59 @@ if (audioUrl) {
       const convId = window.__convIdsNex[conversaAtual];
 
       let tipo = 'texto';
-      let mediaUrl = null;
+let mediaUrl = null;
+let mediaMeta = null;
 
-      if (mensagem.audio) {
-        tipo = 'audio';
-        mediaUrl = mensagem.audio;
-      } else if (mensagem.anexo) {
-        tipo = mensagem.anexo.type === 'video' ? 'video' : 'imagem';
-        mediaUrl = mensagem.anexo.url || null;
-      } else if (mensagem.midias && mensagem.midias.length) {
-        tipo = 'album';
-        mediaUrl = mensagem.midias[0].url || null;
-      } else if (mensagem.text) {
-        tipo = 'texto';
-      }
+if (mensagem.audio) {
+  tipo = 'audio';
+  mediaUrl = mensagem.audio;
+} else if (mensagem.anexo) {
+  // ⚠️ Detecta o tipo real do anexo
+  if (mensagem.anexo.type === 'location') {
+    tipo = 'location';
+    mediaUrl = null;
+    mediaMeta = {
+      lat: mensagem.anexo.lat,
+      lng: mensagem.anexo.lng,
+      address: mensagem.anexo.address || 'Localização',
+      localizacao: mensagem.anexo.localizacao || null
+    };
+  } else if (mensagem.anexo.type === 'pdf') {
+    tipo = 'pdf';
+    mediaUrl = mensagem.anexo.url || null;
+    mediaMeta = {
+      documento: mensagem.anexo.documento || null,
+      name: mensagem.anexo.name || 'Documento PDF'
+    };
+  } else if (mensagem.anexo.type === 'album') {
+    tipo = 'album';
+    mediaUrl = (mensagem.anexo.midias && mensagem.anexo.midias[0]?.url) || null;
+    mediaMeta = {
+      midias: mensagem.anexo.midias || [],
+      urls: mensagem.anexo.urls || []
+    };
+  } else {
+    // imagem ou vídeo normal
+    tipo = mensagem.anexo.type === 'video' ? 'video' : 'imagem';
+    mediaUrl = mensagem.anexo.url || null;
+  }
+} else if (mensagem.midias && mensagem.midias.length) {
+  tipo = 'album';
+  mediaUrl = mensagem.midias[0].url || null;
+  mediaMeta = { midias: mensagem.midias };
+} else if (mensagem.text) {
+  tipo = 'texto';
+}
 
-      try {
-        msgSupabase = await window.enviarMensagemSupabase({
-          conversa_id: convId,
-          tipo,
-          texto: mensagem.text || null,
-          media_url: mediaUrl,
-          media_meta: mensagem.midias ? { midias: mensagem.midias } : null,
-          resposta_a_id: mensagem.resposta?.id || null
-        });
+try {
+  msgSupabase = await window.enviarMensagemSupabase({
+    conversa_id: convId,
+    tipo,
+    texto: mensagem.text || null,
+    media_url: mediaUrl,
+    media_meta: mediaMeta,
+    resposta_a_id: mensagem.resposta?.id || null
+  });
 
         if (msgSupabase && msgSupabase.id) {
           mensagem._supabaseId = msgSupabase.id;

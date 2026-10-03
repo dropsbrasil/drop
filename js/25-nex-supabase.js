@@ -249,27 +249,92 @@
       const dataObj = new Date(m.criado_em);
       const ehMinha = m.autor_id === meuId;
 
-      return {
-        id: m.id,
-        timestamp: dataObj.getTime(),
-        side: ehMinha ? 'right' : 'left',
-        nome: ehMinha ? 'Eu' : nome,
-        avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
-        data: dataObj.toLocaleDateString('pt-BR'),
-        hora: dataObj.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        status: 'enviado',
-        text: m.texto || '',
-        anexo: m.media_url
-          ? { type: m.tipo === 'video' ? 'video' : 'imagem', url: m.media_url }
-          : null,
-        resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
-        edited: m.editada === true,
-        deleted: m.apagada_para_todos === true,
-        _supabaseId: m.id
-      };
+      // Reconstrói o anexo com base no tipo
+let anexo = null;
+const meta = m.media_meta || {};
+
+if (m.tipo === 'audio') {
+  // Áudio: usa o campo separado
+  return {
+    id: m.id,
+    timestamp: dataObj.getTime(),
+    side: ehMinha ? 'right' : 'left',
+    nome: ehMinha ? 'Eu' : nome,
+    avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
+    data: dataObj.toLocaleDateString('pt-BR'),
+    hora: dataObj.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    status: 'enviado',
+    text: m.texto || '',
+    audio: m.media_url || null,
+    resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
+    edited: m.editada === true,
+    deleted: m.apagada_para_todos === true,
+    _supabaseId: m.id
+  };
+}
+
+if (m.tipo === 'location') {
+  const loc = meta.localizacao || {
+    lat: meta.lat,
+    lng: meta.lng,
+    address: meta.address
+  };
+
+  anexo = {
+    type: 'location',
+    lat: loc.lat,
+    lng: loc.lng,
+    address: loc.address || 'Localização',
+    localizacao: loc
+  };
+} else if (m.tipo === 'pdf') {
+  anexo = {
+    type: 'pdf',
+    url: m.media_url,
+    name: meta.name || 'Documento PDF',
+    documento: meta.documento || {
+      url: m.media_url,
+      name: meta.name || 'Documento PDF',
+      thumbnail: '',
+      size: 0
+    }
+  };
+} else if (m.tipo === 'album') {
+  const midias = meta.midias || meta.urls || [];
+  anexo = {
+    type: 'album',
+    midias: midias,
+    urls: midias.map((x) => (typeof x === 'string' ? x : x.url))
+  };
+} else if (m.media_url) {
+  anexo = {
+    type: m.tipo === 'video' ? 'video' : 'imagem',
+    url: m.media_url
+  };
+}
+
+return {
+  id: m.id,
+  timestamp: dataObj.getTime(),
+  side: ehMinha ? 'right' : 'left',
+  nome: ehMinha ? 'Eu' : nome,
+  avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
+  data: dataObj.toLocaleDateString('pt-BR'),
+  hora: dataObj.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }),
+  status: 'enviado',
+  text: m.texto || '',
+  anexo,
+  resposta: m.resposta_a_id ? { id: m.resposta_a_id } : null,
+  edited: m.editada === true,
+  deleted: m.apagada_para_todos === true,
+  _supabaseId: m.id
+};
     });
 
     if (typeof window.conversas === 'object') {
@@ -526,7 +591,50 @@ async function processarMensagemRealtimeNex(msg) {
 
   const dataObj = new Date(msg.criado_em);
 
-  const nova = {
+// Reconstrói o anexo com base no tipo
+let anexoNova = null;
+const metaNova = msg.media_meta || {};
+
+if (msg.tipo === 'location') {
+  const loc = metaNova.localizacao || {
+    lat: metaNova.lat,
+    lng: metaNova.lng,
+    address: metaNova.address
+  };
+  anexoNova = {
+    type: 'location',
+    lat: loc.lat,
+    lng: loc.lng,
+    address: loc.address || 'Localização',
+    localizacao: loc
+  };
+} else if (msg.tipo === 'pdf') {
+  anexoNova = {
+    type: 'pdf',
+    url: msg.media_url,
+    name: metaNova.name || 'Documento PDF',
+    documento: metaNova.documento || {
+      url: msg.media_url,
+      name: metaNova.name || 'Documento PDF',
+      thumbnail: '',
+      size: 0
+    }
+  };
+} else if (msg.tipo === 'album') {
+  const midiasNova = metaNova.midias || metaNova.urls || [];
+  anexoNova = {
+    type: 'album',
+    midias: midiasNova,
+    urls: midiasNova.map((x) => (typeof x === 'string' ? x : x.url))
+  };
+} else if (msg.media_url) {
+  anexoNova = {
+    type: msg.tipo === 'video' ? 'video' : 'imagem',
+    url: msg.media_url
+  };
+}
+
+const nova = {
   id: msg.id,
   timestamp: dataObj.getTime(),
   side: 'left',
@@ -539,9 +647,8 @@ async function processarMensagemRealtimeNex(msg) {
   }),
   status: 'recebido',
   text: msg.texto || '',
-  anexo: msg.media_url
-    ? { type: msg.tipo === 'video' ? 'video' : 'imagem', url: msg.media_url }
-    : null,
+  audio: msg.tipo === 'audio' ? msg.media_url : null,
+  anexo: anexoNova,
   resposta: msg.resposta_a_id ? { id: msg.resposta_a_id } : null,
   edited: msg.editada === true,
   deleted: msg.apagada_para_todos === true,
