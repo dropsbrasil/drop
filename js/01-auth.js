@@ -797,20 +797,29 @@ function initSocialEventos() {
     if (modal) modal.style.display = 'none';
   }
 
-  function confirmarSairContaNex() {
-    const modal = document.getElementById('modalSairContaNex');
-    if (modal) {
-      modal.style.transition = 'opacity 0.2s ease';
-      modal.style.opacity = '0';
+  async function confirmarSairContaNex() {
+  const modal = document.getElementById('modalSairContaNex');
+  if (modal) {
+    modal.style.transition = 'opacity 0.2s ease';
+    modal.style.opacity = '0';
+  }
+
+  // ⚠️ Desloga também no Supabase Auth
+  try {
+    if (window.supabaseClient) {
+      await window.supabaseClient.auth.signOut();
     }
+  } catch (err) {
+    console.warn('Erro ao deslogar do Supabase:', err);
+  }
 
-    window.AuthAdapterNex.encerrarSessao();
+  window.AuthAdapterNex.encerrarSessao();
 
-    console.log('👋 Usuário deslogado');
+  console.log('👋 Usuário deslogado');
 
-    setTimeout(() => {
-      window.location.href = './onboarding.html?modo=login';
-    }, 220);
+  setTimeout(() => {
+    window.location.href = './onboarding.html?modo=login';
+  }, 220);
   }
 
   function sairDaContaNex() {

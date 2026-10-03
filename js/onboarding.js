@@ -169,31 +169,41 @@
   /* ============================================
      ESTADO INICIAL
   ============================================ */
-  function onbVerificarEstadoInicial() {
-    const jaCadastrado = localStorage.getItem(CHAVE_CADASTRO) === 'true';
-    const logado = localStorage.getItem('drops_logado') === 'true';
-    const params = new URLSearchParams(window.location.search);
-    const modoLogin = params.get('modo') === 'login';
+  async function onbVerificarEstadoInicial() {
+  const jaCadastrado = localStorage.getItem(CHAVE_CADASTRO) === 'true';
+  const logado = localStorage.getItem('drops_logado') === 'true';
+  const params = new URLSearchParams(window.location.search);
+  const modoLogin = params.get('modo') === 'login';
 
-    if (jaCadastrado && logado) {
-      onbIrParaApp();
+  // ⚠️ Se entrou em modo login, limpa TUDO do Supabase Auth
+  if (modoLogin && window.supabaseClient) {
+    try {
+      await window.supabaseClient.auth.signOut();
+      console.log('🧹 Sessão antiga do Supabase limpa');
+    } catch (err) {
+      console.warn('Erro ao deslogar sessão antiga:', err);
+    }
+  }
+
+  if (jaCadastrado && logado) {
+    onbIrParaApp();
+    return;
+  }
+
+  if (jaCadastrado && !logado) {
+    if (modoLogin) {
+      onbIrParaEmail();
       return;
     }
+    onbIrPara('escolha', false);
+    return;
+  }
 
-    if (jaCadastrado && !logado) {
-      if (modoLogin) {
-        onbIrParaEmail();
-        return;
-      }
-      onbIrPara('escolha', false);
-      return;
-    }
+  onbIrPara('splash', false);
 
-    onbIrPara('splash', false);
-
-    setTimeout(() => {
-      onbIrPara('carrossel');
-    }, 2800);
+  setTimeout(() => {
+    onbIrPara('carrossel');
+  }, 2800);
   }
 
   /* ============================================
@@ -528,11 +538,17 @@
 
     try {
       localStorage.setItem('drops_email_temp', email);
-      localStorage.setItem('drops_email', email);
+localStorage.setItem('drops_email', email);
 
-      const { data: existe, error: erroCheck } = await window.supabaseClient
-        .rpc('email_existe', { email_busca: email });
+// ⚠️ Desloga a sessão antiga antes de tentar um novo login
+try {
+  await window.supabaseClient.auth.signOut();
+} catch (signOutErr) {
+  console.warn('Erro ao limpar sessão antiga:', signOutErr);
+}
 
+const { data: existe, error: erroCheck } = await window.supabaseClient
+  .rpc('email_existe', { email_busca: email });
       if (erroCheck) throw erroCheck;
 
       if (existe) {
