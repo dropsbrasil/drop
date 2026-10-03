@@ -123,9 +123,23 @@
     }
   }
 
-  function onbIrParaEmail() {
-    historicoTelas.length = 0;
-    onbIrPara('email', false);
+  async function onbIrParaEmail() {
+  // ⚠️ Garante que não há sessão ativa antes de novo login
+  if (window.supabaseClient) {
+    try {
+      await window.supabaseClient.auth.signOut();
+      console.log('🧹 Sessão limpa ao entrar em modo login');
+    } catch (err) {
+      console.warn('Erro ao limpar sessão:', err);
+    }
+  }
+
+  // Limpa dados de sessão do localStorage
+  localStorage.removeItem('drops_logado');
+  localStorage.removeItem('drops_email_login');
+
+  historicoTelas.length = 0;
+  onbIrPara('email', false);
 
     setTimeout(() => {
       const input = document.getElementById('onbInputEmailGeral');
@@ -175,14 +189,20 @@
   const params = new URLSearchParams(window.location.search);
   const modoLogin = params.get('modo') === 'login';
 
-  // ⚠️ Se entrou em modo login, limpa TUDO do Supabase Auth
+  console.log('🔍 Estado inicial:', { jaCadastrado, logado, modoLogin });
+
+  // ⚠️ Se veio em modo login, LIMPA TUDO do Supabase
   if (modoLogin && window.supabaseClient) {
     try {
       await window.supabaseClient.auth.signOut();
-      console.log('🧹 Sessão antiga do Supabase limpa');
+      console.log('🧹 Sessão do Supabase limpa (modo login)');
     } catch (err) {
-      console.warn('Erro ao deslogar sessão antiga:', err);
+      console.warn('Erro ao deslogar:', err);
     }
+
+    localStorage.removeItem('drops_logado');
+    localStorage.removeItem('drops_username');
+    localStorage.removeItem('drops_nome');
   }
 
   if (jaCadastrado && logado) {
@@ -540,11 +560,12 @@
       localStorage.setItem('drops_email_temp', email);
 localStorage.setItem('drops_email', email);
 
-// ⚠️ Desloga a sessão antiga antes de tentar um novo login
+// ⚠️ Desloga TUDO antes de novo login
 try {
   await window.supabaseClient.auth.signOut();
+  console.log('🧹 Sessão antiga limpa');
 } catch (signOutErr) {
-  console.warn('Erro ao limpar sessão antiga:', signOutErr);
+  console.warn('Erro ao limpar sessão:', signOutErr);
 }
 
 const { data: existe, error: erroCheck } = await window.supabaseClient
