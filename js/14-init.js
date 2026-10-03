@@ -59,12 +59,24 @@ if (typeof iniciarRealtimeNexSupabase === 'function') {
 }
 
     // ============================================
-    // 2. MOSTRA A TELA INICIAL
-    // ============================================
+// 2. MOSTRA A TELA INICIAL (restaura a última)
+// ============================================
 
-    if (typeof mostrarTela === 'function') {
-      mostrarTela('mydrops', 0);
+if (typeof mostrarTela === 'function') {
+  let telaSalva = 'mydrops';
+
+  try {
+    const salva = localStorage.getItem('drops_tela_atual');
+    if (salva && ['mydrops', 'nearby', 'nex'].includes(salva)) {
+      telaSalva = salva;
     }
+  } catch (e) {}
+
+  const mapaTabs = { mydrops: 0, nearby: 1, nex: 2 };
+  const index = mapaTabs[telaSalva] ?? 0;
+
+  mostrarTela(telaSalva, index);
+}
 
     if (typeof mostrarNexTab === 'function') {
       mostrarNexTab('naolidas');

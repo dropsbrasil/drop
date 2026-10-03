@@ -30,8 +30,15 @@
     }
 
     if (index >= 0 && tabs[index]) {
-      tabs[index].classList.add('active-tab');
-    }
+  tabs[index].classList.add('active-tab');
+}
+
+// ⚠️ Salva a tela atual pra restaurar no reload
+if (id && id !== 'chatNex') {
+  try {
+    localStorage.setItem('drops_tela_atual', id);
+  } catch (e) {}
+}
 
     // Esconde a tela NEX quando abre o chat
     if (id === 'chatNex') {
