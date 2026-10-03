@@ -44,10 +44,31 @@
 
 // ⚠️ Sincroniza conversas reais do Supabase (em background)
 if (typeof sincronizarCardsNexSupabase === 'function') {
-  setTimeout(() => {
-    sincronizarCardsNexSupabase().then(() => {
-      console.log('💬 Cards do Supabase sincronizados');
-    });
+  setTimeout(async () => {
+    await sincronizarCardsNexSupabase();
+
+    // ⚠️ Abre a aba correta DEPOIS de sincronizar
+    setTimeout(() => {
+      const listaNaoLidas = document.getElementById('nex-naolidas');
+      const temNaoLidas =
+        listaNaoLidas &&
+        listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
+
+      if (typeof mostrarNexTab === 'function') {
+        if (temNaoLidas) {
+          mostrarNexTab('naolidas');
+        } else {
+          mostrarNexTab('geral');
+        }
+      }
+
+      // ⚠️ Atualiza visibilidade da aba (esconde se vazia)
+      if (typeof window.atualizarAbaNaoLidasNex === 'function') {
+        window.atualizarAbaNaoLidasNex();
+      }
+    }, 200);
+
+    console.log('💬 Cards do Supabase sincronizados');
   }, 1500);
 }
 
@@ -85,10 +106,9 @@ if (typeof mostrarTela === 'function') {
   mostrarTela(telaSalva, index);
 }
 
-    if (typeof mostrarNexTab === 'function') {
-      mostrarNexTab('naolidas');
-    }
-
+    // ⚠️ NÃO abre aba ainda — espera sincronizar os cards
+// A aba correta é escolhida em atualizarAbaInicialNex()
+    
     // ============================================
     // 3. RENDERIZA LISTAS E CONTEÚDO
     // ============================================

@@ -411,26 +411,46 @@ async function sincronizarCardsNexSupabase() {
       }
 
       // Cria o card novo
-      if (typeof window.criarCardConversaNex === 'function') {
-        const conectado =
-          typeof window.estaConectadoNoMyDropsNex === 'function'
-            ? window.estaConectadoNoMyDropsNex(usernameOutro)
-            : false;
+if (typeof window.criarCardConversaNex === 'function') {
+  const conectado =
+    typeof window.estaConectadoNoMyDropsNex === 'function'
+      ? window.estaConectadoNoMyDropsNex(usernameOutro)
+      : false;
 
-        const preview = conv.ultima_msg_texto || 'Nova conversa';
+  const preview = conv.ultima_msg_texto || 'Nova conversa';
 
-        const ehMinhaUltimaMsg =
-          conv.ultima_msg_autor_id &&
-          meuId &&
-          conv.ultima_msg_autor_id === meuId;
+  const ehMinhaUltimaMsg =
+    conv.ultima_msg_autor_id &&
+    meuId &&
+    conv.ultima_msg_autor_id === meuId;
 
-        window.criarCardConversaNex(
-          nomeExibicao,
-          conectado,
-          { text: preview },
-          ehMinhaUltimaMsg ? 'enviada' : 'recebida'
-        );
-      }
+  // ⚠️ Verifica se essa conversa já foi aberta antes
+  const estadoConversa =
+    typeof window.obterEstadoConversaNex === 'function'
+      ? window.obterEstadoConversaNex(nomeExibicao, conectado)
+      : null;
+
+  const jaFoiLida =
+    estadoConversa &&
+    !estadoConversa.unread &&
+    (estadoConversa.replied || estadoConversa.permanente || estadoConversa.openedAt);
+
+  // ⚠️ Se já foi lida, coloca direto em Geral/Conectados
+  let tipoCard = 'recebida';
+
+  if (jaFoiLida) {
+    tipoCard = 'enviada'; // cai em conectados/geral
+  } else if (ehMinhaUltimaMsg) {
+    tipoCard = 'enviada';
+  }
+
+  window.criarCardConversaNex(
+    nomeExibicao,
+    conectado,
+    { text: preview },
+    tipoCard
+  );
+}
     }
   } catch (err) {
     console.warn('Erro ao sincronizar cards:', err);
