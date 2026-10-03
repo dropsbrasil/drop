@@ -415,20 +415,30 @@ const midiaUnica =
     : null;
 
 if (midiaUnica && midiaUnica.url) {
-  // ⚠️ Faz upload pro Storage
-  let urlFinal = midiaUnica.url;
+  let urlFinal = null;
 
   if (typeof window.uploadMidiaNexSupabase === 'function') {
     window.mostrarToastNex?.('Enviando mídia...', 'info');
     const urlStorage = await window.uploadMidiaNexSupabase(midiaUnica.url);
-    if (urlStorage) urlFinal = urlStorage;
-    else window.mostrarToastNex?.('Falha ao enviar mídia.', 'erro');
+    if (urlStorage) {
+      urlFinal = urlStorage;
+    }
   }
 
-  mensagem.anexo = {
-    type: midiaUnica.type === 'video' ? 'video' : 'imagem',
-    url: urlFinal
-  };
+  // ⚠️ Só envia se conseguiu uma URL pública de verdade
+  if (urlFinal && /^https?:\/\//i.test(urlFinal)) {
+    mensagem.anexo = {
+      type: midiaUnica.type === 'video' ? 'video' : 'imagem',
+      url: urlFinal
+    };
+  } else {
+    window.mostrarToastNex?.('Falha ao enviar mídia. Tente novamente.', 'erro');
+
+    if (typeof window.limparTodosPreviewsNex === 'function') {
+      window.limparTodosPreviewsNex();
+    }
+    return; // aborta o envio
+  }
 }
 
     // --- Múltiplas mídias (álbum/galeria) ---
@@ -438,7 +448,6 @@ const midias =
     : null;
 
 if (Array.isArray(midias) && midias.length) {
-  // ⚠️ Faz upload de cada uma
   const midiasEnviadas = [];
 
   if (typeof window.uploadMidiaNexSupabase === 'function') {
@@ -446,7 +455,7 @@ if (Array.isArray(midias) && midias.length) {
 
     for (const m of midias) {
       const urlStorage = await window.uploadMidiaNexSupabase(m.url);
-      if (urlStorage) {
+      if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
         midiasEnviadas.push({
           url: urlStorage,
           type: m.type === 'video' ? 'video' : 'imagem'
@@ -455,9 +464,17 @@ if (Array.isArray(midias) && midias.length) {
     }
   }
 
-  if (midiasEnviadas.length) {
-    mensagem.midias = midiasEnviadas;
+  // ⚠️ Se nenhuma subiu, aborta o envio
+  if (!midiasEnviadas.length) {
+    window.mostrarToastNex?.('Falha ao enviar mídias. Tente novamente.', 'erro');
+
+    if (typeof window.limparTodosPreviewsNex === 'function') {
+      window.limparTodosPreviewsNex();
+    }
+    return;
   }
+
+  mensagem.midias = midiasEnviadas;
 }
 
     // --- Documento (PDF) ---
@@ -467,26 +484,37 @@ const documento =
     : null;
 
 if (documento && documento.url && !mensagem.anexo) {
-  // ⚠️ Faz upload do PDF
-  let urlPdf = documento.url;
+  let urlPdf = null;
 
   if (typeof window.uploadMidiaNexSupabase === 'function') {
     window.mostrarToastNex?.('Enviando PDF...', 'info');
     const urlStorage = await window.uploadMidiaNexSupabase(documento.url);
-    if (urlStorage) urlPdf = urlStorage;
+    if (urlStorage) {
+      urlPdf = urlStorage;
+    }
   }
 
-  mensagem.anexo = {
-    type: 'pdf',
-    url: urlPdf,
-    name: documento.name || 'Documento PDF',
-    documento: {
+  // ⚠️ Só envia se conseguiu uma URL pública de verdade
+  if (urlPdf && /^https?:\/\//i.test(urlPdf)) {
+    mensagem.anexo = {
+      type: 'pdf',
       url: urlPdf,
       name: documento.name || 'Documento PDF',
-      thumbnail: documento.thumbnail || '',
-      size: documento.size || 0
+      documento: {
+        url: urlPdf,
+        name: documento.name || 'Documento PDF',
+        thumbnail: documento.thumbnail || '',
+        size: documento.size || 0
+      }
+    };
+  } else {
+    window.mostrarToastNex?.('Falha ao enviar PDF. Tente novamente.', 'erro');
+
+    if (typeof window.limparTodosPreviewsNex === 'function') {
+      window.limparTodosPreviewsNex();
     }
-  };
+    return;
+  }
 }
 
     // --- Localização ---
@@ -495,20 +523,19 @@ if (documento && documento.url && !mensagem.anexo) {
         ? window.getLocalizacaoPreviaNex()
         : null;
 
-    if (localizacao && localizacao.lat != null && !mensagem.anexo) {
-      mensagem.anexo = {
-        type: 'location',
-        lat: localizacao.lat,
-        lng: localizacao.lng,
-        address: localizacao.address || 'Localização',
-        localizacao: {
-          lat: localizacao.lat,
-          lng: localizacao.lng,
-          address: localizacao.address || 'Localização'
-        }
-      };
+if (localizacao && localizacao.lat != null && !mensagem.anexo) {
+  mensagem.anexo = {
+    type: 'location',
+    lat: Number(localizacao.lat),
+    lng: Number(localizacao.lng),
+    address: localizacao.address || 'Localização',
+    localizacao: {
+      lat: Number(localizacao.lat),
+      lng: Number(localizacao.lng),
+      address: localizacao.address || 'Localização'
     }
-
+  };
+}
     // --- Áudio ---
 const audioUrl =
   typeof window.getAudioUrlNex === 'function'
@@ -516,16 +543,26 @@ const audioUrl =
     : '';
 
 if (audioUrl) {
-  // ⚠️ Faz upload do áudio
-  let urlAudio = audioUrl;
+  let urlAudio = null;
 
   if (typeof window.uploadMidiaNexSupabase === 'function') {
     window.mostrarToastNex?.('Enviando áudio...', 'info');
     const urlStorage = await window.uploadMidiaNexSupabase(audioUrl);
-    if (urlStorage) urlAudio = urlStorage;
+    if (urlStorage) {
+      urlAudio = urlStorage;
+    }
   }
 
-  mensagem.audio = urlAudio;
+  if (urlAudio && /^https?:\/\//i.test(urlAudio)) {
+    mensagem.audio = urlAudio;
+  } else {
+    window.mostrarToastNex?.('Falha ao enviar áudio. Tente novamente.', 'erro');
+
+    if (typeof window.limparTodosPreviewsNex === 'function') {
+      window.limparTodosPreviewsNex();
+    }
+    return;
+  }
 }
 
     // ⚠️ Envia pro Supabase primeiro

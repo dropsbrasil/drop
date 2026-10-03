@@ -461,15 +461,18 @@ async function processarAtualizacaoMensagemNex(msg) {
   if (!local) return;
 
   // Atualiza os campos que mudaram
-  if (msg.apagada_para_todos) {
-    local.deleted = true;
-    local.deletedAt = Date.now();
-    local.deletedText = '🗑️ Mensagem apagada';
-    local.text = '';
-  } else {
-    local.text = msg.texto || '';
-    local.edited = msg.editada === true;
+if (msg.apagada_para_todos) {
+  local.deleted = true;
+  local.deletedAt = Date.now();
+  local.deletedText = '🗑️ Mensagem apagada';
+  local.text = '';
+} else {
+  // ⚠️ Sempre atualiza texto E edited
+  if (typeof msg.texto === 'string' && msg.texto.length > 0) {
+    local.text = msg.texto;
   }
+  local.edited = msg.editada === true;
+}
 
   // Re-renderiza se o chat estiver aberto
   if (Drops.estado.conversaAtual === nomeContato) {
@@ -629,6 +632,102 @@ window.conversas[nomeContato].push(nova);
   }
 }
 
+  // ============================================
+// UPLOAD DE MÍDIA DO NEX
+// ============================================
+// Aceita: URL blob (camera/galeria), data URL, ou File
+// Retorna: URL pública do Supabase Storage
+async function uploadMidiaNexSupabase(arquivo, tipo) {
+  if (!window.supabaseClient || !arquivo) return null;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return null;
+
+    let blob = null;
+    let extensao = 'bin';
+
+    // --- Caso 1: File/Blob direto ---
+    if (arquivo instanceof File || arquivo instanceof Blob) {
+      blob = arquivo;
+      extensao = (arquivo.name || '').split('.').pop() || 'bin';
+
+    // --- Caso 2: URL (blob:, http:, https:) ---
+    } else if (typeof arquivo === 'string' && /^(blob:|https?:)/.test(arquivo)) {
+      const res = await fetch(arquivo);
+      blob = await res.blob();
+
+      if (blob.type.includes('video')) extensao = 'mp4';
+      else if (blob.type.includes('audio')) extensao = 'webm';
+      else if (blob.type.includes('png')) extensao = 'png';
+      else if (blob.type.includes('pdf')) extensao = 'pdf';
+      else extensao = 'jpg';
+
+    // --- Caso 3: Data URL (base64) ---
+    } else if (typeof arquivo === 'string' && arquivo.startsWith('data:')) {
+      const res = await fetch(arquivo);
+      blob = await res.blob();
+
+      if (blob.type.includes('video')) extensao = 'mp4';
+      else if (blob.type.includes('audio')) extensao = 'webm';
+      else if (blob.type.includes('png')) extensao = 'png';
+      else if (blob.type.includes('pdf')) extensao = 'pdf';
+      else extensao = 'jpg';
+    }
+
+    if (!blob) {
+      console.warn('Tipo de arquivo não suportado:', arquivo);
+      return null;
+    }
+
+    // Nome único
+const nomeArquivo = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
+
+// Detecta contentType correto pela extensão
+let contentType = blob.type;
+
+if (!contentType || contentType === 'application/octet-stream') {
+  if (extensao === 'jpg' || extensao === 'jpeg') {
+    contentType = 'image/jpeg';
+  } else if (extensao === 'png') {
+    contentType = 'image/png';
+  } else if (extensao === 'mp4') {
+    contentType = 'video/mp4';
+  } else if (extensao === 'webm') {
+    contentType = 'audio/webm';
+  } else if (extensao === 'pdf') {
+    contentType = 'application/pdf';
+  } else {
+    contentType = 'application/octet-stream';
+  }
+}
+
+// Upload
+const { error: uploadError } = await window.supabaseClient.storage
+  .from('nex')
+  .upload(nomeArquivo, blob, {
+    contentType: contentType,
+    upsert: false
+  });
+
+    if (uploadError) {
+      console.warn('Erro no upload:', uploadError);
+      return null;
+    }
+
+    // URL pública
+    const { data: urlData } = window.supabaseClient.storage
+      .from('nex')
+      .getPublicUrl(nomeArquivo);
+
+    console.log('☁️ Upload NEX OK:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (err) {
+    console.warn('Erro no upload:', err);
+    return null;
+  }
+}
+
   
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -643,6 +742,8 @@ window.conversas[nomeContato].push(nova);
   window.apagarPraTodosSupabase = apagarPraTodosSupabase;
   window.sincronizarCardsNexSupabase = sincronizarCardsNexSupabase;
 window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
+  window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
+
   
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
