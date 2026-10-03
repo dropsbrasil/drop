@@ -104,14 +104,20 @@
         }
       }
 
-      // ----- COMENTÁRIO DO NEARBY -----
+// ----- COMENTÁRIO DO NEARBY -----
 if (msg.anexo.type === 'nearby-comment') {
+  // ⚠️ Texto diferente pra quem enviou e pra quem recebeu
+  const souEu = msg.side === 'right';
+  const textoSelo = souEu
+    ? 'Você comentou esse Drop'
+    : 'Comentário sobre esse Drop';
+
   html += `
     <div class="msg-nearby-comment">
       <div class="msg-nearby-comment-head">
         <span class="msg-nearby-comment-icone">💬</span>
         <span class="msg-nearby-comment-texto">
-          Comentou o drop de ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
+          ${escapeHTML(textoSelo)}
         </span>
       </div>
 
