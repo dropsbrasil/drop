@@ -197,3 +197,49 @@ img {
 .active-nex-page {
   display: flex;
 }
+/* ⚠️ Tab NEX com notificação */
+.tab.tab-nex {
+  position: relative;
+}
+
+.tab.tab-nex.tem-notificacao {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 900;
+  text-shadow: 0 0 12px rgba(37, 99, 235, 0.6);
+  transform: scale(1.08);
+  transition: all 0.25s ease;
+}
+
+.tab.tab-nex.tem-notificacao::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  right: 22%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow:
+    0 0 0 2px #050b18,
+    0 0 12px rgba(239, 68, 68, 0.9),
+    0 0 4px rgba(239, 68, 68, 0.6);
+  animation: pulsoNotificacaoNex 1.6s ease-in-out infinite;
+}
+
+@keyframes pulsoNotificacaoNex {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px #050b18,
+      0 0 12px rgba(239, 68, 68, 0.9),
+      0 0 4px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow:
+      0 0 0 2px #050b18,
+      0 0 20px rgba(239, 68, 68, 1),
+      0 0 8px rgba(239, 68, 68, 0.8);
+  }
+}
