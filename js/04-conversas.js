@@ -9,51 +9,15 @@
   'use strict';
 
   // ============================================
-  // ESTADO DAS CONVERSAS
-  // ============================================
-  // Nota: este objeto será substituído por dados do backend
-  // futuramente. Por enquanto, mantemos os dados iniciais fixos.
+// ESTADO DAS CONVERSAS
+// ============================================
+// As conversas reais vêm do Supabase (via 25-nex-supabase.js).
+// Este objeto começa vazio e é populado dinamicamente.
 
-  const conversas = {
-    Julia: [
-      {
-        side: 'left',
-        text: 'oi sumido 👀',
-        data: '12/05/2026',
-        hora: '08:12'
-      }
-    ],
+const conversas = {};
 
-    Lucas: [
-      {
-        side: 'left',
-        text: 'vi seu drop',
-        data: '12/05/2026',
-        hora: '09:04'
-      }
-    ],
-
-    Ana: [
-      {
-        side: 'left',
-        text: 'kk gostei',
-        data: 'Ontem',
-        hora: '10:20'
-      }
-    ],
-
-    Rafael: [
-      {
-        side: 'left',
-        text: 'bora sair hoje?',
-        data: '12/05/2026',
-        hora: '07:55'
-      }
-    ]
-  };
-
-  // Expõe globalmente
-  window.conversas = conversas;
+// Expõe globalmente
+window.conversas = conversas;
 
   // ============================================
   // ESTADO DAS CONVERSAS (unread, replied, etc)
@@ -401,14 +365,24 @@ function atualizarAbaNaoLidasNex() {
   // ============================================
 
   function marcarConversaComoLidaNex(nome, el) {
-    const conectado =
-      el?.dataset?.connected === 'yes' || window.estaConectadoNoMyDropsNex(nome);
+  const conectado =
+    el?.dataset?.connected === 'yes' || window.estaConectadoNoMyDropsNex(nome);
 
-    const estado = obterEstadoConversaNex(nome, conectado);
+  const estado = obterEstadoConversaNex(nome, conectado);
 
-    estado.connected = conectado;
-    estado.origemAbertura = el?.closest('.nex-page')?.id || '';
-    estado.unread = false;
+  estado.connected = conectado;
+  estado.origemAbertura = el?.closest('.nex-page')?.id || '';
+  estado.unread = false;
+
+  // ⚠️ Persiste no banco (fonte de verdade)
+  const convId =
+    window.__convIdsNex && window.__convIdsNex[nome];
+
+  if (convId && typeof window.marcarConversaLidaSupabase === 'function') {
+    window.marcarConversaLidaSupabase(convId).catch((err) =>
+      console.warn('Falha ao marcar lida no banco:', err)
+    );
+  }
 
     if (!estado.replied && !estado.permanente) {
       if (!estado.openedAt) {

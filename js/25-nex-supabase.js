@@ -19,9 +19,32 @@
   }
 
   // ============================================
-  // OBTER OU CRIAR CONVERSA
-  // ============================================
-  async function obterOuCriarConversaSupabase(usernameOutro) {
+// MARCAR CONVERSA COMO LIDA (no banco)
+// ============================================
+async function marcarConversaLidaSupabase(conversaId) {
+  if (!window.supabaseClient || !conversaId) return false;
+
+  try {
+    const { error } = await window.supabaseClient.rpc('marcar_conversa_lida', {
+      conversa_id_param: conversaId
+    });
+
+    if (error) {
+      console.warn('Erro ao marcar conversa lida:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Erro ao marcar conversa lida:', err);
+    return false;
+  }
+}
+
+// ============================================
+// OBTER OU CRIAR CONVERSA
+// ============================================
+async function obterOuCriarConversaSupabase(usernameOutro) {
     if (!window.supabaseClient || !usernameOutro) return null;
 
     try {
@@ -354,6 +377,18 @@ async function carregarConversaSupabase(nome) {
     window.conversas[nome] = convertidas;
   }
 
+  // ⚠️ Se essa é a conversa aberta agora, marca como lida no banco
+  // (cobre o caso onde o convId só foi criado agora)
+  if (
+    convId &&
+    Drops.estado.conversaAtual === nome &&
+    typeof window.marcarConversaLidaSupabase === 'function'
+  ) {
+    window.marcarConversaLidaSupabase(convId).catch((err) =>
+      console.warn('Falha ao marcar lida após carregar:', err)
+    );
+  }
+
   return convertidas;
 }
 
@@ -406,58 +441,58 @@ async function sincronizarCardsNexSupabase() {
       window.__convUsernamesNex[nomeExibicao] = usernameOutro;
 
       // Cria o card se não existir
-      const cardExistente =
-        typeof window.obterCardConversaNex === 'function'
-          ? window.obterCardConversaNex(nomeExibicao)
-          : document.querySelector(
-              `.nex-chat[data-chat="${nomeExibicao}"]`
-            );
+const cardExistente =
+  typeof window.obterCardConversaNex === 'function'
+    ? window.obterCardConversaNex(nomeExibicao)
+    : document.querySelector(
+        `.nex-chat[data-chat="${nomeExibicao}"]`
+      );
 
-      if (cardExistente) {
-        if (conv.ultima_msg_texto) {
-          const p = cardExistente.querySelector('.nex-info p');
-          if (p) p.textContent = conv.ultima_msg_texto;
-        }
-        continue;
+// ⚠️ Calcula o `conectado` UMA VEZ, antes do if
+const conectado =
+  typeof window.estaConectadoNoMyDropsNex === 'function'
+    ? window.estaConectadoNoMyDropsNex(usernameOutro)
+    : false;
+
+if (cardExistente) {
+  
+  // Atualiza preview
+  if (conv.ultima_msg_texto) {
+    const p = cardExistente.querySelector('.nex-info p');
+    if (p) p.textContent = conv.ultima_msg_texto;
+  }
+
+  // ⚠️ Sincroniza o estado de "não lida" com o banco
+  const naoLida = conv.nao_lida === true;
+  const jaEstaMarcadoNaoLida = cardExistente.classList.contains('unread-chat');
+
+  if (naoLida && !jaEstaMarcadoNaoLida) {
+    cardExistente.classList.add('unread-chat');
+    if (typeof window.moverCardConversaNex === 'function') {
+      window.moverCardConversaNex(nomeExibicao, 'nex-naolidas', true);
+    }
+  } else if (!naoLida && jaEstaMarcadoNaoLida) {
+    cardExistente.classList.remove('unread-chat');
+    if (typeof window.moverCardConversaNex === 'function') {
+      window.moverCardConversaNex(
+        nomeExibicao,
+        conectado ? 'nex-conectados' : 'nex-geral',
+        true
+      );
+    }
+  }
+
+  continue;
       }
 
-            // Cria o card novo
+              // Cria o card novo
 if (typeof window.criarCardConversaNex === 'function') {
-  // ⚠️ Garante o mapa de usernames antes de criar
-  window.__convUsernamesNex = window.__convUsernamesNex || {};
-  window.__convUsernamesNex[nomeExibicao] = usernameOutro;
-
-  const conectado =
-    typeof window.estaConectadoNoMyDropsNex === 'function'
-      ? window.estaConectadoNoMyDropsNex(usernameOutro)
-      : false;
-
   const preview = conv.ultima_msg_texto || 'Nova conversa';
 
-  const ehMinhaUltimaMsg =
-    conv.ultima_msg_autor_id &&
-    meuId &&
-    conv.ultima_msg_autor_id === meuId;
+  // ⚠️ FONTE DE VERDADE: o banco diz se está não lida
+  const naoLida = conv.nao_lida === true;
 
-  // ⚠️ Verifica se essa conversa já foi aberta antes
-  const estadoConversa =
-    typeof window.obterEstadoConversaNex === 'function'
-      ? window.obterEstadoConversaNex(nomeExibicao, conectado)
-      : null;
-
-  const jaFoiLida =
-    estadoConversa &&
-    !estadoConversa.unread &&
-    (estadoConversa.replied || estadoConversa.permanente || estadoConversa.openedAt);
-
-  // ⚠️ Se já foi lida, coloca direto em Geral/Conectados
-  let tipoCard = 'recebida';
-
-  if (jaFoiLida) {
-    tipoCard = 'enviada'; // cai em conectados/geral
-  } else if (ehMinhaUltimaMsg) {
-    tipoCard = 'enviada';
-  }
+  const tipoCard = naoLida ? 'recebida' : 'enviada';
 
   window.criarCardConversaNex(
     nomeExibicao,
@@ -980,6 +1015,14 @@ if (chatDaPessoaEstaAberto) {
       window.renderChat(nomeContato);
     });
   }
+
+  // ⚠️ Chat está aberto → mensagem foi lida → marca no banco
+  const convIdAberto = window.__convIdsNex && window.__convIdsNex[nomeContato];
+  if (convIdAberto && typeof window.marcarConversaLidaSupabase === 'function') {
+    window.marcarConversaLidaSupabase(convIdAberto).catch((err) =>
+      console.warn('Falha ao marcar lida (realtime):', err)
+    );
+  }
 } else {
   // ⚠️ Marca como não lida
   if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
@@ -1187,6 +1230,7 @@ async function pedirPermissaoNotificacaoNex() {
 // EXPÕE GLOBALMENTE
 // ============================================
 window.carregarConversaSupabase = carregarConversaSupabase;
+  window.marcarConversaLidaSupabase = marcarConversaLidaSupabase;
   window.obterOuCriarConversaSupabase = obterOuCriarConversaSupabase;
   window.listarMinhasConversasSupabase = listarMinhasConversasSupabase;
   window.buscarMensagensSupabase = buscarMensagensSupabase;
