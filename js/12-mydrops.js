@@ -641,14 +641,60 @@ function criarCardPublicacaoMyDropsNex(pub) {
     </div>
   `;
 
+    // ============================================
+  // CÁPSULA DE REAÇÕES
+  // ============================================
+
+  const capsulaReacao = document.createElement('div');
+  capsulaReacao.className = 'mydrops-pub-reacao-capsula';
+  capsulaReacao.style.display = 'none';
+  capsulaReacao.dataset.pubId = pub.idSupabase || pub.id || '';
+  media.appendChild(capsulaReacao);
+
+  // ⚠️ Busca reações do Supabase (async)
+  (async () => {
+    const pubId = pub.idSupabase || pub.id;
+    if (!pubId) return;
+
+    if (typeof window.buscarReacoesSupabase !== 'function') return;
+
+    try {
+      const dados = await window.buscarReacoesSupabase(pubId);
+      if (!dados) return;
+
+      const totalHeart = dados.heart || 0;
+      const totalBroken = dados.broken || 0;
+      const total = totalHeart + totalBroken;
+
+      if (total === 0) return;
+
+      // ⚠️ Escolhe o emoji: prioridade ❤️
+      let emoji = '❤️';
+      let count = totalHeart;
+
+      if (totalHeart === 0 && totalBroken > 0) {
+        emoji = '💔';
+        count = totalBroken;
+      }
+
+      capsulaReacao.innerHTML = `
+        <span class="mydrops-pub-reacao-emoji">${emoji}</span>
+        <span class="mydrops-pub-reacao-count">${count}</span>
+      `;
+      capsulaReacao.style.display = 'flex';
+    } catch (err) {
+      console.warn('Erro ao buscar reações do drop:', err);
+    }
+  })();
+
   // ============================================
   // MONTAGEM FINAL
   // ============================================
 
   card.appendChild(media);
-card.appendChild(overlay);
+  card.appendChild(overlay);
 
-return card;
+  return card;
 }
 
 // ============================================
