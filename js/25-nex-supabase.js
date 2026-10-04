@@ -957,11 +957,19 @@ async function processarMensagemRealtimeNex(msg) {
 
   window.conversas[nomeContato].push(nova);
 
-// Se o chat dessa pessoa está aberto, re-renderiza
+// ⚠️ Verifica se o chat está REALMENTE aberto na tela
+const chatEl = document.getElementById('chatNex');
+const chatEstaVisivel =
+  chatEl &&
+  chatEl.style.display === 'block' &&
+  chatEl.classList.contains('active');
+
 const conversaAberta = Drops.estado.conversaAtual;
-if (conversaAberta === nomeContato) {
+const chatDaPessoaEstaAberto =
+  chatEstaVisivel && conversaAberta === nomeContato;
+
+if (chatDaPessoaEstaAberto) {
   if (typeof window.renderChat === 'function') {
-    // ⚠️ Duplo render pra garantir que as tags apareçam juntas
     window.renderChat(nomeContato);
 
     requestAnimationFrame(() => {
@@ -969,12 +977,12 @@ if (conversaAberta === nomeContato) {
     });
   }
 } else {
-  // Senão, marca como não lida
+  // ⚠️ Marca como não lida
   if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
     window.marcarConversaComoNaoLidaNex(nomeContato);
   }
 
-  // ⚠️ Notifica o usuário (vibração + notificação do sistema)
+  // ⚠️ Notifica
   if (typeof window.notificarMensagemNovaNex === 'function') {
     window.notificarMensagemNovaNex(nomeContato, nova);
   }

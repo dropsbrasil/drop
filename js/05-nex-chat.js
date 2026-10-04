@@ -316,12 +316,16 @@ if (chatAvatar) {
     mostrarNexTab(Drops.estado.abaNex);
 
     window.setConversaAbertaNex('');
-    window.setOrigemAberturaNex('');
-    window.setCardAbertoNex(null);
+window.setOrigemAberturaNex('');
+window.setCardAbertoNex(null);
 
-    document.body.classList.remove('chat-aberto');
-    document.body.classList.remove('chat-open');
+// ⚠️ IMPORTANTE: limpa a conversa atual também
+// (senão o Realtime continua achando que o chat está aberto)
+Drops.estado.conversaAtual = '';
 
+document.body.classList.remove('chat-aberto');
+document.body.classList.remove('chat-open');
+    
     // Sincroniza cards do Supabase ao voltar
     if (typeof window.sincronizarCardsNexSupabase === 'function') {
       setTimeout(() => {
