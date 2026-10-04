@@ -542,11 +542,18 @@ window.fecharMuralEmBrevePerfilNex = fecharMuralEmBrevePerfilNex;
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Botão Conectar
-    const btnConectarPerfil = document.getElementById('btnConectarPerfilNex');
-    if (btnConectarPerfil) {
-      btnConectarPerfil.addEventListener('click', alternarConexaoPerfilNex);
-    }
+  // ⚠️ Carrega bloqueados do Supabase ao abrir o app
+  if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
+    setTimeout(async () => {
+      await window.BloqueadosAdapterNex.carregarBloqueadosSupabase();
+    }, 1200);
+  }
+
+  // Botão Conectar
+  const btnConectarPerfil = document.getElementById('btnConectarPerfilNex');
+  if (btnConectarPerfil) {
+    btnConectarPerfil.addEventListener('click', alternarConexaoPerfilNex);
+  }
 
   // Botão Abrir Chat
   const btnAbrirChat = document.getElementById('btnAbrirChatPerfilNex');

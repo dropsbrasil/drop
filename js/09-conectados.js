@@ -441,9 +441,19 @@ function fecharDesconectadosNex() {
 // PAINEL BLOQUEADOS
 // ============================================
 
-function abrirBloqueadosNex() {
+async function abrirBloqueadosNex() {
   const painel = document.getElementById('painelBloqueadosNex');
   if (painel) painel.style.display = 'flex';
+
+  // ⚠️ Sincroniza o Set com o cache do adapter antes de renderizar
+  if (window.BloqueadosAdapterNex?.lerBloqueados) {
+    const doCache = window.BloqueadosAdapterNex.lerBloqueados();
+
+    // Mescla os dois (garante que nada se perca)
+    doCache.forEach((username) => {
+      perfisBloqueadosNex.add(username);
+    });
+  }
 
   renderizarBloqueadosNex();
 }
@@ -489,9 +499,26 @@ function fecharModalDesbloquearNex() {
   Drops.estado.bloqueadoAtual = '';
 }
 
-function confirmarDesbloqueioNex() {
-  if (Drops.estado.bloqueadoAtual) {
-    perfisBloqueadosNex.delete(Drops.estado.bloqueadoAtual);
+async function confirmarDesbloqueioNex() {
+  const username = Drops.estado.bloqueadoAtual;
+
+  if (username) {
+    // ⚠️ Remove do Supabase
+    if (window.BloqueadosAdapterNex?.removerBloqueadoSupabase) {
+      try {
+        await window.BloqueadosAdapterNex.removerBloqueadoSupabase(username);
+      } catch (err) {
+        console.warn('Erro ao desbloquear no Supabase:', err);
+      }
+    }
+
+    perfisBloqueadosNex.delete(username);
+
+    // ⚠️ Atualiza o cache do adapter
+    if (window.BloqueadosAdapterNex?.salvarBloqueados) {
+      window.BloqueadosAdapterNex.salvarBloqueados(perfisBloqueadosNex);
+    }
+
     renderizarBloqueadosNex();
   }
 
@@ -512,19 +539,33 @@ function fecharModalBloquearPerfilNex() {
   if (modal) modal.style.display = 'none';
 }
 
-function confirmarBloqueioPerfilNex() {
+async function confirmarBloqueioPerfilNex() {
   fecharModalBloquearPerfilNex();
 
   const bloqueando = document.getElementById('bloqueandoUsuarioModalNex');
   if (bloqueando) bloqueando.style.display = 'flex';
 
+  const perfilBloqueado = Drops.estado.perfilBloquearAtual;
+
+  // ⚠️ Salva no Supabase ANTES do setTimeout (não perde o valor)
+  if (perfilBloqueado && window.BloqueadosAdapterNex?.adicionarBloqueadoSupabase) {
+    try {
+      await window.BloqueadosAdapterNex.adicionarBloqueadoSupabase(perfilBloqueado);
+    } catch (err) {
+      console.warn('Erro ao bloquear no Supabase:', err);
+    }
+  }
+
   setTimeout(() => {
     if (bloqueando) bloqueando.style.display = 'none';
 
-    const perfilBloqueado = Drops.estado.perfilBloquearAtual;
-
     if (perfilBloqueado) {
       perfisBloqueadosNex.add(perfilBloqueado);
+
+      // ⚠️ Atualiza o cache do adapter
+      if (window.BloqueadosAdapterNex?.salvarBloqueados) {
+        window.BloqueadosAdapterNex.salvarBloqueados(perfisBloqueadosNex);
+      }
 
       removerPerfilBloqueadoDaNex(perfilBloqueado);
       removerPerfilBloqueadoDoNearby(perfilBloqueado);

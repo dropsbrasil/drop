@@ -346,9 +346,131 @@ salvarBio(texto) {
 };
 
   // ============================================
-  // MYDROPS (publicações)
-  // ============================================
+// BLOQUEADOS
+// ============================================
 
+const BloqueadosAdapterNex = {
+  // Cache local: Set de usernames bloqueados
+  _cache: null,
+
+  lerBloqueados() {
+    if (this._cache) return this._cache;
+    return new Set();
+  },
+
+  salvarBloqueados(set) {
+    this._cache = set;
+  },
+
+  // ⚠️ Adiciona no Supabase
+  async adicionarBloqueadoSupabase(username) {
+    if (!window.supabaseClient || !username) return false;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return false;
+
+      const userLimpo = String(username).replace(/^@/, '').trim().toLowerCase();
+
+      // Busca o id do perfil pelo username
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('username', userLimpo)
+        .maybeSingle();
+
+      if (!perfil?.id) return false;
+
+      const { error } = await window.supabaseClient
+        .from('bloqueados')
+        .insert({
+          usuario_id: user.id,
+          bloqueado_id: perfil.id,
+          bloqueado_username: userLimpo
+        });
+
+      if (error && error.code !== '23505') {
+        console.warn('Erro ao bloquear no Supabase:', error);
+        return false;
+      }
+
+      console.log('🚫 Bloqueado no Supabase:', userLimpo);
+      return true;
+    } catch (err) {
+      console.warn('Erro ao bloquear no Supabase:', err);
+      return false;
+    }
+  },
+
+  // ⚠️ Remove do Supabase
+  async removerBloqueadoSupabase(username) {
+    if (!window.supabaseClient || !username) return false;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return false;
+
+      const userLimpo = String(username).replace(/^@/, '').trim().toLowerCase();
+
+      const { error } = await window.supabaseClient
+        .from('bloqueados')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('bloqueado_username', userLimpo);
+
+      if (error) {
+        console.warn('Erro ao desbloquear no Supabase:', error);
+        return false;
+      }
+
+      console.log('✅ Desbloqueado no Supabase:', userLimpo);
+      return true;
+    } catch (err) {
+      console.warn('Erro ao desbloquear no Supabase:', err);
+      return false;
+    }
+  },
+
+  // ⚠️ Carrega bloqueados do Supabase pro cache
+  async carregarBloqueadosSupabase() {
+    if (!window.supabaseClient) return;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await window.supabaseClient
+        .from('bloqueados')
+        .select('bloqueado_username')
+        .eq('usuario_id', user.id);
+
+      if (error) {
+        console.warn('Erro ao carregar bloqueados:', error);
+        return;
+      }
+
+      const set = new Set(
+        (data || []).map((b) =>
+          String(b.bloqueado_username).toLowerCase().trim()
+        )
+      );
+
+      this.salvarBloqueados(set);
+
+      console.log('🚫 Bloqueados carregados:', set.size);
+    } catch (err) {
+      console.warn('Erro ao carregar bloqueados:', err);
+    }
+  }
+};
+
+// ============================================
+// MYDROPS (publicações)
+// ============================================
+ 
   const MyDropsAdapterNex = {
     lerPublicacoes() {
       try {
@@ -576,7 +698,8 @@ const ConversasAdapterNex = {
 
 window.AuthAdapterNex = AuthAdapterNex;
 window.ConectadosAdapterNex = ConectadosAdapterNex;
-window.MyDropsAdapterNex = MyDropsAdapterNex;
+window.BloqueadosAdapterNex = BloqueadosAdapterNex;
+  window.MyDropsAdapterNex = MyDropsAdapterNex;
   window.MuralAdapterNex = MuralAdapterNex;
 window.AdeptosAdapterNex = AdeptosAdapterNex;
 window.NearbyAdapterNex = NearbyAdapterNex;
