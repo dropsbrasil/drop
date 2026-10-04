@@ -473,19 +473,35 @@ if (typeof window.criarCardConversaNex === 'function') {
 // REALTIME — escuta mensagens novas
 // ============================================
 let canalRealtimeNex = null;
+let tentativaReconexaoNex = 0;
+let timerReconexaoNex = null;
+const MAX_TENTATIVAS_NEX = 10;
 
 async function iniciarRealtimeNexSupabase() {
   if (!window.supabaseClient) return;
-  if (canalRealtimeNex) return;
+
+  // Se já tem canal e ele está conectado, não cria outro
+  if (canalRealtimeNex && canalRealtimeNex.state === 'joined') {
+    console.log('📡 Realtime já está ativo');
+    return;
+  }
 
   try {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return;
 
+    // ⚠️ Remove canal antigo se existir
+    if (canalRealtimeNex) {
+      try {
+        await window.supabaseClient.removeChannel(canalRealtimeNex);
+      } catch (e) {}
+      canalRealtimeNex = null;
+    }
+
     console.log('📡 Iniciando Realtime do NEX...');
 
     canalRealtimeNex = window.supabaseClient
-      .channel('nex-mensagens')
+      .channel('nex-mensagens-realtime')
       .on(
         'postgres_changes',
         {
@@ -496,8 +512,6 @@ async function iniciarRealtimeNexSupabase() {
         (payload) => {
           const msg = payload.new;
           if (!msg) return;
-
-          // Se a mensagem foi enviada por mim, já foi adicionada localmente
           if (msg.autor_id === user.id) return;
 
           console.log('📩 Nova mensagem recebida via Realtime:', msg);
@@ -514,8 +528,6 @@ async function iniciarRealtimeNexSupabase() {
         (payload) => {
           const msg = payload.new;
           if (!msg) return;
-
-          // Ignora se a atualização foi feita por mim (já refletida local)
           if (msg.autor_id === user.id) return;
 
           console.log('✏️ Mensagem atualizada via Realtime:', msg);
@@ -524,12 +536,83 @@ async function iniciarRealtimeNexSupabase() {
       )
       .subscribe((status) => {
         console.log('📡 Realtime status:', status);
+
+        if (status === 'SUBSCRIBED') {
+          // ✅ Conectado — reseta tentativas
+          tentativaReconexaoNex = 0;
+
+          if (timerReconexaoNex) {
+            clearTimeout(timerReconexaoNex);
+            timerReconexaoNex = null;
+          }
+
+          // ⚠️ Reconectou: re-sincroniza os cards
+          setTimeout(() => {
+            if (typeof window.sincronizarCardsNexSupabase === 'function') {
+              window.sincronizarCardsNexSupabase();
+            }
+          }, 500);
+        }
+
+        if (
+          status === 'CHANNEL_ERROR' ||
+          status === 'TIMED_OUT' ||
+          status === 'CLOSED'
+        ) {
+          console.warn('⚠️ Realtime caiu. Agendando reconexão...');
+          agendarReconexaoNex();
+        }
       });
   } catch (err) {
     console.warn('Erro ao iniciar Realtime:', err);
+    agendarReconexaoNex();
   }
 }
 
+function agendarReconexaoNex() {
+  if (timerReconexaoNex) return; // já tem uma agendada
+
+  if (tentativaReconexaoNex >= MAX_TENTATIVAS_NEX) {
+    console.warn('❌ Máximo de tentativas de reconexão atingido.');
+    return;
+  }
+
+  tentativaReconexaoNex += 1;
+
+  // Backoff exponencial: 2s, 4s, 8s, 16s... máx 30s
+  const delay = Math.min(
+    2000 * Math.pow(2, tentativaReconexaoNex - 1),
+    30000
+  );
+
+  console.log(
+    `🔄 Tentando reconectar em ${delay / 1000}s (tentativa ${tentativaReconexaoNex}/${MAX_TENTATIVAS_NEX})`
+  );
+
+  timerReconexaoNex = setTimeout(() => {
+    timerReconexaoNex = null;
+    iniciarRealtimeNexSupabase();
+  }, delay);
+}
+
+// ⚠️ Reconecta quando o usuário volta pra aba
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+
+  if (!canalRealtimeNex || canalRealtimeNex.state !== 'joined') {
+    console.log('👁️ Aba voltou ao foco. Verificando Realtime...');
+    tentativaReconexaoNex = 0;
+    iniciarRealtimeNexSupabase();
+  }
+});
+
+// ⚠️ Reconecta quando a internet volta
+window.addEventListener('online', () => {
+  console.log('🌐 Internet voltou. Reconectando Realtime...');
+  tentativaReconexaoNex = 0;
+  iniciarRealtimeNexSupabase();
+});
+  
 // ============================================
 // PROCESSA UPDATE (edição / apagar pra todos)
 // ============================================
@@ -1101,7 +1184,8 @@ window.carregarConversaSupabase = carregarConversaSupabase;
   window.apagarPraTodosSupabase = apagarPraTodosSupabase;
   window.sincronizarCardsNexSupabase = sincronizarCardsNexSupabase;
 window.iniciarRealtimeNexSupabase = iniciarRealtimeNexSupabase;
-window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
+window.agendarReconexaoNex = agendarReconexaoNex;
+  window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
 window.notificarMensagemNovaNex = notificarMensagemNovaNex;
 window.pedirPermissaoNotificacaoNex = pedirPermissaoNotificacaoNex;
   
