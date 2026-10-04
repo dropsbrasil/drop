@@ -382,6 +382,11 @@ function atualizarAbaNaoLidasNex() {
       }
     }
   }
+
+  // ⚠️ Atualiza a bolinha na tabbar
+  if (typeof window.atualizarNotificacaoTabbarNex === 'function') {
+    window.atualizarNotificacaoTabbarNex();
+  }
 }
 
   // ============================================

@@ -335,11 +335,28 @@ document.body.classList.remove('chat-open');
   }
 
   // ============================================
-// BADGES DE REAÇÃO NAS MÍDIAS
+// NOTIFICAÇÃO NA TABBAR DO NEX
 // ============================================
 
-async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) {
-  if (!msgId) return;
+function atualizarNotificacaoTabbarNex() {
+  const tabNex = document.querySelector('.tab.tab-nex');
+  if (!tabNex) return;
+
+  // ⚠️ Tem alguma conversa não lida?
+  const listaNaoLidas = document.getElementById('nex-naolidas');
+  const temNaoLidas =
+    listaNaoLidas &&
+    listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
+
+  tabNex.classList.toggle('tem-notificacao', !!temNaoLidas);
+}
+
+// ============================================
+// ATUALIZAR BADGE DE REAÇÃO
+// ============================================
+
+async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) { 
+if (!msgId) return;
 
   const seletor = `.msg-midia-badge-slot[data-badge-msg-id="${msgId}"][data-badge-midia-index="${midiaIndex}"]`;
   const slot = document.querySelector(seletor);
@@ -1640,6 +1657,7 @@ window.abrirChatNex = abrirChatNex;
 window.voltarChatNex = voltarChatNex;
 window.renderChat = renderChat;
 window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
+window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
 window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
 window.enviarMsgNex = enviarMsgNex;
 window.cancelarRespostaNex = cancelarRespostaNex;
