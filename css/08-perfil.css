@@ -514,3 +514,14 @@
   color: #94a3b8;
   flex-shrink: 0;
 }
+/* ⚠️ Avatar e capa clicáveis (perfil visitado) */
+.perfil-avatar,
+.perfil-capa {
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.perfil-avatar:active,
+.perfil-capa:active {
+  filter: brightness(0.92);
+  transform: scale(0.99);
+}

@@ -537,3 +537,14 @@
     transform: translateY(0);
   }
 }
+/* ⚠️ Avatar e capa clicáveis */
+.mydrops-avatar,
+.mydrops-cover {
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.mydrops-avatar:active,
+.mydrops-cover:active {
+  filter: brightness(0.92);
+  transform: scale(0.99);
+}
