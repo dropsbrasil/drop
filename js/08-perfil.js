@@ -386,55 +386,63 @@ function fecharMuralEmBrevePerfilNex() {
   // CONECTAR / DESCONECTAR PERFIL
   // ============================================
 
-  function alternarConexaoPerfilNex() {
-    const id = normalizarIdPerfilNex(Drops.estado.perfilBloquearAtual);
-    if (!id) return;
+  async function alternarConexaoPerfilNex() {
+  const id = normalizarIdPerfilNex(Drops.estado.perfilBloquearAtual);
+  if (!id) return;
 
-    const perfil = perfisVisitadosNex[id] || {
-      nome: Drops.estado.perfilAberto || id,
-      avatar: (Drops.estado.perfilAberto || id).charAt(0).toUpperCase()
-    };
+  const perfil = perfisVisitadosNex[id] || {
+    nome: Drops.estado.perfilAberto || id,
+    avatar: (Drops.estado.perfilAberto || id).charAt(0).toUpperCase()
+  };
 
-    let lista = lerConectadosMyDropsNex();
-    const jaExiste = lista.some((item) => item.id === id);
+  let lista = lerConectadosMyDropsNex();
+  const jaExiste = lista.some((item) => item.id === id);
 
-    if (jaExiste) {
-      // Desconectar
-      const perfilRemovido = lista.find(
-        (item) => normalizarIdPerfilNex(item.id) === id
-      );
-
-      if (typeof registrarDesconexaoMyDropsNex === 'function') {
-        registrarDesconexaoMyDropsNex(perfilRemovido || perfil);
-      }
-
-      lista = lista.filter((item) => normalizarIdPerfilNex(item.id) !== id);
-    } else {
-      // Conectar
-      lista.unshift({
-        id,
-        nome: perfil.nome || id,
-        avatar:
-          perfil.avatar || (perfil.nome || id).charAt(0).toUpperCase()
-      });
+  if (jaExiste) {
+    // ⚠️ Desconectar — remove do Supabase primeiro
+    if (window.ConectadosAdapterNex?.removerConectadoSupabase) {
+      await window.ConectadosAdapterNex.removerConectadoSupabase(id);
     }
 
-    salvarConectadosMyDropsNex(lista);
-    atualizarBotaoConectarPerfilNex();
+    const perfilRemovido = lista.find(
+      (item) => normalizarIdPerfilNex(item.id) === id
+    );
 
-    if (typeof renderizarConectadosMyDropsNex === 'function') {
-      renderizarConectadosMyDropsNex();
+    if (typeof registrarDesconexaoMyDropsNex === 'function') {
+      registrarDesconexaoMyDropsNex(perfilRemovido || perfil);
     }
 
-    if (typeof renderizarPublicacoesNearbyNex === 'function') {
-      renderizarPublicacoesNearbyNex();
+    lista = lista.filter((item) => normalizarIdPerfilNex(item.id) !== id);
+  } else {
+    // ⚠️ Conectar — salva no Supabase primeiro
+    if (window.ConectadosAdapterNex?.adicionarConectadoSupabase) {
+      await window.ConectadosAdapterNex.adicionarConectadoSupabase(id);
     }
 
-    if (typeof sincronizarConversasComConectadosMyDropsNex === 'function') {
-      sincronizarConversasComConectadosMyDropsNex();
-    }
+    lista.unshift({
+      id,
+      nome: perfil.nome || id,
+      avatar:
+        perfil.avatar || (perfil.nome || id).charAt(0).toUpperCase()
+    });
   }
 
+  salvarConectadosMyDropsNex(lista);
+  atualizarBotaoConectarPerfilNex();
+
+  if (typeof renderizarConectadosMyDropsNex === 'function') {
+    renderizarConectadosMyDropsNex();
+  }
+
+  if (typeof renderizarPublicacoesNearbyNex === 'function') {
+    renderizarPublicacoesNearbyNex();
+  }
+
+  if (typeof sincronizarConversasComConectadosMyDropsNex === 'function') {
+    sincronizarConversasComConectadosMyDropsNex();
+  }
+  }
+  
   // ============================================
   // SELO DE ADEPTO
   // ============================================

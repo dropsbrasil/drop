@@ -155,50 +155,195 @@ salvarBio(texto) {
   // ============================================
 
   const ConectadosAdapterNex = {
-    lerConectados() {
-      try {
-        const bruto = localStorage.getItem(Drops.CHAVES.CONECTADOS);
-        const lista = JSON.parse(bruto || '[]');
-        return Array.isArray(lista) ? lista : [];
-      } catch (erro) {
-        console.warn('Erro ao ler conectados:', erro);
-        return [];
-      }
-    },
-
-    salvarConectados(lista) {
-      try {
-        localStorage.setItem(
-          Drops.CHAVES.CONECTADOS,
-          JSON.stringify(Array.isArray(lista) ? lista : [])
-        );
-      } catch (erro) {
-        console.warn('Erro ao salvar conectados:', erro);
-      }
-    },
-
-    lerDesconectados() {
-      try {
-        const bruto = localStorage.getItem(Drops.CHAVES.DESCONECTADOS);
-        const lista = JSON.parse(bruto || '[]');
-        return Array.isArray(lista) ? lista : [];
-      } catch (erro) {
-        console.warn('Erro ao ler desconectados:', erro);
-        return [];
-      }
-    },
-
-    salvarDesconectados(lista) {
-      try {
-        localStorage.setItem(
-          Drops.CHAVES.DESCONECTADOS,
-          JSON.stringify(Array.isArray(lista) ? lista : [])
-        );
-      } catch (erro) {
-        console.warn('Erro ao salvar desconectados:', erro);
-      }
+  lerConectados() {
+    try {
+      const bruto = localStorage.getItem(Drops.CHAVES.CONECTADOS);
+      const lista = JSON.parse(bruto || '[]');
+      return Array.isArray(lista) ? lista : [];
+    } catch (erro) {
+      console.warn('Erro ao ler conectados:', erro);
+      return [];
     }
-  };
+  },
+
+  salvarConectados(lista) {
+    try {
+      localStorage.setItem(
+        Drops.CHAVES.CONECTADOS,
+        JSON.stringify(Array.isArray(lista) ? lista : [])
+      );
+    } catch (erro) {
+      console.warn('Erro ao salvar conectados:', erro);
+    }
+  },
+
+  // ⚠️ NOVO: adiciona um conectado no Supabase
+  async adicionarConectadoSupabase(username) {
+    if (!window.supabaseClient || !username) return false;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return false;
+
+      const userLimpo = String(username).replace(/^@/, '').trim().toLowerCase();
+
+      // Busca o id do perfil pelo username
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('username', userLimpo)
+        .maybeSingle();
+
+      if (!perfil?.id) return false;
+
+      const { error } = await window.supabaseClient
+        .from('conectados')
+        .insert({
+          usuario_id: user.id,
+          conectado_id: perfil.id,
+          conectado_username: userLimpo
+        });
+
+      if (error && error.code !== '23505') {
+        console.warn('Erro ao conectar no Supabase:', error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.warn('Erro ao conectar no Supabase:', err);
+      return false;
+    }
+  },
+
+  // ⚠️ NOVO: remove um conectado do Supabase
+  async removerConectadoSupabase(username) {
+    if (!window.supabaseClient || !username) return false;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return false;
+
+      const userLimpo = String(username).replace(/^@/, '').trim().toLowerCase();
+
+      const { error } = await window.supabaseClient
+        .from('conectados')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('conectado_username', userLimpo);
+
+      if (error) {
+        console.warn('Erro ao desconectar no Supabase:', error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.warn('Erro ao desconectar no Supabase:', err);
+      return false;
+    }
+  },
+
+  // ⚠️ NOVO: sincroniza localStorage → Supabase
+  async sincronizarConectadosSupabase() {
+    if (!window.supabaseClient) return;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const listaLocal = this.lerConectados();
+      if (!listaLocal.length) return;
+
+      for (const item of listaLocal) {
+        const username = String(item.id || '').replace(/^@/, '').trim().toLowerCase();
+        if (!username) continue;
+
+        await this.adicionarConectadoSupabase(username);
+      }
+
+      console.log('☁️ Conectados sincronizados com Supabase');
+    } catch (err) {
+      console.warn('Erro ao sincronizar conectados:', err);
+    }
+  },
+
+  // ⚠️ NOVO: carrega conectados do Supabase pro localStorage
+  async carregarConectadosSupabase() {
+    if (!window.supabaseClient) return;
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await window.supabaseClient
+        .from('conectados')
+        .select('conectado_username, conectado_id, criado_em')
+        .eq('usuario_id', user.id);
+
+      if (error) {
+        console.warn('Erro ao carregar conectados:', error);
+        return;
+      }
+
+      if (!Array.isArray(data) || !data.length) return;
+
+      // Busca os dados dos perfis
+      const usernames = data.map((c) => c.conectado_username);
+      const { data: perfis } = await window.supabaseClient
+        .from('profiles')
+        .select('username, nome, avatar_url')
+        .in('username', usernames);
+
+      const mapaPerfis = {};
+      (perfis || []).forEach((p) => {
+        mapaPerfis[p.username] = p;
+      });
+
+      const listaFinal = data.map((c) => {
+        const p = mapaPerfis[c.conectado_username] || {};
+        return {
+          id: c.conectado_username,
+          nome: p.nome || c.conectado_username,
+          avatar: p.avatar_url || (p.nome || '?').charAt(0).toUpperCase()
+        };
+      });
+
+      // Salva no localStorage
+      this.salvarConectados(listaFinal);
+
+      console.log('☁️ Conectados carregados do Supabase:', listaFinal.length);
+    } catch (err) {
+      console.warn('Erro ao carregar conectados:', err);
+    }
+  },
+
+  lerDesconectados() {
+    try {
+      const bruto = localStorage.getItem(Drops.CHAVES.DESCONECTADOS);
+      const lista = JSON.parse(bruto || '[]');
+      return Array.isArray(lista) ? lista : [];
+    } catch (erro) {
+      console.warn('Erro ao ler desconectados:', erro);
+      return [];
+    }
+  },
+
+  salvarDesconectados(lista) {
+    try {
+      localStorage.setItem(
+        Drops.CHAVES.DESCONECTADOS,
+        JSON.stringify(Array.isArray(lista) ? lista : [])
+      );
+    } catch (erro) {
+      console.warn('Erro ao salvar desconectados:', erro);
+    }
+  }
+};
 
   // ============================================
   // MYDROPS (publicações)

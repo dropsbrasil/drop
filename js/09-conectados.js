@@ -207,35 +207,40 @@ if (avatarEhUrl) {
     btn.textContent = 'Desconectar';
     btn.dataset.id = perfil.id;
 
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
+    btn.addEventListener('click', async (e) => {
+  e.stopPropagation();
 
-      const id = normalizarIdPerfilNex(btn.dataset.id);
+  const id = normalizarIdPerfilNex(btn.dataset.id);
 
-      const perfilRemovido = lerConectadosMyDropsNex().find(
-        (item) => normalizarIdPerfilNex(item.id) === id
-      );
+  // ⚠️ Remove do Supabase primeiro
+  if (window.ConectadosAdapterNex?.removerConectadoSupabase) {
+    await window.ConectadosAdapterNex.removerConectadoSupabase(id);
+  }
 
-      registrarDesconexaoMyDropsNex(perfilRemovido || perfil);
+  const perfilRemovido = lerConectadosMyDropsNex().find(
+    (item) => normalizarIdPerfilNex(item.id) === id
+  );
 
-      const listaAtual = lerConectadosMyDropsNex().filter(
-        (item) => normalizarIdPerfilNex(item.id) !== id
-      );
+  registrarDesconexaoMyDropsNex(perfilRemovido || perfil);
 
-      salvarConectadosMyDropsNex(listaAtual);
-      sincronizarConversasComConectadosMyDropsNex();
+  const listaAtual = lerConectadosMyDropsNex().filter(
+    (item) => normalizarIdPerfilNex(item.id) !== id
+  );
 
-      if (normalizarIdPerfilNex(Drops.estado.perfilBloquearAtual) === id) {
-        atualizarBotaoConectarPerfilNex();
-      }
+  salvarConectadosMyDropsNex(listaAtual);
+  sincronizarConversasComConectadosMyDropsNex();
 
-      renderizarConectadosMyDropsNex();
-      renderizarDesconectadosMyDropsNex();
+  if (normalizarIdPerfilNex(Drops.estado.perfilBloquearAtual) === id) {
+    atualizarBotaoConectarPerfilNex();
+  }
 
-      if (typeof renderizarPublicacoesNearbyNex === 'function') {
-        renderizarPublicacoesNearbyNex();
-      }
-    });
+  renderizarConectadosMyDropsNex();
+  renderizarDesconectadosMyDropsNex();
+
+  if (typeof renderizarPublicacoesNearbyNex === 'function') {
+    renderizarPublicacoesNearbyNex();
+  }
+});
 
     item.appendChild(avatar);
     item.appendChild(info);

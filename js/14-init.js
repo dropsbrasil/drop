@@ -116,12 +116,25 @@ if (typeof mostrarTela === 'function') {
     // ⚠️ NÃO abre aba ainda — espera sincronizar os cards
 // A aba correta é escolhida em atualizarAbaInicialNex()
     
-    // ============================================
-    // 3. RENDERIZA LISTAS E CONTEÚDO
-    // ============================================
+// ============================================
+// 3. SINCRONIZA E RENDERIZA CONECTADOS
+// ============================================
+
+// ⚠️ Primeiro: sincroniza localStorage → Supabase
+// Depois: carrega do Supabase pro localStorage (pega de outros aparelhos)
+if (window.ConectadosAdapterNex?.sincronizarConectadosSupabase) {
+  setTimeout(async () => {
+    await window.ConectadosAdapterNex.sincronizarConectadosSupabase();
+    await window.ConectadosAdapterNex.carregarConectadosSupabase();
 
     if (typeof renderizarConectadosMyDropsNex === 'function') {
-  renderizarConectadosMyDropsNex();
+      renderizarConectadosMyDropsNex();
+    }
+  }, 1000);
+} else {
+  if (typeof renderizarConectadosMyDropsNex === 'function') {
+    renderizarConectadosMyDropsNex();
+  }
 }
 
 // ⚠️ Verifica visibilidade da aba "Não lidas" após carregar
