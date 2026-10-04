@@ -17,6 +17,15 @@
     console.log('🚀 Inicializando Drops...');
 
     // ============================================
+// SERVICE WORKER (PWA)
+// ============================================
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log('📱 PWA: Service Worker registrado'))
+    .catch((err) => console.warn('PWA: SW falhou', err));
+}
+
+    // ============================================
     // 1. INICIALIZA SISTEMA DE ADEPTOS
     // ============================================
 
