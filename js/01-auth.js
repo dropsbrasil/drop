@@ -69,15 +69,21 @@ const sessao = window.AuthAdapterNex.lerSessao();
     }
 
     // Avatar: imagem salva OU inicial do nome
-    const avatarEl = document.getElementById('mydropsAvatarEl');
-    if (avatarEl) {
-      if (avatarSalvo) {
-        avatarEl.innerHTML = `<img src="${avatarSalvo}" alt="Avatar do usuário">`;
-      } else {
-        const inicial = (nome || '?').trim().charAt(0).toUpperCase() || '?';
-        avatarEl.textContent = inicial;
-      }
-    }
+const avatarEl = document.getElementById('mydropsAvatarEl');
+if (avatarEl) {
+  if (avatarSalvo) {
+    avatarEl.innerHTML = `<img src="${avatarSalvo}" alt="Avatar do usuário">`;
+  } else {
+    const inicial = (nome || '?').trim().charAt(0).toUpperCase() || '?';
+    avatarEl.textContent = inicial;
+  }
+
+  // ⚠️ Clique no avatar → abre em tela cheia
+  avatarEl.style.cursor = 'pointer';
+  avatarEl.onclick = () => {
+    abrirFotoPerfilNex(avatarSalvo, nome, 'avatar');
+  };
+}
 
     // Bio
     const bioEl = document.getElementById('mydropsBioEl');
@@ -85,17 +91,49 @@ const sessao = window.AuthAdapterNex.lerSessao();
       bioEl.textContent = bioSalva || 'Sem bio ainda.';
     }
 
-    // Capa salva
+  // Capa salva
+  const capa = document.querySelector('.mydrops-cover');
+  if (capa) {
+    capa.style.cursor = 'pointer';
+
     if (capaSalva) {
-      const capa = document.querySelector('.mydrops-cover');
-      if (capa) {
-        capa.style.backgroundImage =
-          `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
-        capa.style.backgroundSize = 'cover';
-        capa.style.backgroundPosition = 'center';
-      }
+      capa.style.backgroundImage =
+        `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
+      capa.style.backgroundSize = 'cover';
+      capa.style.backgroundPosition = 'center';
     }
+
+    capa.onclick = () => {
+      abrirFotoPerfilNex(capaSalva, nome, 'capa');
+    };
   }
+}
+
+// ============================================
+// ABRIR FOTO EM TELA CHEIA (avatar/capa)
+// ============================================
+
+function abrirFotoPerfilNex(url, nome, tipo) {
+  // ⚠️ Sem foto → toast
+  if (!url) {
+    if (typeof window.mostrarToastNex === 'function') {
+      window.mostrarToastNex('Sem foto ainda', 'info');
+    }
+    return;
+  }
+
+  // ⚠️ Abre no viewer que já existe
+  if (typeof window.abrirVisualizadorMidiasNex === 'function') {
+    window.abrirVisualizadorMidiasNex(
+      [{ url, type: 'imagem' }],
+      0,
+      false, // sem comentário
+      null   // sem contexto de reação
+    );
+  }
+}
+
+window.abrirFotoPerfilNex = abrirFotoPerfilNex;
 
   // Expõe globalmente
   window.carregarDadosUsuarioMyDrops = carregarDadosUsuarioMyDrops;

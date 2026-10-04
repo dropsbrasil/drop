@@ -105,11 +105,18 @@ perfisVisitadosNex[id] = { ...perfil, id };
     // ============================================
 
     const capaEl = document.getElementById('perfilCapaNex');
-    if (capaEl) {
-      capaEl.style.backgroundImage = `url('${perfil.capa}')`;
-    }
+if (capaEl) {
+  capaEl.style.backgroundImage = `url('${perfil.capa}')`;
+  capaEl.style.cursor = 'pointer';
 
- const avatarEl = document.getElementById('perfilAvatarNex');
+  capaEl.onclick = () => {
+    if (typeof window.abrirFotoPerfilNex === 'function') {
+      window.abrirFotoPerfilNex(perfil.capa, perfil.nome, 'capa');
+    }
+  };
+}
+
+const avatarEl = document.getElementById('perfilAvatarNex');
 if (avatarEl) {
   const avatarValido =
     perfil.avatar &&
@@ -117,13 +124,21 @@ if (avatarEl) {
     (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
 
   if (avatarValido) {
-  avatarEl.style.backgroundImage = 'none';
-  avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-} else {
+    avatarEl.style.backgroundImage = 'none';
+    avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+  } else {
     avatarEl.innerHTML = '';
     avatarEl.style.backgroundImage = 'none';
     avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
   }
+
+  // ⚠️ Clique no avatar → abre em tela cheia
+  avatarEl.style.cursor = 'pointer';
+  avatarEl.onclick = () => {
+    if (typeof window.abrirFotoPerfilNex === 'function') {
+      window.abrirFotoPerfilNex(avatarValido ? perfil.avatar : null, perfil.nome, 'avatar');
+    }
+  };
 }
 
     const nomeEl = document.getElementById('perfilNomeNex');
