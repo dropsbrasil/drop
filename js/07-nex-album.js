@@ -399,18 +399,14 @@ async function acaoReagirMidiaNex(tipo) {
   }
 
   if (typeof window.alternarReacaoMidiaNex !== 'function') {
-    window.mostrarToastNex?.('Sistema de reações indisponível.', 'erro');
-    return;
-  }
+  window.mostrarToastNex?.('Sistema indisponível.', 'erro');
+  return;
+}
 
-  const resultado = await window.alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo);
+// ⚠️ Não mostra toast — deixa o 26-reacoes-midia mostrar o erro real
+await window.alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo);
 
-  if (!resultado) {
-    window.mostrarToastNex?.('Falha ao reagir.', 'erro');
-    return;
-  }
-
-  await atualizarBotoesReacaoViewerNex();
+await atualizarBotoesReacaoViewerNex();
 
   if (typeof window.atualizarBadgeReacaoMidiaNex === 'function') {
     window.atualizarBadgeReacaoMidiaNex(mensagemId, midiaIndex);
