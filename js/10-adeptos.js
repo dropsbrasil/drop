@@ -103,6 +103,7 @@ async function calcularAdeptosNex() {
   if (!window.supabaseClient) return [];
 
   try {
+    // ⚠️ A RPC agora exige: 16 dias distintos + estar conectado
     const { data, error } = await window.supabaseClient
       .rpc('calcular_adeptos');
 
@@ -146,57 +147,53 @@ async function calcularAdeptosNex() {
 // CALCULAR "SOU ADEPTO DE QUEM"
 // ============================================
 
-function calcularAdeptosEnviadosNex() {
-  const agora = Date.now();
-  const JANELA_MS = Drops.LIMITES.JANELA_DIAS * 24 * 60 * 60 * 1000;
+async function calcularAdeptosEnviadosNex() {
+  if (!window.supabaseClient) return [];
 
-  const interacoes = lerInteracoesEnviadasNex();
+  try {
+    // ⚠️ Chama a RPC nova (16 dias + conectado)
+    const { data, error } = await window.supabaseClient
+      .rpc('calcular_sou_adepto_de');
 
-  const porPerfil = {};
-
-  interacoes.forEach((i) => {
-    const paraId = i.paraId || i.dropId.split('::')[0] || '';
-    if (!paraId) return;
-
-    if (!porPerfil[paraId]) {
-      porPerfil[paraId] = { total: 0, ultima: 0 };
+    if (error) {
+      console.warn('Erro ao calcular sou adepto de:', error);
+      return [];
     }
 
-    porPerfil[paraId].total += 1;
+    // Converte retorno da RPC pro formato antigo
+    const souAdeptoDe = (data || []).map((a) => ({
+      id: a.username || String(a.perfil_id),
+      perfilId: a.perfil_id,
+      nome: a.nome || a.username || 'Usuário',
+      avatar: a.avatar_url || (a.nome || '?').charAt(0).toUpperCase(),
+      desde: a.ultima_interacao
+        ? new Date(a.ultima_interacao).getTime()
+        : Date.now(),
+      ultimaInteracao: a.ultima_interacao
+        ? new Date(a.ultima_interacao).getTime()
+        : Date.now(),
+      totalInteracoes: Number(a.total_interacoes) || 0
+    }));
 
-    if (i.timestamp > porPerfil[paraId].ultima) {
-      porPerfil[paraId].ultima = i.timestamp;
-    }
-  });
+    // Compara com lista antiga
+    const antigos = lerSouAdeptoDeNex();
+    const idsAntigos = new Set(antigos.map((a) => a.id));
+    const idsNovos = new Set(souAdeptoDe.map((a) => a.id));
 
-  const souAdeptoDe = [];
+    const novos = souAdeptoDe.filter((a) => !idsAntigos.has(a.id));
+    const saiu = antigos.filter((a) => !idsNovos.has(a.id));
 
-  Object.entries(porPerfil).forEach(([perfilId, dados]) => {
-    if (agora - dados.ultima > JANELA_MS) return;
-    if (dados.total < Drops.LIMITES.MINIMO_INTERACOES) return;
+    novos.forEach((a) => notificarSouAdeptoNex(a, 'entrou'));
+    saiu.forEach((a) => notificarSouAdeptoNex(a, 'saiu'));
 
-    souAdeptoDe.push({
-      id: perfilId,
-      totalInteracoes: dados.total,
-      ultimaInteracao: dados.ultima
-    });
-  });
+    window.AdeptosAdapterNex.salvarSouAdeptoDe(souAdeptoDe);
 
-  // Compara com a lista antiga
-  const antigos = lerSouAdeptoDeNex();
-  const idsAntigos = new Set(antigos.map((a) => a.id));
-  const idsNovos = new Set(souAdeptoDe.map((a) => a.id));
-
-  const novos = souAdeptoDe.filter((a) => !idsAntigos.has(a.id));
-  const saiu = antigos.filter((a) => !idsNovos.has(a.id));
-
-  novos.forEach((a) => notificarSouAdeptoNex(a, 'entrou'));
-  saiu.forEach((a) => notificarSouAdeptoNex(a, 'saiu'));
-
-  window.AdeptosAdapterNex.salvarSouAdeptoDe(souAdeptoDe);
-
-  console.log('🎯 Sou adepto de:', souAdeptoDe);
-  return souAdeptoDe;
+    console.log('🎯 Sou adepto de:', souAdeptoDe);
+    return souAdeptoDe;
+  } catch (err) {
+    console.warn('Erro ao calcular sou adepto de:', err);
+    return [];
+  }
 }
 
 // ============================================

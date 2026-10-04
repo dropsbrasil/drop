@@ -28,9 +28,11 @@
       calcularAdeptosNex();
     }
 
-    if (typeof calcularAdeptosEnviadosNex === 'function') {
-      calcularAdeptosEnviadosNex();
-    }
+   if (typeof calcularAdeptosEnviadosNex === 'function') {
+  calcularAdeptosEnviadosNex().catch((err) =>
+    console.warn('Erro ao calcular adeptos enviados:', err)
+  );
+   }
 
     console.log('👑 Sistema de adeptos inicializado');
 
