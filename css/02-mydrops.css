@@ -491,3 +491,49 @@
     width: 96px;
   }
 }
+/* ⚠️ Cápsula de reações no card do My Drops */
+.mydrops-pub-reacao-capsula {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 15;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(13, 20, 36, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  line-height: 1;
+  animation: fadeInCapsula 0.25s ease-out;
+}
+
+.mydrops-pub-reacao-capsula .mydrops-pub-reacao-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.mydrops-pub-reacao-capsula .mydrops-pub-reacao-count {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+@keyframes fadeInCapsula {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

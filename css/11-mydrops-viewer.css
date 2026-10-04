@@ -419,6 +419,7 @@
 .mydrops-publication-media {
   position: absolute;
   inset: 0;
+  overflow: hidden;
 }
 
 .mydrops-publication-media img,
