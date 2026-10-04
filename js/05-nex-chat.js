@@ -582,10 +582,10 @@ const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
     ? `
   <div style="display:flex;align-items:center;margin-top:8px;">
     <div
-      class="reply-linked-top"
-      onclick="irParaMensagemNex('${msg.resposta.id}')">
-      <span class="reply-arrow">↖</span>
-      <span>Resposta a ${escapeHTML(msg.resposta.nome || 'você')}: ${escapeHTML((msg.resposta.texto || '').slice(0, 40))}${msg.resposta.texto && msg.resposta.texto.length > 40 ? '...' : ''}</span>
+  class="reply-linked-top"
+  onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
+    <span class="reply-arrow">↖</span>
+      <span>Resposta</span>
       <span class="reply-count-pill">
         ${ordemResposta}/${totalRespostasDaOriginal}
       </span>
@@ -1427,8 +1427,50 @@ function destacarMensagemNex(msgId, tipo) {
   });
 }
 
-function irParaMensagemNex(msgId) {
-  destacarMensagemNex(msgId, 'verde');
+function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
+  // ⚠️ Tenta pelo ID que veio (geralmente é o do Supabase)
+  let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
+
+  // ⚠️ Se não achou, tenta pelo ID local
+  if (!alvo && msgIdLocal) {
+    alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
+  }
+
+  // ⚠️ Se ainda não achou, procura em todas as mensagens
+  if (!alvo) {
+    const msgs = conversas[Drops.estado.conversaAtual] || [];
+    const msgEncontrada = msgs.find(
+      (m) =>
+        String(m.id) === String(msgId) ||
+        String(m._supabaseId) === String(msgId) ||
+        (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
+    );
+
+    if (msgEncontrada) {
+      const idFinal = msgEncontrada.id || msgEncontrada._supabaseId;
+      alvo = document.querySelector(`[data-msg-id="${idFinal}"]`);
+    }
+  }
+
+  if (!alvo) {
+    console.warn('❌ Não achou a mensagem original:', msgId);
+    return;
+  }
+
+  const card = alvo.querySelector('.msg-layer') ||
+    alvo.querySelector('.msg-card') ||
+    alvo.firstElementChild ||
+    alvo;
+
+  limparDestaqueMensagemNex();
+
+  card.classList.add('msg-destaque-verde-nex');
+  msgDestacadaNex = card;
+
+  card.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center'
+  });
 }
 
 function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
