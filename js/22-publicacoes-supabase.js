@@ -304,11 +304,47 @@ async function buscarTodosOsDropsComAutor(limite = 50) {
     return [];
   }
 }
+// ============================================
+// BUSCAR PERFIS COM DROPS (Nearby otimizado)
+// ============================================
+
+async function buscarPerfisComDropsProximosSupabase(
+  minhaLat,
+  minhaLng,
+  raioKm,
+  limite = 50
+) {
+  if (!window.supabaseClient) return [];
+
+  try {
+    const { data, error } = await window.supabaseClient.rpc(
+      'buscar_perfis_com_drops_proximos',
+      {
+        minha_lat: minhaLat,
+        minha_lng: minhaLng,
+        raio_km: raioKm,
+        limite: limite
+      }
+    );
+
+    if (error) {
+      console.warn('Erro ao buscar perfis próximos:', error);
+      return [];
+    }
+
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.warn('Erro ao buscar perfis próximos:', err);
+    return [];
+  }
+}
 
 // ============================================
 // EXPÕE GLOBALMENTE
 // ============================================
 window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
+window.buscarPerfisComDropsProximosSupabase =
+  buscarPerfisComDropsProximosSupabase;
 window.criarPublicacaoSupabase = criarPublicacaoSupabase;
 window.buscarMinhasPublicacoesSupabase = buscarMinhasPublicacoesSupabase;
 window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;

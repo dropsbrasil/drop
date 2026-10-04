@@ -1271,41 +1271,57 @@ async function renderizarPublicacoesNearbyNex() {
   if (storyFixa) stories.appendChild(storyFixa);
 
   // ============================================
-  // BUSCA DADOS REAIS DO SUPABASE
+  // VERIFICA FUNÇÕES NECESSÁRIAS
   // ============================================
-  if (typeof window.buscarTodosOsDropsComAutor !== 'function') {
-    console.warn('buscarTodosOsDropsComAutor não disponível ainda');
+  if (typeof window.buscarPerfisComDropsProximosSupabase !== 'function') {
+    console.warn('buscarPerfisComDropsProximosSupabase não disponível');
     return;
   }
 
-  let drops = [];
+  const minhaLat = window.minhaLatitudeAtual;
+  const minhaLng = window.minhaLongitudeAtual;
 
-  try {
-    drops = await window.buscarTodosOsDropsComAutor(50);
-  } catch (e) {
-    console.warn('Erro ao buscar drops do Nearby:', e);
-    return;
+  // ============================================
+  // BUSCA EXPANSIVA POR RAIO (100 → 200 → 500 → 1000 → país)
+  // ============================================
+  const TOTAL_MINIMO = 50;
+  const raios = [100, 200, 500, 1000, 99999];
+
+  let perfisEncontrados = [];
+  let raioAtual = 100;
+
+  for (const raio of raios) {
+    try {
+      perfisEncontrados =
+        await window.buscarPerfisComDropsProximosSupabase(
+          typeof minhaLat === 'number' ? minhaLat : null,
+          typeof minhaLng === 'number' ? minhaLng : null,
+          raio,
+          TOTAL_MINIMO
+        );
+    } catch (e) {
+      console.warn('Erro na busca expansiva:', e);
+      perfisEncontrados = [];
+    }
+
+    raioAtual = raio;
+
+    // Se achou o suficiente, para
+    if (perfisEncontrados.length >= TOTAL_MINIMO) break;
   }
 
-  // ⚠️ Remove as MINHAS publicações
-  const meuUsername = String(Drops.usernameAtual || '')
-    .replace(/^@/, '')
-    .toLowerCase()
-    .trim();
-
-  if (meuUsername) {
-    drops = drops.filter((d) => {
-      const autor = String(d.autorUsername || '')
-        .replace(/^@/, '')
-        .toLowerCase()
-        .trim();
-      return autor !== meuUsername;
-    });
-  }
+  console.log(
+    `📡 Nearby: ${perfisEncontrados.length} perfis em raio de ${
+      raioAtual >= 99999 ? 'país inteiro' : raioAtual + ' km'
+    }`
+  );
 
   grid.innerHTML = '';
 
-  if (!Array.isArray(drops) || drops.length === 0) {
+  // ============================================
+  // SE NÃO ACHOU NINGUÉM
+  // ============================================
+  if (!Array.isArray(perfisEncontrados) || perfisEncontrados.length === 0) {
     const vazio = document.createElement('div');
     vazio.style.cssText = `
       grid-column: 1 / -1;
@@ -1320,6 +1336,84 @@ async function renderizarPublicacoesNearbyNex() {
     return;
   }
 
+  // ============================================
+  // MONTA ESTRUTURA SIMILAR AO FORMATO ANTIGO
+  // ============================================
+  // O resto do código espera `drops` com campos:
+  // autorUsername, autorNome, autorAvatar, autorUltimaAtividade,
+  // autorLat, autorLng, mediaUrl, tipo, expiraEm, selos, id
+
+  const drops = [];
+
+  perfisEncontrados.forEach((perfil) => {
+    const dropsDoPerfil = Array.isArray(perfil.drops)
+      ? perfil.drops
+      : [];
+
+    dropsDoPerfil.forEach((drop) => {
+      drops.push({
+        id: drop.id,
+        mediaUrl: drop.mediaUrl,
+        tipo: drop.tipo === 'video' ? 'video' : 'image',
+        legenda: drop.legenda || '',
+        expiraEm: drop.expiraEm || null,
+        criadoEm: drop.criadoEm ? new Date(drop.criadoEm).getTime() : null,
+        selos: drop.selos || null,
+
+        autorUsername: perfil.username,
+        autorNome: perfil.nome,
+        autorAvatar: perfil.avatar_url || null,
+        autorUltimaAtividade: perfil.ultima_atividade || null,
+        autorLat: perfil.lat,
+        autorLng: perfil.lng,
+        distanciaMetros: perfil.distancia_metros
+      });
+    });
+  });
+
+  // ============================================
+  // SEPARA CONECTADOS vs NÃO-CONECTADOS
+  // ============================================
+  const conectadosLista = lerConectadosMyDropsNex();
+  const idsConectados = new Set(
+    conectadosLista.map((c) =>
+      String(c.id || '').replace(/^@/, '').toLowerCase().trim()
+    )
+  );
+
+  // Agrupa por autor (o banco já mandou ordenado por distância)
+  const dropsPorAutor = {};
+
+  drops.forEach((drop) => {
+    const autorId = String(drop.autorUsername || 'usuario')
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
+
+    if (!dropsPorAutor[autorId]) {
+      dropsPorAutor[autorId] = [];
+    }
+    dropsPorAutor[autorId].push(drop);
+  });
+
+  // Mantém a ORDEM de distância que veio do banco
+  const autoresOrdenados = perfisEncontrados.map((p) =>
+    String(p.username || '').replace(/^@/, '').toLowerCase().trim()
+  );
+
+  const autoresConectados = [];
+  const autoresNaoConectados = [];
+
+  autoresOrdenados.forEach((autorId) => {
+    const lista = dropsPorAutor[autorId];
+    if (!lista || !lista.length) return;
+
+    if (idsConectados.has(autorId)) {
+      autoresConectados.push({ autorId, drops: lista });
+    } else {
+      autoresNaoConectados.push({ autorId, drops: lista });
+    }
+  });
   // ============================================
   // CÁLCULO DE DISTÂNCIA REAL (Haversine)
   // ============================================
@@ -1374,44 +1468,8 @@ async function renderizarPublicacoesNearbyNex() {
     return formatarDistanciaNex(metros);
   }
 
-  // ============================================
-  // SEPARA CONECTADOS vs NÃO-CONECTADOS
-  // ============================================
-  const conectadosLista = lerConectadosMyDropsNex();
-  const idsConectados = new Set(
-    conectadosLista.map((c) =>
-      String(c.id || '').replace(/^@/, '').toLowerCase().trim()
-    )
-  );
 
-  // Agrupa drops por autor
-  const dropsPorAutor = {};
-
-  drops.forEach((drop) => {
-    const autorId = String(drop.autorUsername || 'usuario')
-      .replace(/^@/, '')
-      .toLowerCase()
-      .trim();
-
-    if (!dropsPorAutor[autorId]) {
-      dropsPorAutor[autorId] = [];
-    }
-    dropsPorAutor[autorId].push(drop);
-  });
-
-  // Separa
-  const autoresConectados = [];
-  const autoresNaoConectados = [];
-
-  Object.entries(dropsPorAutor).forEach(([autorId, lista]) => {
-    if (idsConectados.has(autorId)) {
-      autoresConectados.push({ autorId, drops: lista });
-    } else {
-      autoresNaoConectados.push({ autorId, drops: lista });
-    }
-  });
-
-  // ============================================
+ // ============================================
   // RENDERIZA CONECTADOS (dentro do .nearby-stories)
   // ============================================
   autoresConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
