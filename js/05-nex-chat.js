@@ -578,34 +578,34 @@ const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
           </div>
 
           ${
-            lado === 'right' && msg.resposta
-              ? `
-            <div style="display:flex;align-items:center;margin-top:8px;">
-              <div
-                class="reply-linked-top"
-                onclick="irParaMensagemNex('${msg.resposta.id}')">
-                <span class="reply-arrow">↖</span>
-                <span>Resposta a ${escapeHTML(msg.resposta.nome || 'você')}: ${escapeHTML((msg.resposta.texto || '').slice(0, 40))}${msg.resposta.texto && msg.resposta.texto.length > 40 ? '...' : ''}</span>
-                <span class="reply-count-pill">
-                  ${ordemResposta}/${totalRespostasDaOriginal}
-                </span>
-              </div>
+  msg.resposta
+    ? `
+  <div style="display:flex;align-items:center;margin-top:8px;">
+    <div
+      class="reply-linked-top"
+      onclick="irParaMensagemNex('${msg.resposta.id}')">
+      <span class="reply-arrow">↖</span>
+      <span>Resposta a ${escapeHTML(msg.resposta.nome || 'você')}: ${escapeHTML((msg.resposta.texto || '').slice(0, 40))}${msg.resposta.texto && msg.resposta.texto.length > 40 ? '...' : ''}</span>
+      <span class="reply-count-pill">
+        ${ordemResposta}/${totalRespostasDaOriginal}
+      </span>
+    </div>
 
-              ${
-                ordemResposta < totalRespostasDaOriginal
-                  ? `
-                <button
-                  type="button"
-                  class="reply-next-btn"
-                  onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
-                  ⬇
-                </button>
-              `
-                  : ''
-              }
-            </div>
-          `
-              : ''
+    ${
+      lado === 'right' && ordemResposta < totalRespostasDaOriginal
+        ? `
+      <button
+        type="button"
+        class="reply-next-btn"
+        onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
+        ⬇
+      </button>
+    `
+        : ''
+    }
+  </div>
+`
+    : ''
           }
 
           <div class="msg-content">
