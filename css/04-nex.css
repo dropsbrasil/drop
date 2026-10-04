@@ -224,3 +224,27 @@
   border-radius: 50%;
   display: block;
 }
+/* ⚠️ Quando não tem não-lidas, a aba some e as outras se ajustam */
+.nex-tabs.sem-naolidas {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.nex-tabs.sem-naolidas .nex-tab[data-tab="naolidas"] {
+  display: none;
+}
+/* ⚠️ Card de conversa com mensagem não lida */
+.nex-chat.unread-chat {
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15),
+              0 8px 20px rgba(37, 99, 235, 0.22);
+}
+
+.nex-chat.unread-chat .nex-info h3 {
+  color: #fff;
+  font-weight: 900;
+}
+
+.nex-chat.unread-chat .nex-info p {
+  color: #e0f2fe;
+  font-weight: 800;
+}
