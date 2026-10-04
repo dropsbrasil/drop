@@ -704,12 +704,12 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
   // ============================================
 
   async function enviarMsgNex() {
-    const input = document.getElementById('chatInput');
-    const texto = input ? input.value.trim() : '';
+  const input = document.getElementById('chatInput');
+  const texto = input ? input.value.trim() : '';
 
-    const temAudio = typeof window.temAudioNex === 'function'
-      ? window.temAudioNex()
-      : false;
+  const temAudio = typeof window.temAudioNex === 'function'
+    ? window.temAudioNex()
+    : false;
     const temMidia = typeof window.temMidiasNex === 'function'
       ? window.temMidiasNex()
       : false;
@@ -927,17 +927,34 @@ if (audioUrl) {
   }
 }
 
-    // ⚠️ Envia pro Supabase primeiro
-    let msgSupabase = null;
+    // ⚠️ GARANTE que a conversa existe no Supabase ANTES de enviar
+let convId = window.__convIdsNex && window.__convIdsNex[conversaAtual];
 
-    if (
-      typeof window.enviarMensagemSupabase === 'function' &&
-      window.__convIdsNex &&
-      window.__convIdsNex[conversaAtual]
-    ) {
-      const convId = window.__convIdsNex[conversaAtual];
+if (!convId && typeof window.obterOuCriarConversaSupabase === 'function') {
+  const usernameReal =
+    (window.__convUsernamesNex && window.__convUsernamesNex[conversaAtual]) ||
+    String(conversaAtual || '').toLowerCase().replace(/^@/, '').trim();
 
-      let tipo = 'texto';
+  try {
+    convId = await window.obterOuCriarConversaSupabase(usernameReal);
+
+    if (convId) {
+      window.__convIdsNex = window.__convIdsNex || {};
+      window.__convIdsNex[conversaAtual] = convId;
+
+      window.__convUsernamesNex = window.__convUsernamesNex || {};
+      window.__convUsernamesNex[conversaAtual] = usernameReal;
+    }
+  } catch (err) {
+    console.warn('Erro ao criar conversa antes de enviar:', err);
+  }
+}
+
+// ⚠️ Envia pro Supabase primeiro
+let msgSupabase = null;
+
+if (typeof window.enviarMensagemSupabase === 'function' && convId) {
+  let tipo = 'texto';
 let mediaUrl = null;
 let mediaMeta = null;
 

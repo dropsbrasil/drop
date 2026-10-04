@@ -229,12 +229,12 @@
 // CARREGAR CONVERSA COMPLETA (para o chat)
 // ============================================
 async function carregarConversaSupabase(nome) {
-  // Usa o username real, não o nome de exibição
+  // ⚠️ Usa o username real, SEMPRE em lowercase
   const usernameReal =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) ||
+    String(nome || '').toLowerCase().replace(/^@/, '').trim();
 
   const convId = await obterOuCriarConversaSupabase(usernameReal);
-  if (!convId) return null;
 
   window.__convIdsNex = window.__convIdsNex || {};
   window.__convIdsNex[nome] = convId;
@@ -421,8 +421,12 @@ async function sincronizarCardsNexSupabase() {
         continue;
       }
 
-      // Cria o card novo
+            // Cria o card novo
 if (typeof window.criarCardConversaNex === 'function') {
+  // ⚠️ Garante o mapa de usernames antes de criar
+  window.__convUsernamesNex = window.__convUsernamesNex || {};
+  window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+
   const conectado =
     typeof window.estaConectadoNoMyDropsNex === 'function'
       ? window.estaConectadoNoMyDropsNex(usernameOutro)

@@ -495,7 +495,18 @@ function fecharMuralEmBrevePerfilNex() {
 
   function abrirChatDiretoPerfilNex() {
     const perfilAberto = Drops.estado.perfilAberto;
+    const perfilUsername = String(Drops.estado.perfilBloquearAtual || '')
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
+
     if (!perfilAberto) return;
+
+    // ⚠️ REGISTRA o username real ANTES de criar o card
+    if (perfilUsername) {
+      window.__convUsernamesNex = window.__convUsernamesNex || {};
+      window.__convUsernamesNex[perfilAberto] = perfilUsername;
+    }
 
     if (typeof mostrarTela === 'function') {
       mostrarTela('nex');

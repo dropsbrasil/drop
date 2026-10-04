@@ -294,11 +294,18 @@ async function atualizarStatusTodosCardsNex() {
     card.dataset.chat = nome;
     card.dataset.connected = conectado ? 'yes' : 'no';
 
+    // ⚠️ REGISTRA no mapa (garante que sempre terá entrada)
+    if (!window.__convUsernamesNex) window.__convUsernamesNex = {};
+    if (!window.__convUsernamesNex[nome]) {
+      window.__convUsernamesNex[nome] =
+        String(nome || '').toLowerCase().replace(/^@/, '').trim();
+    }
+
     // ⚠️ Pega o username real (do mapa) ou o nome
 const usernameReal =
   (window.__convUsernamesNex && window.__convUsernamesNex[nome]) ||
-  nome.toLowerCase().replace(/^@/, '').trim();
-
+  String(nome || '').toLowerCase().replace(/^@/, '').trim();
+    
 card.innerHTML = `
   <div class="nex-left">
     <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
