@@ -413,8 +413,13 @@ function preencherPerfilNoPainelControleNex() {
       avatarEl.textContent = inicial;
     }
   }
-}
 
+  // ⚠️ Atualiza os ícones sociais do painel
+  if (typeof window.atualizarIconesSocialPainelNex === 'function') {
+    window.atualizarIconesSocialPainelNex();
+  }
+}
+  
 function fecharPainelControleNex() {
   const modal = document.getElementById('painelControleNex');
   if (modal) modal.style.display = 'none';

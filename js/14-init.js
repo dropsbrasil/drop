@@ -97,6 +97,13 @@ if (typeof iniciarRealtimeReacoesMidiaNex === 'function') {
   }, 2500);
 }
 
+// ⚠️ Atualiza contador do mural
+if (typeof window.atualizarContadorMeuMuralNex === 'function') {
+  setTimeout(() => {
+    window.atualizarContadorMeuMuralNex();
+  }, 3000);
+}
+
 // ⚠️ Pede permissão pra enviar notificações
 if (typeof pedirPermissaoNotificacaoNex === 'function') {
   setTimeout(() => {

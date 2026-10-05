@@ -141,6 +141,68 @@ window.abrirFotoPerfilNex = abrirFotoPerfilNex;
   // Chama IMEDIATAMENTE (não espera DOMContentLoaded)
   carregarDadosUsuarioMyDrops();
 
+  // ============================================
+// ÍCONES SOCIAIS NO PAINEL DE CONTROLE
+// ============================================
+
+function atualizarIconesSocialPainelNex() {
+  const container = document.getElementById('controleSocialIconsNex');
+  if (!container) return;
+
+  const social = window.AuthAdapterNex?.lerSocial?.() || {};
+
+  const mapa = {
+    instagram: social.instagram,
+    whatsapp: social.whatsapp,
+    tiktok: social.tiktok
+  };
+
+  container.querySelectorAll('img').forEach((img) => {
+    const rede = img.dataset.rede;
+    const temValor = String(mapa[rede] || '').trim() !== '';
+    img.classList.toggle('ativo', temValor);
+  });
+}
+
+window.atualizarIconesSocialPainelNex = atualizarIconesSocialPainelNex;
+
+// ============================================
+// CONTADOR DO MEU MURAL
+// ============================================
+
+async function atualizarContadorMeuMuralNex() {
+  const capsula = document.getElementById('muralCapsulaMeuNex');
+  if (!capsula) return;
+
+  const numeroEl = capsula.querySelector('.mural-capsula-numero');
+  if (!numeroEl) return;
+
+  if (typeof window.buscarMuralSupabase !== 'function') return;
+
+  const donoUsername = window.Drops?.usernameAtual || '';
+  if (!donoUsername) return;
+
+  try {
+    const contribuicoes = await window.buscarMuralSupabase(donoUsername);
+
+    const pessoas = new Set();
+
+    (contribuicoes || []).forEach((c) => {
+      const autor = String(c.autor_username || c.autor_id || '')
+        .replace(/^@/, '')
+        .toLowerCase()
+        .trim();
+      if (autor) pessoas.add(autor);
+    });
+
+    numeroEl.textContent = String(pessoas.size);
+  } catch (err) {
+    console.warn('Erro ao contar mural:', err);
+  }
+}
+
+window.atualizarContadorMeuMuralNex = atualizarContadorMeuMuralNex;
+
 // ============================================
 // EDITOR DE NOME
 // ============================================

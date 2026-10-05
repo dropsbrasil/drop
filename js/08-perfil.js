@@ -293,29 +293,31 @@ async function renderizarMuralNoPerfilVisitadoNex(perfilId) {
     console.warn('Erro ao buscar mural do perfil:', err);
   }
 
-  let totalElementos = 0;
 
-  if (Array.isArray(contribuicoes)) {
-    contribuicoes.forEach((contrib) => {
-      const dados = contrib.dados || {};
-      if (Array.isArray(dados.elementos)) {
-        totalElementos += dados.elementos.length;
-      }
-      if (Array.isArray(dados.tracos)) {
-        totalElementos += dados.tracos.length;
-      }
-    });
-  }
+  // ⚠️ Conta quantas PESSOAS diferentes contribuíram
+const pessoasUnicas = new Set();
 
-  if (contador) {
-    if (totalElementos === 0) {
-      contador.textContent = 'Deixe sua marca';
-    } else if (totalElementos === 1) {
-      contador.textContent = '1 marca já aqui';
-    } else {
-      contador.textContent = `${totalElementos} marcas já aqui`;
-    }
-  }
+if (Array.isArray(contribuicoes)) {
+  contribuicoes.forEach((contrib) => {
+    const autor = String(
+      contrib.autor_username || contrib.autor_id || ''
+    )
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
+
+    if (autor) pessoasUnicas.add(autor);
+  });
+}
+
+const total = pessoasUnicas.size;
+
+// ⚠️ Atualiza a cápsula nova
+const capsula = document.getElementById('muralCapsulaVisitadoNex');
+if (capsula) {
+  const numeroEl = capsula.querySelector('.mural-capsula-numero');
+  if (numeroEl) numeroEl.textContent = String(total);
+}
 }
   
 // ============================================
