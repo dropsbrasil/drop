@@ -548,3 +548,26 @@
   filter: brightness(0.92);
   transform: scale(0.99);
 }
+/* ⚠️ Cápsula do contador do mural */
+.mural-capsula-contador-nex {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  width: fit-content;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mural-capsula-contador-nex .mural-capsula-numero {
+  font-weight: 900;
+  font-size: 12px;
+}

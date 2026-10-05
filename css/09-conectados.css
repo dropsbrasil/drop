@@ -312,12 +312,22 @@
 .desconectado-avatar-nex {
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #8b5cf6, #3b82f6);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 900;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.desconectado-avatar-nex img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .desconectado-info-nex {
@@ -606,4 +616,37 @@ body.light-theme .tabbar,
 body.light-theme .topbar,
 body.light-theme .mydrops-topbar {
   background: #ffffff;
+}
+/* ⚠️ Ícones sociais no botão Editar Social */
+#btnEditarSocialNex {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#btnEditarSocialNex > span:first-child {
+  flex: 1;
+}
+
+.controle-social-icons-nex {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.controle-social-icons-nex img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  filter: grayscale(1) brightness(0.55);
+  opacity: 0.55;
+  transition: filter 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+}
+
+.controle-social-icons-nex img.ativo {
+  filter: none;
+  opacity: 1;
 }
