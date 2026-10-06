@@ -859,24 +859,17 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
     mensagem.audio = audioLocal;
   }
 
-  // ============================================
-  // ⚠️ 1. ADICIONA A MENSAGEM LOCALMENTE E RENDERIZA JÁ
-  // ============================================
-  conversas[conversaAtual].push(mensagem);
+// ============================================
+// ⚠️ 1. ADICIONA A MENSAGEM LOCALMENTE E RENDERIZA JÁ
+// ============================================
+conversas[conversaAtual].push(mensagem);
 
-  if (input) input.value = '';
+if (input) input.value = '';
 
-  if (typeof window.limparTodosPreviewsNex === 'function') {
-    window.limparTodosPreviewsNex();
-  }
+// ⚠️ NÃO limpa os previews aqui! Só depois do upload terminar.
+// Se limpar agora e o upload falhar, o usuário perde a mídia.
 
-  if (respostaSelecionadaNex) {
-    cancelarRespostaNex();
-  }
-
-  marcarConversaRespondidaNex(conversaAtual);
-  renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
-
+renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
   // ============================================
   // ⚠️ 2. UPLOAD EM SEGUNDO PLANO + UPDATE DA MENSAGEM
   // ============================================
@@ -1048,14 +1041,24 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
         }
       }
 
-      // ============================================
-      // ⚠️ 4. SUCESSO — marca como enviado
-      // ============================================
-      msgLocal.status = 'enviado';
+        // ============================================
+  // ⚠️ 4. SUCESSO — marca como enviado
+  // ============================================
+  msgLocal.status = 'enviado';
 
-      renderChat(conversaAtual);
-    } catch (err) {
-      console.warn('Erro no envio:', err);
+  renderChat(conversaAtual);
+
+  // ⚠️ AGORA SIM, limpa os previews (só depois do sucesso)
+  if (typeof window.limparTodosPreviewsNex === 'function') {
+    window.limparTodosPreviewsNex();
+  }
+
+  if (respostaSelecionadaNex) {
+    cancelarRespostaNex();
+  }
+
+  marcarConversaRespondidaNex(conversaAtual);
+} catch (err) {
 
       // ============================================
       // ⚠️ 5. FALHA — marca como erro

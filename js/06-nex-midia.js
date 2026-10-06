@@ -49,53 +49,54 @@
       }
 
       // ----- LOCALIZAÇÃO -----
-      if (msg.anexo.localizacao || msg.anexo.type === 'location') {
-        const loc = msg.anexo.localizacao || msg.anexo;
-        const lat = loc.lat;
-        const lng = loc.lng;
-        const endereco = loc.address || 'Localização';
+if (msg.anexo.localizacao || msg.anexo.type === 'location') {
+  const loc = msg.anexo.localizacao || msg.anexo;
+  const lat = loc.lat;
+  const lng = loc.lng;
+  const endereco = loc.address || 'Localização';
 
-        if (lat != null && lng != null) {
-          html += `
-            <div class="msg-location-card">
-              <div class="msg-location-header">
-                <div class="msg-location-icon">📍</div>
+  if (lat != null && lng != null) {
+    html += `
+      <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
+        <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
+          <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
 
-                <div class="msg-location-header-text">
-                  <div class="msg-location-title">Me encontre aqui:</div>
-                  <div class="msg-location-status">Localização pronta</div>
-                </div>
-              </div>
+          <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
+            <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Me encontre aqui:</div>
+            <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Localização pronta</div>
+          </div>
+        </div>
 
-              <div class="msg-location-address">
-                ${escapeHTML(endereco)}
-              </div>
+        <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
+          ${escapeHTML(endereco)}
+        </div>
 
-              <button
-                type="button"
-                class="msg-location-btn"
-                onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
-                Ver rota
-              </button>
-            </div>
-          `;
-        } else {
-          html += `
-            <div class="msg-location-card">
-              <div class="msg-location-header">
-                <div class="msg-location-icon">📍</div>
-                <div class="msg-location-header-text">
-                  <div class="msg-location-title">Localização</div>
-                  <div class="msg-location-status">Indisponível</div>
-                </div>
-              </div>
-              <div class="msg-location-address">
-                ${escapeHTML(endereco)}
-              </div>
-            </div>
-          `;
-        }
-      }
+        <button
+          type="button"
+          class="msg-location-btn"
+          style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; width:100% !important; margin-top:10px !important; padding:10px !important; background:#2563eb !important; color:#fff !important; border:none !important; border-radius:8px !important; font-weight:600 !important; cursor:pointer !important;"
+          onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
+          Ver rota
+        </button>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
+        <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
+          <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
+          <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
+            <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Localização</div>
+            <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Indisponível</div>
+          </div>
+        </div>
+        <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
+          ${escapeHTML(endereco)}
+        </div>
+      </div>
+    `;
+  }
+}
 
       // ----- COMENTÁRIO DO NEARBY -----
       if (msg.anexo.type === 'nearby-comment') {
