@@ -135,9 +135,11 @@
   // ============================================
 
   function statusIconeNex(status) {
-    if (status === 'entregue') return '✓✓';
-    if (status === 'aberto' || status === 'visto') return '👁️‍🗨️';
-    return '✓';
+  if (status === 'enviando') return '⏳';
+  if (status === 'erro') return '⚠️';
+  if (status === 'entregue') return '✓✓';
+  if (status === 'aberto' || status === 'visto') return '👁️‍🗨️';
+  return '✓';
   }
 
   // ============================================

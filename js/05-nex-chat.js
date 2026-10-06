@@ -499,9 +499,17 @@ const msgIdUnico = msg.id || gerarIdMensagemNex();
 
       const dataExibida = msg.data || 'Hoje';
       const horaExibida = msg.hora || msg.time || '';
-      const statusExibido =
-        lado === 'right' ? statusIconeNex(msg.status || 'enviado') : '';
+const statusExibido =
+  lado === 'right' ? statusIconeNex(msg.status || 'enviado') : '';
 
+// ⚠️ Classe extra pro status (pulsar quando enviando, vermelho quando erro)
+const statusClasse =
+  msg.status === 'enviando'
+    ? 'status-enviando'
+    : msg.status === 'erro'
+      ? 'status-erro'
+      : '';
+      
       const row = document.createElement('div');
       row.className = `msg-row ${lado}`;
       row.dataset.msgId = msg.id;
@@ -567,7 +575,7 @@ const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
                     onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
                     ⋮
                   </button>
-                  <div class="msg-status">${escapeHTML(statusExibido)}</div>`
+                  <div class="msg-status ${statusClasse}">${escapeHTML(statusExibido)}</div>`
                 : ''
             }
 
@@ -710,357 +718,426 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
   const temAudio = typeof window.temAudioNex === 'function'
     ? window.temAudioNex()
     : false;
-    const temMidia = typeof window.temMidiasNex === 'function'
-      ? window.temMidiasNex()
-      : false;
-    const temMidiaUnica = typeof window.getPreviewMidiaNex === 'function'
-      ? !!window.getPreviewMidiaNex()
-      : false;
-    const temDocumento = typeof window.temDocumentoNex === 'function'
-      ? window.temDocumentoNex()
-      : false;
-    const temLocalizacao = typeof window.temLocalizacaoNex === 'function'
-      ? window.temLocalizacaoNex()
-      : false;
+  const temMidia = typeof window.temMidiasNex === 'function'
+    ? window.temMidiasNex()
+    : false;
+  const temMidiaUnica = typeof window.getPreviewMidiaNex === 'function'
+    ? !!window.getPreviewMidiaNex()
+    : false;
+  const temDocumento = typeof window.temDocumentoNex === 'function'
+    ? window.temDocumentoNex()
+    : false;
+  const temLocalizacao = typeof window.temLocalizacaoNex === 'function'
+    ? window.temLocalizacaoNex()
+    : false;
 
-    if (
-      !texto &&
-      !temAudio &&
-      !temMidia &&
-      !temMidiaUnica &&
-      !temDocumento &&
-      !temLocalizacao
-    ) {
-      return;
-    }
-
-    const conversaAtual = Drops.estado.conversaAtual;
-
-    if (!conversas[conversaAtual]) {
-      conversas[conversaAtual] = [];
-    }
-
-    const mensagem = {
-      id: gerarIdMensagemNex(),
-      timestamp: Date.now(),
-      side: 'right',
-      nome: 'Eu',
-      avatar: 'EU',
-      data: new Date().toLocaleDateString('pt-BR'),
-      hora: new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: 'enviado'
-    };
-
-    // Resposta
-    if (respostaSelecionadaNex) {
-      // ⚠️ Usa o ID do Supabase se existir (não o local)
-      const idParaResposta =
-        respostaSelecionadaNex._supabaseId || respostaSelecionadaNex.id;
-
-      mensagem.resposta = {
-        id: idParaResposta,
-        nome: respostaSelecionadaNex.nome || '',
-        texto: respostaSelecionadaNex.text || '',
-        side: respostaSelecionadaNex.side || 'left'
-      };
-    }
-
-    if (texto) mensagem.text = texto;
-
-// --- Mídia única (câmera/galeria) ---
-const midiaUnica =
-  typeof window.getPreviewMidiaNex === 'function'
-    ? window.getPreviewMidiaNex()
-    : null;
-
-if (midiaUnica && midiaUnica.url) {
-  let urlFinal = null;
-
-  if (typeof window.uploadMidiaNexSupabase === 'function') {
-    window.mostrarToastNex?.('Enviando mídia...', 'info');
-    const urlStorage = await window.uploadMidiaNexSupabase(midiaUnica.url);
-    if (urlStorage) {
-      urlFinal = urlStorage;
-    }
-  }
-
-  // ⚠️ Só envia se conseguiu uma URL pública de verdade
-  if (urlFinal && /^https?:\/\//i.test(urlFinal)) {
-    mensagem.anexo = {
-      type: midiaUnica.type === 'video' ? 'video' : 'imagem',
-      url: urlFinal
-    };
-  } else {
-    window.mostrarToastNex?.('Falha ao enviar mídia. Tente novamente.', 'erro');
-
-    if (typeof window.limparTodosPreviewsNex === 'function') {
-      window.limparTodosPreviewsNex();
-    }
-    return; // aborta o envio
-  }
-}
-
-    // --- Múltiplas mídias (álbum/galeria) ---
-const midias =
-  typeof window.getPreviewMidiasNex === 'function'
-    ? window.getPreviewMidiasNex()
-    : null;
-
-if (Array.isArray(midias) && midias.length) {
-  const midiasEnviadas = [];
-
-  if (typeof window.uploadMidiaNexSupabase === 'function') {
-    window.mostrarToastNex?.('Enviando mídias...', 'info');
-
-    for (const m of midias) {
-      const urlStorage = await window.uploadMidiaNexSupabase(m.url);
-      if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-        midiasEnviadas.push({
-          url: urlStorage,
-          type: m.type === 'video' ? 'video' : 'imagem'
-        });
-      }
-    }
-  }
-
-  // ⚠️ Se nenhuma subiu, aborta o envio
-  if (!midiasEnviadas.length) {
-    window.mostrarToastNex?.('Falha ao enviar mídias. Tente novamente.', 'erro');
-
-    if (typeof window.limparTodosPreviewsNex === 'function') {
-      window.limparTodosPreviewsNex();
-    }
+  if (
+    !texto &&
+    !temAudio &&
+    !temMidia &&
+    !temMidiaUnica &&
+    !temDocumento &&
+    !temLocalizacao
+  ) {
     return;
   }
 
-  mensagem.midias = midiasEnviadas;
-}
+  const conversaAtual = Drops.estado.conversaAtual;
 
-    // --- Documento (PDF) ---
-const documento =
-  typeof window.getDocumentoPreviewNex === 'function'
-    ? window.getDocumentoPreviewNex()
-    : null;
-
-if (documento && documento.url && !mensagem.anexo) {
-  let urlPdf = null;
-
-  if (typeof window.uploadMidiaNexSupabase === 'function') {
-    window.mostrarToastNex?.('Enviando PDF...', 'info');
-    const urlStorage = await window.uploadMidiaNexSupabase(documento.url);
-    if (urlStorage) {
-      urlPdf = urlStorage;
-    }
+  if (!conversas[conversaAtual]) {
+    conversas[conversaAtual] = [];
   }
 
-  // ⚠️ Só envia se conseguiu uma URL pública de verdade
-  if (urlPdf && /^https?:\/\//i.test(urlPdf)) {
+  // ============================================
+  // ⚠️ CAPTURA OS PREVIEWS LOCAIS ANTES DE LIMPAR
+  // ============================================
+  const midiaUnicaLocal =
+    typeof window.getPreviewMidiaNex === 'function'
+      ? window.getPreviewMidiaNex()
+      : null;
+
+  const midiasLocais =
+    typeof window.getPreviewMidiasNex === 'function'
+      ? window.getPreviewMidiasNex()
+      : null;
+
+  const documentoLocal =
+    typeof window.getDocumentoPreviewNex === 'function'
+      ? window.getDocumentoPreviewNex()
+      : null;
+
+  const localizacaoLocal =
+    typeof window.getLocalizacaoPreviaNex === 'function'
+      ? window.getLocalizacaoPreviaNex()
+      : null;
+
+  const audioLocal =
+    typeof window.getAudioUrlNex === 'function'
+      ? window.getAudioUrlNex()
+      : '';
+
+  // ============================================
+  // ⚠️ CRIA A MENSAGEM COM URL LOCAL (blob:)
+  // ============================================
+  const mensagem = {
+    id: gerarIdMensagemNex(),
+    timestamp: Date.now(),
+    side: 'right',
+    nome: 'Eu',
+    avatar: 'EU',
+    data: new Date().toLocaleDateString('pt-BR'),
+    hora: new Date().toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    status: 'enviando' // ⚠️ status inicial pra mostrar "⏳"
+  };
+
+  // Resposta
+  if (respostaSelecionadaNex) {
+    const idParaResposta =
+      respostaSelecionadaNex._supabaseId || respostaSelecionadaNex.id;
+
+    mensagem.resposta = {
+      id: idParaResposta,
+      nome: respostaSelecionadaNex.nome || '',
+      texto: respostaSelecionadaNex.text || '',
+      side: respostaSelecionadaNex.side || 'left'
+    };
+  }
+
+  if (texto) mensagem.text = texto;
+
+  // --- Mídia única (câmera/galeria) ---
+  if (midiaUnicaLocal && midiaUnicaLocal.url) {
+    mensagem.anexo = {
+      type: midiaUnicaLocal.type === 'video' ? 'video' : 'imagem',
+      url: midiaUnicaLocal.url
+    };
+  }
+
+  // --- Múltiplas mídias ---
+  if (Array.isArray(midiasLocais) && midiasLocais.length) {
+    mensagem.midias = midiasLocais.map((m) => ({
+      url: m.url,
+      type: m.type === 'video' ? 'video' : 'imagem'
+    }));
+  }
+
+  // --- Documento PDF ---
+  if (documentoLocal && documentoLocal.url && !mensagem.anexo) {
     mensagem.anexo = {
       type: 'pdf',
-      url: urlPdf,
-      name: documento.name || 'Documento PDF',
+      url: documentoLocal.url,
+      name: documentoLocal.name || 'Documento PDF',
       documento: {
-        url: urlPdf,
-        name: documento.name || 'Documento PDF',
-        thumbnail: documento.thumbnail || '',
-        size: documento.size || 0
+        url: documentoLocal.url,
+        name: documentoLocal.name || 'Documento PDF',
+        thumbnail: documentoLocal.thumbnail || '',
+        size: documentoLocal.size || 0
       }
     };
-  } else {
-    window.mostrarToastNex?.('Falha ao enviar PDF. Tente novamente.', 'erro');
-
-    if (typeof window.limparTodosPreviewsNex === 'function') {
-      window.limparTodosPreviewsNex();
-    }
-    return;
-  }
-}
-
-    // --- Localização ---
-    const localizacao =
-      typeof window.getLocalizacaoPreviaNex === 'function'
-        ? window.getLocalizacaoPreviaNex()
-        : null;
-
-if (localizacao && localizacao.lat != null && !mensagem.anexo) {
-  mensagem.anexo = {
-    type: 'location',
-    lat: Number(localizacao.lat),
-    lng: Number(localizacao.lng),
-    address: localizacao.address || 'Localização',
-    localizacao: {
-      lat: Number(localizacao.lat),
-      lng: Number(localizacao.lng),
-      address: localizacao.address || 'Localização'
-    }
-  };
-}
-    // --- Áudio ---
-const audioUrl =
-  typeof window.getAudioUrlNex === 'function'
-    ? window.getAudioUrlNex()
-    : '';
-
-if (audioUrl) {
-  let urlAudio = null;
-
-  if (typeof window.uploadMidiaNexSupabase === 'function') {
-    window.mostrarToastNex?.('Enviando áudio...', 'info');
-    const urlStorage = await window.uploadMidiaNexSupabase(audioUrl);
-    if (urlStorage) {
-      urlAudio = urlStorage;
-    }
   }
 
-  if (urlAudio && /^https?:\/\//i.test(urlAudio)) {
-    mensagem.audio = urlAudio;
-  } else {
-    window.mostrarToastNex?.('Falha ao enviar áudio. Tente novamente.', 'erro');
-
-    if (typeof window.limparTodosPreviewsNex === 'function') {
-      window.limparTodosPreviewsNex();
-    }
-    return;
-  }
-}
-
-    // ⚠️ GARANTE que a conversa existe no Supabase ANTES de enviar
-let convId = window.__convIdsNex && window.__convIdsNex[conversaAtual];
-
-if (!convId && typeof window.obterOuCriarConversaSupabase === 'function') {
-  const usernameReal =
-    (window.__convUsernamesNex && window.__convUsernamesNex[conversaAtual]) ||
-    String(conversaAtual || '').toLowerCase().replace(/^@/, '').trim();
-
-  try {
-    convId = await window.obterOuCriarConversaSupabase(usernameReal);
-
-    if (convId) {
-      window.__convIdsNex = window.__convIdsNex || {};
-      window.__convIdsNex[conversaAtual] = convId;
-
-      window.__convUsernamesNex = window.__convUsernamesNex || {};
-      window.__convUsernamesNex[conversaAtual] = usernameReal;
-    }
-  } catch (err) {
-    console.warn('Erro ao criar conversa antes de enviar:', err);
-  }
-}
-
-// ⚠️ Envia pro Supabase primeiro
-let msgSupabase = null;
-
-if (typeof window.enviarMensagemSupabase === 'function' && convId) {
-  let tipo = 'texto';
-let mediaUrl = null;
-let mediaMeta = null;
-
-if (mensagem.audio) {
-  tipo = 'audio';
-  mediaUrl = mensagem.audio;
-} else if (mensagem.anexo) {
-  // ⚠️ Detecta o tipo real do anexo
-  if (mensagem.anexo.type === 'location') {
-    tipo = 'location';
-    mediaUrl = null;
-    mediaMeta = {
-      lat: mensagem.anexo.lat,
-      lng: mensagem.anexo.lng,
-      address: mensagem.anexo.address || 'Localização',
-      localizacao: mensagem.anexo.localizacao || null
+  // --- Localização ---
+  if (localizacaoLocal && localizacaoLocal.lat != null && !mensagem.anexo) {
+    mensagem.anexo = {
+      type: 'location',
+      lat: Number(localizacaoLocal.lat),
+      lng: Number(localizacaoLocal.lng),
+      address: localizacaoLocal.address || 'Localização',
+      localizacao: {
+        lat: Number(localizacaoLocal.lat),
+        lng: Number(localizacaoLocal.lng),
+        address: localizacaoLocal.address || 'Localização'
+      }
     };
-  } else if (mensagem.anexo.type === 'pdf') {
-    tipo = 'pdf';
-    mediaUrl = mensagem.anexo.url || null;
-    mediaMeta = {
-      documento: mensagem.anexo.documento || null,
-      name: mensagem.anexo.name || 'Documento PDF'
-    };
-  } else if (mensagem.anexo.type === 'album') {
-    tipo = 'album';
-    mediaUrl = (mensagem.anexo.midias && mensagem.anexo.midias[0]?.url) || null;
-    mediaMeta = {
-      midias: mensagem.anexo.midias || [],
-      urls: mensagem.anexo.urls || []
-    };
-  } else {
-    // imagem ou vídeo normal
-    tipo = mensagem.anexo.type === 'video' ? 'video' : 'imagem';
-    mediaUrl = mensagem.anexo.url || null;
   }
-} else if (mensagem.midias && mensagem.midias.length) {
-  tipo = 'album';
-  mediaUrl = mensagem.midias[0].url || null;
-  mediaMeta = { midias: mensagem.midias };
-} else if (mensagem.text) {
-  tipo = 'texto';
-}
 
-// ⚠️ Junta o media_meta com os dados da resposta
-let metaCompleta = mediaMeta || {};
+  // --- Áudio ---
+  if (audioLocal) {
+    mensagem.audio = audioLocal;
+  }
 
-if (mensagem.resposta) {
-  metaCompleta = {
-    ...metaCompleta,
-    resposta_info: {
-      id: mensagem.resposta.id,
-      nome: mensagem.resposta.nome || '',
-      texto: mensagem.resposta.texto || '',
-      side: mensagem.resposta.side || 'left'
-    }
-  };
-}
+  // ============================================
+  // ⚠️ 1. ADICIONA A MENSAGEM LOCALMENTE E RENDERIZA JÁ
+  // ============================================
+  conversas[conversaAtual].push(mensagem);
 
-try {
-  msgSupabase = await window.enviarMensagemSupabase({
-    conversa_id: convId,
-    tipo,
-    texto: mensagem.text || null,
-    media_url: mediaUrl,
-    media_meta: Object.keys(metaCompleta).length ? metaCompleta : null,
-    resposta_a_id: mensagem.resposta?.id || null
-  });
+  if (input) input.value = '';
+
+  if (typeof window.limparTodosPreviewsNex === 'function') {
+    window.limparTodosPreviewsNex();
+  }
+
+  if (respostaSelecionadaNex) {
+    cancelarRespostaNex();
+  }
+
+  marcarConversaRespondidaNex(conversaAtual);
+  renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
+
+  // ============================================
+  // ⚠️ 2. UPLOAD EM SEGUNDO PLANO + UPDATE DA MENSAGEM
+  // ============================================
+  (async () => {
+    try {
+      const msgLocal = conversas[conversaAtual].find(
+        (m) => m.id === mensagem.id
+      );
+
+      if (!msgLocal) return;
+
+      // --- Upload da mídia única ---
+      if (midiaUnicaLocal && midiaUnicaLocal.url) {
+        const urlStorage = await window.uploadMidiaNexSupabase(
+          midiaUnicaLocal.url
+        );
+
+        if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
+          throw new Error('Falha no upload da mídia única');
+        }
+
+        msgLocal.anexo.url = urlStorage;
+      }
+
+      // --- Upload das múltiplas mídias ---
+      if (Array.isArray(midiasLocais) && midiasLocais.length) {
+        const enviadas = [];
+
+        for (const m of midiasLocais) {
+          const urlStorage = await window.uploadMidiaNexSupabase(m.url);
+
+          if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+            enviadas.push({
+              url: urlStorage,
+              type: m.type === 'video' ? 'video' : 'imagem'
+            });
+          }
+        }
+
+        if (!enviadas.length) {
+          throw new Error('Falha no upload das mídias');
+        }
+
+        msgLocal.midias = enviadas;
+      }
+
+      // --- Upload do documento ---
+      if (documentoLocal && documentoLocal.url && !midiaUnicaLocal) {
+        const urlStorage = await window.uploadMidiaNexSupabase(
+          documentoLocal.url
+        );
+
+        if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
+          throw new Error('Falha no upload do PDF');
+        }
+
+        msgLocal.anexo.url = urlStorage;
+        if (msgLocal.anexo.documento) {
+          msgLocal.anexo.documento.url = urlStorage;
+        }
+      }
+
+      // --- Upload do áudio ---
+      if (audioLocal) {
+        const urlStorage = await window.uploadMidiaNexSupabase(audioLocal);
+
+        if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
+          throw new Error('Falha no upload do áudio');
+        }
+
+        msgLocal.audio = urlStorage;
+      }
+
+      // ============================================
+      // ⚠️ 3. ENVIA PRO SUPABASE (agora com URLs reais)
+      // ============================================
+      let convId =
+        window.__convIdsNex && window.__convIdsNex[conversaAtual];
+
+      if (
+        !convId &&
+        typeof window.obterOuCriarConversaSupabase === 'function'
+      ) {
+        const usernameReal =
+          (window.__convUsernamesNex &&
+            window.__convUsernamesNex[conversaAtual]) ||
+          String(conversaAtual || '')
+            .toLowerCase()
+            .replace(/^@/, '')
+            .trim();
+
+        try {
+          convId = await window.obterOuCriarConversaSupabase(usernameReal);
+
+          if (convId) {
+            window.__convIdsNex = window.__convIdsNex || {};
+            window.__convIdsNex[conversaAtual] = convId;
+
+            window.__convUsernamesNex = window.__convUsernamesNex || {};
+            window.__convUsernamesNex[conversaAtual] = usernameReal;
+          }
+        } catch (err) {
+          console.warn('Erro ao criar conversa antes de enviar:', err);
+        }
+      }
+
+      if (
+        typeof window.enviarMensagemSupabase === 'function' &&
+        convId
+      ) {
+        let tipo = 'texto';
+        let mediaUrl = null;
+        let mediaMeta = null;
+
+        if (msgLocal.audio) {
+          tipo = 'audio';
+          mediaUrl = msgLocal.audio;
+        } else if (msgLocal.anexo) {
+          if (msgLocal.anexo.type === 'location') {
+            tipo = 'location';
+            mediaMeta = {
+              lat: msgLocal.anexo.lat,
+              lng: msgLocal.anexo.lng,
+              address: msgLocal.anexo.address || 'Localização',
+              localizacao: msgLocal.anexo.localizacao || null
+            };
+          } else if (msgLocal.anexo.type === 'pdf') {
+            tipo = 'pdf';
+            mediaUrl = msgLocal.anexo.url || null;
+            mediaMeta = {
+              documento: msgLocal.anexo.documento || null,
+              name: msgLocal.anexo.name || 'Documento PDF'
+            };
+          } else {
+            tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
+            mediaUrl = msgLocal.anexo.url || null;
+          }
+        } else if (msgLocal.midias && msgLocal.midias.length) {
+          tipo = 'album';
+          mediaUrl = msgLocal.midias[0].url || null;
+          mediaMeta = { midias: msgLocal.midias };
+        }
+
+        let metaCompleta = mediaMeta || {};
+
+        if (msgLocal.resposta) {
+          metaCompleta = {
+            ...metaCompleta,
+            resposta_info: {
+              id: msgLocal.resposta.id,
+              nome: msgLocal.resposta.nome || '',
+              texto: msgLocal.resposta.texto || '',
+              side: msgLocal.resposta.side || 'left'
+            }
+          };
+        }
+
+        const msgSupabase = await window.enviarMensagemSupabase({
+          conversa_id: convId,
+          tipo,
+          texto: msgLocal.text || null,
+          media_url: mediaUrl,
+          media_meta: Object.keys(metaCompleta).length ? metaCompleta : null,
+          resposta_a_id: msgLocal.resposta?.id || null
+        });
 
         if (msgSupabase && msgSupabase.id) {
-          mensagem._supabaseId = msgSupabase.id;
+          msgLocal._supabaseId = msgSupabase.id;
         }
-      } catch (err) {
-        console.warn('Erro ao enviar pro Supabase:', err);
       }
+
+      // ============================================
+      // ⚠️ 4. SUCESSO — marca como enviado
+      // ============================================
+      msgLocal.status = 'enviado';
+
+      renderChat(conversaAtual);
+    } catch (err) {
+      console.warn('Erro no envio:', err);
+
+      // ============================================
+      // ⚠️ 5. FALHA — marca como erro
+      // ============================================
+      const msgErro = conversas[conversaAtual].find(
+        (m) => m.id === mensagem.id
+      );
+
+      if (msgErro) {
+        msgErro.status = 'erro';
+        renderChat(conversaAtual);
+      }
+
+      window.mostrarToastNex?.(
+        'Falha ao enviar. Toque para tentar de novo.',
+        'erro'
+      );
     }
-
-    conversas[conversaAtual].push(mensagem);
-
-    if (input) input.value = '';
-
-    if (typeof window.limparTodosPreviewsNex === 'function') {
-      window.limparTodosPreviewsNex();
-    }
-
-    if (respostaSelecionadaNex) {
-      cancelarRespostaNex();
-    }
-
-    marcarConversaRespondidaNex(conversaAtual);
-    renderChat(conversaAtual);
-  }
+  })();
+}
 
   // ============================================
   // CANCELAR RESPOSTA
   // ============================================
 
   function cancelarRespostaNex() {
-    respostaSelecionadaNex = null;
+  respostaSelecionadaNex = null;
 
-    const preview = document.getElementById('previewRespostaNex');
-    if (!preview) return;
+  const preview = document.getElementById('previewRespostaNex');
+  if (!preview) return;
 
-    preview.style.display = 'none';
-    preview.innerHTML = '';
+  preview.style.display = 'none';
+  preview.classList.remove('ativo');
+  preview.innerHTML = '';
+
+  // ⚠️ Reavalia se o stack deve continuar visível
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
   }
+}
+
+// ============================================
+// ⚠️ ATUALIZAR VISIBILIDADE DA BARRA DE PREVIEW
+// ============================================
+// Mostra o #previewStackNex APENAS se algum filho tiver conteúdo.
+// Cada filho ganha a classe .ativo quando tem algo dentro.
+
+function atualizarPreviewStackNex() {
+  const stack = document.getElementById('previewStackNex');
+  if (!stack) return;
+
+  const filhos = [
+    'previewRespostaNex',
+    'previewMidiasNex',
+    'previewLocalizacaoNex',
+    'audioInlineNex'
+  ];
+
+  let temAlgo = false;
+
+  filhos.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    // Considera "com conteúdo" se:
+    // - Tem texto/HTML dentro, OU
+    // - Está com display != none explicitamente
+    const temHTML = el.innerHTML.trim().length > 0;
+    const visivelForcado =
+      el.style.display && el.style.display !== 'none';
+
+    const ativo = temHTML || visivelForcado;
+
+    el.classList.toggle('ativo', ativo);
+
+    if (ativo) temAlgo = true;
+  });
+
+  stack.classList.toggle('tem-conteudo', temAlgo);
+}
+
+window.atualizarPreviewStackNex = atualizarPreviewStackNex;
   
 // ============================================
 // ABRIR MENU DE MENSAGEM
@@ -1416,6 +1493,9 @@ function mostrarPreviewRespostaNex() {
   if (btnCancelar) {
     btnCancelar.addEventListener('click', cancelarRespostaNex);
   }
+
+  // ⚠️ Atualiza visibilidade do stack
+  atualizarPreviewStackNex();
 }
 
 // ============================================

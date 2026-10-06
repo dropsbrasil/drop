@@ -489,6 +489,12 @@ function mostrarPreviaMidiaNex(midia) {
   if (!inline) return;
 
   inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
 
   const micBtn = document.getElementById('micBtn');
   if (micBtn) micBtn.style.display = 'none';
@@ -530,6 +536,12 @@ function limparPreviaMidiaNex() {
   if (inlineMidias) {
     inlineMidias.innerHTML = '';
     inlineMidias.style.display = 'none';
+    inlineMidias.classList.remove('ativo');
+  }
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
   }
 
   const micBtn = document.getElementById('micBtn');
@@ -682,6 +694,12 @@ function mostrarPreviaDocumentoNex(doc) {
   if (!inline || !doc) return;
 
   inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
 
   const micBtn = document.getElementById('micBtn');
   if (micBtn) micBtn.style.display = 'flex';
@@ -723,6 +741,12 @@ function limparPreviaDocumentoNex() {
   if (inline) {
     inline.innerHTML = '';
     inline.style.display = 'none';
+    inline.classList.remove('ativo');
+  }
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
   }
 
   const micBtn = document.getElementById('micBtn');
@@ -737,10 +761,12 @@ function mostrarPreviaLocalizacaoNex() {
   if (!inline || !localizacaoPreviaNex) return;
 
   const statusTexto = localizacaoPreviaNex.carregando
-    ? 'Carregando localização...'
-    : 'Localização pronta';
+    ? '⏳ Carregando endereço...'
+    : '✅ Localização pronta';
 
   inline.style.display = 'block';
+  inline.classList.add('ativo');
+
   inline.innerHTML = `
     <div class="preview-localizacao-card">
       <button
@@ -764,6 +790,11 @@ function mostrarPreviaLocalizacaoNex() {
       </div>
     </div>
   `;
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
 }
 
 async function capturarLocalizacaoFixaNex() {
@@ -771,25 +802,36 @@ async function capturarLocalizacaoFixaNex() {
   if (menu) menu.style.display = 'none';
 
   if (!navigator.geolocation) {
-    alert('Seu aparelho não suporta localização.');
+    window.mostrarToastNex?.('Seu aparelho não suporta localização.', 'erro');
     return;
   }
+
+  // ⚠️ CORREÇÃO: mostra a prévia IMEDIATAMENTE com "Carregando endereço..."
+  localizacaoPreviaNex = {
+    lat: null,
+    lng: null,
+    address: 'Carregando endereço...',
+    carregando: true
+  };
+
+  mostrarPreviaLocalizacaoNex();
 
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
 
+      // ⚠️ Atualiza a prévia com as coordenadas (ainda buscando endereço)
       localizacaoPreviaNex = {
         lat,
         lng,
-        address: 'Carregando localização',
+        address: 'Carregando endereço...',
         carregando: true
       };
 
       mostrarPreviaLocalizacaoNex();
 
-      let endereco = 'Carregando localização';
+      let endereco = 'Localização indisponível';
 
       try {
         const url =
@@ -807,6 +849,7 @@ async function capturarLocalizacaoFixaNex() {
         endereco = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       }
 
+      // ⚠️ Atualiza a prévia com o endereço final
       localizacaoPreviaNex = {
         lat,
         lng,
@@ -817,11 +860,17 @@ async function capturarLocalizacaoFixaNex() {
       mostrarPreviaLocalizacaoNex();
     },
     () => {
-      alert('Não foi possível obter sua localização.');
+      window.mostrarToastNex?.(
+        'Não foi possível obter sua localização.',
+        'erro'
+      );
+
+      // ⚠️ Limpa a prévia se der erro
+      limparPreviaLocalizacaoNex();
     },
     {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 15000,
       maximumAge: 0
     }
   );
@@ -834,8 +883,15 @@ function limparPreviaLocalizacaoNex() {
   if (inline) {
     inline.innerHTML = '';
     inline.style.display = 'none';
+    inline.classList.remove('ativo');
+  }
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
   }
 }
+  
 
 function abrirMapaLocalizacaoNex(lat, lng) {
   if (lat == null || lng == null) return;
@@ -894,6 +950,12 @@ function limparPreviaAudioNex() {
   if (inline) {
     inline.innerHTML = '';
     inline.style.display = 'none';
+    inline.classList.remove('ativo');
+  }
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
   }
 
   const micBtn = document.getElementById('micBtn');
@@ -917,6 +979,12 @@ function mostrarPreviaAudioNex(url) {
   if (!inline) return;
 
   inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  // ⚠️ Atualiza visibilidade do stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
 
   const micBtn = document.getElementById('micBtn');
   if (micBtn) micBtn.style.display = 'none';
