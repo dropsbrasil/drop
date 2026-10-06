@@ -95,13 +95,14 @@
   </span>
   <span class="mydrops-mural-card-seta">→</span>
     </button>
-    <div class="mydrops-mural">
-      <div class="mydrops-weather-fixed">
-        <div class="weather-location" id="weatherLocation">
-          Carregando endereço…
-        </div>
-      </div>
+    <!-- ⚠️ Card escondido visualmente, mas mantido pra 14-init.js continuar capturando GPS -->
+<div class="mydrops-mural" style="display: none;">
+  <div class="mydrops-weather-fixed">
+    <div class="weather-location" id="weatherLocation">
+      Carregando endereço…
     </div>
+  </div>
+</div>
 
     <div class="mydrops-tabs">
       <button type="button" class="mydrops-tab active" data-tab="drops">Drops</button>
