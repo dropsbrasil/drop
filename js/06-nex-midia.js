@@ -6,10 +6,6 @@
 (function () {
   'use strict';
 
-  // ============================================
-  // MONTAR HTML DE ANEXOS DA MENSAGEM
-  // ============================================
-
   function montarAnexosHTMLNex(msg, dataExibida, horaExibida) {
     let html = '';
 
@@ -49,54 +45,54 @@
       }
 
       // ----- LOCALIZAÇÃO -----
-if (msg.anexo.localizacao || msg.anexo.type === 'location') {
-  const loc = msg.anexo.localizacao || msg.anexo;
-  const lat = loc.lat;
-  const lng = loc.lng;
-  const endereco = loc.address || 'Localização';
+      if (msg.anexo.localizacao || msg.anexo.type === 'location') {
+        const loc = msg.anexo.localizacao || msg.anexo;
+        const lat = loc.lat;
+        const lng = loc.lng;
+        const endereco = loc.address || 'Localização';
 
-  if (lat != null && lng != null) {
-    html += `
-      <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
-        <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
-          <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
+        if (lat != null && lng != null) {
+          html += `
+            <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
+              <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
+                <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
 
-          <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
-            <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Me encontre aqui:</div>
-            <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Localização pronta</div>
-          </div>
-        </div>
+                <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
+                  <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Me encontre aqui:</div>
+                  <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Localização pronta</div>
+                </div>
+              </div>
 
-        <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
-          ${escapeHTML(endereco)}
-        </div>
+              <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
+                ${escapeHTML(endereco)}
+              </div>
 
-        <button
-          type="button"
-          class="msg-location-btn"
-          style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; width:100% !important; margin-top:10px !important; padding:10px !important; background:#2563eb !important; color:#fff !important; border:none !important; border-radius:8px !important; font-weight:600 !important; cursor:pointer !important;"
-          onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
-          Ver rota
-        </button>
-      </div>
-    `;
-  } else {
-    html += `
-      <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
-        <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
-          <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
-          <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
-            <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Localização</div>
-            <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Indisponível</div>
-          </div>
-        </div>
-        <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
-          ${escapeHTML(endereco)}
-        </div>
-      </div>
-    `;
-  }
-}
+              <button
+                type="button"
+                class="msg-location-btn"
+                style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; width:100% !important; margin-top:10px !important; padding:10px !important; background:#2563eb !important; color:#fff !important; border:none !important; border-radius:8px !important; font-weight:600 !important; cursor:pointer !important;"
+                onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
+                Ver rota
+              </button>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
+              <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
+                <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
+                <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
+                  <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Localização</div>
+                  <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Indisponível</div>
+                </div>
+              </div>
+              <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
+                ${escapeHTML(endereco)}
+              </div>
+            </div>
+          `;
+        }
+      }
 
       // ----- COMENTÁRIO DO NEARBY -----
       if (msg.anexo.type === 'nearby-comment') {
@@ -137,8 +133,8 @@ if (msg.anexo.localizacao || msg.anexo.type === 'location') {
         `;
       }
 
-    // ----- IMAGEM -----
-if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
+      // ----- IMAGEM -----
+      if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
         const ehDropDePerfil = !!msg.anexo.perfilId;
 
         if (ehDropDePerfil) {
@@ -191,69 +187,69 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
           `;
         }
       }
+          // ----- VÍDEO -----
+    if (msg.anexo.type === 'video') {
+      const ehDropDePerfil = !!msg.anexo.perfilId;
 
-      // ----- VÍDEO -----
-      if (msg.anexo.type === 'video') {
-        const ehDropDePerfil = !!msg.anexo.perfilId;
+      if (ehDropDePerfil) {
+        html += `
+          <div
+            class="msg-drop-preview-open"
+            data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+            data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
+            data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
 
-        if (ehDropDePerfil) {
-          html += `
-            <div
-              class="msg-drop-preview-open"
-              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
-              data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
-
-              <div class="msg-drop-preview-head">
-                <div class="msg-drop-preview-title">
-                  Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
-                </div>
-
-                <div class="msg-drop-preview-date">
-                  ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
-                </div>
+            <div class="msg-drop-preview-head">
+              <div class="msg-drop-preview-title">
+                Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
               </div>
 
-              <div class="msg-anexo-card">
-                <div class="msg-video-thumb">
-                  <video
-                    src="${escapeHTML(msg.anexo.url)}"
-                    muted
-                    playsinline>
-                  </video>
-
-                  <div class="play-overlay">▶</div>
-                </div>
+              <div class="msg-drop-preview-date">
+                ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
               </div>
-
-              <button
-                type="button"
-                class="msg-drop-profile-btn"
-                data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-                data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
-                👣 Visitar perfil
-              </button>
             </div>
-          `;
-        } else {
-          const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
-          const urlSafe = escapeHTML(msg.anexo.url);
 
-          html += `
-            <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+            <div class="msg-anexo-card">
               <div class="msg-video-thumb">
                 <video
-                  src="${urlSafe}"
-                  controls
+                  src="${escapeHTML(msg.anexo.url)}"
+                  muted
                   playsinline>
                 </video>
+
+                <div class="play-overlay">▶</div>
               </div>
-              <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
             </div>
-          `;
-        }
+
+            <button
+              type="button"
+              class="msg-drop-profile-btn"
+              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
+              👣 Visitar perfil
+            </button>
+          </div>
+        `;
+      } else {
+        const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
+        const urlSafe = escapeHTML(msg.anexo.url);
+
+        html += `
+          <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+            <div class="msg-video-thumb">
+              <video
+                src="${urlSafe}"
+                controls
+                playsinline>
+              </video>
+            </div>
+            <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
+          </div>
+        `;
       }
-          // ----- ÁLBUM / MÚLTIPLAS IMAGENS -----
+    }
+
+    // ----- ÁLBUM / MÚLTIPLAS IMAGENS -----
     if (
       msg.anexo.type === 'multi-imagem' ||
       msg.anexo.type === 'album'
@@ -370,11 +366,6 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
         ${msg.midias
           .slice(0, 4)
           .map((midia, index) => {
-            const reacaoMidia = obterReacaoMidiaNex({
-              url: midia.url,
-              type: midia.type
-            });
-
             return `
               <div
                 class="msg-grid-item msg-grid-item-${index + 1}"
@@ -391,16 +382,6 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
                       <div class="play-overlay">▶</div>
                     `
                     : `<img src="${midia.url}">`
-                }
-
-                ${
-                  reacaoMidia
-                    ? `
-                  <div class="msg-reaction-preview">
-                    ${escapeHTML(reacaoMidia)}
-                  </div>
-                `
-                    : ''
                 }
               </div>
             `;
@@ -466,8 +447,7 @@ let previewMidiasNex = [];
 let modoExcluirMidiasNex = false;
 let documentoPreviewNex = null;
 let localizacaoPreviaNex = null;
-
-// ============================================
+  // ============================================
 // PREVIEW DE MÍDIA ÚNICA (câmera/galeria)
 // ============================================
 
@@ -556,7 +536,8 @@ function abrirPreviewMidiaNex() {
     viewer.remove();
   };
 }
-  // ============================================
+
+// ============================================
 // PREVIEW DE MÚLTIPLAS MÍDIAS
 // ============================================
 
@@ -888,8 +869,7 @@ function abrirMapaLocalizacaoNex(lat, lng) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
   window.open(url, '_blank');
 }
-
-// ============================================
+  // ============================================
 // ÁUDIO — ESTADO
 // ============================================
 
@@ -1038,512 +1018,504 @@ function mostrarPreviaAudioNex(url) {
 
   window.previewAudioAtivoNex = url;
 }
-    // ============================================
-  // GRAVAR ÁUDIO
-  // ============================================
 
-  async function iniciarGravacaoAudioNex() {
-    if (gravandoAudioNex) return;
+// ============================================
+// GRAVAR ÁUDIO
+// ============================================
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Seu aparelho não suporta gravação de áudio.');
-      return;
-    }
+async function iniciarGravacaoAudioNex() {
+  if (gravandoAudioNex) return;
 
-    limparPreviaAudioNex();
-
-    const micBtn = document.getElementById('micBtn');
-    if (micBtn) {
-      micBtn.style.display = 'flex';
-      micBtn.classList.add('mic-recording');
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamNex = stream;
-
-      const tipos = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/ogg;codecs=opus',
-        'audio/ogg'
-      ];
-
-      const mimeType = tipos.find(
-        (tipo) =>
-          typeof MediaRecorder !== 'undefined' &&
-          MediaRecorder.isTypeSupported &&
-          MediaRecorder.isTypeSupported(tipo)
-      );
-
-      mediaRecorderNex = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-
-      audioChunksNex = [];
-      tempoGravacaoNex = 0;
-      gravandoAudioNex = true;
-      atualizarUIGravacaoNex();
-
-      mediaRecorderNex.ondataavailable = (evento) => {
-        if (evento.data && evento.data.size > 0) {
-          audioChunksNex.push(evento.data);
-        }
-      };
-
-      mediaRecorderNex.onstop = () => {
-        clearInterval(timerGravacaoNex);
-        timerGravacaoNex = null;
-
-        if (audioStreamNex) {
-          audioStreamNex.getTracks().forEach((track) => track.stop());
-          audioStreamNex = null;
-        }
-
-        gravandoAudioNex = false;
-        atualizarUIGravacaoNex();
-
-        const blob = new Blob(audioChunksNex, {
-          type: mediaRecorderNex?.mimeType || 'audio/webm'
-        });
-
-        audioBlobNex = blob;
-        audioUrlNex = URL.createObjectURL(blob);
-
-        mostrarPreviaAudioNex(audioUrlNex);
-
-        const micBtn = document.getElementById('micBtn');
-        if (micBtn) micBtn.style.display = 'none';
-      };
-
-      mediaRecorderNex.start();
-
-      timerGravacaoNex = setInterval(() => {
-        tempoGravacaoNex += 1;
-        atualizarUIGravacaoNex();
-
-        if (tempoGravacaoNex >= Drops.LIMITES.AUDIO) {
-          pararGravacaoAudioNex();
-        }
-      }, 1000);
-    } catch (erro) {
-      gravandoAudioNex = false;
-      atualizarUIGravacaoNex();
-      alert('Não foi possível acessar o microfone.');
-    }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Seu aparelho não suporta gravação de áudio.');
+    return;
   }
 
-  function pararGravacaoAudioNex() {
-    if (!gravandoAudioNex || !mediaRecorderNex) return;
+  limparPreviaAudioNex();
 
-    gravandoAudioNex = false;
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn) {
+    micBtn.style.display = 'flex';
+    micBtn.classList.add('mic-recording');
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioStreamNex = stream;
+
+    const tipos = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/ogg'
+    ];
+
+    const mimeType = tipos.find(
+      (tipo) =>
+        typeof MediaRecorder !== 'undefined' &&
+        MediaRecorder.isTypeSupported &&
+        MediaRecorder.isTypeSupported(tipo)
+    );
+
+    mediaRecorderNex = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
+
+    audioChunksNex = [];
+    tempoGravacaoNex = 0;
+    gravandoAudioNex = true;
     atualizarUIGravacaoNex();
 
-    if (timerGravacaoNex) {
+    mediaRecorderNex.ondataavailable = (evento) => {
+      if (evento.data && evento.data.size > 0) {
+        audioChunksNex.push(evento.data);
+      }
+    };
+
+    mediaRecorderNex.onstop = () => {
       clearInterval(timerGravacaoNex);
       timerGravacaoNex = null;
-    }
 
-    if (mediaRecorderNex.state !== 'inactive') {
-      mediaRecorderNex.stop();
-    }
-  }
-
-  function toggleGravacaoAudioNex() {
-    if (gravandoAudioNex) {
-      pararGravacaoAudioNex();
-    } else {
-      iniciarGravacaoAudioNex();
-    }
-  }
-
-  function enviarAudioNex() {
-    if (!audioUrlNex || !Drops.estado.conversaAtual) return;
-
-    const conversaAtual = Drops.estado.conversaAtual;
-
-    if (!conversas[conversaAtual]) {
-      conversas[conversaAtual] = [];
-    }
-
-    conversas[conversaAtual].push({
-      id: gerarIdMensagemNex(),
-      timestamp: Date.now(),
-      side: 'right',
-      nome: 'Eu',
-      avatar: 'EU',
-      audio: audioUrlNex,
-      data: new Date().toLocaleDateString('pt-BR'),
-      hora: 'agora',
-      status: 'enviado'
-    });
-
-    limparPreviaAudioNex();
-    renderChat(conversaAtual);
-  }
-
-  // ============================================
-  // PLAYER DE ÁUDIO NA MENSAGEM
-  // ============================================
-
-  function toggleAudioNex(btn) {
-    const box = btn.closest('.audio-msg');
-    if (!box) return;
-
-    const player = box.querySelector('audio');
-    const progress = box.querySelector('.audio-progress');
-    const time = box.querySelector('.audio-time');
-
-    if (!player || !progress || !time) return;
-
-    document.querySelectorAll('.audio-msg audio').forEach((audioEl) => {
-      if (audioEl !== player) {
-        audioEl.pause();
-        const otherBtn = audioEl
-          .closest('.audio-msg')
-          ?.querySelector('.audio-open-btn');
-        if (otherBtn) otherBtn.innerHTML = '▶ Ouvir áudio';
+      if (audioStreamNex) {
+        audioStreamNex.getTracks().forEach((track) => track.stop());
+        audioStreamNex = null;
       }
-    });
 
-    player.onloadedmetadata = () => {
-      time.innerText = formatarTempoAudioNex(
-        Math.floor(player.duration || 0)
-      );
+      gravandoAudioNex = false;
+      atualizarUIGravacaoNex();
+
+      const blob = new Blob(audioChunksNex, {
+        type: mediaRecorderNex?.mimeType || 'audio/webm'
+      });
+
+      audioBlobNex = blob;
+      audioUrlNex = URL.createObjectURL(blob);
+
+      mostrarPreviaAudioNex(audioUrlNex);
+
+      const micBtn = document.getElementById('micBtn');
+      if (micBtn) micBtn.style.display = 'none';
     };
 
-    player.ontimeupdate = () => {
-      if (!player.duration) return;
-      const pct = (player.currentTime / player.duration) * 100;
-      progress.style.width = `${pct}%`;
-      time.innerText = formatarTempoAudioNex(Math.floor(player.currentTime));
-    };
+    mediaRecorderNex.start();
 
-    player.onended = () => {
-      progress.style.width = '0%';
-      btn.innerHTML = '▶ Ouvir áudio';
-      time.innerText = formatarTempoAudioNex(
-        Math.floor(player.duration || 0)
-      );
-    };
+    timerGravacaoNex = setInterval(() => {
+      tempoGravacaoNex += 1;
+      atualizarUIGravacaoNex();
 
-    if (player.paused) {
-      player.play();
-      btn.innerHTML = '⏸ Pausar áudio';
-    } else {
-      player.pause();
-      btn.innerHTML = '▶ Ouvir áudio';
-    }
-  }
-
-  // ============================================
-  // HELPERS — ESTADO DOS PREVIEWS
-  // ============================================
-
-  function temAudioNex() {
-    return !!audioUrlNex;
-  }
-
-  function temMidiasNex() {
-    return Array.isArray(previewMidiasNex) && previewMidiasNex.length > 0;
-  }
-
-  function temDocumentoNex() {
-    return !!documentoPreviewNex;
-  }
-
-  function temLocalizacaoNex() {
-    return !!localizacaoPreviaNex;
-  }
-
-  function limparTodosPreviewsNex() {
-    limparPreviaAudioNex();
-
-    if (typeof window.limparPreviaMidiaNex === 'function') {
-      window.limparPreviaMidiaNex();
-    }
-
-    limparPreviaDocumentoNex();
-    limparPreviaLocalizacaoNex();
-  }
-
-  // Getters para o estado interno
-  window.getPreviewMidiasNex = () => previewMidiasNex;
-  window.setPreviewMidiasNex = (v) => { previewMidiasNex = v; };
-
-  window.getPreviewMidiaNex = () => previewMidiaNex;
-  window.setPreviewMidiaNex = (v) => { previewMidiaNex = v; };
-
-  window.getDocumentoPreviewNex = () => documentoPreviewNex;
-  window.setDocumentoPreviewNex = (v) => { documentoPreviewNex = v; };
-
-  window.getLocalizacaoPreviaNex = () => localizacaoPreviaNex;
-  window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
-
-  window.getAudioUrlNex = () => audioUrlNex;
-
-  // ============================================
-  // ÁLBUM (SELEÇÃO MÚLTIPLA)
-  // ============================================
-
-  let albumSlotsNex = Array(12).fill(null);
-  let albumDeleteModeNex = false;
-
-  function atualizarAlbumModalNex() {
-    const modal = document.getElementById('albumModalNex');
-    const grid = document.getElementById('albumGridNex');
-    const addBtn = document.getElementById('albumAddBtnNex');
-
-    if (!modal || !grid || !addBtn) return;
-
-    const preenchidos = albumSlotsNex.filter(Boolean).length;
-    addBtn.classList.toggle('hidden', preenchidos >= 12);
-
-    grid.innerHTML = albumSlotsNex
-      .map((midia, index) => {
-        if (!midia) {
-          return `
-            <div class="album-slot">
-              <div class="album-slot-empty">+</div>
-            </div>
-          `;
-        }
-
-        return `
-          <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
-            ${
-              midia.type === 'video'
-                ? `<video src="${midia.url}" muted playsinline></video>`
-                : `<img src="${midia.url}" alt="">`
-            }
-
-            ${
-              albumDeleteModeNex
-                ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
-                : ''
-            }
-          </div>
-        `;
-      })
-      .join('');
-  }
-
-  function fecharAlbumNex() {
-    const modal = document.getElementById('albumModalNex');
-    if (!modal) return;
-
-    modal.hidden = true;
-    modal.style.setProperty('display', 'none', 'important');
-    modal.style.visibility = 'hidden';
-    modal.style.opacity = '0';
-    modal.style.pointerEvents = 'none';
-
-    albumDeleteModeNex = false;
-  }
-
-  function toggleExcluirAlbumNex() {
-    albumDeleteModeNex = !albumDeleteModeNex;
-    atualizarAlbumModalNex();
-  }
-
-  function removerSlotAlbumNex(index) {
-    if (index < 0 || index >= albumSlotsNex.length) return;
-
-    albumSlotsNex[index] = null;
-    albumDeleteModeNex = false;
-    atualizarAlbumModalNex();
-  }
-
-  function abrirAlbumNex() {
-    const menu = document.getElementById('menuAnexoNex');
-    if (menu) menu.style.display = 'none';
-
-    const modal = document.getElementById('albumModalNex');
-    if (!modal) return;
-
-    modal.hidden = false;
-    modal.style.setProperty('display', 'block', 'important');
-    modal.style.visibility = 'visible';
-    modal.style.opacity = '1';
-    modal.style.pointerEvents = 'auto';
-
-    albumDeleteModeNex = false;
-    atualizarAlbumModalNex();
-  }
-
-  function enviarAlbumNex() {
-    const midias = albumSlotsNex
-      .filter(Boolean)
-      .map((item) => ({
-        url: item.url,
-        type: item.type === 'video' ? 'video' : 'imagem'
-      }));
-
-    const conversaAtual = Drops.estado.conversaAtual;
-    if (!midias.length || !conversaAtual) return;
-
-    if (!conversas[conversaAtual]) {
-      conversas[conversaAtual] = [];
-    }
-
-    conversas[conversaAtual].push({
-      id: gerarIdMensagemNex(),
-      timestamp: Date.now(),
-      side: 'right',
-      nome: 'Eu',
-      avatar: 'EU',
-      data: new Date().toLocaleDateString('pt-BR'),
-      hora: new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: 'enviado',
-      anexo: {
-        type: 'album',
-        midias: [...midias],
-        urls: midias.map((item) => item.url)
+      if (tempoGravacaoNex >= Drops.LIMITES.AUDIO) {
+        pararGravacaoAudioNex();
       }
-    });
+    }, 1000);
+  } catch (erro) {
+    gravandoAudioNex = false;
+    atualizarUIGravacaoNex();
+    alert('Não foi possível acessar o microfone.');
+  }
+}
 
-    fecharAlbumNex();
-    renderChat(conversaAtual);
+function pararGravacaoAudioNex() {
+  if (!gravandoAudioNex || !mediaRecorderNex) return;
+
+  gravandoAudioNex = false;
+  atualizarUIGravacaoNex();
+
+  if (timerGravacaoNex) {
+    clearInterval(timerGravacaoNex);
+    timerGravacaoNex = null;
   }
 
-  // Listener global para remover slot do álbum
-  if (!window.__albumRemoveListenerNex) {
-    window.__albumRemoveListenerNex = true;
+  if (mediaRecorderNex.state !== 'inactive') {
+    mediaRecorderNex.stop();
+  }
+}
 
-    const removerAlbumHandlerNex = (e) => {
-      const btn = e.target.closest('[data-album-remove]');
-      if (!btn) return;
+function toggleGravacaoAudioNex() {
+  if (gravandoAudioNex) {
+    pararGravacaoAudioNex();
+  } else {
+    iniciarGravacaoAudioNex();
+  }
+}
 
-      e.preventDefault();
-      e.stopPropagation();
+function enviarAudioNex() {
+  if (!audioUrlNex || !Drops.estado.conversaAtual) return;
 
-      const index = Number(btn.dataset.albumRemove);
-      if (Number.isNaN(index)) return;
+  const conversaAtual = Drops.estado.conversaAtual;
 
-      removerSlotAlbumNex(index);
-    };
-
-    document.addEventListener('click', removerAlbumHandlerNex, true);
-    document.addEventListener('pointerup', removerAlbumHandlerNex, true);
-    document.addEventListener('touchend', removerAlbumHandlerNex, true);
+  if (!conversas[conversaAtual]) {
+    conversas[conversaAtual] = [];
   }
 
-  // ============================================
-  // MENU DE ANEXO / CÂMERA LATERAL
-  // ============================================
+  conversas[conversaAtual].push({
+    id: gerarIdMensagemNex(),
+    timestamp: Date.now(),
+    side: 'right',
+    nome: 'Eu',
+    avatar: 'EU',
+    audio: audioUrlNex,
+    data: new Date().toLocaleDateString('pt-BR'),
+    hora: 'agora',
+    status: 'enviado'
+  });
 
-  function abrirCameraMenuNex() {
-    const menuAnexo = document.getElementById('menuAnexoNex');
-    const menuCamera = document.getElementById('menuCameraLateralNex');
+  limparPreviaAudioNex();
+  renderChat(conversaAtual);
+}
 
-    if (menuAnexo) menuAnexo.style.display = 'none';
-    if (menuCamera) menuCamera.classList.add('aberto');
-  }
+// ============================================
+// PLAYER DE ÁUDIO NA MENSAGEM
+// ============================================
 
-  function fecharCameraMenuNex() {
-    const menuCamera = document.getElementById('menuCameraLateralNex');
-    if (menuCamera) menuCamera.classList.remove('aberto');
-  }
+function toggleAudioNex(btn) {
+  const box = btn.closest('.audio-msg');
+  if (!box) return;
 
-  function abrirCameraFotoNex() {
-    fecharCameraMenuNex();
-    document.getElementById('inputCameraFotoNex')?.click();
-  }
+  const player = box.querySelector('audio');
+  const progress = box.querySelector('.audio-progress');
+  const time = box.querySelector('.audio-time');
 
-  function abrirCameraVideoNex() {
-    fecharCameraMenuNex();
-    document.getElementById('inputCameraVideoNex')?.click();
-  }
+  if (!player || !progress || !time) return;
 
-  // ⚠️ Mantém o showPicker() original (funcionava no seu iPhone)
-  function abrirSeletorArquivoNex(id) {
-    const input = document.getElementById(id);
-    if (!input) return;
-
-    input.value = '';
-
-    if (typeof input.showPicker === 'function') {
-      try {
-        input.showPicker();
-        return;
-      } catch (e) {}
-    }
-
-    input.click();
-  }
-
-  function abrirMidiasNex() {
-    const menu = document.getElementById('menuAnexoNex');
-    if (menu) menu.style.display = 'none';
-
-    abrirSeletorArquivoNex('inputMidiasNex');
-  }
-
-  function abrirAnexoNex(tipo) {
-    const menu = document.getElementById('menuAnexoNex');
-    if (menu) menu.style.display = 'none';
-
-    if (tipo === 'docs') {
-      abrirSeletorArquivoNex('inputDocsNex');
-      return;
-    }
-
-    if (tipo === 'localizacao') {
-      capturarLocalizacaoFixaNex();
-      return;
-    }
-  }
-
-  function toggleMenuAnexoNex() {
-    const menu = document.getElementById('menuAnexoNex');
-    if (!menu) return;
-
-    if (menu.style.display === 'flex') {
-      menu.style.display = 'none';
-    } else {
-      menu.style.display = 'flex';
-    }
-  }
-
-  // Fecha menu anexo ao clicar fora
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('menuAnexoNex');
-    const btn = document.getElementById('btnAnexoNex');
-
-    if (!menu || !btn) return;
-
-    const clicouNoMenu = menu.contains(e.target);
-    const clicouNoBotao = btn.contains(e.target);
-
-    if (!clicouNoMenu && !clicouNoBotao) {
-      menu.style.display = 'none';
+  document.querySelectorAll('.audio-msg audio').forEach((audioEl) => {
+    if (audioEl !== player) {
+      audioEl.pause();
+      const otherBtn = audioEl
+        .closest('.audio-msg')
+        ?.querySelector('.audio-open-btn');
+      if (otherBtn) otherBtn.innerHTML = '▶ Ouvir áudio';
     }
   });
 
-  // ============================================
+  player.onloadedmetadata = () => {
+    time.innerText = formatarTempoAudioNex(
+      Math.floor(player.duration || 0)
+    );
+  };
+
+  player.ontimeupdate = () => {
+    if (!player.duration) return;
+    const pct = (player.currentTime / player.duration) * 100;
+    progress.style.width = `${pct}%`;
+    time.innerText = formatarTempoAudioNex(Math.floor(player.currentTime));
+  };
+
+  player.onended = () => {
+    progress.style.width = '0%';
+    btn.innerHTML = '▶ Ouvir áudio';
+    time.innerText = formatarTempoAudioNex(
+      Math.floor(player.duration || 0)
+    );
+  };
+
+  if (player.paused) {
+    player.play();
+    btn.innerHTML = '⏸ Pausar áudio';
+  } else {
+    player.pause();
+    btn.innerHTML = '▶ Ouvir áudio';
+  }
+}
+
+// ============================================
+// HELPERS — ESTADO DOS PREVIEWS
+// ============================================
+
+function temAudioNex() {
+  return !!audioUrlNex;
+}
+
+function temMidiasNex() {
+  return Array.isArray(previewMidiasNex) && previewMidiasNex.length > 0;
+}
+
+function temDocumentoNex() {
+  return !!documentoPreviewNex;
+}
+
+function temLocalizacaoNex() {
+  return !!localizacaoPreviaNex;
+}
+
+function limparTodosPreviewsNex() {
+  limparPreviaAudioNex();
+
+  if (typeof window.limparPreviaMidiaNex === 'function') {
+    window.limparPreviaMidiaNex();
+  }
+
+  limparPreviaDocumentoNex();
+  limparPreviaLocalizacaoNex();
+}
+
+window.getPreviewMidiasNex = () => previewMidiasNex;
+window.setPreviewMidiasNex = (v) => { previewMidiasNex = v; };
+
+window.getPreviewMidiaNex = () => previewMidiaNex;
+window.setPreviewMidiaNex = (v) => { previewMidiaNex = v; };
+
+window.getDocumentoPreviewNex = () => documentoPreviewNex;
+window.setDocumentoPreviewNex = (v) => { documentoPreviewNex = v; };
+
+window.getLocalizacaoPreviaNex = () => localizacaoPreviaNex;
+window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
+
+window.getAudioUrlNex = () => audioUrlNex;
+
+// ============================================
+// ÁLBUM (SELEÇÃO MÚLTIPLA)
+// ============================================
+
+let albumSlotsNex = Array(12).fill(null);
+let albumDeleteModeNex = false;
+
+function atualizarAlbumModalNex() {
+  const modal = document.getElementById('albumModalNex');
+  const grid = document.getElementById('albumGridNex');
+  const addBtn = document.getElementById('albumAddBtnNex');
+
+  if (!modal || !grid || !addBtn) return;
+
+  const preenchidos = albumSlotsNex.filter(Boolean).length;
+  addBtn.classList.toggle('hidden', preenchidos >= 12);
+
+  grid.innerHTML = albumSlotsNex
+    .map((midia, index) => {
+      if (!midia) {
+        return `
+          <div class="album-slot">
+            <div class="album-slot-empty">+</div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
+          ${
+            midia.type === 'video'
+              ? `<video src="${midia.url}" muted playsinline></video>`
+              : `<img src="${midia.url}" alt="">`
+          }
+
+          ${
+            albumDeleteModeNex
+              ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
+              : ''
+          }
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function fecharAlbumNex() {
+  const modal = document.getElementById('albumModalNex');
+  if (!modal) return;
+
+  modal.hidden = true;
+  modal.style.setProperty('display', 'none', 'important');
+  modal.style.visibility = 'hidden';
+  modal.style.opacity = '0';
+  modal.style.pointerEvents = 'none';
+
+  albumDeleteModeNex = false;
+}
+
+function toggleExcluirAlbumNex() {
+  albumDeleteModeNex = !albumDeleteModeNex;
+  atualizarAlbumModalNex();
+}
+
+function removerSlotAlbumNex(index) {
+  if (index < 0 || index >= albumSlotsNex.length) return;
+
+  albumSlotsNex[index] = null;
+  albumDeleteModeNex = false;
+  atualizarAlbumModalNex();
+}
+
+function abrirAlbumNex() {
+  const menu = document.getElementById('menuAnexoNex');
+  if (menu) menu.style.display = 'none';
+
+  const modal = document.getElementById('albumModalNex');
+  if (!modal) return;
+
+  modal.hidden = false;
+  modal.style.setProperty('display', 'block', 'important');
+  modal.style.visibility = 'visible';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+
+  albumDeleteModeNex = false;
+  atualizarAlbumModalNex();
+}
+
+function enviarAlbumNex() {
+  const midias = albumSlotsNex
+    .filter(Boolean)
+    .map((item) => ({
+      url: item.url,
+      type: item.type === 'video' ? 'video' : 'imagem'
+    }));
+
+  const conversaAtual = Drops.estado.conversaAtual;
+  if (!midias.length || !conversaAtual) return;
+
+  if (!conversas[conversaAtual]) {
+    conversas[conversaAtual] = [];
+  }
+
+  conversas[conversaAtual].push({
+    id: gerarIdMensagemNex(),
+    timestamp: Date.now(),
+    side: 'right',
+    nome: 'Eu',
+    avatar: 'EU',
+    data: new Date().toLocaleDateString('pt-BR'),
+    hora: new Date().toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    status: 'enviado',
+    anexo: {
+      type: 'album',
+      midias: [...midias],
+      urls: midias.map((item) => item.url)
+    }
+  });
+
+  fecharAlbumNex();
+  renderChat(conversaAtual);
+}
+
+if (!window.__albumRemoveListenerNex) {
+  window.__albumRemoveListenerNex = true;
+
+  const removerAlbumHandlerNex = (e) => {
+    const btn = e.target.closest('[data-album-remove]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const index = Number(btn.dataset.albumRemove);
+    if (Number.isNaN(index)) return;
+
+    removerSlotAlbumNex(index);
+  };
+
+  document.addEventListener('click', removerAlbumHandlerNex, true);
+  document.addEventListener('pointerup', removerAlbumHandlerNex, true);
+  document.addEventListener('touchend', removerAlbumHandlerNex, true);
+}
+
+// ============================================
+// MENU DE ANEXO / CÂMERA LATERAL
+// ============================================
+
+function abrirCameraMenuNex() {
+  const menuAnexo = document.getElementById('menuAnexoNex');
+  const menuCamera = document.getElementById('menuCameraLateralNex');
+
+  if (menuAnexo) menuAnexo.style.display = 'none';
+  if (menuCamera) menuCamera.classList.add('aberto');
+}
+
+function fecharCameraMenuNex() {
+  const menuCamera = document.getElementById('menuCameraLateralNex');
+  if (menuCamera) menuCamera.classList.remove('aberto');
+}
+
+function abrirCameraFotoNex() {
+  fecharCameraMenuNex();
+  document.getElementById('inputCameraFotoNex')?.click();
+}
+
+function abrirCameraVideoNex() {
+  fecharCameraMenuNex();
+  document.getElementById('inputCameraVideoNex')?.click();
+}
+
+function abrirSeletorArquivoNex(id) {
+  const input = document.getElementById(id);
+  if (!input) return;
+
+  input.value = '';
+
+  if (typeof input.showPicker === 'function') {
+    try {
+      input.showPicker();
+      return;
+    } catch (e) {}
+  }
+
+  input.click();
+}
+
+function abrirMidiasNex() {
+  const menu = document.getElementById('menuAnexoNex');
+  if (menu) menu.style.display = 'none';
+
+  abrirSeletorArquivoNex('inputMidiasNex');
+}
+
+function abrirAnexoNex(tipo) {
+  const menu = document.getElementById('menuAnexoNex');
+  if (menu) menu.style.display = 'none';
+
+  if (tipo === 'docs') {
+    abrirSeletorArquivoNex('inputDocsNex');
+    return;
+  }
+
+  if (tipo === 'localizacao') {
+    capturarLocalizacaoFixaNex();
+    return;
+  }
+}
+
+function toggleMenuAnexoNex() {
+  const menu = document.getElementById('menuAnexoNex');
+  if (!menu) return;
+
+  if (menu.style.display === 'flex') {
+    menu.style.display = 'none';
+  } else {
+    menu.style.display = 'flex';
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('menuAnexoNex');
+  const btn = document.getElementById('btnAnexoNex');
+
+  if (!menu || !btn) return;
+
+  const clicouNoMenu = menu.contains(e.target);
+  const clicouNoBotao = btn.contains(e.target);
+
+  if (!clicouNoMenu && !clicouNoBotao) {
+    menu.style.display = 'none';
+  }
+});
+    // ============================================
   // INPUTS (câmera, docs, álbum, mídias)
   // ============================================
 
   function initInputsNex() {
     // Câmera foto
-const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
-if (inputCameraFotoNex) {
-  inputCameraFotoNex.addEventListener('change', () => {
-    const file = inputCameraFotoNex.files?.[0];
-    if (!file) return;
+    const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
+    if (inputCameraFotoNex) {
+      inputCameraFotoNex.addEventListener('change', () => {
+        const file = inputCameraFotoNex.files?.[0];
+        if (!file) return;
 
-    // ⚠️ CORREÇÃO: usa blob URL em vez de base64 (o base64 gigante
-    // travava o renderChat ao inserir <img src="data:..."> no DOM)
-    const url = URL.createObjectURL(file);
-    previewMidiaNex = { type: 'imagem', url, _file: file };
-    mostrarPreviaMidiaNex(previewMidiaNex);
-
-    // ⚠️ NÃO zera o value (senão o blob morre no Android/iOS)
-  });
-}
+        const url = URL.createObjectURL(file);
+        previewMidiaNex = { type: 'imagem', url, _file: file };
+        mostrarPreviaMidiaNex(previewMidiaNex);
+      });
+    }
 
     // Câmera vídeo
     const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
@@ -1555,8 +1527,6 @@ if (inputCameraFotoNex) {
         const url = URL.createObjectURL(file);
         previewMidiaNex = { type: 'video', url, _file: file };
         mostrarPreviaMidiaNex(previewMidiaNex);
-
-        // ⚠️ NÃO zera o value (senão o blob morre no iOS)
       });
     }
 
@@ -1637,28 +1607,27 @@ if (inputCameraFotoNex) {
       });
     }
 
-// Múltiplas mídias (envio direto)
-const inputMidiasNex = document.getElementById('inputMidiasNex');
-if (inputMidiasNex) {
-  inputMidiasNex.addEventListener('change', () => {
-    const files = Array.from(inputMidiasNex.files || []);
-    if (!files.length) return;
+    // Múltiplas mídias (envio direto)
+    const inputMidiasNex = document.getElementById('inputMidiasNex');
+    if (inputMidiasNex) {
+      inputMidiasNex.addEventListener('change', () => {
+        const files = Array.from(inputMidiasNex.files || []);
+        if (!files.length) return;
 
-    // ⚠️ CORREÇÃO: blob URL em vez de base64
-    const previewMidias = files.map((file) => ({
-      type: file.type.startsWith('video/') ? 'video' : 'imagem',
-      url: URL.createObjectURL(file),
-      _file: file
-    }));
+        const previewMidias = files.map((file) => ({
+          type: file.type.startsWith('video/') ? 'video' : 'imagem',
+          url: URL.createObjectURL(file),
+          _file: file
+        }));
 
-    if (!previewMidias.length) return;
+        if (!previewMidias.length) return;
 
-    previewMidiasNex = previewMidias;
-    mostrarPreviewMidiasNex();
-    // ⚠️ NÃO zera o value
-  });
-}
-}  
+        previewMidiasNex = previewMidias;
+        mostrarPreviewMidiasNex();
+      });
+    }
+  }
+
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
