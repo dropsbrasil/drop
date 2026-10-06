@@ -232,7 +232,6 @@
   color: #1f2937;
   word-break: break-word;
 }
-
 /* ============================================
    MENSAGEM DE SISTEMA
 ============================================ */
@@ -273,6 +272,7 @@
   justify-content: center;
   padding: 6px 0;
 }
+
 /* ============================================
    ANEXOS: PDF
 ============================================ */
@@ -387,103 +387,91 @@
 }
 
 /* ============================================
-   ANEXOS: LOCALIZAÇÃO
+   ANEXOS: LOCALIZAÇÃO (CARD ELEGANTE)
 ============================================ */
 
-.msg-location-card {
-  width: 240px;
-  max-width: 240px;
-  min-height: 360px;
-  border-radius: 28px;
+.msg-location-card-elegante {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 16px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 18px;
-  padding: 18px;
-  background: rgba(255,255,255,.62);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 10px 24px rgba(0,0,0,.12);
-  border: 1px solid rgba(255,255,255,.38);
+  background: #1e293b;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.1);
+  margin-top: 8px;
 }
 
-.msg-location-header {
+.msg-location-capa {
+  width: 100%;
+  height: 90px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: #0f172a;
 }
 
-.msg-location-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
+.msg-location-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   background: #2563eb;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
-  flex-shrink: 0;
-  box-shadow: 0 8px 18px rgba(37,99,235,.22);
+  font-size: 20px;
+  font-weight: bold;
+  border: 3px solid #1e293b;
+  position: absolute;
+  bottom: -25px;
+  overflow: hidden;
 }
 
-.msg-location-header-text {
+.msg-location-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.msg-location-info {
+  padding: 32px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  width: 100%;
-}
-
-.msg-location-title {
-  font-size: 20px;
-  font-weight: 900;
-  color: #0f172a;
-  line-height: 1.2;
-}
-
-.msg-location-status {
-  font-size: 14px;
-  font-weight: 700;
-  color: #64748b;
-  line-height: 1.2;
+  gap: 10px;
 }
 
 .msg-location-address {
-  font-size: 16px;
-  line-height: 1.55;
-  color: #1e293b;
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  text-align: center;
   word-break: break-word;
-  overflow-wrap: anywhere;
 }
 
-.msg-location-btn {
+.msg-location-btn-elegante {
   width: 100%;
-  margin-top: auto;
-  background: linear-gradient(180deg, #bfdbfe 0%, #93c5fd 100%);
-  color: #0f172a;
-  border: 0;
-  border-radius: 18px;
-  padding: 15px;
-  font-size: 15px;
-  font-weight: 800;
-  box-shadow: 0 10px 24px rgba(147,197,253,.34);
+  padding: 10px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: .2s ease;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-.msg-location-btn:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.02);
+.msg-location-btn-elegante:active {
+  background: #1d4ed8;
+  transform: scale(0.98);
 }
-
-.msg-location-btn:active {
-  transform: scale(.98);
-}
-
 /* ============================================
    ANEXOS: ÁLBUM
 ============================================ */
@@ -667,6 +655,7 @@
 .msg-drop-profile-btn:active {
   transform: scale(.98);
 }
+
 /* ============================================
    GRID DE MÍDIAS (VÁRIAS FOTOS/VÍDEOS)
 ============================================ */
@@ -723,7 +712,6 @@
   object-fit: cover;
   display: block;
 }
-
 /* ============================================
    MÍDIA ÚNICA (LARGURA MAIOR)
 ============================================ */
@@ -1005,7 +993,6 @@
   color: #94a3b8;
   font-style: italic;
 }
-
 /* ⚠️ Selo de comentário do Nearby */
 .msg-nearby-comment {
   display: flex;
@@ -1037,6 +1024,7 @@
   color: #92400e;
   line-height: 1.2;
 }
+
 /* ⚠️ Botão "Ver Drop" dentro do card de comentário do Nearby */
 .msg-nearby-comment-btn {
   width: 100%;
@@ -1056,6 +1044,7 @@
   transform: scale(0.97);
   filter: brightness(1.08);
 }
+
 /* ⚠️ Badge de reação em mídia do chat */
 .msg-midia-badge-slot {
   position: absolute;
