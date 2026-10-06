@@ -186,6 +186,22 @@
   align-self: flex-start;
 }
 
+/* ⚠️ Status "enviando" — ícone pulsando */
+.msg-status.status-enviando {
+  animation: pulsoEnviandoNex 1.2s ease-in-out infinite;
+}
+
+@keyframes pulsoEnviandoNex {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ⚠️ Status "erro" — vermelho */
+.msg-status.status-erro {
+  color: #ef4444;
+  font-weight: 900;
+}
+
 /* ============================================
    CONTEÚDO DA MENSAGEM
 ============================================ */
