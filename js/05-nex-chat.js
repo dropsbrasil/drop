@@ -1,16 +1,10 @@
 /* ============================================
    05-NEX-CHAT.JS
    Chat do NEX: abrir, renderizar, enviar mensagens
-   
-   Depende de: 00-config.js, 02-ui.js, 03-utils.js, 04-conversas.js
 ============================================ */
 
 (function () {
   'use strict';
-
-  // ============================================
-  // ESTADO DO CHAT
-  // ============================================
 
   let respostaSelecionadaNex = null;
   let mensagemSelecionadaNex = null;
@@ -19,57 +13,51 @@
   let textoOriginalEdicaoNex = '';
   let msgDestacadaNex = null;
 
-// ⚠️ Cache de avatares por username
-const cacheAvataresNex = {};
-const avataresEmBuscaNex = new Set();
+  const cacheAvataresNex = {};
+  const avataresEmBuscaNex = new Set();
 
-async function buscarAvatarNex(username) {
-  if (!username) return null;
-  if (cacheAvataresNex[username]) return cacheAvataresNex[username];
-  if (avataresEmBuscaNex.has(username)) return null;
+  async function buscarAvatarNex(username) {
+    if (!username) return null;
+    if (cacheAvataresNex[username]) return cacheAvataresNex[username];
+    if (avataresEmBuscaNex.has(username)) return null;
 
-  avataresEmBuscaNex.add(username);
+    avataresEmBuscaNex.add(username);
 
-  try {
-    // ⚠️ Se for o MEU username, busca direto do Supabase Auth
-    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
-    const userLimpo = String(username).toLowerCase().replace(/^@/, '').trim();
+    try {
+      const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+      const userLimpo = String(username).toLowerCase().replace(/^@/, '').trim();
 
-    if (meuUser && userLimpo === meuUser && window.supabaseClient) {
-      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (meuUser && userLimpo === meuUser && window.supabaseClient) {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
 
-      if (user) {
-        const { data: perfil } = await window.supabaseClient
-          .from('profiles')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
+        if (user) {
+          const { data: perfil } = await window.supabaseClient
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        if (perfil?.avatar_url) {
-          cacheAvataresNex[username] = perfil.avatar_url;
-          return perfil.avatar_url;
+          if (perfil?.avatar_url) {
+            cacheAvataresNex[username] = perfil.avatar_url;
+            return perfil.avatar_url;
+          }
         }
       }
+
+      if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+        const perfil = await window.buscarPerfilPublicoSupabase(username);
+        const url = perfil?.avatar_url || null;
+        cacheAvataresNex[username] = url;
+        return url;
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar avatar:', err);
+    } finally {
+      avataresEmBuscaNex.delete(username);
     }
 
-    // Para outros, usa a RPC pública
-    if (typeof window.buscarPerfilPublicoSupabase === 'function') {
-      const perfil = await window.buscarPerfilPublicoSupabase(username);
-      const url = perfil?.avatar_url || null;
-      cacheAvataresNex[username] = url;
-      return url;
-    }
-  } catch (err) {
-    console.warn('Erro ao buscar avatar:', err);
-  } finally {
-    avataresEmBuscaNex.delete(username);
+    return null;
   }
-
-  return null;
-}
-  // ============================================
-  // ABRIR CHAT
-  // ============================================
 
   async function abrirChatNex(el) {
     const card = el?.closest?.('.nex-chat') || el;
@@ -106,173 +94,162 @@ async function buscarAvatarNex(username) {
     document.body.classList.add('chat-aberto');
 
     const bio =
-  el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
+      el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
 
-const chatName = document.getElementById('chatName');
-const chatBio = document.getElementById('chatBio');
-const chatStatus = document.getElementById('chatStatus');
-const chatAvatar = document.getElementById('chatAvatar');
+    const chatName = document.getElementById('chatName');
+    const chatBio = document.getElementById('chatBio');
+    const chatStatus = document.getElementById('chatStatus');
+    const chatAvatar = document.getElementById('chatAvatar');
 
-// ⚠️ Função que calcula presença real pelo ultima_atividade
-async function atualizarPresencaChatNex() {
-  const usernameReal =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+    async function atualizarPresencaChatNex() {
+      const usernameReal =
+        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
 
-  if (!usernameReal || !window.supabaseClient) return;
+      if (!usernameReal || !window.supabaseClient) return;
 
-  try {
-    const { data: perfil } = await window.supabaseClient
-      .from('profiles')
-      .select('ultima_atividade')
-      .eq(
-        'username',
-        String(usernameReal).toLowerCase().replace(/^@/, '').trim()
-      )
-      .maybeSingle();
+      try {
+        const { data: perfil } = await window.supabaseClient
+          .from('profiles')
+          .select('ultima_atividade')
+          .eq(
+            'username',
+            String(usernameReal).toLowerCase().replace(/^@/, '').trim()
+          )
+          .maybeSingle();
 
-    const ultima = perfil?.ultima_atividade;
-    const LIMITE_ONLINE_MS = 30 * 1000;
+        const ultima = perfil?.ultima_atividade;
+        const LIMITE_ONLINE_MS = 30 * 1000;
 
-    const estaOnline =
-      ultima &&
-      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
+        const estaOnline =
+          ultima &&
+          Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
 
-    if (chatStatus) {
-      chatStatus.innerText = estaOnline ? 'online' : 'offline';
-      chatStatus.classList.toggle('online', !!estaOnline);
-      chatStatus.classList.toggle('offline', !estaOnline);
+        if (chatStatus) {
+          chatStatus.innerText = estaOnline ? 'online' : 'offline';
+          chatStatus.classList.toggle('online', !!estaOnline);
+          chatStatus.classList.toggle('offline', !estaOnline);
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar presença:', err);
+        if (chatStatus) {
+          chatStatus.innerText = 'offline';
+          chatStatus.classList.add('offline');
+          chatStatus.classList.remove('online');
+        }
+      }
     }
-  } catch (err) {
-    console.warn('Erro ao buscar presença:', err);
-    if (chatStatus) {
-      chatStatus.innerText = 'offline';
-      chatStatus.classList.add('offline');
-      chatStatus.classList.remove('online');
+
+    atualizarPresencaChatNex();
+
+    if (window.__presencaIntervalNex) {
+      clearInterval(window.__presencaIntervalNex);
     }
-  }
-}
-
-// Atualiza na hora que abre
-atualizarPresencaChatNex();
-
-// ⚠️ Atualiza a cada 30s enquanto o chat estiver aberto
-if (window.__presencaIntervalNex) {
-  clearInterval(window.__presencaIntervalNex);
-}
-window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
+    window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
 
     if (chatName) {
-  chatName.innerText = nome;
-  chatName.style.cursor = 'pointer';
+      chatName.innerText = nome;
+      chatName.style.cursor = 'pointer';
 
-  // ⚠️ Remove listener antigo antes de adicionar (evita duplicar)
-  if (chatName.__clickPerfilHandler) {
-    chatName.removeEventListener('click', chatName.__clickPerfilHandler);
-  }
+      if (chatName.__clickPerfilHandler) {
+        chatName.removeEventListener('click', chatName.__clickPerfilHandler);
+      }
 
-  chatName.__clickPerfilHandler = () => {
-    const usernameReal =
-      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-    if (typeof window.abrirPerfilVisitadoNex === 'function') {
-      window.abrirPerfilVisitadoNex(usernameReal, nome);
-    }
-  };
-
-  chatName.addEventListener('click', chatName.__clickPerfilHandler);
-}
-
-if (chatBio) {
-  // ⚠️ Busca a bio real no Supabase
-  const usernameBio =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
-  chatBio.textContent = 'Carregando...';
-  chatBio.classList.remove('marquee-ativo');
-
-  if (usernameBio && window.supabaseClient) {
-    try {
-      const { data: perfil } = await window.supabaseClient
-        .from('profiles')
-        .select('bio')
-        .eq(
-          'username',
-          String(usernameBio).toLowerCase().replace(/^@/, '').trim()
-        )
-        .maybeSingle();
-
-      const bioReal = (perfil?.bio || '').trim();
-
-      const textoBio = bioReal || 'Sem bio ainda.';
-chatBio.textContent = textoBio;
-chatBio.setAttribute('data-texto', textoBio);
-      
-      // ⚠️ Verifica se precisa rolar (depois do texto entrar no DOM)
-      setTimeout(() => {
-        if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
-          chatBio.classList.add('marquee-ativo');
+      chatName.__clickPerfilHandler = () => {
+        const usernameReal =
+          (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+        if (typeof window.abrirPerfilVisitadoNex === 'function') {
+          window.abrirPerfilVisitadoNex(usernameReal, nome);
         }
-      }, 100);
-      } catch (err) {
-    console.warn('Erro ao buscar bio no chat:', err);
-    chatBio.textContent = bio || 'Sem bio ainda.';
-    chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
-  }
-} else {
-  chatBio.textContent = bio || 'Sem bio ainda.';
-  chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
-  }
-}
-// ⚠️ O status real é preenchido por atualizarPresencaChatNex()
-if (chatStatus) {
-  chatStatus.innerText = '';
-  chatStatus.classList.remove('online', 'offline');
-}
+      };
 
-// Avatar: mostra inicial primeiro (feedback rápido)
-if (chatAvatar) {
-  chatAvatar.innerText = nome.charAt(0).toUpperCase();
-  chatAvatar.style.backgroundImage = 'none';
-  chatAvatar.style.cursor = 'pointer';
-}
+      chatName.addEventListener('click', chatName.__clickPerfilHandler);
+    }
 
-// ⚠️ Busca o avatar real no Supabase e substitui
-const usernameAvatar =
-  (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+    if (chatBio) {
+      const usernameBio =
+        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
 
-if (
-  usernameAvatar &&
-  typeof window.buscarPerfilPublicoSupabase === 'function'
-) {
-  try {
-    const perfil = await window.buscarPerfilPublicoSupabase(usernameAvatar);
+      chatBio.textContent = 'Carregando...';
+      chatBio.classList.remove('marquee-ativo');
 
-    if (perfil && perfil.avatar_url && chatAvatar) {
-      chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+      if (usernameBio && window.supabaseClient) {
+        try {
+          const { data: perfil } = await window.supabaseClient
+            .from('profiles')
+            .select('bio')
+            .eq(
+              'username',
+              String(usernameBio).toLowerCase().replace(/^@/, '').trim()
+            )
+            .maybeSingle();
+
+          const bioReal = (perfil?.bio || '').trim();
+          const textoBio = bioReal || 'Sem bio ainda.';
+          chatBio.textContent = textoBio;
+          chatBio.setAttribute('data-texto', textoBio);
+
+          setTimeout(() => {
+            if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
+              chatBio.classList.add('marquee-ativo');
+            }
+          }, 100);
+        } catch (err) {
+          console.warn('Erro ao buscar bio no chat:', err);
+          chatBio.textContent = bio || 'Sem bio ainda.';
+          chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
+        }
+      } else {
+        chatBio.textContent = bio || 'Sem bio ainda.';
+        chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
+      }
+    }
+
+    if (chatStatus) {
+      chatStatus.innerText = '';
+      chatStatus.classList.remove('online', 'offline');
+    }
+
+    if (chatAvatar) {
+      chatAvatar.innerText = nome.charAt(0).toUpperCase();
       chatAvatar.style.backgroundImage = 'none';
+      chatAvatar.style.cursor = 'pointer';
     }
-  } catch (err) {
-    console.warn('Erro ao buscar avatar no chat:', err);
-  }
-}
 
-// ⚠️ Avatar também abre o perfil
-if (chatAvatar) {
-  if (chatAvatar.__clickPerfilHandler) {
-    chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
-  }
-
-  chatAvatar.__clickPerfilHandler = () => {
-    const usernameReal =
+    const usernameAvatar =
       (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-    if (typeof window.abrirPerfilVisitadoNex === 'function') {
-      window.abrirPerfilVisitadoNex(usernameReal, nome);
-    }
-  };
 
-  chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
-}
-    
-    // Carrega conversa + mensagens do Supabase
+    if (
+      usernameAvatar &&
+      typeof window.buscarPerfilPublicoSupabase === 'function'
+    ) {
+      try {
+        const perfil = await window.buscarPerfilPublicoSupabase(usernameAvatar);
+
+        if (perfil && perfil.avatar_url && chatAvatar) {
+          chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+          chatAvatar.style.backgroundImage = 'none';
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar avatar no chat:', err);
+      }
+    }
+
+    if (chatAvatar) {
+      if (chatAvatar.__clickPerfilHandler) {
+        chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
+      }
+
+      chatAvatar.__clickPerfilHandler = () => {
+        const usernameReal =
+          (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+        if (typeof window.abrirPerfilVisitadoNex === 'function') {
+          window.abrirPerfilVisitadoNex(usernameReal, nome);
+        }
+      };
+
+      chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
+    }
+
     if (typeof window.carregarConversaSupabase === 'function') {
       try {
         await window.carregarConversaSupabase(nome);
@@ -289,19 +266,14 @@ if (chatAvatar) {
     document.getElementById('chatInput')?.focus();
   }
 
-  // ============================================
-  // VOLTAR DO CHAT
-  // ============================================
-
   function voltarChatNex() {
-  // ⚠️ Para o timer de presença
-  if (window.__presencaIntervalNex) {
-    clearInterval(window.__presencaIntervalNex);
-    window.__presencaIntervalNex = null;
-  }
+    if (window.__presencaIntervalNex) {
+      clearInterval(window.__presencaIntervalNex);
+      window.__presencaIntervalNex = null;
+    }
 
-  const chat = document.getElementById('chatNex');
-  const nex = document.getElementById('nex');
+    const chat = document.getElementById('chatNex');
+    const nex = document.getElementById('nex');
 
     if (chat) {
       chat.style.display = 'none';
@@ -316,33 +288,24 @@ if (chatAvatar) {
     mostrarNexTab(Drops.estado.abaNex);
 
     window.setConversaAbertaNex('');
-window.setOrigemAberturaNex('');
-window.setCardAbertoNex(null);
+    window.setOrigemAberturaNex('');
+    window.setCardAbertoNex(null);
 
-// ⚠️ IMPORTANTE: limpa a conversa atual também
-// (senão o Realtime continua achando que o chat está aberto)
-Drops.estado.conversaAtual = '';
+    Drops.estado.conversaAtual = '';
 
-document.body.classList.remove('chat-aberto');
-document.body.classList.remove('chat-open');
-    
-    // Sincroniza cards do Supabase ao voltar
+    document.body.classList.remove('chat-aberto');
+    document.body.classList.remove('chat-open');
+
     if (typeof window.sincronizarCardsNexSupabase === 'function') {
       setTimeout(() => {
         window.sincronizarCardsNexSupabase();
       }, 300);
     }
   }
-
-  // ============================================
-// NOTIFICAÇÃO NA TABBAR DO NEX
-// ============================================
-
-function atualizarNotificacaoTabbarNex() {
+  function atualizarNotificacaoTabbarNex() {
   const tabNex = document.querySelector('.tab.tab-nex');
   if (!tabNex) return;
 
-  // ⚠️ Tem alguma conversa não lida?
   const listaNaoLidas = document.getElementById('nex-naolidas');
   const temNaoLidas =
     listaNaoLidas &&
@@ -351,12 +314,8 @@ function atualizarNotificacaoTabbarNex() {
   tabNex.classList.toggle('tem-notificacao', !!temNaoLidas);
 }
 
-// ============================================
-// ATUALIZAR BADGE DE REAÇÃO
-// ============================================
-
-async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) { 
-if (!msgId) return;
+async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) {
+  if (!msgId) return;
 
   const seletor = `.msg-midia-badge-slot[data-badge-msg-id="${msgId}"][data-badge-midia-index="${midiaIndex}"]`;
   const slot = document.querySelector(seletor);
@@ -373,7 +332,6 @@ if (!msgId) return;
     return;
   }
 
-  // ⚠️ Qual emoji mostrar? Prioridade: minha reação > mais votada
   let emojiMostrar = '';
   let countMostrar = 0;
 
@@ -414,303 +372,275 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
   }
 }
 
-// ============================================
-// RENDERIZAR CHAT
-// ============================================
-
 function renderChat(nome) {
-    const area = document.getElementById('chatMsgs');
-    if (!area) return;
+  const area = document.getElementById('chatMsgs');
+  if (!area) return;
 
-    area.innerHTML = '';
+  area.innerHTML = '';
 
-    const msgs = conversas[nome] || [];
+  const msgs = conversas[nome] || [];
 
-    msgs.forEach((msg) => {
-      if (!msg.id) msg.id = gerarIdMensagemNex();
-      if (!msg.timestamp) msg.timestamp = Date.now();
-    });
-
-    const respostasPorOriginalNex = new Map();
-
-msgs.forEach((msg) => {
-  const originalId = msg.resposta?.id;
-  if (!originalId) return;
-
-  const chaveOriginal = String(originalId);
-
-  const lista = respostasPorOriginalNex.get(chaveOriginal) || [];
-  lista.push(msg);
-  respostasPorOriginalNex.set(chaveOriginal, lista);
-});
-
-// ⚠️ Mapa auxiliar: ID do Supabase → ID local da mensagem
-const idSupabaseParaLocalNex = new Map();
-
-msgs.forEach((msg) => {
-  if (msg._supabaseId) {
-    idSupabaseParaLocalNex.set(String(msg._supabaseId), String(msg.id));
-  }
-  // ⚠️ Também mapeia o próprio ID (caso já sejam iguais)
-  if (msg.id) {
-    idSupabaseParaLocalNex.set(String(msg.id), String(msg.id));
-  }
-});
-
-    const qtdCitacoesPorOriginalNex = new Map();
-    const ordemRespostaPorMsgIdNex = new Map();
-
-    for (const [originalId, lista] of respostasPorOriginalNex.entries()) {
-  qtdCitacoesPorOriginalNex.set(originalId, lista.length);
-
-  lista.forEach((msg, index) => {
-    ordemRespostaPorMsgIdNex.set(String(msg.id), index + 1);
-    if (msg._supabaseId) {
-      ordemRespostaPorMsgIdNex.set(String(msg._supabaseId), index + 1);
-    }
+  msgs.forEach((msg) => {
+    if (!msg.id) msg.id = gerarIdMensagemNex();
+    if (!msg.timestamp) msg.timestamp = Date.now();
   });
+
+  const respostasPorOriginalNex = new Map();
+
+  msgs.forEach((msg) => {
+    const originalId = msg.resposta?.id;
+    if (!originalId) return;
+
+    const chaveOriginal = String(originalId);
+    const lista = respostasPorOriginalNex.get(chaveOriginal) || [];
+    lista.push(msg);
+    respostasPorOriginalNex.set(chaveOriginal, lista);
+  });
+
+  const qtdCitacoesPorOriginalNex = new Map();
+  const ordemRespostaPorMsgIdNex = new Map();
+
+  for (const [originalId, lista] of respostasPorOriginalNex.entries()) {
+    qtdCitacoesPorOriginalNex.set(originalId, lista.length);
+
+    lista.forEach((msg, index) => {
+      ordemRespostaPorMsgIdNex.set(String(msg.id), index + 1);
+      if (msg._supabaseId) {
+        ordemRespostaPorMsgIdNex.set(String(msg._supabaseId), index + 1);
+      }
+    });
+  }
+
+  msgs.forEach((msg) => {
+    if (msg.deleted && msg.deletedAt) {
+      const passou5s = Date.now() - msg.deletedAt > 5000;
+      if (passou5s) return;
     }
 
-    msgs.forEach((msg) => {
-      if (msg.deleted && msg.deletedAt) {
-        const passou5s = Date.now() - msg.deletedAt > 5000;
-        if (passou5s) return;
-      }
+    const lado = msg.side === 'right' ? 'right' : 'left';
+    const nomeExibido = msg.nome || (lado === 'right' ? 'Eu' : nome);
+    const avatarTexto = (msg.avatar || nomeExibido || 'U')
+      .toString()
+      .slice(0, 2)
+      .toUpperCase();
 
-      const lado = msg.side === 'right' ? 'right' : 'left';
-const nomeExibido = msg.nome || (lado === 'right' ? 'Eu' : nome);
-const avatarTexto = (msg.avatar || nomeExibido || 'U')
-  .toString()
-  .slice(0, 2)
-  .toUpperCase();
+    let usernameAvatarMsg = '';
 
-// ⚠️ Determina o username real pra buscar o avatar
-let usernameAvatarMsg = '';
+    if (lado === 'right') {
+      usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
+    } else {
+      usernameAvatarMsg =
+        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+    }
 
-if (lado === 'right') {
-  usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
-} else {
-  usernameAvatarMsg =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-}
+    const avatarUrlCache = cacheAvataresNex[usernameAvatarMsg] || null;
 
-const avatarUrlCache = cacheAvataresNex[usernameAvatarMsg] || null;
-const msgIdUnico = msg.id || gerarIdMensagemNex();
+    const dataExibida = msg.data || 'Hoje';
+    const horaExibida = msg.hora || msg.time || '';
+    const statusExibido =
+      lado === 'right' ? statusIconeNex(msg.status || 'enviado') : '';
 
-      const dataExibida = msg.data || 'Hoje';
-      const horaExibida = msg.hora || msg.time || '';
-const statusExibido =
-  lado === 'right' ? statusIconeNex(msg.status || 'enviado') : '';
+    const statusClasse =
+      msg.status === 'enviando'
+        ? 'status-enviando'
+        : msg.status === 'erro'
+          ? 'status-erro'
+          : '';
 
-// ⚠️ Classe extra pro status (pulsar quando enviando, vermelho quando erro)
-const statusClasse =
-  msg.status === 'enviando'
-    ? 'status-enviando'
-    : msg.status === 'erro'
-      ? 'status-erro'
-      : '';
-      
-      const row = document.createElement('div');
-      row.className = `msg-row ${lado}`;
-      row.dataset.msgId = msg.id;
+    const row = document.createElement('div');
+    row.className = `msg-row ${lado}`;
+    row.dataset.msgId = msg.id;
 
-      const card = document.createElement('div');
-      const classeSistema = msg.sistema ? ' msg-sistema' : '';
-      card.className = `msg-card ${lado}${
-        msg.deleted ? ' msg-card-apagada' : ''
-      }${classeSistema}`;
+    const card = document.createElement('div');
+    const classeSistema = msg.sistema ? ' msg-sistema' : '';
+    card.className = `msg-card ${lado}${
+      msg.deleted ? ' msg-card-apagada' : ''
+    }${classeSistema}`;
 
- // ⚠️ Procura citações usando tanto o ID local quanto o ID do Supabase
-const idLocal = String(msg.id);
-const idSupabase = String(msg._supabaseId || '');
+    const idLocal = String(msg.id);
+    const idSupabase = String(msg._supabaseId || '');
 
-const qtdCitacoesLocal = qtdCitacoesPorOriginalNex.get(idLocal) || 0;
-const qtdCitacoesSupabase = idSupabase
-  ? (qtdCitacoesPorOriginalNex.get(idSupabase) || 0)
-  : 0;
+    const qtdCitacoesLocal = qtdCitacoesPorOriginalNex.get(idLocal) || 0;
+    const qtdCitacoesSupabase = idSupabase
+      ? (qtdCitacoesPorOriginalNex.get(idSupabase) || 0)
+      : 0;
 
-const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
-      const ordemResposta =
-  ordemRespostaPorMsgIdNex.get(String(msg.id)) ||
-  ordemRespostaPorMsgIdNex.get(String(msg._supabaseId || '')) ||
-  0;
-      const totalRespostasDaOriginal = msg.resposta
-        ? (respostasPorOriginalNex.get(msg.resposta.id) || []).length
-        : 0;
+    const qtdCitacoes = Math.max(qtdCitacoesLocal, qtdCitacoesSupabase);
+    const ordemResposta =
+      ordemRespostaPorMsgIdNex.get(String(msg.id)) ||
+      ordemRespostaPorMsgIdNex.get(String(msg._supabaseId || '')) ||
+      0;
+    const totalRespostasDaOriginal = msg.resposta
+      ? (respostasPorOriginalNex.get(msg.resposta.id) || []).length
+      : 0;
 
-      let anexosHTML = '';
+    let anexosHTML = '';
 
-      if (typeof window.montarAnexosHTMLNex === 'function') {
-        anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
-      }
+    if (typeof window.montarAnexosHTMLNex === 'function') {
+      anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
+    }
 
-      card.innerHTML = msg.deleted
-        ? `
-        <div class="msg-apagada-wrapper">
-          <div class="msg-apagada-nex">
-            ${escapeHTML(msg.deletedText || 'Mensagem apagada')}
-          </div>
+    card.innerHTML = msg.deleted
+      ? `
+      <div class="msg-apagada-wrapper">
+        <div class="msg-apagada-nex">
+          ${escapeHTML(msg.deletedText || 'Mensagem apagada')}
         </div>
-      `
-        : `
-        <div class="msg-layer${msg.sistema ? ' msg-sistema' : ''}">
-
-          <div class="msg-header ${lado}">
-            ${
-  lado === 'left'
-    ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
-        avatarUrlCache
-          ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
-          : escapeHTML(avatarTexto)
-      }</div>`
-    : ''
-            }
-
-            ${
-              lado === 'right'
-                ? `<button
-                    type="button"
-                    class="msg-menu-btn"
-                    aria-label="Mais opções"
-                    onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
-                    ⋮
-                  </button>
-                  <div class="msg-status ${statusClasse}">${escapeHTML(statusExibido)}</div>`
-                : ''
-            }
-
-            <div class="msg-meta">
-              <b>${escapeHTML(nomeExibido)}</b>
-              <span>
-                ${escapeHTML(dataExibida)}
-                ${horaExibida ? ' • ' : ''}
-                ${escapeHTML(horaExibida)}
-                ${msg.edited ? ' • editada' : ''}
-              </span>
-            </div>
-
-            ${
-  lado === 'left'
-    ? `<button
-        type="button"
-        class="msg-menu-btn"
-        aria-label="Mais opções"
-        onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
-        ⋮
-      </button>`
-    : `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
-        avatarUrlCache
-          ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
-          : escapeHTML(avatarTexto)
-      }</div>`
-            }
-          </div>
-
-          ${
-  msg.resposta
-    ? `
-  <div style="display:flex;align-items:center;margin-top:8px;">
-    <div
-  class="reply-linked-top"
-  onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
-    <span class="reply-arrow">↖</span>
-      <span>Resposta</span>
-      <span class="reply-count-pill">
-        ${ordemResposta}/${totalRespostasDaOriginal}
-      </span>
-    </div>
-
-    ${
-      lado === 'right' && ordemResposta < totalRespostasDaOriginal
-        ? `
-      <button
-        type="button"
-        class="reply-next-btn"
-        onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
-        ⬇
-      </button>
+      </div>
     `
-        : ''
-    }
-  </div>
-`
-    : ''
+      : `
+      <div class="msg-layer${msg.sistema ? ' msg-sistema' : ''}">
+
+        <div class="msg-header ${lado}">
+          ${
+            lado === 'left'
+              ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
+                  avatarUrlCache
+                    ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
+                    : escapeHTML(avatarTexto)
+                }</div>`
+              : ''
           }
 
-          <div class="msg-content">
-            ${
-              msg.text
-                ? `<div class="msg-text">${escapeHTML(msg.text)}</div>`
-                : ''
-            }
+          ${
+            lado === 'right'
+              ? `<button
+                  type="button"
+                  class="msg-menu-btn"
+                  aria-label="Mais opções"
+                  onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
+                  ⋮
+                </button>
+                <div class="msg-status ${statusClasse}">${escapeHTML(statusExibido)}</div>`
+              : ''
+          }
 
-            ${anexosHTML}
+          <div class="msg-meta">
+            <b>${escapeHTML(nomeExibido)}</b>
+            <span>
+              ${escapeHTML(dataExibida)}
+              ${horaExibida ? ' • ' : ''}
+              ${escapeHTML(horaExibida)}
+              ${msg.edited ? ' • editada' : ''}
+            </span>
           </div>
 
           ${
-            qtdCitacoes > 0
+            lado === 'left'
+              ? `<button
+                  type="button"
+                  class="msg-menu-btn"
+                  aria-label="Mais opções"
+                  onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
+                  ⋮
+                </button>`
+              : `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
+                  avatarUrlCache
+                    ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
+                    : escapeHTML(avatarTexto)
+                }</div>`
+          }
+        </div>
+
+        ${
+          msg.resposta
+            ? `
+        <div style="display:flex;align-items:center;margin-top:8px;">
+          <div
+            class="reply-linked-top"
+            onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
+            <span class="reply-arrow">↖</span>
+            <span>Resposta</span>
+            <span class="reply-count-pill">
+              ${ordemResposta}/${totalRespostasDaOriginal}
+            </span>
+          </div>
+
+          ${
+            lado === 'right' && ordemResposta < totalRespostasDaOriginal
               ? `
             <button
-  type="button"
-  class="reply-cited-bottom"
-  onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
-              <span>Msg foi citada</span>
-              <span class="reply-cited-meta">
-                ${
-                  qtdCitacoes > 1
-                    ? `<span class="reply-count-pill">${qtdCitacoes}x</span>`
-                    : ''
-                }
-                <span class="reply-arrow">↘</span>
-              </span>
+              type="button"
+              class="reply-next-btn"
+              onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
+              ⬇
             </button>
           `
               : ''
           }
-
         </div>
-      `;
-
-      row.appendChild(card);
-      area.appendChild(row);
-    });
-
-    area.scrollTop = area.scrollHeight;
-
-    // ⚠️ Busca e atualiza as reações das mídias visíveis
-    atualizarTodosBadgesReacaoMidiaNex();
-
-// ⚠️ Busca os avatares reais de quem ainda não está no cache
-area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
-  const username = el.dataset.avatarUser;
-  const fallback = el.dataset.avatarFallback || '?';
-
-  if (!username) return;
-  if (cacheAvataresNex[username]) return;
-
-  const url = await buscarAvatarNex(username);
-
-  if (url && el.isConnected) {
-    el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
-  } else if (el.isConnected && !el.querySelector('img')) {
-    el.textContent = fallback;
-  }
-});
-    document.querySelectorAll('.btn-fotos-open').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (typeof window.abrirFotosViewerNex === 'function') {
-          window.abrirFotosViewerNex(btn.dataset.list);
+      `
+            : ''
         }
-      });
+
+        <div class="msg-content">
+          ${
+            msg.text
+              ? `<div class="msg-text">${escapeHTML(msg.text)}</div>`
+              : ''
+          }
+
+          ${anexosHTML}
+        </div>
+
+        ${
+          qtdCitacoes > 0
+            ? `
+          <button
+            type="button"
+            class="reply-cited-bottom"
+            onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
+            <span>Msg foi citada</span>
+            <span class="reply-cited-meta">
+              ${
+                qtdCitacoes > 1
+                  ? `<span class="reply-count-pill">${qtdCitacoes}x</span>`
+                  : ''
+              }
+              <span class="reply-arrow">↘</span>
+            </span>
+          </button>
+        `
+            : ''
+        }
+
+      </div>
+    `;
+
+    row.appendChild(card);
+    area.appendChild(row);
+  });
+
+  area.scrollTop = area.scrollHeight;
+
+  atualizarTodosBadgesReacaoMidiaNex();
+
+  area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
+    const username = el.dataset.avatarUser;
+    const fallback = el.dataset.avatarFallback || '?';
+
+    if (!username) return;
+    if (cacheAvataresNex[username]) return;
+
+    const url = await buscarAvatarNex(username);
+
+    if (url && el.isConnected) {
+      el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+    } else if (el.isConnected && !el.querySelector('img')) {
+      el.textContent = fallback;
+    }
+  });
+
+  document.querySelectorAll('.btn-fotos-open').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.abrirFotosViewerNex === 'function') {
+        window.abrirFotosViewerNex(btn.dataset.list);
+      }
     });
-  }
-
-  // ============================================
-  // ENVIAR MENSAGEM
-  // ============================================
-
+  });
+}
   async function enviarMsgNex() {
   const input = document.getElementById('chatInput');
   const texto = input ? input.value.trim() : '';
@@ -748,9 +678,6 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
     conversas[conversaAtual] = [];
   }
 
-  // ============================================
-  // ⚠️ CAPTURA OS PREVIEWS LOCAIS ANTES DE LIMPAR
-  // ============================================
   const midiaUnicaLocal =
     typeof window.getPreviewMidiaNex === 'function'
       ? window.getPreviewMidiaNex()
@@ -776,9 +703,6 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
       ? window.getAudioUrlNex()
       : '';
 
-  // ============================================
-  // ⚠️ CRIA A MENSAGEM COM URL LOCAL (blob:)
-  // ============================================
   const mensagem = {
     id: gerarIdMensagemNex(),
     timestamp: Date.now(),
@@ -790,10 +714,9 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
       hour: '2-digit',
       minute: '2-digit'
     }),
-    status: 'enviando' // ⚠️ status inicial pra mostrar "⏳"
+    status: 'enviando'
   };
 
-  // Resposta
   if (respostaSelecionadaNex) {
     const idParaResposta =
       respostaSelecionadaNex._supabaseId || respostaSelecionadaNex.id;
@@ -808,7 +731,6 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
 
   if (texto) mensagem.text = texto;
 
-  // --- Mídia única (câmera/galeria) ---
   if (midiaUnicaLocal && midiaUnicaLocal.url) {
     mensagem.anexo = {
       type: midiaUnicaLocal.type === 'video' ? 'video' : 'imagem',
@@ -816,7 +738,6 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
     };
   }
 
-  // --- Múltiplas mídias ---
   if (Array.isArray(midiasLocais) && midiasLocais.length) {
     mensagem.midias = midiasLocais.map((m) => ({
       url: m.url,
@@ -824,7 +745,6 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
     }));
   }
 
-  // --- Documento PDF ---
   if (documentoLocal && documentoLocal.url && !mensagem.anexo) {
     mensagem.anexo = {
       type: 'pdf',
@@ -839,7 +759,6 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
     };
   }
 
-  // --- Localização ---
   if (localizacaoLocal && localizacaoLocal.lat != null && !mensagem.anexo) {
     mensagem.anexo = {
       type: 'location',
@@ -854,63 +773,36 @@ area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
     };
   }
 
-  // --- Áudio ---
   if (audioLocal) {
     mensagem.audio = audioLocal;
   }
 
-// ============================================
-// ⚠️ 1. ADICIONA A MENSAGEM LOCALMENTE E RENDERIZA JÁ
-// ============================================
-conversas[conversaAtual].push(mensagem);
+  conversas[conversaAtual].push(mensagem);
 
-if (input) input.value = '';
+  if (input) input.value = '';
 
-// ⚠️ NÃO limpa os previews aqui! Só depois do upload terminar.
-// Se limpar agora e o upload falhar, o usuário perde a mídia.
+  renderChat(conversaAtual);
 
-renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
-
-// ============================================
-// ⚠️ 2. UPLOAD EM SEGUNDO PLANO + UPDATE DA MENSAGEM
-// ============================================
-(async () => {
-  try {
+  (async () => {
+    try {
       const msgLocal = conversas[conversaAtual].find(
         (m) => m.id === mensagem.id
       );
 
       if (!msgLocal) return;
 
- // --- Upload da mídia única ---
-if (midiaUnicaLocal && midiaUnicaLocal.url) {
-  console.log('📸 [1] Upload da foto iniciado. Tipo:', midiaUnicaLocal.type);
-  console.log('📸 [2] Tamanho da URL (chars):', midiaUnicaLocal.url.length);
-  console.log('📸 [3] Começo da URL:', midiaUnicaLocal.url.slice(0, 80));
+      if (midiaUnicaLocal && midiaUnicaLocal.url) {
+        const urlStorage = await window.uploadMidiaNexSupabase(
+          midiaUnicaLocal.url
+        );
 
-  let urlStorage = null;
-  try {
-    urlStorage = await window.uploadMidiaNexSupabase(
-      midiaUnicaLocal.url
-    );
-  } catch (erroUpload) {
-    console.error('❌ [4] ERRO no upload:', erroUpload);
-    alert('❌ ERRO no upload da foto:\n\n' + (erroUpload?.message || erroUpload));
-    throw erroUpload;
-  }
+        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+          msgLocal.anexo.url = urlStorage;
+        } else {
+          throw new Error('Falha no upload da mídia única');
+        }
+      }
 
-  console.log('📥 [5] Upload retornou:', urlStorage);
-
-  if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
-    alert('⚠️ [6] Upload retornou vazio ou inválido:\n\n' + urlStorage);
-    throw new Error('Falha no upload da mídia única. Retorno: ' + urlStorage);
-  }
-
-  msgLocal.anexo.url = urlStorage;
-  console.log('✅ [7] URL salva na mensagem:', urlStorage);
-}
-
-      // --- Upload das múltiplas mídias ---
       if (Array.isArray(midiasLocais) && midiasLocais.length) {
         const enviadas = [];
 
@@ -932,36 +824,31 @@ if (midiaUnicaLocal && midiaUnicaLocal.url) {
         msgLocal.midias = enviadas;
       }
 
-      // --- Upload do documento ---
       if (documentoLocal && documentoLocal.url && !midiaUnicaLocal) {
         const urlStorage = await window.uploadMidiaNexSupabase(
           documentoLocal.url
         );
 
-        if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
+        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+          msgLocal.anexo.url = urlStorage;
+          if (msgLocal.anexo.documento) {
+            msgLocal.anexo.documento.url = urlStorage;
+          }
+        } else {
           throw new Error('Falha no upload do PDF');
-        }
-
-        msgLocal.anexo.url = urlStorage;
-        if (msgLocal.anexo.documento) {
-          msgLocal.anexo.documento.url = urlStorage;
         }
       }
 
-      // --- Upload do áudio ---
       if (audioLocal) {
         const urlStorage = await window.uploadMidiaNexSupabase(audioLocal);
 
-        if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
+        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+          msgLocal.audio = urlStorage;
+        } else {
           throw new Error('Falha no upload do áudio');
         }
-
-        msgLocal.audio = urlStorage;
       }
 
-      // ============================================
-      // ⚠️ 3. ENVIA PRO SUPABASE (agora com URLs reais)
-      // ============================================
       let convId =
         window.__convIdsNex && window.__convIdsNex[conversaAtual];
 
@@ -1000,35 +887,34 @@ if (midiaUnicaLocal && midiaUnicaLocal.url) {
         let mediaUrl = null;
         let mediaMeta = null;
 
- if (msgLocal.audio) {
-  tipo = 'audio';
-  mediaUrl = msgLocal.audio;
-} else if (msgLocal.anexo) {
-  if (msgLocal.anexo.type === 'location') {
-    tipo = 'location';
-    mediaMeta = {
-      lat: msgLocal.anexo.lat,
-      lng: msgLocal.anexo.lng,
-      address: msgLocal.anexo.address || 'Localização',
-      localizacao: msgLocal.anexo.localizacao || null
-    };
-  } else if (msgLocal.anexo.type === 'pdf') {
-    tipo = 'pdf';
-    mediaUrl = msgLocal.anexo.url || null;
-    mediaMeta = {
-      documento: msgLocal.anexo.documento || null,
-      name: msgLocal.anexo.name || 'Documento PDF'
-    };
-  } else {
-    // ⚠️ O banco só aceita 'imagem' (confirmado via SQL)
-    tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
-    mediaUrl = msgLocal.anexo.url || null;
-  }
-} else if (msgLocal.midias && msgLocal.midias.length) {
-  tipo = 'album';
-  mediaUrl = msgLocal.midias[0].url || null;
-  mediaMeta = { midias: msgLocal.midias };
- }
+        if (msgLocal.audio) {
+          tipo = 'audio';
+          mediaUrl = msgLocal.audio;
+        } else if (msgLocal.anexo) {
+          if (msgLocal.anexo.type === 'location') {
+            tipo = 'location';
+            mediaMeta = {
+              lat: msgLocal.anexo.lat,
+              lng: msgLocal.anexo.lng,
+              address: msgLocal.anexo.address || 'Localização',
+              localizacao: msgLocal.anexo.localizacao || null
+            };
+          } else if (msgLocal.anexo.type === 'pdf') {
+            tipo = 'pdf';
+            mediaUrl = msgLocal.anexo.url || null;
+            mediaMeta = {
+              documento: msgLocal.anexo.documento || null,
+              name: msgLocal.anexo.name || 'Documento PDF'
+            };
+          } else {
+            tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
+            mediaUrl = msgLocal.anexo.url || null;
+          }
+        } else if (msgLocal.midias && msgLocal.midias.length) {
+          tipo = 'album';
+          mediaUrl = msgLocal.midias[0].url || null;
+          mediaMeta = { midias: msgLocal.midias };
+        }
 
         let metaCompleta = mediaMeta || {};
 
@@ -1058,28 +944,22 @@ if (midiaUnicaLocal && midiaUnicaLocal.url) {
         }
       }
 
-        // ============================================
-  // ⚠️ 4. SUCESSO — marca como enviado
-  // ============================================
-  msgLocal.status = 'enviado';
+      msgLocal.status = 'enviado';
 
-  renderChat(conversaAtual);
+      renderChat(conversaAtual);
 
-  // ⚠️ AGORA SIM, limpa os previews (só depois do sucesso)
-  if (typeof window.limparTodosPreviewsNex === 'function') {
-    window.limparTodosPreviewsNex();
-  }
+      if (typeof window.limparTodosPreviewsNex === 'function') {
+        window.limparTodosPreviewsNex();
+      }
 
-  if (respostaSelecionadaNex) {
-    cancelarRespostaNex();
-  }
+      if (respostaSelecionadaNex) {
+        cancelarRespostaNex();
+      }
 
-  marcarConversaRespondidaNex(conversaAtual);
-} catch (err) {
+      marcarConversaRespondidaNex(conversaAtual);
+    } catch (err) {
+      console.warn('Erro no envio:', err);
 
-      // ============================================
-      // ⚠️ 5. FALHA — marca como erro
-      // ============================================
       const msgErro = conversas[conversaAtual].find(
         (m) => m.id === mensagem.id
       );
@@ -1097,11 +977,7 @@ if (midiaUnicaLocal && midiaUnicaLocal.url) {
   })();
 }
 
-  // ============================================
-  // CANCELAR RESPOSTA
-  // ============================================
-
-  function cancelarRespostaNex() {
+function cancelarRespostaNex() {
   respostaSelecionadaNex = null;
 
   const preview = document.getElementById('previewRespostaNex');
@@ -1111,17 +987,10 @@ if (midiaUnicaLocal && midiaUnicaLocal.url) {
   preview.classList.remove('ativo');
   preview.innerHTML = '';
 
-  // ⚠️ Reavalia se o stack deve continuar visível
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
 }
-
-// ============================================
-// ⚠️ ATUALIZAR VISIBILIDADE DA BARRA DE PREVIEW
-// ============================================
-// Mostra o #previewStackNex APENAS se algum filho tiver conteúdo.
-// Cada filho ganha a classe .ativo quando tem algo dentro.
 
 function atualizarPreviewStackNex() {
   const stack = document.getElementById('previewStackNex');
@@ -1140,9 +1009,6 @@ function atualizarPreviewStackNex() {
     const el = document.getElementById(id);
     if (!el) return;
 
-    // Considera "com conteúdo" se:
-    // - Tem texto/HTML dentro, OU
-    // - Está com display != none explicitamente
     const temHTML = el.innerHTML.trim().length > 0;
     const visivelForcado =
       el.style.display && el.style.display !== 'none';
@@ -1156,12 +1022,6 @@ function atualizarPreviewStackNex() {
 
   stack.classList.toggle('tem-conteudo', temAlgo);
 }
-
-window.atualizarPreviewStackNex = atualizarPreviewStackNex;
-  
-// ============================================
-// ABRIR MENU DE MENSAGEM
-// ============================================
 
 function abrirMenuMsgNex(botao, msgId) {
   const conversaAtual = Drops.estado.conversaAtual;
@@ -1181,20 +1041,8 @@ function abrirMenuMsgNex(botao, msgId) {
     lado === 'left'
       ? `
     <button type="button" onclick="acaoResponderNex()">💬 Responder</button>
-
-    <button
-      type="button"
-      class="danger"
-      onclick="window.acaoApagarPraMimNex()">
-      🗑️ Apagar pra mim
-    </button>
-
-    <button
-      type="button"
-      class="cancelar"
-      onclick="fecharMenuMsgNex()">
-      Cancelar
-    </button>
+    <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()">🗑️ Apagar pra mim</button>
+    <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
   `
       : `
     <button type="button" onclick="window.acaoResponderNex()">💬 Responder</button>
@@ -1207,15 +1055,10 @@ function abrirMenuMsgNex(botao, msgId) {
   menu.style.visibility = 'visible';
   menu.style.opacity = '1';
   menu.style.pointerEvents = 'auto';
-
   menu.style.left = '50%';
   menu.style.top = '50%';
   menu.style.transform = 'translate(-50%, -50%)';
 }
-
-// ============================================
-// FECHAR MENU
-// ============================================
 
 function fecharMenuMsgNex() {
   const menu = document.getElementById('msgMenuNex');
@@ -1233,10 +1076,6 @@ function fecharMenuMsgNex() {
   mensagemSelecionadaNex = null;
 }
 
-// ============================================
-// RESPONDER MENSAGEM
-// ============================================
-
 function acaoResponderNex() {
   if (!mensagemSelecionadaNex) return;
 
@@ -1245,10 +1084,6 @@ function acaoResponderNex() {
   mostrarPreviewRespostaNex();
   fecharMenuMsgNex();
 }
-
-// ============================================
-// REEDITAR MENSAGEM
-// ============================================
 
 function acaoReeditarNex() {
   if (!mensagemSelecionadaNex) return;
@@ -1267,10 +1102,6 @@ function acaoReeditarNex() {
   abrirModalEdicaoNex(msg.text || '');
   fecharMenuMsgNex();
 }
-
-// ============================================
-// APAGAR PRA MIM
-// ============================================
 
 function acaoApagarPraMimNex() {
   if (!mensagemSelecionadaNex) return;
@@ -1297,13 +1128,11 @@ async function confirmarApagarPraMimNex() {
   const msg = mensagemParaApagarNex;
   const idMsg = typeof msg === 'string' ? msg : msg.id;
 
-  // ⚠️ Pega o ID do Supabase
   const idSupabase =
     typeof msg === 'object'
       ? (msg._supabaseId || msg.id)
       : msg;
 
-  // ⚠️ Salva no Supabase (oculta)
   if (
     typeof window.apagarPraMimSupabase === 'function' &&
     idSupabase
@@ -1328,10 +1157,6 @@ async function confirmarApagarPraMimNex() {
 
   mensagemParaApagarNex = null;
 }
-
-// ============================================
-// APAGAR PARA TODOS
-// ============================================
 
 function acaoApagarMsgNex() {
   if (!mensagemSelecionadaNex) return;
@@ -1361,7 +1186,6 @@ async function confirmarApagarMsgNex() {
 
   fecharConfirmDeleteNex();
 
-  // ⚠️ Salva no Supabase (marca pra todos)
   const idSupabase = msg._supabaseId || msg.id;
 
   if (
@@ -1400,10 +1224,6 @@ async function confirmarApagarMsgNex() {
 
   mensagemParaApagarNex = null;
 }
-
-// ============================================
-// MODAL DE EDIÇÃO
-// ============================================
 
 function abrirModalEdicaoNex(texto) {
   const modal = document.getElementById('editarMsgModalNex');
@@ -1461,7 +1281,6 @@ async function concluirEdicaoNex() {
 
   if (novoTexto.trim() === textoOriginal.trim()) return;
 
-  // ⚠️ Salva no Supabase
   const idSupabase =
     mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
 
@@ -1482,10 +1301,6 @@ async function concluirEdicaoNex() {
   fecharModalEdicaoNex();
   renderChat(Drops.estado.conversaAtual);
 }
-
-// ============================================
-// PREVIEW DE RESPOSTA
-// ============================================
 
 function mostrarPreviewRespostaNex() {
   const preview = document.getElementById('previewRespostaNex');
@@ -1514,145 +1329,129 @@ function mostrarPreviewRespostaNex() {
     btnCancelar.addEventListener('click', cancelarRespostaNex);
   }
 
-  // ⚠️ Atualiza visibilidade do stack
   atualizarPreviewStackNex();
 }
+  function obterCardMensagemNex(msgId) {
+    const alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
+    if (!alvo) return null;
 
-// ============================================
-// DESTAQUE DE MENSAGEM
-// ============================================
-
-function obterCardMensagemNex(msgId) {
-  const alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-  if (!alvo) return null;
-
-  return (
-    alvo.querySelector('.msg-layer') ||
-    alvo.querySelector('.msg-card') ||
-    alvo.firstElementChild ||
-    alvo
-  );
-}
-
-function limparDestaqueMensagemNex() {
-  if (!msgDestacadaNex) return;
-
-  msgDestacadaNex.classList.remove(
-    'msg-destaque-verde-nex',
-    'msg-destaque-amarelo-nex'
-  );
-
-  msgDestacadaNex = null;
-}
-
-function destacarMensagemNex(msgId, tipo) {
-  const card = obterCardMensagemNex(msgId);
-  if (!card) return;
-
-  limparDestaqueMensagemNex();
-
-  card.classList.add(
-    tipo === 'amarelo'
-      ? 'msg-destaque-amarelo-nex'
-      : 'msg-destaque-verde-nex'
-  );
-
-  msgDestacadaNex = card;
-
-  card.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center'
-  });
-}
-
-function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
-  // ⚠️ Tenta pelo ID que veio (geralmente é o do Supabase)
-  let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-
-  // ⚠️ Se não achou, tenta pelo ID local
-  if (!alvo && msgIdLocal) {
-    alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
+    return (
+      alvo.querySelector('.msg-layer') ||
+      alvo.querySelector('.msg-card') ||
+      alvo.firstElementChild ||
+      alvo
+    );
   }
 
-  // ⚠️ Se ainda não achou, procura em todas as mensagens
-  if (!alvo) {
-    const msgs = conversas[Drops.estado.conversaAtual] || [];
-    const msgEncontrada = msgs.find(
-      (m) =>
-        String(m.id) === String(msgId) ||
-        String(m._supabaseId) === String(msgId) ||
-        (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
+  function limparDestaqueMensagemNex() {
+    if (!msgDestacadaNex) return;
+
+    msgDestacadaNex.classList.remove(
+      'msg-destaque-verde-nex',
+      'msg-destaque-amarelo-nex'
     );
 
-    if (msgEncontrada) {
-      const idFinal = msgEncontrada.id || msgEncontrada._supabaseId;
-      alvo = document.querySelector(`[data-msg-id="${idFinal}"]`);
+    msgDestacadaNex = null;
+  }
+
+  function destacarMensagemNex(msgId, tipo) {
+    const card = obterCardMensagemNex(msgId);
+    if (!card) return;
+
+    limparDestaqueMensagemNex();
+
+    card.classList.add(
+      tipo === 'amarelo'
+        ? 'msg-destaque-amarelo-nex'
+        : 'msg-destaque-verde-nex'
+    );
+
+    msgDestacadaNex = card;
+
+    card.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }
+
+  function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
+    let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
+
+    if (!alvo && msgIdLocal) {
+      alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
     }
+
+    if (!alvo) {
+      const msgs = conversas[Drops.estado.conversaAtual] || [];
+      const msgEncontrada = msgs.find(
+        (m) =>
+          String(m.id) === String(msgId) ||
+          String(m._supabaseId) === String(msgId) ||
+          (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
+      );
+
+      if (msgEncontrada) {
+        const idFinal = msgEncontrada.id || msgEncontrada._supabaseId;
+        alvo = document.querySelector(`[data-msg-id="${idFinal}"]`);
+      }
+    }
+
+    if (!alvo) {
+      console.warn('Não achou a mensagem original:', msgId);
+      return;
+    }
+
+    const card = alvo.querySelector('.msg-layer') ||
+      alvo.querySelector('.msg-card') ||
+      alvo.firstElementChild ||
+      alvo;
+
+    limparDestaqueMensagemNex();
+
+    card.classList.add('msg-destaque-verde-nex');
+    msgDestacadaNex = card;
+
+    card.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
   }
 
-  if (!alvo) {
-    console.warn('❌ Não achou a mensagem original:', msgId);
-    return;
+  function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
+    const msgs = conversas[Drops.estado.conversaAtual] || [];
+
+    const idsValidos = [
+      String(msgIdOriginal || ''),
+      String(msgIdSupabaseOriginal || '')
+    ].filter(Boolean);
+
+    const respostas = msgs.filter((m) => {
+      if (!m.resposta) return false;
+
+      const idResposta = String(m.resposta.id || '');
+      return idsValidos.includes(idResposta);
+    });
+
+    if (!respostas.length) return;
+
+    const primeiraResposta = respostas[0];
+    const idParaDestacar = primeiraResposta.id || primeiraResposta._supabaseId;
+
+    destacarMensagemNex(idParaDestacar, 'amarelo');
   }
 
-  const card = alvo.querySelector('.msg-layer') ||
-    alvo.querySelector('.msg-card') ||
-    alvo.firstElementChild ||
-    alvo;
+  function irParaProximaRespostaNex(originalId, ordemAtual) {
+    const msgs = conversas[Drops.estado.conversaAtual] || [];
 
-  limparDestaqueMensagemNex();
+    const respostas = msgs.filter(
+      (m) => m.resposta && m.resposta.id === originalId
+    );
 
-  card.classList.add('msg-destaque-verde-nex');
-  msgDestacadaNex = card;
+    const proxima = respostas[ordemAtual];
+    if (!proxima) return;
 
-  card.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center'
-  });
-}
-
-function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
-  const msgs = conversas[Drops.estado.conversaAtual] || [];
-
-  // ⚠️ Aceita tanto o ID local quanto o UUID do Supabase
-  const idsValidos = [
-    String(msgIdOriginal || ''),
-    String(msgIdSupabaseOriginal || '')
-  ].filter(Boolean);
-
-  const respostas = msgs.filter((m) => {
-    if (!m.resposta) return false;
-
-    const idResposta = String(m.resposta.id || '');
-    return idsValidos.includes(idResposta);
-  });
-
-  if (!respostas.length) return;
-
-  // ⚠️ Pega o ID local da resposta pra destacar
-  const primeiraResposta = respostas[0];
-  const idParaDestacar = primeiraResposta.id || primeiraResposta._supabaseId;
-
-  destacarMensagemNex(idParaDestacar, 'amarelo');
-}
-
-function irParaProximaRespostaNex(originalId, ordemAtual) {
-  const msgs = conversas[Drops.estado.conversaAtual] || [];
-
-  const respostas = msgs.filter(
-    (m) => m.resposta && m.resposta.id === originalId
-  );
-
-  const proxima = respostas[ordemAtual];
-  if (!proxima) return;
-
-  destacarMensagemNex(proxima.id, 'amarelo');
-}
-
-  
-  // ============================================
-  // EVENTOS GLOBAIS DE CLIQUE (FECHAR MENUS)
-  // ============================================
+    destacarMensagemNex(proxima.id, 'amarelo');
+  }
 
   document.addEventListener('click', (e) => {
     const menu = document.getElementById('msgMenuNex');
@@ -1687,10 +1486,6 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
     }
   });
 
-  // ============================================
-  // LIMPAR DESTAQUE AO CLICAR FORA
-  // ============================================
-
   document.addEventListener(
     'click',
     (e) => {
@@ -1708,10 +1503,6 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
     },
     true
   );
-
-  // ============================================
-  // EVENTOS DO CHAT (DOMContentLoaded)
-  // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('chatInput');
@@ -1740,11 +1531,6 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
     }
   });
 
-  // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
-
-  // Funções principais
   window.abrirMenuMsgNex = abrirMenuMsgNex;
   window.fecharMenuMsgNex = fecharMenuMsgNex;
   window.acaoResponderNex = acaoResponderNex;
@@ -1752,64 +1538,55 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
   window.acaoApagarMsgNex = acaoApagarMsgNex;
   window.acaoApagarPraMimNex = acaoApagarPraMimNex;
 
-  // Confirmar exclusões
   window.fecharConfirmDeleteNex = fecharConfirmDeleteNex;
   window.confirmarApagarMsgNex = confirmarApagarMsgNex;
   window.fecharConfirmDeleteMeNex = fecharConfirmDeleteMeNex;
   window.confirmarApagarPraMimNex = confirmarApagarPraMimNex;
 
-  // Modal de edição
   window.abrirModalEdicaoNex = abrirModalEdicaoNex;
   window.fecharModalEdicaoNex = fecharModalEdicaoNex;
   window.atualizarBotaoEdicaoNex = atualizarBotaoEdicaoNex;
   window.concluirEdicaoNex = concluirEdicaoNex;
 
-  // Destaque
   window.irParaMensagemNex = irParaMensagemNex;
   window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
   window.irParaProximaRespostaNex = irParaProximaRespostaNex;
 
-  // Funções principais do chat
-window.abrirChatNex = abrirChatNex;
-window.voltarChatNex = voltarChatNex;
-window.renderChat = renderChat;
-window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
-window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
-window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
-window.enviarMsgNex = enviarMsgNex;
-window.cancelarRespostaNex = cancelarRespostaNex;
+  window.abrirChatNex = abrirChatNex;
+  window.voltarChatNex = voltarChatNex;
+  window.renderChat = renderChat;
+  window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
+  window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
+  window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
+  window.enviarMsgNex = enviarMsgNex;
+  window.cancelarRespostaNex = cancelarRespostaNex;
+  window.atualizarPreviewStackNex = atualizarPreviewStackNex;
 
-// ⚠️ Funções usadas pela lista do NEX
-window.buscarAvatarNex = buscarAvatarNex;
+  window.buscarAvatarNex = buscarAvatarNex;
 
-// ⚠️ Busca status online/offline por username (usado nos cards)
-window.buscarStatusNex = async function (username) {
-  if (!username || !window.supabaseClient) return false;
+  window.buscarStatusNex = async function (username) {
+    if (!username || !window.supabaseClient) return false;
 
-  try {
-    const { data: perfil } = await window.supabaseClient
-      .from('profiles')
-      .select('ultima_atividade')
-      .eq(
-        'username',
-        String(username).toLowerCase().replace(/^@/, '').trim()
-      )
-      .maybeSingle();
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('ultima_atividade')
+        .eq(
+          'username',
+          String(username).toLowerCase().replace(/^@/, '').trim()
+        )
+        .maybeSingle();
 
-    const ultima = perfil?.ultima_atividade;
-    const LIMITE_ONLINE_MS = 30 * 1000;
+      const ultima = perfil?.ultima_atividade;
+      const LIMITE_ONLINE_MS = 30 * 1000;
 
-    return !!(ultima &&
-      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
-  } catch (err) {
-    console.warn('Erro ao buscar status:', err);
-    return false;
-  }
-};
-  
-  // ============================================
-  // DEBUG
-  // ============================================
+      return !!(ultima &&
+        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+    } catch (err) {
+      console.warn('Erro ao buscar status:', err);
+      return false;
+    }
+  };
 
   console.log('💬 05-nex-chat.js completo');
 
