@@ -870,11 +870,12 @@ if (input) input.value = '';
 // Se limpar agora e o upload falhar, o usuário perde a mídia.
 
 renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
-  // ============================================
-  // ⚠️ 2. UPLOAD EM SEGUNDO PLANO + UPDATE DA MENSAGEM
-  // ============================================
-  (async () => {
-    try {
+
+// ============================================
+// ⚠️ 2. UPLOAD EM SEGUNDO PLANO + UPDATE DA MENSAGEM
+// ============================================
+(async () => {
+  try {
       const msgLocal = conversas[conversaAtual].find(
         (m) => m.id === mensagem.id
       );
