@@ -1,8 +1,6 @@
 /* ============================================
    06-NEX-MIDIA.JS
    Mídia, áudio, PDF, localização, álbum, viewer, reações
-   
-   Depende de: 00-config.js, 03-utils.js
 ============================================ */
 
 (function () {
@@ -11,7 +9,6 @@
   // ============================================
   // MONTAR HTML DE ANEXOS DA MENSAGEM
   // ============================================
-  // Chamado por renderChat() em 05-nex-chat.js
 
   function montarAnexosHTMLNex(msg, dataExibida, horaExibida) {
     let html = '';
@@ -20,12 +17,8 @@
       return html;
     }
 
-    // ============================================
-    // ANEXOS (objeto msg.anexo)
-    // ============================================
-
     if (msg.anexo) {
-      // ----- DOCUMENTO PDF (formato novo) -----
+      // ----- DOCUMENTO PDF -----
       if (msg.anexo.documento && !msg.anexo.perfilId) {
         const pdfUrl = msg.anexo.documento.url;
         const pdfNome = msg.anexo.documento.name || 'Documento PDF';
@@ -55,7 +48,7 @@
         `;
       }
 
-      // ----- LOCALIZAÇÃO (formato novo E antigo unificados) -----
+      // ----- LOCALIZAÇÃO -----
       if (msg.anexo.localizacao || msg.anexo.type === 'location') {
         const loc = msg.anexo.localizacao || msg.anexo;
         const lat = loc.lat;
@@ -474,7 +467,7 @@ let documentoPreviewNex = null;
 let localizacaoPreviaNex = null;
 
 // ============================================
-// PREVIEW DE MÍDIA ÚNICA (câmera)
+// PREVIEW DE MÍDIA ÚNICA (câmera/galeria)
 // ============================================
 
 function mostrarPreviaMidiaNex(midia) {
@@ -570,7 +563,6 @@ function mostrarPreviewMidiasNex() {
   const inline = document.getElementById('previewMidiasNex');
   if (!inline) return;
 
-  // ⚠️ 1. Seta o HTML primeiro
   inline.innerHTML = `
     <div class="midias-preview-wrap">
       <div class="midias-preview-grid">
@@ -617,11 +609,9 @@ function mostrarPreviewMidiasNex() {
     </div>
   `;
 
-  // ⚠️ 2. Agora sim: mostra o container
   inline.style.display = 'block';
   inline.classList.add('ativo');
 
-  // ⚠️ 3. E avisa o stack
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
@@ -646,7 +636,6 @@ function removerMidiaPreviewNex(index) {
 
     modoExcluirMidiasNex = false;
 
-    // ⚠️ Avisa o stack que está vazio
     if (typeof window.atualizarPreviewStackNex === 'function') {
       window.atualizarPreviewStackNex();
     }
@@ -811,7 +800,6 @@ async function capturarLocalizacaoFixaNex() {
     return;
   }
 
-  // ⚠️ Mostra a prévia IMEDIATAMENTE com "Carregando endereço..."
   localizacaoPreviaNex = {
     lat: null,
     lng: null,
@@ -899,7 +887,8 @@ function abrirMapaLocalizacaoNex(lat, lng) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
   window.open(url, '_blank');
 }
-  // ============================================
+
+// ============================================
 // ÁUDIO — ESTADO
 // ============================================
 
@@ -1048,251 +1037,251 @@ function mostrarPreviaAudioNex(url) {
 
   window.previewAudioAtivoNex = url;
 }
+    // ============================================
+  // GRAVAR ÁUDIO
+  // ============================================
 
-// ============================================
-// GRAVAR ÁUDIO
-// ============================================
+  async function iniciarGravacaoAudioNex() {
+    if (gravandoAudioNex) return;
 
-async function iniciarGravacaoAudioNex() {
-  if (gravandoAudioNex) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Seu aparelho não suporta gravação de áudio.');
+      return;
+    }
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Seu aparelho não suporta gravação de áudio.');
-    return;
-  }
+    limparPreviaAudioNex();
 
-  limparPreviaAudioNex();
+    const micBtn = document.getElementById('micBtn');
+    if (micBtn) {
+      micBtn.style.display = 'flex';
+      micBtn.classList.add('mic-recording');
+    }
 
-  const micBtn = document.getElementById('micBtn');
-  if (micBtn) {
-    micBtn.style.display = 'flex';
-    micBtn.classList.add('mic-recording');
-  }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamNex = stream;
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioStreamNex = stream;
+      const tipos = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg'
+      ];
 
-    const tipos = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/ogg'
-    ];
+      const mimeType = tipos.find(
+        (tipo) =>
+          typeof MediaRecorder !== 'undefined' &&
+          MediaRecorder.isTypeSupported &&
+          MediaRecorder.isTypeSupported(tipo)
+      );
 
-    const mimeType = tipos.find(
-      (tipo) =>
-        typeof MediaRecorder !== 'undefined' &&
-        MediaRecorder.isTypeSupported &&
-        MediaRecorder.isTypeSupported(tipo)
-    );
+      mediaRecorderNex = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
 
-    mediaRecorderNex = mimeType
-      ? new MediaRecorder(stream, { mimeType })
-      : new MediaRecorder(stream);
+      audioChunksNex = [];
+      tempoGravacaoNex = 0;
+      gravandoAudioNex = true;
+      atualizarUIGravacaoNex();
 
-    audioChunksNex = [];
-    tempoGravacaoNex = 0;
-    gravandoAudioNex = true;
-    atualizarUIGravacaoNex();
+      mediaRecorderNex.ondataavailable = (evento) => {
+        if (evento.data && evento.data.size > 0) {
+          audioChunksNex.push(evento.data);
+        }
+      };
 
-    mediaRecorderNex.ondataavailable = (evento) => {
-      if (evento.data && evento.data.size > 0) {
-        audioChunksNex.push(evento.data);
-      }
-    };
+      mediaRecorderNex.onstop = () => {
+        clearInterval(timerGravacaoNex);
+        timerGravacaoNex = null;
 
-    mediaRecorderNex.onstop = () => {
-      clearInterval(timerGravacaoNex);
-      timerGravacaoNex = null;
+        if (audioStreamNex) {
+          audioStreamNex.getTracks().forEach((track) => track.stop());
+          audioStreamNex = null;
+        }
 
-      if (audioStreamNex) {
-        audioStreamNex.getTracks().forEach((track) => track.stop());
-        audioStreamNex = null;
-      }
+        gravandoAudioNex = false;
+        atualizarUIGravacaoNex();
 
+        const blob = new Blob(audioChunksNex, {
+          type: mediaRecorderNex?.mimeType || 'audio/webm'
+        });
+
+        audioBlobNex = blob;
+        audioUrlNex = URL.createObjectURL(blob);
+
+        mostrarPreviaAudioNex(audioUrlNex);
+
+        const micBtn = document.getElementById('micBtn');
+        if (micBtn) micBtn.style.display = 'none';
+      };
+
+      mediaRecorderNex.start();
+
+      timerGravacaoNex = setInterval(() => {
+        tempoGravacaoNex += 1;
+        atualizarUIGravacaoNex();
+
+        if (tempoGravacaoNex >= Drops.LIMITES.AUDIO) {
+          pararGravacaoAudioNex();
+        }
+      }, 1000);
+    } catch (erro) {
       gravandoAudioNex = false;
       atualizarUIGravacaoNex();
+      alert('Não foi possível acessar o microfone.');
+    }
+  }
 
-      const blob = new Blob(audioChunksNex, {
-        type: mediaRecorderNex?.mimeType || 'audio/webm'
-      });
+  function pararGravacaoAudioNex() {
+    if (!gravandoAudioNex || !mediaRecorderNex) return;
 
-      audioBlobNex = blob;
-      audioUrlNex = URL.createObjectURL(blob);
-
-      mostrarPreviaAudioNex(audioUrlNex);
-
-      const micBtn = document.getElementById('micBtn');
-      if (micBtn) micBtn.style.display = 'none';
-    };
-
-    mediaRecorderNex.start();
-
-    timerGravacaoNex = setInterval(() => {
-      tempoGravacaoNex += 1;
-      atualizarUIGravacaoNex();
-
-      if (tempoGravacaoNex >= Drops.LIMITES.AUDIO) {
-        pararGravacaoAudioNex();
-      }
-    }, 1000);
-  } catch (erro) {
     gravandoAudioNex = false;
     atualizarUIGravacaoNex();
-    alert('Não foi possível acessar o microfone.');
-  }
-}
 
-function pararGravacaoAudioNex() {
-  if (!gravandoAudioNex || !mediaRecorderNex) return;
-
-  gravandoAudioNex = false;
-  atualizarUIGravacaoNex();
-
-  if (timerGravacaoNex) {
-    clearInterval(timerGravacaoNex);
-    timerGravacaoNex = null;
-  }
-
-  if (mediaRecorderNex.state !== 'inactive') {
-    mediaRecorderNex.stop();
-  }
-}
-
-function toggleGravacaoAudioNex() {
-  if (gravandoAudioNex) {
-    pararGravacaoAudioNex();
-  } else {
-    iniciarGravacaoAudioNex();
-  }
-}
-
-function enviarAudioNex() {
-  if (!audioUrlNex || !Drops.estado.conversaAtual) return;
-
-  const conversaAtual = Drops.estado.conversaAtual;
-
-  if (!conversas[conversaAtual]) {
-    conversas[conversaAtual] = [];
-  }
-
-  conversas[conversaAtual].push({
-    id: gerarIdMensagemNex(),
-    timestamp: Date.now(),
-    side: 'right',
-    nome: 'Eu',
-    avatar: 'EU',
-    audio: audioUrlNex,
-    data: new Date().toLocaleDateString('pt-BR'),
-    hora: 'agora',
-    status: 'enviado'
-  });
-
-  limparPreviaAudioNex();
-  renderChat(conversaAtual);
-}
-
-// ============================================
-// PLAYER DE ÁUDIO NA MENSAGEM
-// ============================================
-
-function toggleAudioNex(btn) {
-  const box = btn.closest('.audio-msg');
-  if (!box) return;
-
-  const player = box.querySelector('audio');
-  const progress = box.querySelector('.audio-progress');
-  const time = box.querySelector('.audio-time');
-
-  if (!player || !progress || !time) return;
-
-  document.querySelectorAll('.audio-msg audio').forEach((audioEl) => {
-    if (audioEl !== player) {
-      audioEl.pause();
-      const otherBtn = audioEl
-        .closest('.audio-msg')
-        ?.querySelector('.audio-open-btn');
-      if (otherBtn) otherBtn.innerHTML = '▶ Ouvir áudio';
+    if (timerGravacaoNex) {
+      clearInterval(timerGravacaoNex);
+      timerGravacaoNex = null;
     }
-  });
 
-  player.onloadedmetadata = () => {
-    time.innerText = formatarTempoAudioNex(
-      Math.floor(player.duration || 0)
-    );
-  };
-
-  player.ontimeupdate = () => {
-    if (!player.duration) return;
-    const pct = (player.currentTime / player.duration) * 100;
-    progress.style.width = `${pct}%`;
-    time.innerText = formatarTempoAudioNex(Math.floor(player.currentTime));
-  };
-
-  player.onended = () => {
-    progress.style.width = '0%';
-    btn.innerHTML = '▶ Ouvir áudio';
-    time.innerText = formatarTempoAudioNex(
-      Math.floor(player.duration || 0)
-    );
-  };
-
-  if (player.paused) {
-    player.play();
-    btn.innerHTML = '⏸ Pausar áudio';
-  } else {
-    player.pause();
-    btn.innerHTML = '▶ Ouvir áudio';
-  }
-}
-
-// ============================================
-// HELPERS — ESTADO DOS PREVIEWS
-// ============================================
-
-function temAudioNex() {
-  return !!audioUrlNex;
-}
-
-function temMidiasNex() {
-  return Array.isArray(previewMidiasNex) && previewMidiasNex.length > 0;
-}
-
-function temDocumentoNex() {
-  return !!documentoPreviewNex;
-}
-
-function temLocalizacaoNex() {
-  return !!localizacaoPreviaNex;
-}
-
-function limparTodosPreviewsNex() {
-  limparPreviaAudioNex();
-
-  if (typeof window.limparPreviaMidiaNex === 'function') {
-    window.limparPreviaMidiaNex();
+    if (mediaRecorderNex.state !== 'inactive') {
+      mediaRecorderNex.stop();
+    }
   }
 
-  limparPreviaDocumentoNex();
-  limparPreviaLocalizacaoNex();
-}
+  function toggleGravacaoAudioNex() {
+    if (gravandoAudioNex) {
+      pararGravacaoAudioNex();
+    } else {
+      iniciarGravacaoAudioNex();
+    }
+  }
 
-// Getters para o estado interno
-window.getPreviewMidiasNex = () => previewMidiasNex;
-window.setPreviewMidiasNex = (v) => { previewMidiasNex = v; };
+  function enviarAudioNex() {
+    if (!audioUrlNex || !Drops.estado.conversaAtual) return;
 
-window.getPreviewMidiaNex = () => previewMidiaNex;
-window.setPreviewMidiaNex = (v) => { previewMidiaNex = v; };
+    const conversaAtual = Drops.estado.conversaAtual;
 
-window.getDocumentoPreviewNex = () => documentoPreviewNex;
-window.setDocumentoPreviewNex = (v) => { documentoPreviewNex = v; };
+    if (!conversas[conversaAtual]) {
+      conversas[conversaAtual] = [];
+    }
 
-window.getLocalizacaoPreviaNex = () => localizacaoPreviaNex;
-window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
+    conversas[conversaAtual].push({
+      id: gerarIdMensagemNex(),
+      timestamp: Date.now(),
+      side: 'right',
+      nome: 'Eu',
+      avatar: 'EU',
+      audio: audioUrlNex,
+      data: new Date().toLocaleDateString('pt-BR'),
+      hora: 'agora',
+      status: 'enviado'
+    });
 
-window.getAudioUrlNex = () => audioUrlNex;
-    // ============================================
+    limparPreviaAudioNex();
+    renderChat(conversaAtual);
+  }
+
+  // ============================================
+  // PLAYER DE ÁUDIO NA MENSAGEM
+  // ============================================
+
+  function toggleAudioNex(btn) {
+    const box = btn.closest('.audio-msg');
+    if (!box) return;
+
+    const player = box.querySelector('audio');
+    const progress = box.querySelector('.audio-progress');
+    const time = box.querySelector('.audio-time');
+
+    if (!player || !progress || !time) return;
+
+    document.querySelectorAll('.audio-msg audio').forEach((audioEl) => {
+      if (audioEl !== player) {
+        audioEl.pause();
+        const otherBtn = audioEl
+          .closest('.audio-msg')
+          ?.querySelector('.audio-open-btn');
+        if (otherBtn) otherBtn.innerHTML = '▶ Ouvir áudio';
+      }
+    });
+
+    player.onloadedmetadata = () => {
+      time.innerText = formatarTempoAudioNex(
+        Math.floor(player.duration || 0)
+      );
+    };
+
+    player.ontimeupdate = () => {
+      if (!player.duration) return;
+      const pct = (player.currentTime / player.duration) * 100;
+      progress.style.width = `${pct}%`;
+      time.innerText = formatarTempoAudioNex(Math.floor(player.currentTime));
+    };
+
+    player.onended = () => {
+      progress.style.width = '0%';
+      btn.innerHTML = '▶ Ouvir áudio';
+      time.innerText = formatarTempoAudioNex(
+        Math.floor(player.duration || 0)
+      );
+    };
+
+    if (player.paused) {
+      player.play();
+      btn.innerHTML = '⏸ Pausar áudio';
+    } else {
+      player.pause();
+      btn.innerHTML = '▶ Ouvir áudio';
+    }
+  }
+
+  // ============================================
+  // HELPERS — ESTADO DOS PREVIEWS
+  // ============================================
+
+  function temAudioNex() {
+    return !!audioUrlNex;
+  }
+
+  function temMidiasNex() {
+    return Array.isArray(previewMidiasNex) && previewMidiasNex.length > 0;
+  }
+
+  function temDocumentoNex() {
+    return !!documentoPreviewNex;
+  }
+
+  function temLocalizacaoNex() {
+    return !!localizacaoPreviaNex;
+  }
+
+  function limparTodosPreviewsNex() {
+    limparPreviaAudioNex();
+
+    if (typeof window.limparPreviaMidiaNex === 'function') {
+      window.limparPreviaMidiaNex();
+    }
+
+    limparPreviaDocumentoNex();
+    limparPreviaLocalizacaoNex();
+  }
+
+  // Getters para o estado interno
+  window.getPreviewMidiasNex = () => previewMidiasNex;
+  window.setPreviewMidiasNex = (v) => { previewMidiasNex = v; };
+
+  window.getPreviewMidiaNex = () => previewMidiaNex;
+  window.setPreviewMidiaNex = (v) => { previewMidiaNex = v; };
+
+  window.getDocumentoPreviewNex = () => documentoPreviewNex;
+  window.setDocumentoPreviewNex = (v) => { documentoPreviewNex = v; };
+
+  window.getLocalizacaoPreviaNex = () => localizacaoPreviaNex;
+  window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
+
+  window.getAudioUrlNex = () => audioUrlNex;
+
+  // ============================================
   // ÁLBUM (SELEÇÃO MÚLTIPLA)
   // ============================================
 
@@ -1468,13 +1457,20 @@ window.getAudioUrlNex = () => audioUrlNex;
     document.getElementById('inputCameraVideoNex')?.click();
   }
 
-  // ⚠️ CORREÇÃO iOS: showPicker() buga e não dispara 'change' depois.
-  // Usamos input.click() direto — mais confiável em todos os browsers.
+  // ⚠️ Mantém o showPicker() original (funcionava no seu iPhone)
   function abrirSeletorArquivoNex(id) {
     const input = document.getElementById(id);
     if (!input) return;
 
     input.value = '';
+
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+        return;
+      } catch (e) {}
+    }
+
     input.click();
   }
 
@@ -1535,37 +1531,33 @@ window.getAudioUrlNex = () => audioUrlNex;
     const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
     if (inputCameraFotoNex) {
       inputCameraFotoNex.addEventListener('change', () => {
-  const file = inputCameraFotoNex.files?.[0];
-  if (!file) return;
+        const file = inputCameraFotoNex.files?.[0];
+        if (!file) return;
 
-  // ⚠️ iOS: usar base64 em vez de blob URL (não é revogado)
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    previewMidiaNex = { type: 'imagem', url: e.target.result };
-    mostrarPreviaMidiaNex(previewMidiaNex);
-  };
-  reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewMidiaNex = { type: 'imagem', url: e.target.result };
+          mostrarPreviaMidiaNex(previewMidiaNex);
+        };
+        reader.readAsDataURL(file);
 
-  inputCameraFotoNex.value = '';
-});
+        inputCameraFotoNex.value = '';
+      });
     }
 
     // Câmera vídeo
     const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
     if (inputCameraVideoNex) {
-        inputCameraVideoNex.addEventListener('change', () => {
-    const file = inputCameraVideoNex.files?.[0];
-    if (!file) return;
+      inputCameraVideoNex.addEventListener('change', () => {
+        const file = inputCameraVideoNex.files?.[0];
+        if (!file) return;
 
-    // ⚠️ Vídeo é grande — mantemos blob URL MAS não limpamos o input aqui.
-    // Limpamos no próximo clique de anexo, quando o vídeo já foi enviado.
-    const url = URL.createObjectURL(file);
-    previewMidiaNex = { type: 'video', url, _file: file };
-    mostrarPreviaMidiaNex(previewMidiaNex);
+        const url = URL.createObjectURL(file);
+        previewMidiaNex = { type: 'video', url, _file: file };
+        mostrarPreviaMidiaNex(previewMidiaNex);
 
-    // ⚠️ NÃO zera o value (senão o blob morre no iOS)
-  });
-    }
+        // ⚠️ NÃO zera o value (senão o blob morre no iOS)
+      });
     }
 
     // Docs (PDF)
@@ -1584,30 +1576,34 @@ window.getAudioUrlNex = () => audioUrlNex;
           return;
         }
 
-        const url = URL.createObjectURL(file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const url = e.target.result;
 
-        documentoPreviewNex = {
-          type: 'pdf',
-          url,
-          name: file.name,
-          size: file.size,
-          thumbnail: '',
-          loadingThumbnail: true
+          documentoPreviewNex = {
+            type: 'pdf',
+            url,
+            name: file.name,
+            size: file.size,
+            thumbnail: '',
+            loadingThumbnail: true
+          };
+
+          mostrarPreviaDocumentoNex(documentoPreviewNex);
+
+          const thumb = await gerarMiniaturaPdfNex(file);
+
+          if (!documentoPreviewNex || documentoPreviewNex.url !== url) return;
+
+          documentoPreviewNex = {
+            ...documentoPreviewNex,
+            loadingThumbnail: false,
+            thumbnail: thumb || ''
+          };
+
+          mostrarPreviaDocumentoNex(documentoPreviewNex);
         };
-
-        mostrarPreviaDocumentoNex(documentoPreviewNex);
-
-        const thumb = await gerarMiniaturaPdfNex(file);
-
-        if (!documentoPreviewNex || documentoPreviewNex.url !== url) return;
-
-        documentoPreviewNex = {
-          ...documentoPreviewNex,
-          loadingThumbnail: false,
-          thumbnail: thumb || ''
-        };
-
-        mostrarPreviaDocumentoNex(documentoPreviewNex);
+        reader.readAsDataURL(file);
 
         inputDocsNex.value = '';
       });
@@ -1642,46 +1638,43 @@ window.getAudioUrlNex = () => audioUrlNex;
     }
 
     // Múltiplas mídias (envio direto)
-const inputMidiasNex = document.getElementById('inputMidiasNex');
-if (inputMidiasNex) {
-  inputMidiasNex.addEventListener('change', async () => {
-    const files = Array.from(inputMidiasNex.files || []);
-    if (!files.length) return;
+    const inputMidiasNex = document.getElementById('inputMidiasNex');
+    if (inputMidiasNex) {
+      inputMidiasNex.addEventListener('change', async () => {
+        const files = Array.from(inputMidiasNex.files || []);
+        if (!files.length) return;
 
-    // ⚠️ iOS: não usar blob URL (é revogado quando zeramos o input).
-    // Lê como base64 — fica válido até o upload.
-    const previewMidias = [];
+        const previewMidias = [];
 
-    for (const file of files) {
-      const url = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(file);
+        for (const file of files) {
+          const url = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => resolve('');
+            reader.readAsDataURL(file);
+          });
+
+          if (url) {
+            previewMidias.push({
+              type: file.type.startsWith('video/') ? 'video' : 'imagem',
+              url
+            });
+          }
+        }
+
+        if (!previewMidias.length) return;
+
+        previewMidiasNex = previewMidias;
+        mostrarPreviewMidiasNex();
+        inputMidiasNex.value = '';
       });
-
-      if (url) {
-        previewMidias.push({
-          type: file.type.startsWith('video/') ? 'video' : 'imagem',
-          url
-        });
-      }
     }
-
-    if (!previewMidias.length) return;
-
-    previewMidiasNex = previewMidias;
-    mostrarPreviewMidiasNex();
-    inputMidiasNex.value = '';
-  });
-}
   }
 
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
 
-  // HTML de anexos (usado pelo renderChat)
   window.montarAnexosHTMLNex = montarAnexosHTMLNex;
 
   window.abrirMidiaComContextoNex = function (url, tipo, msgId, midiaIndex) {
@@ -1701,23 +1694,19 @@ if (inputMidiasNex) {
   window.removerMidiaPreviewNex = removerMidiaPreviewNex;
   window.abrirMidiaPreviewNex = abrirMidiaPreviewNex;
 
-  // Documento
   window.mostrarPreviaDocumentoNex = mostrarPreviaDocumentoNex;
   window.limparPreviaDocumentoNex = limparPreviaDocumentoNex;
 
-  // Localização
   window.mostrarPreviaLocalizacaoNex = mostrarPreviaLocalizacaoNex;
   window.capturarLocalizacaoFixaNex = capturarLocalizacaoFixaNex;
   window.limparPreviaLocalizacaoNex = limparPreviaLocalizacaoNex;
   window.abrirMapaLocalizacaoNex = abrirMapaLocalizacaoNex;
 
-  // Áudio
   window.toggleGravacaoAudioNex = toggleGravacaoAudioNex;
   window.pararGravacaoAudioNex = pararGravacaoAudioNex;
   window.enviarAudioNex = enviarAudioNex;
   window.toggleAudioNex = toggleAudioNex;
 
-  // Álbum
   window.abrirAlbumNex = abrirAlbumNex;
   window.fecharAlbumNex = fecharAlbumNex;
   window.toggleExcluirAlbumNex = toggleExcluirAlbumNex;
@@ -1725,7 +1714,6 @@ if (inputMidiasNex) {
   window.enviarAlbumNex = enviarAlbumNex;
   window.atualizarAlbumModalNex = atualizarAlbumModalNex;
 
-  // Menu anexo / câmera
   window.abrirCameraMenuNex = abrirCameraMenuNex;
   window.fecharCameraMenuNex = fecharCameraMenuNex;
   window.abrirCameraFotoNex = abrirCameraFotoNex;
@@ -1734,7 +1722,6 @@ if (inputMidiasNex) {
   window.abrirAnexoNex = abrirAnexoNex;
   window.toggleMenuAnexoNex = toggleMenuAnexoNex;
 
-  // Helpers
   window.temAudioNex = temAudioNex;
   window.temMidiasNex = temMidiasNex;
   window.temDocumentoNex = temDocumentoNex;
@@ -1748,10 +1735,6 @@ if (inputMidiasNex) {
   document.addEventListener('DOMContentLoaded', () => {
     initInputsNex();
   });
-
-  // ============================================
-  // DEBUG
-  // ============================================
 
   console.log('📎 06-nex-midia.js completo');
 
