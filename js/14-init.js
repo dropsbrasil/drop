@@ -558,8 +558,33 @@ if (weatherLocationEl) {
       }
     }, 500);
 
-    console.log('✅ Drops inicializado com sucesso!');
-  });
+   // ⚠️ DIAGNÓSTICO DEFINITIVO — remover depois
+  setTimeout(() => {
+    const f = {
+      'uploadMidiaNexSupabase': typeof window.uploadMidiaNexSupabase,
+      'enviarMensagemSupabase': typeof window.enviarMensagemSupabase,
+      'obterOuCriarConversaSupabase': typeof window.obterOuCriarConversaSupabase,
+      'supabaseClient': typeof window.supabaseClient,
+      'Drops': typeof window.Drops,
+      'conversas': typeof window.conversas,
+      'enviarMsgNex': typeof window.enviarMsgNex
+    };
+
+    // Monta a string formatada
+    let texto = '🔍 DIAGNÓSTICO COMPLETO\n\n';
+    Object.entries(f).forEach(([k, v]) => {
+      texto += `${k}: ${v}\n`;
+    });
+
+    // Mostra no alert
+    alert(texto);
+
+    // Também mostra no console pra referência
+    console.log('🔍 DIAGNÓSTICO:', f);
+  }, 4000);
+
+  console.log('✅ Drops inicializado com sucesso!');
+});
 
 // ============================================
 // TRAVA SCROLL DO BODY QUANDO EDITOR ABRIR
