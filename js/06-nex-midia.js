@@ -104,52 +104,50 @@
         }
       }
 
-// ----- COMENTÁRIO DO NEARBY -----
-if (msg.anexo.type === 'nearby-comment') {
-  // ⚠️ Texto diferente pra quem enviou e pra quem recebeu
-  const souEu = msg.side === 'right';
-  const textoSelo = souEu
-    ? 'Você comentou esse Drop'
-    : 'Comentário sobre esse Drop';
+      // ----- COMENTÁRIO DO NEARBY -----
+      if (msg.anexo.type === 'nearby-comment') {
+        const souEu = msg.side === 'right';
+        const textoSelo = souEu
+          ? 'Você comentou esse Drop'
+          : 'Comentário sobre esse Drop';
 
-  const perfilId = escapeHTML(msg.anexo.perfilId || '');
-  const perfilNome = escapeHTML(msg.anexo.perfilNome || '');
-  const dropIndex = Number(msg.anexo.dropIndex || 0);
+        const perfilId = escapeHTML(msg.anexo.perfilId || '');
+        const perfilNome = escapeHTML(msg.anexo.perfilNome || '');
+        const dropIndex = Number(msg.anexo.dropIndex || 0);
 
-  html += `
-    <div class="msg-nearby-comment">
-      <div class="msg-nearby-comment-head">
-        <span class="msg-nearby-comment-icone">💬</span>
-        <span class="msg-nearby-comment-texto">
-          ${escapeHTML(textoSelo)}
-        </span>
-      </div>
+        html += `
+          <div class="msg-nearby-comment">
+            <div class="msg-nearby-comment-head">
+              <span class="msg-nearby-comment-icone">💬</span>
+              <span class="msg-nearby-comment-texto">
+                ${escapeHTML(textoSelo)}
+              </span>
+            </div>
 
-      <div class="msg-anexo-card">
-        <img
-          class="msg-midia-thumb"
-          src="${escapeHTML(msg.anexo.url)}"
-          alt="Drop">
-      </div>
+            <div class="msg-anexo-card">
+              <img
+                class="msg-midia-thumb"
+                src="${escapeHTML(msg.anexo.url)}"
+                alt="Drop">
+            </div>
 
-      <button
-        type="button"
-        class="msg-nearby-comment-btn"
-        data-perfil-id="${perfilId}"
-        data-perfil-nome="${perfilNome}"
-        data-drop-index="${dropIndex}">
-        👁️ Ver Drop
-      </button>
-    </div>
-  `;
-}
+            <button
+              type="button"
+              class="msg-nearby-comment-btn"
+              data-perfil-id="${perfilId}"
+              data-perfil-nome="${perfilNome}"
+              data-drop-index="${dropIndex}">
+              👁️ Ver Drop
+            </button>
+          </div>
+        `;
+      }
 
-// ----- IMAGEM -----
-if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
-  const ehDropDePerfil = !!msg.anexo.perfilId;
+      // ----- IMAGEM -----
+      if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
+        const ehDropDePerfil = !!msg.anexo.perfilId;
 
         if (ehDropDePerfil) {
-          // ---- DROP DE PERFIL ----
           html += `
             <div
               class="msg-drop-preview-open"
@@ -184,20 +182,19 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
             </div>
           `;
         } else {
-  // ---- FOTO NORMAL (enviada pelo chat) ----
-  const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
-  const urlSafe = escapeHTML(msg.anexo.url);
+          const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
+          const urlSafe = escapeHTML(msg.anexo.url);
 
-  html += `
-    <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
-      <img
-        class="msg-midia-thumb"
-        src="${urlSafe}"
-        alt="Mídia"
-        onclick="window.abrirMidiaComContextoNex('${urlSafe}', 'imagem', '${msgIdSafe}', 0)">
-      <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
-    </div>
-  `;
+          html += `
+            <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+              <img
+                class="msg-midia-thumb"
+                src="${urlSafe}"
+                alt="Mídia"
+                onclick="window.abrirMidiaComContextoNex('${urlSafe}', 'imagem', '${msgIdSafe}', 0)">
+              <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
+            </div>
+          `;
         }
       }
 
@@ -206,7 +203,6 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
         const ehDropDePerfil = !!msg.anexo.perfilId;
 
         if (ehDropDePerfil) {
-          // ---- DROP DE PERFIL ----
           html += `
             <div
               class="msg-drop-preview-open"
@@ -246,120 +242,119 @@ if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
             </div>
           `;
         } else {
-  // ---- VÍDEO NORMAL (enviado pelo chat) ----
-  const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
-  const urlSafe = escapeHTML(msg.anexo.url);
-
-  html += `
-    <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
-      <div class="msg-video-thumb">
-        <video
-          src="${urlSafe}"
-          controls
-          playsinline>
-        </video>
-      </div>
-      <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
-    </div>
-  `;
-        }
-      }
-
-      // ----- ÁLBUM / MÚLTIPLAS IMAGENS -----
-      if (
-        msg.anexo.type === 'multi-imagem' ||
-        msg.anexo.type === 'album'
-      ) {
-        const lista = msg.anexo.midias || msg.anexo.urls || [];
-        const listaEncoded = encodeURIComponent(JSON.stringify(lista));
-
-        if (lista.length) {
-          const totalMidias = lista.length;
-          const midiasPreview = lista.slice(0, 4);
+          const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
+          const urlSafe = escapeHTML(msg.anexo.url);
 
           html += `
-            <div class="msg-anexo-card msg-album-card">
-              <div class="msg-album-cover">
-                <div class="msg-album-blur-grid">
-                  ${midiasPreview
-                    .map((midia) => {
-                      const url =
-                        typeof midia === 'string'
-                          ? midia
-                          : midia.url || midia.src || '';
-
-                      const tipo =
-                        typeof midia === 'object' && midia && midia.type
-                          ? midia.type
-                          : 'image';
-
-                      return `
-                        <div class="msg-album-blur-thumb">
-                          ${
-                            tipo === 'video'
-                              ? `<video src="${escapeHTML(url)}" muted playsinline></video>`
-                              : `<img src="${escapeHTML(url)}" alt="">`
-                          }
-                        </div>
-                      `;
-                    })
-                    .join('')}
-
-                  <div class="msg-album-overlay">
-                    <div class="msg-album-badge">🎴</div>
-                    <div class="msg-album-title">Álbum</div>
-                    <div class="msg-album-subtitle">${totalMidias} mídia(s)</div>
-                  </div>
-                </div>
+            <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+              <div class="msg-video-thumb">
+                <video
+                  src="${urlSafe}"
+                  controls
+                  playsinline>
+                </video>
               </div>
-
-              <button
-                type="button"
-                class="msg-open-anexo-btn msg-album-view-btn btn-fotos-open"
-                data-list="${listaEncoded}">
-                Ver álbum
-              </button>
+              <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
             </div>
           `;
         }
       }
+          // ----- ÁLBUM / MÚLTIPLAS IMAGENS -----
+    if (
+      msg.anexo.type === 'multi-imagem' ||
+      msg.anexo.type === 'album'
+    ) {
+      const lista = msg.anexo.midias || msg.anexo.urls || [];
+      const listaEncoded = encodeURIComponent(JSON.stringify(lista));
 
-      // ----- PDF (formato antigo) -----
-      if (
-        msg.anexo.type === 'pdf' &&
-        !msg.anexo.documento &&
-        !msg.anexo.perfilId
-      ) {
+      if (lista.length) {
+        const totalMidias = lista.length;
+        const midiasPreview = lista.slice(0, 4);
+
         html += `
-          <div class="msg-anexo msg-pdf-card">
-            <div class="msg-pdf-cover">
-              <div class="msg-pdf-icon">📄</div>
-              <div class="msg-pdf-filename">
-                ${escapeHTML(msg.anexo.name || 'Documento PDF')}
+          <div class="msg-anexo-card msg-album-card">
+            <div class="msg-album-cover">
+              <div class="msg-album-blur-grid">
+                ${midiasPreview
+                  .map((midia) => {
+                    const url =
+                      typeof midia === 'string'
+                        ? midia
+                        : midia.url || midia.src || '';
+
+                    const tipo =
+                      typeof midia === 'object' && midia && midia.type
+                        ? midia.type
+                        : 'image';
+
+                    return `
+                      <div class="msg-album-blur-thumb">
+                        ${
+                          tipo === 'video'
+                            ? `<video src="${escapeHTML(url)}" muted playsinline></video>`
+                            : `<img src="${escapeHTML(url)}" alt="">`
+                        }
+                      </div>
+                    `;
+                  })
+                  .join('')}
+
+                <div class="msg-album-overlay">
+                  <div class="msg-album-badge">🎴</div>
+                  <div class="msg-album-title">Álbum</div>
+                  <div class="msg-album-subtitle">${totalMidias} mídia(s)</div>
+                </div>
               </div>
-              <div class="msg-pdf-subtitle">Arquivo PDF</div>
             </div>
 
             <button
               type="button"
-              class="msg-open-anexo-btn msg-pdf-view-btn"
-              onclick="window.open('${escapeHTML(msg.anexo.url)}','_blank')">
-              Visualizar arquivo
+              class="msg-open-anexo-btn msg-album-view-btn btn-fotos-open"
+              data-list="${listaEncoded}">
+              Ver álbum
             </button>
           </div>
         `;
       }
-
-      // ----- ÁUDIO (formato antigo) -----
-      if (msg.anexo.type === 'audio') {
-        html += `
-          <div class="msg-anexo msg-audio-only">
-            <audio controls src="${escapeHTML(msg.anexo.url)}"></audio>
-          </div>
-        `;
-      }
     }
-      // ============================================
+
+    // ----- PDF (formato antigo) -----
+    if (
+      msg.anexo.type === 'pdf' &&
+      !msg.anexo.documento &&
+      !msg.anexo.perfilId
+    ) {
+      html += `
+        <div class="msg-anexo msg-pdf-card">
+          <div class="msg-pdf-cover">
+            <div class="msg-pdf-icon">📄</div>
+            <div class="msg-pdf-filename">
+              ${escapeHTML(msg.anexo.name || 'Documento PDF')}
+            </div>
+            <div class="msg-pdf-subtitle">Arquivo PDF</div>
+          </div>
+
+          <button
+            type="button"
+            class="msg-open-anexo-btn msg-pdf-view-btn"
+            onclick="window.open('${escapeHTML(msg.anexo.url)}','_blank')">
+            Visualizar arquivo
+          </button>
+        </div>
+      `;
+    }
+
+    // ----- ÁUDIO (formato antigo) -----
+    if (msg.anexo.type === 'audio') {
+      html += `
+        <div class="msg-anexo msg-audio-only">
+          <audio controls src="${escapeHTML(msg.anexo.url)}"></audio>
+        </div>
+      `;
+    }
+  }
+
+  // ============================================
   // MÚLTIPLAS MÍDIAS (msg.midias)
   // ============================================
 
@@ -488,17 +483,6 @@ function mostrarPreviaMidiaNex(midia) {
   const inline = document.getElementById('previewMidiasNex');
   if (!inline) return;
 
-  inline.style.display = 'block';
-  inline.classList.add('ativo');
-
-  // ⚠️ Atualiza visibilidade do stack
-  if (typeof window.atualizarPreviewStackNex === 'function') {
-    window.atualizarPreviewStackNex();
-  }
-
-  const micBtn = document.getElementById('micBtn');
-  if (micBtn) micBtn.style.display = 'none';
-
   inline.innerHTML = `
     <div class="midia-preview-card">
       <div
@@ -525,6 +509,16 @@ function mostrarPreviaMidiaNex(midia) {
       </div>
     </div>
   `;
+
+  inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
+
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn) micBtn.style.display = 'none';
 }
 
 function limparPreviaMidiaNex() {
@@ -539,7 +533,6 @@ function limparPreviaMidiaNex() {
     inlineMidias.classList.remove('ativo');
   }
 
-  // ⚠️ Atualiza visibilidade do stack
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
@@ -569,8 +562,7 @@ function abrirPreviewMidiaNex() {
     viewer.remove();
   };
 }
-
-// ============================================
+  // ============================================
 // PREVIEW DE MÚLTIPLAS MÍDIAS
 // ============================================
 
@@ -578,8 +570,7 @@ function mostrarPreviewMidiasNex() {
   const inline = document.getElementById('previewMidiasNex');
   if (!inline) return;
 
-  inline.style.display = 'block';
-
+  // ⚠️ 1. Seta o HTML primeiro
   inline.innerHTML = `
     <div class="midias-preview-wrap">
       <div class="midias-preview-grid">
@@ -625,6 +616,15 @@ function mostrarPreviewMidiasNex() {
       </button>
     </div>
   `;
+
+  // ⚠️ 2. Agora sim: mostra o container
+  inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  // ⚠️ 3. E avisa o stack
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
 }
 
 function toggleExcluirMidiasNex() {
@@ -641,9 +641,16 @@ function removerMidiaPreviewNex(index) {
     if (inline) {
       inline.innerHTML = '';
       inline.style.display = 'none';
+      inline.classList.remove('ativo');
     }
 
     modoExcluirMidiasNex = false;
+
+    // ⚠️ Avisa o stack que está vazio
+    if (typeof window.atualizarPreviewStackNex === 'function') {
+      window.atualizarPreviewStackNex();
+    }
+
     return;
   }
 
@@ -693,17 +700,6 @@ function mostrarPreviaDocumentoNex(doc) {
   const inline = document.getElementById('previewMidiasNex');
   if (!inline || !doc) return;
 
-  inline.style.display = 'block';
-  inline.classList.add('ativo');
-
-  // ⚠️ Atualiza visibilidade do stack
-  if (typeof window.atualizarPreviewStackNex === 'function') {
-    window.atualizarPreviewStackNex();
-  }
-
-  const micBtn = document.getElementById('micBtn');
-  if (micBtn) micBtn.style.display = 'flex';
-
   inline.innerHTML = `
     <div class="doc-preview-card-nex">
       ${
@@ -732,6 +728,16 @@ function mostrarPreviaDocumentoNex(doc) {
       </div>
     </div>
   `;
+
+  inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
+
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn) micBtn.style.display = 'flex';
 }
 
 function limparPreviaDocumentoNex() {
@@ -744,7 +750,6 @@ function limparPreviaDocumentoNex() {
     inline.classList.remove('ativo');
   }
 
-  // ⚠️ Atualiza visibilidade do stack
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
@@ -752,7 +757,8 @@ function limparPreviaDocumentoNex() {
   const micBtn = document.getElementById('micBtn');
   if (micBtn) micBtn.style.display = 'flex';
 }
-  // ============================================
+
+// ============================================
 // PREVIEW DE LOCALIZAÇÃO
 // ============================================
 
@@ -763,9 +769,6 @@ function mostrarPreviaLocalizacaoNex() {
   const statusTexto = localizacaoPreviaNex.carregando
     ? '⏳ Carregando endereço...'
     : '✅ Localização pronta';
-
-  inline.style.display = 'block';
-  inline.classList.add('ativo');
 
   inline.innerHTML = `
     <div class="preview-localizacao-card">
@@ -791,7 +794,9 @@ function mostrarPreviaLocalizacaoNex() {
     </div>
   `;
 
-  // ⚠️ Atualiza visibilidade do stack
+  inline.style.display = 'block';
+  inline.classList.add('ativo');
+
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
@@ -806,7 +811,7 @@ async function capturarLocalizacaoFixaNex() {
     return;
   }
 
-  // ⚠️ CORREÇÃO: mostra a prévia IMEDIATAMENTE com "Carregando endereço..."
+  // ⚠️ Mostra a prévia IMEDIATAMENTE com "Carregando endereço..."
   localizacaoPreviaNex = {
     lat: null,
     lng: null,
@@ -821,7 +826,6 @@ async function capturarLocalizacaoFixaNex() {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
 
-      // ⚠️ Atualiza a prévia com as coordenadas (ainda buscando endereço)
       localizacaoPreviaNex = {
         lat,
         lng,
@@ -849,7 +853,6 @@ async function capturarLocalizacaoFixaNex() {
         endereco = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       }
 
-      // ⚠️ Atualiza a prévia com o endereço final
       localizacaoPreviaNex = {
         lat,
         lng,
@@ -865,7 +868,6 @@ async function capturarLocalizacaoFixaNex() {
         'erro'
       );
 
-      // ⚠️ Limpa a prévia se der erro
       limparPreviaLocalizacaoNex();
     },
     {
@@ -886,12 +888,10 @@ function limparPreviaLocalizacaoNex() {
     inline.classList.remove('ativo');
   }
 
-  // ⚠️ Atualiza visibilidade do stack
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
 }
-  
 
 function abrirMapaLocalizacaoNex(lat, lng) {
   if (lat == null || lng == null) return;
@@ -899,8 +899,7 @@ function abrirMapaLocalizacaoNex(lat, lng) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
   window.open(url, '_blank');
 }
-
-// ============================================
+  // ============================================
 // ÁUDIO — ESTADO
 // ============================================
 
@@ -953,7 +952,6 @@ function limparPreviaAudioNex() {
     inline.classList.remove('ativo');
   }
 
-  // ⚠️ Atualiza visibilidade do stack
   if (typeof window.atualizarPreviewStackNex === 'function') {
     window.atualizarPreviewStackNex();
   }
@@ -978,17 +976,6 @@ function mostrarPreviaAudioNex(url) {
   const inline = document.getElementById('audioInlineNex');
   if (!inline) return;
 
-  inline.style.display = 'block';
-  inline.classList.add('ativo');
-
-  // ⚠️ Atualiza visibilidade do stack
-  if (typeof window.atualizarPreviewStackNex === 'function') {
-    window.atualizarPreviewStackNex();
-  }
-
-  const micBtn = document.getElementById('micBtn');
-  if (micBtn) micBtn.style.display = 'none';
-
   inline.innerHTML = `
     <div class="audio-preview-card">
       <button type="button" class="audio-preview-play" id="audioPreviewPlayNex">▶</button>
@@ -1006,6 +993,16 @@ function mostrarPreviaAudioNex(url) {
       <audio id="audioPreviewPlayerNex" preload="metadata" src="${url}" hidden></audio>
     </div>
   `;
+
+  inline.style.display = 'block';
+  inline.classList.add('ativo');
+
+  if (typeof window.atualizarPreviewStackNex === 'function') {
+    window.atualizarPreviewStackNex();
+  }
+
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn) micBtn.style.display = 'none';
 
   const player = document.getElementById('audioPreviewPlayerNex');
   const playBtn = document.getElementById('audioPreviewPlayNex');
@@ -1287,397 +1284,393 @@ window.setPreviewMidiasNex = (v) => { previewMidiasNex = v; };
 
 window.getPreviewMidiaNex = () => previewMidiaNex;
 window.setPreviewMidiaNex = (v) => { previewMidiaNex = v; };
+
 window.getDocumentoPreviewNex = () => documentoPreviewNex;
 window.setDocumentoPreviewNex = (v) => { documentoPreviewNex = v; };
+
 window.getLocalizacaoPreviaNex = () => localizacaoPreviaNex;
 window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
+
 window.getAudioUrlNex = () => audioUrlNex;
-
-      // ============================================
-    // ÁLBUM (SELEÇÃO MÚLTIPLA)
     // ============================================
+  // ÁLBUM (SELEÇÃO MÚLTIPLA)
+  // ============================================
 
-    let albumSlotsNex = Array(12).fill(null);
-    let albumDeleteModeNex = false;
+  let albumSlotsNex = Array(12).fill(null);
+  let albumDeleteModeNex = false;
 
-    function atualizarAlbumModalNex() {
-      const modal = document.getElementById('albumModalNex');
-      const grid = document.getElementById('albumGridNex');
-      const addBtn = document.getElementById('albumAddBtnNex');
+  function atualizarAlbumModalNex() {
+    const modal = document.getElementById('albumModalNex');
+    const grid = document.getElementById('albumGridNex');
+    const addBtn = document.getElementById('albumAddBtnNex');
 
-      if (!modal || !grid || !addBtn) return;
+    if (!modal || !grid || !addBtn) return;
 
-      const preenchidos = albumSlotsNex.filter(Boolean).length;
-      addBtn.classList.toggle('hidden', preenchidos >= 12);
+    const preenchidos = albumSlotsNex.filter(Boolean).length;
+    addBtn.classList.toggle('hidden', preenchidos >= 12);
 
-      grid.innerHTML = albumSlotsNex
-        .map((midia, index) => {
-          if (!midia) {
-            return `
-              <div class="album-slot">
-                <div class="album-slot-empty">+</div>
-              </div>
-            `;
-          }
-
+    grid.innerHTML = albumSlotsNex
+      .map((midia, index) => {
+        if (!midia) {
           return `
-            <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
-              ${
-                midia.type === 'video'
-                  ? `<video src="${midia.url}" muted playsinline></video>`
-                  : `<img src="${midia.url}" alt="">`
-              }
-
-              ${
-                albumDeleteModeNex
-                  ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
-                  : ''
-              }
+            <div class="album-slot">
+              <div class="album-slot-empty">+</div>
             </div>
           `;
-        })
-        .join('');
-    }
-
-    function fecharAlbumNex() {
-      const modal = document.getElementById('albumModalNex');
-      if (!modal) return;
-
-      modal.hidden = true;
-      modal.style.setProperty('display', 'none', 'important');
-      modal.style.visibility = 'hidden';
-      modal.style.opacity = '0';
-      modal.style.pointerEvents = 'none';
-
-      albumDeleteModeNex = false;
-    }
-
-    function toggleExcluirAlbumNex() {
-      albumDeleteModeNex = !albumDeleteModeNex;
-      atualizarAlbumModalNex();
-    }
-
-    function removerSlotAlbumNex(index) {
-      if (index < 0 || index >= albumSlotsNex.length) return;
-
-      albumSlotsNex[index] = null;
-      albumDeleteModeNex = false;
-      atualizarAlbumModalNex();
-    }
-
-    function abrirAlbumNex() {
-      const menu = document.getElementById('menuAnexoNex');
-      if (menu) menu.style.display = 'none';
-
-      const modal = document.getElementById('albumModalNex');
-      if (!modal) return;
-
-      modal.hidden = false;
-      modal.style.setProperty('display', 'block', 'important');
-      modal.style.visibility = 'visible';
-      modal.style.opacity = '1';
-      modal.style.pointerEvents = 'auto';
-
-      albumDeleteModeNex = false;
-      atualizarAlbumModalNex();
-    }
-
-    function enviarAlbumNex() {
-      const midias = albumSlotsNex
-        .filter(Boolean)
-        .map((item) => ({
-          url: item.url,
-          type: item.type === 'video' ? 'video' : 'imagem'
-        }));
-
-      const conversaAtual = Drops.estado.conversaAtual;
-      if (!midias.length || !conversaAtual) return;
-
-      if (!conversas[conversaAtual]) {
-        conversas[conversaAtual] = [];
-      }
-
-      conversas[conversaAtual].push({
-        id: gerarIdMensagemNex(),
-        timestamp: Date.now(),
-        side: 'right',
-        nome: 'Eu',
-        avatar: 'EU',
-        data: new Date().toLocaleDateString('pt-BR'),
-        hora: new Date().toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        status: 'enviado',
-        anexo: {
-          type: 'album',
-          midias: [...midias],
-          urls: midias.map((item) => item.url)
         }
-      });
 
-      fecharAlbumNex();
-      renderChat(conversaAtual);
+        return `
+          <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
+            ${
+              midia.type === 'video'
+                ? `<video src="${midia.url}" muted playsinline></video>`
+                : `<img src="${midia.url}" alt="">`
+            }
+
+            ${
+              albumDeleteModeNex
+                ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
+                : ''
+            }
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  function fecharAlbumNex() {
+    const modal = document.getElementById('albumModalNex');
+    if (!modal) return;
+
+    modal.hidden = true;
+    modal.style.setProperty('display', 'none', 'important');
+    modal.style.visibility = 'hidden';
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+
+    albumDeleteModeNex = false;
+  }
+
+  function toggleExcluirAlbumNex() {
+    albumDeleteModeNex = !albumDeleteModeNex;
+    atualizarAlbumModalNex();
+  }
+
+  function removerSlotAlbumNex(index) {
+    if (index < 0 || index >= albumSlotsNex.length) return;
+
+    albumSlotsNex[index] = null;
+    albumDeleteModeNex = false;
+    atualizarAlbumModalNex();
+  }
+
+  function abrirAlbumNex() {
+    const menu = document.getElementById('menuAnexoNex');
+    if (menu) menu.style.display = 'none';
+
+    const modal = document.getElementById('albumModalNex');
+    if (!modal) return;
+
+    modal.hidden = false;
+    modal.style.setProperty('display', 'block', 'important');
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+
+    albumDeleteModeNex = false;
+    atualizarAlbumModalNex();
+  }
+
+  function enviarAlbumNex() {
+    const midias = albumSlotsNex
+      .filter(Boolean)
+      .map((item) => ({
+        url: item.url,
+        type: item.type === 'video' ? 'video' : 'imagem'
+      }));
+
+    const conversaAtual = Drops.estado.conversaAtual;
+    if (!midias.length || !conversaAtual) return;
+
+    if (!conversas[conversaAtual]) {
+      conversas[conversaAtual] = [];
     }
 
-    // Listener global para remover slot do álbum
-    if (!window.__albumRemoveListenerNex) {
-      window.__albumRemoveListenerNex = true;
-
-      const removerAlbumHandlerNex = (e) => {
-        const btn = e.target.closest('[data-album-remove]');
-        if (!btn) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        const index = Number(btn.dataset.albumRemove);
-        if (Number.isNaN(index)) return;
-
-        removerSlotAlbumNex(index);
-      };
-
-      document.addEventListener('click', removerAlbumHandlerNex, true);
-      document.addEventListener('pointerup', removerAlbumHandlerNex, true);
-      document.addEventListener('touchend', removerAlbumHandlerNex, true);
-    }
-
-    // ============================================
-    // MENU DE ANEXO / CÂMERA LATERAL
-    // ============================================
-
-    function abrirCameraMenuNex() {
-      const menuAnexo = document.getElementById('menuAnexoNex');
-      const menuCamera = document.getElementById('menuCameraLateralNex');
-
-      if (menuAnexo) menuAnexo.style.display = 'none';
-      if (menuCamera) menuCamera.classList.add('aberto');
-    }
-
-    function fecharCameraMenuNex() {
-      const menuCamera = document.getElementById('menuCameraLateralNex');
-      if (menuCamera) menuCamera.classList.remove('aberto');
-    }
-
-    function abrirCameraFotoNex() {
-      fecharCameraMenuNex();
-      document.getElementById('inputCameraFotoNex')?.click();
-    }
-
-    function abrirCameraVideoNex() {
-      fecharCameraMenuNex();
-      document.getElementById('inputCameraVideoNex')?.click();
-    }
-
-    function abrirSeletorArquivoNex(id) {
-      const input = document.getElementById(id);
-      if (!input) return;
-
-      input.value = '';
-
-      if (typeof input.showPicker === 'function') {
-        try {
-          input.showPicker();
-          return;
-        } catch (e) {}
-      }
-
-      input.click();
-    }
-
-    function abrirMidiasNex() {
-      const menu = document.getElementById('menuAnexoNex');
-      if (menu) menu.style.display = 'none';
-
-      abrirSeletorArquivoNex('inputMidiasNex');
-    }
-
-    function abrirAnexoNex(tipo) {
-      const menu = document.getElementById('menuAnexoNex');
-      if (menu) menu.style.display = 'none';
-
-      if (tipo === 'docs') {
-        document.getElementById('inputDocsNex')?.click();
-        return;
-      }
-
-      if (tipo === 'localizacao') {
-        capturarLocalizacaoFixaNex();
-        return;
-      }
-    }
-
-    function toggleMenuAnexoNex() {
-      const menu = document.getElementById('menuAnexoNex');
-      if (!menu) return;
-
-      if (menu.style.display === 'flex') {
-        menu.style.display = 'none';
-      } else {
-        menu.style.display = 'flex';
-      }
-    }
-
-    // Fecha menu anexo ao clicar fora
-    document.addEventListener('click', (e) => {
-      const menu = document.getElementById('menuAnexoNex');
-      const btn = document.getElementById('btnAnexoNex');
-
-      if (!menu || !btn) return;
-
-      const clicouNoMenu = menu.contains(e.target);
-      const clicouNoBotao = btn.contains(e.target);
-
-      if (!clicouNoMenu && !clicouNoBotao) {
-        menu.style.display = 'none';
+    conversas[conversaAtual].push({
+      id: gerarIdMensagemNex(),
+      timestamp: Date.now(),
+      side: 'right',
+      nome: 'Eu',
+      avatar: 'EU',
+      data: new Date().toLocaleDateString('pt-BR'),
+      hora: new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: 'enviado',
+      anexo: {
+        type: 'album',
+        midias: [...midias],
+        urls: midias.map((item) => item.url)
       }
     });
 
-    // ============================================
-    // INPUTS (câmera, docs, álbum, mídias)
-    // ============================================
+    fecharAlbumNex();
+    renderChat(conversaAtual);
+  }
 
-    function initInputsNex() {
-      // Câmera foto
-      const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
-      if (inputCameraFotoNex) {
-        inputCameraFotoNex.addEventListener('change', () => {
-          const file = inputCameraFotoNex.files?.[0];
-          if (!file) return;
+  // Listener global para remover slot do álbum
+  if (!window.__albumRemoveListenerNex) {
+    window.__albumRemoveListenerNex = true;
 
-          const url = URL.createObjectURL(file);
+    const removerAlbumHandlerNex = (e) => {
+      const btn = e.target.closest('[data-album-remove]');
+      if (!btn) return;
 
-          previewMidiaNex = { type: 'imagem', url };
-          mostrarPreviaMidiaNex(previewMidiaNex);
+      e.preventDefault();
+      e.stopPropagation();
 
-          inputCameraFotoNex.value = '';
-        });
-      }
+      const index = Number(btn.dataset.albumRemove);
+      if (Number.isNaN(index)) return;
 
-      // Câmera vídeo
-      const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
-      if (inputCameraVideoNex) {
-        inputCameraVideoNex.addEventListener('change', () => {
-          const file = inputCameraVideoNex.files?.[0];
-          if (!file) return;
+      removerSlotAlbumNex(index);
+    };
 
-          const url = URL.createObjectURL(file);
+    document.addEventListener('click', removerAlbumHandlerNex, true);
+    document.addEventListener('pointerup', removerAlbumHandlerNex, true);
+    document.addEventListener('touchend', removerAlbumHandlerNex, true);
+  }
 
-          previewMidiaNex = { type: 'video', url };
-          mostrarPreviaMidiaNex(previewMidiaNex);
+  // ============================================
+  // MENU DE ANEXO / CÂMERA LATERAL
+  // ============================================
 
-          inputCameraVideoNex.value = '';
-        });
-      }
+  function abrirCameraMenuNex() {
+    const menuAnexo = document.getElementById('menuAnexoNex');
+    const menuCamera = document.getElementById('menuCameraLateralNex');
 
-      // Docs (PDF)
-      const inputDocsNex = document.getElementById('inputDocsNex');
-      if (inputDocsNex) {
-        inputDocsNex.addEventListener('change', async () => {
-          const file = inputDocsNex.files?.[0];
-          if (!file) return;
+    if (menuAnexo) menuAnexo.style.display = 'none';
+    if (menuCamera) menuCamera.classList.add('aberto');
+  }
 
-          if (
-            file.type !== 'application/pdf' &&
-            !file.name.toLowerCase().endsWith('.pdf')
-          ) {
-            alert('Por enquanto esse botão aceita PDF.');
-            inputDocsNex.value = '';
-            return;
-          }
+  function fecharCameraMenuNex() {
+    const menuCamera = document.getElementById('menuCameraLateralNex');
+    if (menuCamera) menuCamera.classList.remove('aberto');
+  }
 
-          const url = URL.createObjectURL(file);
+  function abrirCameraFotoNex() {
+    fecharCameraMenuNex();
+    document.getElementById('inputCameraFotoNex')?.click();
+  }
 
-          documentoPreviewNex = {
-            type: 'pdf',
-            url,
-            name: file.name,
-            size: file.size,
-            thumbnail: '',
-            loadingThumbnail: true
-          };
+  function abrirCameraVideoNex() {
+    fecharCameraMenuNex();
+    document.getElementById('inputCameraVideoNex')?.click();
+  }
 
-          mostrarPreviaDocumentoNex(documentoPreviewNex);
+  // ⚠️ CORREÇÃO iOS: showPicker() buga e não dispara 'change' depois.
+  // Usamos input.click() direto — mais confiável em todos os browsers.
+  function abrirSeletorArquivoNex(id) {
+    const input = document.getElementById(id);
+    if (!input) return;
 
-          const thumb = await gerarMiniaturaPdfNex(file);
+    input.value = '';
+    input.click();
+  }
 
-          if (!documentoPreviewNex || documentoPreviewNex.url !== url) return;
+  function abrirMidiasNex() {
+    const menu = document.getElementById('menuAnexoNex');
+    if (menu) menu.style.display = 'none';
 
-          documentoPreviewNex = {
-            ...documentoPreviewNex,
-            loadingThumbnail: false,
-            thumbnail: thumb || ''
-          };
+    abrirSeletorArquivoNex('inputMidiasNex');
+  }
 
-          mostrarPreviaDocumentoNex(documentoPreviewNex);
+  function abrirAnexoNex(tipo) {
+    const menu = document.getElementById('menuAnexoNex');
+    if (menu) menu.style.display = 'none';
 
-          inputDocsNex.value = '';
-        });
-      }
-
-      // Álbum
-      const inputAlbumNex = document.getElementById('inputAlbumNex');
-      if (inputAlbumNex) {
-        inputAlbumNex.addEventListener('change', () => {
-          const files = Array.from(inputAlbumNex.files || []).filter(
-            (file) =>
-              file.type.startsWith('image/') ||
-              file.type.startsWith('video/')
-          );
-
-          if (!files.length) return;
-
-          files.forEach((file) => {
-            const slotLivre = albumSlotsNex.findIndex((item) => item === null);
-            if (slotLivre === -1) return;
-
-            albumSlotsNex[slotLivre] = {
-              type: file.type.startsWith('video/') ? 'video' : 'imagem',
-              url: URL.createObjectURL(file)
-            };
-          });
-
-          albumDeleteModeNex = false;
-          atualizarAlbumModalNex();
-          inputAlbumNex.value = '';
-        });
-      }
-
-      // Múltiplas mídias (envio direto)
-      const inputMidiasNex = document.getElementById('inputMidiasNex');
-      if (inputMidiasNex) {
-        inputMidiasNex.addEventListener('change', () => {
-          const files = Array.from(inputMidiasNex.files || []);
-          if (!files.length) return;
-
-          previewMidiasNex = files.map((file) => ({
-            type: file.type.startsWith('video/') ? 'video' : 'imagem',
-            url: URL.createObjectURL(file)
-          }));
-
-          mostrarPreviewMidiasNex();
-          inputMidiasNex.value = '';
-        });
-      }
+    if (tipo === 'docs') {
+      abrirSeletorArquivoNex('inputDocsNex');
+      return;
     }
 
-    // ============================================
-    // EXPÕE GLOBALMENTE
-    // ============================================
+    if (tipo === 'localizacao') {
+      capturarLocalizacaoFixaNex();
+      return;
+    }
+  }
+
+  function toggleMenuAnexoNex() {
+    const menu = document.getElementById('menuAnexoNex');
+    if (!menu) return;
+
+    if (menu.style.display === 'flex') {
+      menu.style.display = 'none';
+    } else {
+      menu.style.display = 'flex';
+    }
+  }
+
+  // Fecha menu anexo ao clicar fora
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('menuAnexoNex');
+    const btn = document.getElementById('btnAnexoNex');
+
+    if (!menu || !btn) return;
+
+    const clicouNoMenu = menu.contains(e.target);
+    const clicouNoBotao = btn.contains(e.target);
+
+    if (!clicouNoMenu && !clicouNoBotao) {
+      menu.style.display = 'none';
+    }
+  });
+
+  // ============================================
+  // INPUTS (câmera, docs, álbum, mídias)
+  // ============================================
+
+  function initInputsNex() {
+    // Câmera foto
+    const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
+    if (inputCameraFotoNex) {
+      inputCameraFotoNex.addEventListener('change', () => {
+        const file = inputCameraFotoNex.files?.[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+
+        previewMidiaNex = { type: 'imagem', url };
+        mostrarPreviaMidiaNex(previewMidiaNex);
+
+        inputCameraFotoNex.value = '';
+      });
+    }
+
+    // Câmera vídeo
+    const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
+    if (inputCameraVideoNex) {
+      inputCameraVideoNex.addEventListener('change', () => {
+        const file = inputCameraVideoNex.files?.[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+
+        previewMidiaNex = { type: 'video', url };
+        mostrarPreviaMidiaNex(previewMidiaNex);
+
+        inputCameraVideoNex.value = '';
+      });
+    }
+
+    // Docs (PDF)
+    const inputDocsNex = document.getElementById('inputDocsNex');
+    if (inputDocsNex) {
+      inputDocsNex.addEventListener('change', async () => {
+        const file = inputDocsNex.files?.[0];
+        if (!file) return;
+
+        if (
+          file.type !== 'application/pdf' &&
+          !file.name.toLowerCase().endsWith('.pdf')
+        ) {
+          window.mostrarToastNex?.('Por enquanto esse botão aceita PDF.', 'info');
+          inputDocsNex.value = '';
+          return;
+        }
+
+        const url = URL.createObjectURL(file);
+
+        documentoPreviewNex = {
+          type: 'pdf',
+          url,
+          name: file.name,
+          size: file.size,
+          thumbnail: '',
+          loadingThumbnail: true
+        };
+
+        mostrarPreviaDocumentoNex(documentoPreviewNex);
+
+        const thumb = await gerarMiniaturaPdfNex(file);
+
+        if (!documentoPreviewNex || documentoPreviewNex.url !== url) return;
+
+        documentoPreviewNex = {
+          ...documentoPreviewNex,
+          loadingThumbnail: false,
+          thumbnail: thumb || ''
+        };
+
+        mostrarPreviaDocumentoNex(documentoPreviewNex);
+
+        inputDocsNex.value = '';
+      });
+    }
+
+    // Álbum
+    const inputAlbumNex = document.getElementById('inputAlbumNex');
+    if (inputAlbumNex) {
+      inputAlbumNex.addEventListener('change', () => {
+        const files = Array.from(inputAlbumNex.files || []).filter(
+          (file) =>
+            file.type.startsWith('image/') ||
+            file.type.startsWith('video/')
+        );
+
+        if (!files.length) return;
+
+        files.forEach((file) => {
+          const slotLivre = albumSlotsNex.findIndex((item) => item === null);
+          if (slotLivre === -1) return;
+
+          albumSlotsNex[slotLivre] = {
+            type: file.type.startsWith('video/') ? 'video' : 'imagem',
+            url: URL.createObjectURL(file)
+          };
+        });
+
+        albumDeleteModeNex = false;
+        atualizarAlbumModalNex();
+        inputAlbumNex.value = '';
+      });
+    }
+
+    // Múltiplas mídias (envio direto)
+    const inputMidiasNex = document.getElementById('inputMidiasNex');
+    if (inputMidiasNex) {
+      inputMidiasNex.addEventListener('change', () => {
+        const files = Array.from(inputMidiasNex.files || []);
+        if (!files.length) return;
+
+        previewMidiasNex = files.map((file) => ({
+          type: file.type.startsWith('video/') ? 'video' : 'imagem',
+          url: URL.createObjectURL(file)
+        }));
+
+        mostrarPreviewMidiasNex();
+        inputMidiasNex.value = '';
+      });
+    }
+  }
+
+  // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
 
   // HTML de anexos (usado pelo renderChat)
   window.montarAnexosHTMLNex = montarAnexosHTMLNex;
 
- window.abrirMidiaComContextoNex = function (url, tipo, msgId, midiaIndex) {
-  if (typeof window.abrirMidiaChatNex === 'function') {
-    window.abrirMidiaChatNex(url, tipo, {
-      mensagemId: String(msgId || ''),
-      midiaIndex: Number(midiaIndex || 0)
-    });
-  }
-};
+  window.abrirMidiaComContextoNex = function (url, tipo, msgId, midiaIndex) {
+    if (typeof window.abrirMidiaChatNex === 'function') {
+      window.abrirMidiaChatNex(url, tipo, {
+        mensagemId: String(msgId || ''),
+        midiaIndex: Number(midiaIndex || 0)
+      });
+    }
+  };
 
-window.mostrarPreviaMidiaNex = mostrarPreviaMidiaNex;
+  window.mostrarPreviaMidiaNex = mostrarPreviaMidiaNex;
   window.limparPreviaMidiaNex = limparPreviaMidiaNex;
   window.abrirPreviewMidiaNex = abrirPreviewMidiaNex;
   window.mostrarPreviewMidiasNex = mostrarPreviewMidiasNex;
