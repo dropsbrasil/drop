@@ -1529,22 +1529,21 @@ function mostrarPreviaAudioNex(url) {
 
   function initInputsNex() {
     // Câmera foto
-    const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
-    if (inputCameraFotoNex) {
-      inputCameraFotoNex.addEventListener('change', () => {
-        const file = inputCameraFotoNex.files?.[0];
-        if (!file) return;
+const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
+if (inputCameraFotoNex) {
+  inputCameraFotoNex.addEventListener('change', () => {
+    const file = inputCameraFotoNex.files?.[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          previewMidiaNex = { type: 'imagem', url: e.target.result };
-          mostrarPreviaMidiaNex(previewMidiaNex);
-        };
-        reader.readAsDataURL(file);
+    // ⚠️ CORREÇÃO: usa blob URL em vez de base64 (o base64 gigante
+    // travava o renderChat ao inserir <img src="data:..."> no DOM)
+    const url = URL.createObjectURL(file);
+    previewMidiaNex = { type: 'imagem', url, _file: file };
+    mostrarPreviaMidiaNex(previewMidiaNex);
 
-        inputCameraFotoNex.value = '';
-      });
-    }
+    // ⚠️ NÃO zera o value (senão o blob morre no Android/iOS)
+  });
+}
 
     // Câmera vídeo
     const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
@@ -1638,39 +1637,27 @@ function mostrarPreviaAudioNex(url) {
       });
     }
 
-    // Múltiplas mídias (envio direto)
-    const inputMidiasNex = document.getElementById('inputMidiasNex');
-    if (inputMidiasNex) {
-      inputMidiasNex.addEventListener('change', async () => {
-        const files = Array.from(inputMidiasNex.files || []);
-        if (!files.length) return;
+// Múltiplas mídias (envio direto)
+const inputMidiasNex = document.getElementById('inputMidiasNex');
+if (inputMidiasNex) {
+  inputMidiasNex.addEventListener('change', () => {
+    const files = Array.from(inputMidiasNex.files || []);
+    if (!files.length) return;
 
-        const previewMidias = [];
+    // ⚠️ CORREÇÃO: blob URL em vez de base64
+    const previewMidias = files.map((file) => ({
+      type: file.type.startsWith('video/') ? 'video' : 'imagem',
+      url: URL.createObjectURL(file),
+      _file: file
+    }));
 
-        for (const file of files) {
-          const url = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = () => resolve('');
-            reader.readAsDataURL(file);
-          });
+    if (!previewMidias.length) return;
 
-          if (url) {
-            previewMidias.push({
-              type: file.type.startsWith('video/') ? 'video' : 'imagem',
-              url
-            });
-          }
-        }
-
-        if (!previewMidias.length) return;
-
-        previewMidiasNex = previewMidias;
-        mostrarPreviewMidiasNex();
-        inputMidiasNex.value = '';
-      });
-    }
-  }
+    previewMidiasNex = previewMidias;
+    mostrarPreviewMidiasNex();
+    // ⚠️ NÃO zera o value
+  });
+}
 
   // ============================================
   // EXPÕE GLOBALMENTE
