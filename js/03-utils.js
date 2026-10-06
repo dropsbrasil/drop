@@ -133,13 +133,18 @@
   // ============================================
   // STATUS DA MENSAGEM
   // ============================================
+  // ✓    → enviado (padrão)
+  // ✓✓   → entregue ao destinatário
+  // 👁️   → visualizado pelo destinatário
+  // ⏳    → enviando
+  // 📤    → erro no envio (botão de reenvio)
 
   function statusIconeNex(status) {
-  if (status === 'enviando') return '⏳';
-  if (status === 'erro') return '⚠️';
-  if (status === 'entregue') return '✓✓';
-  if (status === 'aberto' || status === 'visto') return '👁️‍🗨️';
-  return '✓';
+    if (status === 'enviando') return '⏳';
+    if (status === 'erro') return '📤';
+    if (status === 'entregue') return '✓✓';
+    if (status === 'visualizado') return '👁️';
+    return '✓';
   }
 
   // ============================================
@@ -196,57 +201,57 @@
   }
 
   // ============================================
-// TOAST GLOBAL (FEEDBACK DE AÇÕES)
-// ============================================
+  // TOAST GLOBAL (FEEDBACK DE AÇÕES)
+  // ============================================
 
-let toastTimerNex = null;
+  let toastTimerNex = null;
 
-function mostrarToastNex(mensagem, tipo = 'sucesso', duracaoMs = 2600) {
-  const texto = String(mensagem || '').trim();
-  if (!texto) return;
+  function mostrarToastNex(mensagem, tipo = 'sucesso', duracaoMs = 2600) {
+    const texto = String(mensagem || '').trim();
+    if (!texto) return;
 
-  const tipoLimpo = ['sucesso', 'erro', 'info'].includes(tipo)
-    ? tipo
-    : 'sucesso';
+    const tipoLimpo = ['sucesso', 'erro', 'info'].includes(tipo)
+      ? tipo
+      : 'sucesso';
 
-  const icone =
-    tipoLimpo === 'sucesso' ? '✅' :
-    tipoLimpo === 'erro' ? '⚠️' :
-    'ℹ️';
+    const icone =
+      tipoLimpo === 'sucesso' ? '✅' :
+      tipoLimpo === 'erro' ? '⚠️' :
+      'ℹ️';
 
-  let toast = document.getElementById('toastGlobalNex');
+    let toast = document.getElementById('toastGlobalNex');
 
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'toastGlobalNex';
-    document.body.appendChild(toast);
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'toastGlobalNex';
+      document.body.appendChild(toast);
+    }
+
+    toast.className = tipoLimpo;
+    toast.innerHTML = `
+      <span class="toast-icone-nex">${icone}</span>
+      <span class="toast-texto-nex">${escapeHTML(texto)}</span>
+    `;
+
+    // força reflow pra reiniciar a animação
+    void toast.offsetWidth;
+    toast.classList.add('visivel');
+
+    if (toastTimerNex) clearTimeout(toastTimerNex);
+
+    toastTimerNex = setTimeout(() => {
+      toast.classList.remove('visivel');
+      toastTimerNex = null;
+    }, duracaoMs);
   }
 
-  toast.className = tipoLimpo;
-  toast.innerHTML = `
-    <span class="toast-icone-nex">${icone}</span>
-    <span class="toast-texto-nex">${escapeHTML(texto)}</span>
-  `;
+  // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
 
-  // força reflow pra reiniciar a animação
-  void toast.offsetWidth;
-  toast.classList.add('visivel');
+  window.mostrarToastNex = mostrarToastNex;
 
-  if (toastTimerNex) clearTimeout(toastTimerNex);
-
-  toastTimerNex = setTimeout(() => {
-    toast.classList.remove('visivel');
-    toastTimerNex = null;
-  }, duracaoMs);
-}
-
-// ============================================
-// EXPÕE GLOBALMENTE
-// ============================================
-
-window.mostrarToastNex = mostrarToastNex;
-
-window.escapeHTML = escapeHTML;
+  window.escapeHTML = escapeHTML;
   window.formatarTempo = formatarTempo;
   window.formatarTempoAudioNex = formatarTempoAudioNex;
   window.formatarTempoMyDropsNex = formatarTempoMyDropsNex;

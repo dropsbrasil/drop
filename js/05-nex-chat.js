@@ -100,209 +100,209 @@
     const chatBio = document.getElementById('chatBio');
     const chatStatus = document.getElementById('chatStatus');
     const chatAvatar = document.getElementById('chatAvatar');
+      async function atualizarPresencaChatNex() {
+    const usernameReal =
+      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
 
-    async function atualizarPresencaChatNex() {
+    if (!usernameReal || !window.supabaseClient) return;
+
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('ultima_atividade')
+        .eq(
+          'username',
+          String(usernameReal).toLowerCase().replace(/^@/, '').trim()
+        )
+        .maybeSingle();
+
+      const ultima = perfil?.ultima_atividade;
+      const LIMITE_ONLINE_MS = 30 * 1000;
+
+      const estaOnline =
+        ultima &&
+        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
+
+      if (chatStatus) {
+        chatStatus.innerText = estaOnline ? 'online' : 'offline';
+        chatStatus.classList.toggle('online', !!estaOnline);
+        chatStatus.classList.toggle('offline', !estaOnline);
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar presença:', err);
+      if (chatStatus) {
+        chatStatus.innerText = 'offline';
+        chatStatus.classList.add('offline');
+        chatStatus.classList.remove('online');
+      }
+    }
+  }
+
+  atualizarPresencaChatNex();
+
+  if (window.__presencaIntervalNex) {
+    clearInterval(window.__presencaIntervalNex);
+  }
+  window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
+
+  if (chatName) {
+    chatName.innerText = nome;
+    chatName.style.cursor = 'pointer';
+
+    if (chatName.__clickPerfilHandler) {
+      chatName.removeEventListener('click', chatName.__clickPerfilHandler);
+    }
+
+    chatName.__clickPerfilHandler = () => {
       const usernameReal =
         (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+      if (typeof window.abrirPerfilVisitadoNex === 'function') {
+        window.abrirPerfilVisitadoNex(usernameReal, nome);
+      }
+    };
 
-      if (!usernameReal || !window.supabaseClient) return;
+    chatName.addEventListener('click', chatName.__clickPerfilHandler);
+  }
 
+  if (chatBio) {
+    const usernameBio =
+      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+
+    chatBio.textContent = 'Carregando...';
+    chatBio.classList.remove('marquee-ativo');
+
+    if (usernameBio && window.supabaseClient) {
       try {
         const { data: perfil } = await window.supabaseClient
           .from('profiles')
-          .select('ultima_atividade')
+          .select('bio')
           .eq(
             'username',
-            String(usernameReal).toLowerCase().replace(/^@/, '').trim()
+            String(usernameBio).toLowerCase().replace(/^@/, '').trim()
           )
           .maybeSingle();
 
-        const ultima = perfil?.ultima_atividade;
-        const LIMITE_ONLINE_MS = 30 * 1000;
+        const bioReal = (perfil?.bio || '').trim();
+        const textoBio = bioReal || 'Sem bio ainda.';
+        chatBio.textContent = textoBio;
+        chatBio.setAttribute('data-texto', textoBio);
 
-        const estaOnline =
-          ultima &&
-          Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
-
-        if (chatStatus) {
-          chatStatus.innerText = estaOnline ? 'online' : 'offline';
-          chatStatus.classList.toggle('online', !!estaOnline);
-          chatStatus.classList.toggle('offline', !estaOnline);
-        }
+        setTimeout(() => {
+          if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
+            chatBio.classList.add('marquee-ativo');
+          }
+        }, 100);
       } catch (err) {
-        console.warn('Erro ao buscar presença:', err);
-        if (chatStatus) {
-          chatStatus.innerText = 'offline';
-          chatStatus.classList.add('offline');
-          chatStatus.classList.remove('online');
-        }
-      }
-    }
-
-    atualizarPresencaChatNex();
-
-    if (window.__presencaIntervalNex) {
-      clearInterval(window.__presencaIntervalNex);
-    }
-    window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
-
-    if (chatName) {
-      chatName.innerText = nome;
-      chatName.style.cursor = 'pointer';
-
-      if (chatName.__clickPerfilHandler) {
-        chatName.removeEventListener('click', chatName.__clickPerfilHandler);
-      }
-
-      chatName.__clickPerfilHandler = () => {
-        const usernameReal =
-          (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-        if (typeof window.abrirPerfilVisitadoNex === 'function') {
-          window.abrirPerfilVisitadoNex(usernameReal, nome);
-        }
-      };
-
-      chatName.addEventListener('click', chatName.__clickPerfilHandler);
-    }
-
-    if (chatBio) {
-      const usernameBio =
-        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
-      chatBio.textContent = 'Carregando...';
-      chatBio.classList.remove('marquee-ativo');
-
-      if (usernameBio && window.supabaseClient) {
-        try {
-          const { data: perfil } = await window.supabaseClient
-            .from('profiles')
-            .select('bio')
-            .eq(
-              'username',
-              String(usernameBio).toLowerCase().replace(/^@/, '').trim()
-            )
-            .maybeSingle();
-
-          const bioReal = (perfil?.bio || '').trim();
-          const textoBio = bioReal || 'Sem bio ainda.';
-          chatBio.textContent = textoBio;
-          chatBio.setAttribute('data-texto', textoBio);
-
-          setTimeout(() => {
-            if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
-              chatBio.classList.add('marquee-ativo');
-            }
-          }, 100);
-        } catch (err) {
-          console.warn('Erro ao buscar bio no chat:', err);
-          chatBio.textContent = bio || 'Sem bio ainda.';
-          chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
-        }
-      } else {
+        console.warn('Erro ao buscar bio no chat:', err);
         chatBio.textContent = bio || 'Sem bio ainda.';
         chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
       }
-    }
-
-    if (chatStatus) {
-      chatStatus.innerText = '';
-      chatStatus.classList.remove('online', 'offline');
-    }
-
-    if (chatAvatar) {
-      chatAvatar.innerText = nome.charAt(0).toUpperCase();
-      chatAvatar.style.backgroundImage = 'none';
-      chatAvatar.style.cursor = 'pointer';
-    }
-
-    const usernameAvatar =
-      (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
-    if (
-      usernameAvatar &&
-      typeof window.buscarPerfilPublicoSupabase === 'function'
-    ) {
-      try {
-        const perfil = await window.buscarPerfilPublicoSupabase(usernameAvatar);
-
-        if (perfil && perfil.avatar_url && chatAvatar) {
-          chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-          chatAvatar.style.backgroundImage = 'none';
-        }
-      } catch (err) {
-        console.warn('Erro ao buscar avatar no chat:', err);
-      }
-    }
-
-    if (chatAvatar) {
-      if (chatAvatar.__clickPerfilHandler) {
-        chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
-      }
-
-      chatAvatar.__clickPerfilHandler = () => {
-        const usernameReal =
-          (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-        if (typeof window.abrirPerfilVisitadoNex === 'function') {
-          window.abrirPerfilVisitadoNex(usernameReal, nome);
-        }
-      };
-
-      chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
-    }
-
-    if (typeof window.carregarConversaSupabase === 'function') {
-      try {
-        await window.carregarConversaSupabase(nome);
-      } catch (err) {
-        console.warn('Erro ao carregar conversa do Supabase:', err);
-      }
-    }
-
-    if (!conversas[nome]) {
-      conversas[nome] = [];
-    }
-
-    renderChat(nome);
-    document.getElementById('chatInput')?.focus();
-  }
-
-  function voltarChatNex() {
-    if (window.__presencaIntervalNex) {
-      clearInterval(window.__presencaIntervalNex);
-      window.__presencaIntervalNex = null;
-    }
-
-    const chat = document.getElementById('chatNex');
-    const nex = document.getElementById('nex');
-
-    if (chat) {
-      chat.style.display = 'none';
-      chat.classList.remove('active');
-    }
-
-    if (nex) {
-      nex.style.display = 'block';
-      nex.classList.add('active');
-    }
-
-    mostrarNexTab(Drops.estado.abaNex);
-
-    window.setConversaAbertaNex('');
-    window.setOrigemAberturaNex('');
-    window.setCardAbertoNex(null);
-
-    Drops.estado.conversaAtual = '';
-
-    document.body.classList.remove('chat-aberto');
-    document.body.classList.remove('chat-open');
-
-    if (typeof window.sincronizarCardsNexSupabase === 'function') {
-      setTimeout(() => {
-        window.sincronizarCardsNexSupabase();
-      }, 300);
+    } else {
+      chatBio.textContent = bio || 'Sem bio ainda.';
+      chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
     }
   }
-  function atualizarNotificacaoTabbarNex() {
+
+  if (chatStatus) {
+    chatStatus.innerText = '';
+    chatStatus.classList.remove('online', 'offline');
+  }
+
+  if (chatAvatar) {
+    chatAvatar.innerText = nome.charAt(0).toUpperCase();
+    chatAvatar.style.backgroundImage = 'none';
+    chatAvatar.style.cursor = 'pointer';
+  }
+
+  const usernameAvatar =
+    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+
+  if (
+    usernameAvatar &&
+    typeof window.buscarPerfilPublicoSupabase === 'function'
+  ) {
+    try {
+      const perfil = await window.buscarPerfilPublicoSupabase(usernameAvatar);
+
+      if (perfil && perfil.avatar_url && chatAvatar) {
+        chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+        chatAvatar.style.backgroundImage = 'none';
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar avatar no chat:', err);
+    }
+  }
+
+  if (chatAvatar) {
+    if (chatAvatar.__clickPerfilHandler) {
+      chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
+    }
+
+    chatAvatar.__clickPerfilHandler = () => {
+      const usernameReal =
+        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+      if (typeof window.abrirPerfilVisitadoNex === 'function') {
+        window.abrirPerfilVisitadoNex(usernameReal, nome);
+      }
+    };
+
+    chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
+  }
+
+  if (typeof window.carregarConversaSupabase === 'function') {
+    try {
+      await window.carregarConversaSupabase(nome);
+    } catch (err) {
+      console.warn('Erro ao carregar conversa do Supabase:', err);
+    }
+  }
+
+  if (!conversas[nome]) {
+    conversas[nome] = [];
+  }
+
+  renderChat(nome);
+  document.getElementById('chatInput')?.focus();
+}
+
+function voltarChatNex() {
+  if (window.__presencaIntervalNex) {
+    clearInterval(window.__presencaIntervalNex);
+    window.__presencaIntervalNex = null;
+  }
+
+  const chat = document.getElementById('chatNex');
+  const nex = document.getElementById('nex');
+
+  if (chat) {
+    chat.style.display = 'none';
+    chat.classList.remove('active');
+  }
+
+  if (nex) {
+    nex.style.display = 'block';
+    nex.classList.add('active');
+  }
+
+  mostrarNexTab(Drops.estado.abaNex);
+
+  window.setConversaAbertaNex('');
+  window.setOrigemAberturaNex('');
+  window.setCardAbertoNex(null);
+
+  Drops.estado.conversaAtual = '';
+
+  document.body.classList.remove('chat-aberto');
+  document.body.classList.remove('chat-open');
+
+  if (typeof window.sincronizarCardsNexSupabase === 'function') {
+    setTimeout(() => {
+      window.sincronizarCardsNexSupabase();
+    }, 300);
+  }
+}
+
+function atualizarNotificacaoTabbarNex() {
   const tabNex = document.querySelector('.tab.tab-nex');
   if (!tabNex) return;
 
@@ -313,8 +313,7 @@
 
   tabNex.classList.toggle('tem-notificacao', !!temNaoLidas);
 }
-
-async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) {
+  async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) {
   if (!msgId) return;
 
   const seletor = `.msg-midia-badge-slot[data-badge-msg-id="${msgId}"][data-badge-midia-index="${midiaIndex}"]`;
@@ -480,6 +479,12 @@ function renderChat(nome) {
       anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
     }
 
+    // ⚠️ Ajuste: onclick do status — só reenvia se estiver com erro
+    const statusOnclick =
+      lado === 'right' && msg.status === 'erro'
+        ? `onclick="event.stopPropagation(); window.reenviarMensagemNex('${msg.id}')"`
+        : '';
+
     card.innerHTML = msg.deleted
       ? `
       <div class="msg-apagada-wrapper">
@@ -511,7 +516,7 @@ function renderChat(nome) {
                   onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
                   ⋮
                 </button>
-                <div class="msg-status ${statusClasse}">${escapeHTML(statusExibido)}</div>`
+                <div class="msg-status ${statusClasse}" ${statusOnclick}>${escapeHTML(statusExibido)}</div>`
               : ''
           }
 
@@ -783,6 +788,15 @@ function renderChat(nome) {
 
   renderChat(conversaAtual);
 
+  // ⚠️ AJUSTE 1: Limpa a prévia IMEDIATAMENTE após enviar
+  if (typeof window.limparTodosPreviewsNex === 'function') {
+    window.limparTodosPreviewsNex();
+  }
+
+  if (respostaSelecionadaNex) {
+    cancelarRespostaNex();
+  }
+
   (async () => {
     try {
       const msgLocal = conversas[conversaAtual].find(
@@ -944,17 +958,14 @@ function renderChat(nome) {
         }
       }
 
-      msgLocal.status = 'enviado';
+      // ⚠️ AJUSTE 2: Status atualizado para 'entregue' / 'visualizado'
+      msgLocal.status = 'entregue';
+
+      if (Drops.estado.conversaAtual === conversaAtual) {
+        msgLocal.status = 'visualizado';
+      }
 
       renderChat(conversaAtual);
-
-      if (typeof window.limparTodosPreviewsNex === 'function') {
-        window.limparTodosPreviewsNex();
-      }
-
-      if (respostaSelecionadaNex) {
-        cancelarRespostaNex();
-      }
 
       marcarConversaRespondidaNex(conversaAtual);
     } catch (err) {
@@ -970,12 +981,151 @@ function renderChat(nome) {
       }
 
       window.mostrarToastNex?.(
-        'Falha ao enviar. Toque para tentar de novo.',
+        'Falha ao enviar. Toque em 📤 para tentar de novo.',
         'erro'
       );
     }
   })();
+  }
+  // ============================================
+// REENVIAR MENSAGEM (após erro)
+// ============================================
+
+async function reenviarMensagemNex(msgId) {
+  const conversaAtual = Drops.estado.conversaAtual;
+  if (!conversaAtual) return;
+
+  const lista = conversas[conversaAtual] || [];
+  const msgOriginal = lista.find((m) => m.id === msgId);
+
+  if (!msgOriginal) return;
+  if (msgOriginal.status !== 'erro') return;
+
+  // Remove a original com erro
+  const index = lista.indexOf(msgOriginal);
+  if (index > -1) lista.splice(index, 1);
+
+  // Cria uma nova mensagem clonando os dados da original
+  const novaMensagem = {
+    ...msgOriginal,
+    id: gerarIdMensagemNex(),
+    timestamp: Date.now(),
+    status: 'enviando'
+  };
+
+  lista.push(novaMensagem);
+  renderChat(conversaAtual);
+
+  // Processa o reenvio (mesma lógica do enviar, mas pra mensagem específica)
+  try {
+    let convId =
+      window.__convIdsNex && window.__convIdsNex[conversaAtual];
+
+    if (
+      !convId &&
+      typeof window.obterOuCriarConversaSupabase === 'function'
+    ) {
+      const usernameReal =
+        (window.__convUsernamesNex &&
+          window.__convUsernamesNex[conversaAtual]) ||
+        String(conversaAtual || '')
+          .toLowerCase()
+          .replace(/^@/, '')
+          .trim();
+
+      convId = await window.obterOuCriarConversaSupabase(usernameReal);
+
+      if (convId) {
+        window.__convIdsNex = window.__convIdsNex || {};
+        window.__convIdsNex[conversaAtual] = convId;
+
+        window.__convUsernamesNex = window.__convUsernamesNex || {};
+        window.__convUsernamesNex[conversaAtual] = usernameReal;
+      }
+    }
+
+    if (typeof window.enviarMensagemSupabase === 'function' && convId) {
+      let tipo = 'texto';
+      let mediaUrl = null;
+      let mediaMeta = null;
+
+      if (novaMensagem.audio) {
+        tipo = 'audio';
+        mediaUrl = novaMensagem.audio;
+      } else if (novaMensagem.anexo) {
+        if (novaMensagem.anexo.type === 'location') {
+          tipo = 'location';
+          mediaMeta = {
+            lat: novaMensagem.anexo.lat,
+            lng: novaMensagem.anexo.lng,
+            address: novaMensagem.anexo.address || 'Localização',
+            localizacao: novaMensagem.anexo.localizacao || null
+          };
+        } else if (novaMensagem.anexo.type === 'pdf') {
+          tipo = 'pdf';
+          mediaUrl = novaMensagem.anexo.url || null;
+          mediaMeta = {
+            documento: novaMensagem.anexo.documento || null,
+            name: novaMensagem.anexo.name || 'Documento PDF'
+          };
+        } else {
+          tipo =
+            novaMensagem.anexo.type === 'video' ? 'video' : 'imagem';
+          mediaUrl = novaMensagem.anexo.url || null;
+        }
+      } else if (
+        novaMensagem.midias &&
+        novaMensagem.midias.length
+      ) {
+        tipo = 'album';
+        mediaUrl = novaMensagem.midias[0].url || null;
+        mediaMeta = { midias: novaMensagem.midias };
+      }
+
+      let metaCompleta = mediaMeta || {};
+
+      if (novaMensagem.resposta) {
+        metaCompleta = {
+          ...metaCompleta,
+          resposta_info: {
+            id: novaMensagem.resposta.id,
+            nome: novaMensagem.resposta.nome || '',
+            texto: novaMensagem.resposta.texto || '',
+            side: novaMensagem.resposta.side || 'left'
+          }
+        };
+      }
+
+      const msgSupabase = await window.enviarMensagemSupabase({
+        conversa_id: convId,
+        tipo,
+        texto: novaMensagem.text || null,
+        media_url: mediaUrl,
+        media_meta: Object.keys(metaCompleta).length ? metaCompleta : null,
+        resposta_a_id: novaMensagem.resposta?.id || null
+      });
+
+      if (msgSupabase && msgSupabase.id) {
+        novaMensagem._supabaseId = msgSupabase.id;
+      }
+    }
+
+    novaMensagem.status = 'entregue';
+
+    if (Drops.estado.conversaAtual === conversaAtual) {
+      novaMensagem.status = 'visualizado';
+    }
+
+    renderChat(conversaAtual);
+  } catch (err) {
+    console.warn('Erro no reenvio:', err);
+    novaMensagem.status = 'erro';
+    renderChat(conversaAtual);
+    window.mostrarToastNex?.('Falha ao reenviar.', 'erro');
+  }
 }
+
+window.reenviarMensagemNex = reenviarMensagemNex;
 
 function cancelarRespostaNex() {
   respostaSelecionadaNex = null;
@@ -1157,180 +1307,180 @@ async function confirmarApagarPraMimNex() {
 
   mensagemParaApagarNex = null;
 }
+    function acaoApagarMsgNex() {
+    if (!mensagemSelecionadaNex) return;
 
-function acaoApagarMsgNex() {
-  if (!mensagemSelecionadaNex) return;
+    mensagemParaApagarNex = mensagemSelecionadaNex;
 
-  mensagemParaApagarNex = mensagemSelecionadaNex;
+    const modal = document.getElementById('confirmDeleteModalNex');
+    if (!modal) return;
 
-  const modal = document.getElementById('confirmDeleteModalNex');
-  if (!modal) return;
+    modal.style.display = 'flex';
+    fecharMenuMsgNex();
+  }
 
-  modal.style.display = 'flex';
-  fecharMenuMsgNex();
-}
+  function fecharConfirmDeleteNex() {
+    const modal = document.getElementById('confirmDeleteModalNex');
+    if (!modal) return;
 
-function fecharConfirmDeleteNex() {
-  const modal = document.getElementById('confirmDeleteModalNex');
-  if (!modal) return;
+    modal.style.display = 'none';
+    mensagemParaApagarNex = null;
+  }
 
-  modal.style.display = 'none';
-  mensagemParaApagarNex = null;
-}
+  async function confirmarApagarMsgNex() {
+    if (!mensagemParaApagarNex) return;
 
-async function confirmarApagarMsgNex() {
-  if (!mensagemParaApagarNex) return;
+    const msg = mensagemParaApagarNex;
+    const nomePessoa = msg.nome || 'usuário';
 
-  const msg = mensagemParaApagarNex;
-  const nomePessoa = msg.nome || 'usuário';
+    fecharConfirmDeleteNex();
 
-  fecharConfirmDeleteNex();
+    const idSupabase = msg._supabaseId || msg.id;
 
-  const idSupabase = msg._supabaseId || msg.id;
-
-  if (
-    typeof window.apagarPraTodosSupabase === 'function' &&
-    idSupabase
-  ) {
-    try {
-      await window.apagarPraTodosSupabase(idSupabase);
-    } catch (err) {
-      console.warn('Erro ao apagar no Supabase:', err);
+    if (
+      typeof window.apagarPraTodosSupabase === 'function' &&
+      idSupabase
+    ) {
+      try {
+        await window.apagarPraTodosSupabase(idSupabase);
+      } catch (err) {
+        console.warn('Erro ao apagar no Supabase:', err);
+      }
     }
-  }
 
-  msg.deleted = true;
-  msg.deletedAt = Date.now();
+    msg.deleted = true;
+    msg.deletedAt = Date.now();
 
-  if (msg.eu) {
-    msg.deletedText = '🗑️ Mensagem apagada';
-  } else {
-    msg.deletedText = `⚠️ Mensagem apagada pelo ${nomePessoa}`;
-  }
-
-  renderChat(Drops.estado.conversaAtual);
-
-  setTimeout(() => {
-    const lista = conversas[Drops.estado.conversaAtual];
-    if (!Array.isArray(lista)) return;
-
-    const index = lista.indexOf(msg);
-
-    if (index !== -1) {
-      lista.splice(index, 1);
-      renderChat(Drops.estado.conversaAtual);
+    if (msg.eu) {
+      msg.deletedText = '🗑️ Mensagem apagada';
+    } else {
+      msg.deletedText = `⚠️ Mensagem apagada pelo ${nomePessoa}`;
     }
-  }, msg.eu ? 5000 : 10000);
 
-  mensagemParaApagarNex = null;
-}
+    renderChat(Drops.estado.conversaAtual);
 
-function abrirModalEdicaoNex(texto) {
-  const modal = document.getElementById('editarMsgModalNex');
-  const input = document.getElementById('editarMsgInputNex');
-  const btn = document.getElementById('btnConcluirEdicaoNex');
+    setTimeout(() => {
+      const lista = conversas[Drops.estado.conversaAtual];
+      if (!Array.isArray(lista)) return;
 
-  if (!modal || !input || !btn) return;
+      const index = lista.indexOf(msg);
 
-  input.value = texto || '';
-  modal.style.display = 'flex';
-  modal.style.zIndex = '999999999';
+      if (index !== -1) {
+        lista.splice(index, 1);
+        renderChat(Drops.estado.conversaAtual);
+      }
+    }, msg.eu ? 5000 : 10000);
 
-  btn.disabled = true;
-
-  setTimeout(() => {
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-  }, 50);
-}
-
-function fecharModalEdicaoNex() {
-  const modal = document.getElementById('editarMsgModalNex');
-  const input = document.getElementById('editarMsgInputNex');
-  const btn = document.getElementById('btnConcluirEdicaoNex');
-
-  if (input) {
-    input.blur();
-    input.value = '';
+    mensagemParaApagarNex = null;
   }
 
-  if (btn) btn.disabled = true;
-  if (modal) modal.style.display = 'none';
+  function abrirModalEdicaoNex(texto) {
+    const modal = document.getElementById('editarMsgModalNex');
+    const input = document.getElementById('editarMsgInputNex');
+    const btn = document.getElementById('btnConcluirEdicaoNex');
 
-  mensagemEmEdicaoNex = null;
-  textoOriginalEdicaoNex = '';
-}
+    if (!modal || !input || !btn) return;
 
-function atualizarBotaoEdicaoNex() {
-  const input = document.getElementById('editarMsgInputNex');
-  const btn = document.getElementById('btnConcluirEdicaoNex');
-  if (!input || !btn) return;
+    input.value = texto || '';
+    modal.style.display = 'flex';
+    modal.style.zIndex = '999999999';
 
-  const mudou = input.value.trim() !== textoOriginalEdicaoNex.trim();
-  btn.disabled = !mudou;
-}
+    btn.disabled = true;
 
-async function concluirEdicaoNex() {
-  if (!mensagemEmEdicaoNex) return;
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }, 50);
+  }
 
-  const input = document.getElementById('editarMsgInputNex');
-  if (!input) return;
+  function fecharModalEdicaoNex() {
+    const modal = document.getElementById('editarMsgModalNex');
+    const input = document.getElementById('editarMsgInputNex');
+    const btn = document.getElementById('btnConcluirEdicaoNex');
 
-  const novoTexto = input.value;
-  const textoOriginal = textoOriginalEdicaoNex;
-
-  if (novoTexto.trim() === textoOriginal.trim()) return;
-
-  const idSupabase =
-    mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
-
-  if (
-    typeof window.editarMensagemSupabase === 'function' &&
-    idSupabase
-  ) {
-    try {
-      await window.editarMensagemSupabase(idSupabase, novoTexto);
-    } catch (err) {
-      console.warn('Erro ao editar no Supabase:', err);
+    if (input) {
+      input.blur();
+      input.value = '';
     }
+
+    if (btn) btn.disabled = true;
+    if (modal) modal.style.display = 'none';
+
+    mensagemEmEdicaoNex = null;
+    textoOriginalEdicaoNex = '';
   }
 
-  mensagemEmEdicaoNex.text = novoTexto;
-  mensagemEmEdicaoNex.edited = true;
+  function atualizarBotaoEdicaoNex() {
+    const input = document.getElementById('editarMsgInputNex');
+    const btn = document.getElementById('btnConcluirEdicaoNex');
+    if (!input || !btn) return;
 
-  fecharModalEdicaoNex();
-  renderChat(Drops.estado.conversaAtual);
-}
+    const mudou = input.value.trim() !== textoOriginalEdicaoNex.trim();
+    btn.disabled = !mudou;
+  }
 
-function mostrarPreviewRespostaNex() {
-  const preview = document.getElementById('previewRespostaNex');
+  async function concluirEdicaoNex() {
+    if (!mensagemEmEdicaoNex) return;
 
-  if (!preview || !respostaSelecionadaNex) return;
+    const input = document.getElementById('editarMsgInputNex');
+    if (!input) return;
 
-  preview.innerHTML = `
-    <div class="reply-preview-box">
-      <div class="reply-preview-text">
-        Você está respondendo uma Msg específica.
+    const novoTexto = input.value;
+    const textoOriginal = textoOriginalEdicaoNex;
+
+    if (novoTexto.trim() === textoOriginal.trim()) return;
+
+    const idSupabase =
+      mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
+
+    if (
+      typeof window.editarMensagemSupabase === 'function' &&
+      idSupabase
+    ) {
+      try {
+        await window.editarMensagemSupabase(idSupabase, novoTexto);
+      } catch (err) {
+        console.warn('Erro ao editar no Supabase:', err);
+      }
+    }
+
+    mensagemEmEdicaoNex.text = novoTexto;
+    mensagemEmEdicaoNex.edited = true;
+
+    fecharModalEdicaoNex();
+    renderChat(Drops.estado.conversaAtual);
+  }
+
+  function mostrarPreviewRespostaNex() {
+    const preview = document.getElementById('previewRespostaNex');
+
+    if (!preview || !respostaSelecionadaNex) return;
+
+    preview.innerHTML = `
+      <div class="reply-preview-box">
+        <div class="reply-preview-text">
+          Você está respondendo uma Msg específica.
+        </div>
+
+        <button
+          type="button"
+          id="btnCancelarRespostaNex"
+          class="reply-preview-close">
+          ✕
+        </button>
       </div>
+    `;
 
-      <button
-        type="button"
-        id="btnCancelarRespostaNex"
-        class="reply-preview-close">
-        ✕
-      </button>
-    </div>
-  `;
+    preview.style.display = 'block';
 
-  preview.style.display = 'block';
+    const btnCancelar = document.getElementById('btnCancelarRespostaNex');
+    if (btnCancelar) {
+      btnCancelar.addEventListener('click', cancelarRespostaNex);
+    }
 
-  const btnCancelar = document.getElementById('btnCancelarRespostaNex');
-  if (btnCancelar) {
-    btnCancelar.addEventListener('click', cancelarRespostaNex);
+    atualizarPreviewStackNex();
   }
 
-  atualizarPreviewStackNex();
-}
   function obterCardMensagemNex(msgId) {
     const alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
     if (!alvo) return null;
@@ -1588,6 +1738,6 @@ function mostrarPreviewRespostaNex() {
     }
   };
 
-  console.log('💬 05-nex-chat.js completo');
+  console.log('💬 05-nex-chat.js completo (com ajustes de prévia, status e reenvio)');
 
 })();

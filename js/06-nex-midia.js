@@ -44,50 +44,59 @@
         `;
       }
 
-      // ----- LOCALIZAÇÃO -----
+      // ----- LOCALIZAÇÃO (NOVO CARD ELEGANTE) -----
       if (msg.anexo.localizacao || msg.anexo.type === 'location') {
         const loc = msg.anexo.localizacao || msg.anexo;
         const lat = loc.lat;
         const lng = loc.lng;
         const endereco = loc.address || 'Localização';
 
+        // ⚠️ Pega a capa e o avatar do remetente
+        const usernameRemetente = msg.side === 'right' 
+          ? Drops.usernameAtual 
+          : (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
+        
+        // Tenta buscar do cache de avatares, se disponível
+        const avatarUrl = window.cacheAvataresNex?.[usernameRemetente] || null;
+        
+        // Fallback para a inicial
+        const inicialRemetente = (msg.side === 'right' ? 'Eu' : (msg.nome || nome || '?')).charAt(0).toUpperCase();
+
         if (lat != null && lng != null) {
           html += `
-            <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
-              <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
-                <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
-
-                <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
-                  <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Me encontre aqui:</div>
-                  <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Localização pronta</div>
+            <div class="msg-location-card-elegante">
+              <div class="msg-location-capa" style="background-image: url('${escapeHTML(msg.side === 'right' ? (window.AuthAdapterNex?.lerPerfil()?.capa || '') : (window.perfisVisitadosNex?.[usernameRemetente]?.capa || ''))}')">
+                <div class="msg-location-avatar">
+                  ${avatarUrl ? `<img src="${escapeHTML(avatarUrl)}" alt="">` : escapeHTML(inicialRemetente)}
                 </div>
               </div>
-
-              <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
-                ${escapeHTML(endereco)}
+              <div class="msg-location-info">
+                <div class="msg-location-address">
+                  ${escapeHTML(endereco)}
+                </div>
+                <button
+                  type="button"
+                  class="msg-location-btn-elegante"
+                  onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
+                  Ver rota
+                </button>
               </div>
-
-              <button
-                type="button"
-                class="msg-location-btn"
-                style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; width:100% !important; margin-top:10px !important; padding:10px !important; background:#2563eb !important; color:#fff !important; border:none !important; border-radius:8px !important; font-weight:600 !important; cursor:pointer !important;"
-                onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
-                Ver rota
-              </button>
             </div>
           `;
         } else {
+          // Fallback para quando não tem lat/lng
           html += `
-            <div class="msg-location-card" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; padding:12px !important; background:#fff !important; border-radius:12px !important; width:100% !important; box-sizing:border-box !important;">
-              <div class="msg-location-header" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; align-items:center !important; gap:8px !important;">
-                <div class="msg-location-icon" style="display:flex !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:24px !important; align-items:center !important; justify-content:center !important;">📍</div>
-                <div class="msg-location-header-text" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important;">
-                  <div class="msg-location-title" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-weight:700 !important; font-size:15px !important; color:#0f172a !important;">Localização</div>
-                  <div class="msg-location-status" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; font-size:12px !important; color:#64748b !important;">Indisponível</div>
+            <div class="msg-location-card-elegante">
+              <div class="msg-location-capa" style="background-color: #334155;">
+                 <div class="msg-location-avatar">
+                  ${avatarUrl ? `<img src="${escapeHTML(avatarUrl)}" alt="">` : escapeHTML(inicialRemetente)}
                 </div>
               </div>
-              <div class="msg-location-address" style="display:block !important; visibility:visible !important; opacity:1 !important; height:auto !important; margin-top:10px !important; font-size:14px !important; color:#1e293b !important; line-height:1.4 !important;">
-                ${escapeHTML(endereco)}
+              <div class="msg-location-info">
+                <div class="msg-location-address">
+                  ${escapeHTML(endereco)}
+                </div>
+                <div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 8px;">Localização indisponível</div>
               </div>
             </div>
           `;
@@ -132,62 +141,62 @@
           </div>
         `;
       }
+          // ----- IMAGEM -----
+    if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
+      const ehDropDePerfil = !!msg.anexo.perfilId;
 
-      // ----- IMAGEM -----
-      if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
-        const ehDropDePerfil = !!msg.anexo.perfilId;
+      if (ehDropDePerfil) {
+        html += `
+          <div
+            class="msg-drop-preview-open"
+            data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+            data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
+            data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
 
-        if (ehDropDePerfil) {
-          html += `
-            <div
-              class="msg-drop-preview-open"
-              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}"
-              data-drop-index="${Number(msg.anexo.dropIndex || 0)}">
-
-              <div class="msg-drop-preview-head">
-                <div class="msg-drop-preview-title">
-                  Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
-                </div>
-
-                <div class="msg-drop-preview-date">
-                  ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
-                </div>
+            <div class="msg-drop-preview-head">
+              <div class="msg-drop-preview-title">
+                Drop postado por ${escapeHTML(msg.anexo.perfilNome || 'Perfil')}
               </div>
 
-              <div class="msg-anexo-card">
-                <img
-                  class="msg-midia-thumb"
-                  src="${escapeHTML(msg.anexo.url)}"
-                  alt="Mídia">
+              <div class="msg-drop-preview-date">
+                ${escapeHTML(dataExibida || '')} • ${escapeHTML(horaExibida || '')}
               </div>
-
-              <button
-                type="button"
-                class="msg-drop-profile-btn"
-                data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
-                data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
-                👣 Visitar perfil
-              </button>
             </div>
-          `;
-        } else {
-          const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
-          const urlSafe = escapeHTML(msg.anexo.url);
 
-          html += `
-            <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+            <div class="msg-anexo-card">
               <img
                 class="msg-midia-thumb"
-                src="${urlSafe}"
-                alt="Mídia"
-                onclick="window.abrirMidiaComContextoNex('${urlSafe}', 'imagem', '${msgIdSafe}', 0)">
-              <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
+                src="${escapeHTML(msg.anexo.url)}"
+                alt="Mídia">
             </div>
-          `;
-        }
+
+            <button
+              type="button"
+              class="msg-drop-profile-btn"
+              data-perfil-id="${escapeHTML(msg.anexo.perfilId || '')}"
+              data-perfil-nome="${escapeHTML(msg.anexo.perfilNome || '')}">
+              👣 Visitar perfil
+            </button>
+          </div>
+        `;
+      } else {
+        const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
+        const urlSafe = escapeHTML(msg.anexo.url);
+
+        html += `
+          <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
+            <img
+              class="msg-midia-thumb"
+              src="${urlSafe}"
+              alt="Mídia"
+              onclick="window.abrirMidiaComContextoNex('${urlSafe}', 'imagem', '${msgIdSafe}', 0)">
+            <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
+          </div>
+        `;
       }
-          // ----- VÍDEO -----
+    }
+
+    // ----- VÍDEO -----
     if (msg.anexo.type === 'video') {
       const ehDropDePerfil = !!msg.anexo.perfilId;
 
@@ -436,9 +445,8 @@
   }
 
   return html;
-}
-
-// ============================================
+  }
+  // ============================================
 // ESTADO DOS PREVIEWS
 // ============================================
 
@@ -447,7 +455,8 @@ let previewMidiasNex = [];
 let modoExcluirMidiasNex = false;
 let documentoPreviewNex = null;
 let localizacaoPreviaNex = null;
-  // ============================================
+
+// ============================================
 // PREVIEW DE MÍDIA ÚNICA (câmera/galeria)
 // ============================================
 
@@ -635,8 +644,7 @@ function abrirMidiaPreviewNex(index) {
     window.abrirVisualizadorMidiasNex(previewMidiasNex, index, false);
   }
 }
-
-// ============================================
+  // ============================================
 // PREVIEW DE DOCUMENTO PDF
 // ============================================
 
@@ -869,7 +877,8 @@ function abrirMapaLocalizacaoNex(lat, lng) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}`;
   window.open(url, '_blank');
 }
-  // ============================================
+
+// ============================================
 // ÁUDIO — ESTADO
 // ============================================
 
@@ -881,8 +890,7 @@ let audioUrlNex = '';
 let audioStreamNex = null;
 let tempoGravacaoNex = 0;
 let timerGravacaoNex = null;
-
-// ============================================
+  // ============================================
 // UI DE GRAVAÇÃO DE ÁUDIO
 // ============================================
 
@@ -1268,238 +1276,238 @@ window.getAudioUrlNex = () => audioUrlNex;
 
 let albumSlotsNex = Array(12).fill(null);
 let albumDeleteModeNex = false;
+    function atualizarAlbumModalNex() {
+    const modal = document.getElementById('albumModalNex');
+    const grid = document.getElementById('albumGridNex');
+    const addBtn = document.getElementById('albumAddBtnNex');
 
-function atualizarAlbumModalNex() {
-  const modal = document.getElementById('albumModalNex');
-  const grid = document.getElementById('albumGridNex');
-  const addBtn = document.getElementById('albumAddBtnNex');
+    if (!modal || !grid || !addBtn) return;
 
-  if (!modal || !grid || !addBtn) return;
+    const preenchidos = albumSlotsNex.filter(Boolean).length;
+    addBtn.classList.toggle('hidden', preenchidos >= 12);
 
-  const preenchidos = albumSlotsNex.filter(Boolean).length;
-  addBtn.classList.toggle('hidden', preenchidos >= 12);
+    grid.innerHTML = albumSlotsNex
+      .map((midia, index) => {
+        if (!midia) {
+          return `
+            <div class="album-slot">
+              <div class="album-slot-empty">+</div>
+            </div>
+          `;
+        }
 
-  grid.innerHTML = albumSlotsNex
-    .map((midia, index) => {
-      if (!midia) {
         return `
-          <div class="album-slot">
-            <div class="album-slot-empty">+</div>
+          <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
+            ${
+              midia.type === 'video'
+                ? `<video src="${midia.url}" muted playsinline></video>`
+                : `<img src="${midia.url}" alt="">`
+            }
+
+            ${
+              albumDeleteModeNex
+                ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
+                : ''
+            }
           </div>
         `;
-      }
-
-      return `
-        <div class="album-slot ${albumDeleteModeNex ? 'selected-delete' : ''}">
-          ${
-            midia.type === 'video'
-              ? `<video src="${midia.url}" muted playsinline></video>`
-              : `<img src="${midia.url}" alt="">`
-          }
-
-          ${
-            albumDeleteModeNex
-              ? `<button type="button" class="album-slot-x" data-album-remove="${index}">✕</button>`
-              : ''
-          }
-        </div>
-      `;
-    })
-    .join('');
-}
-
-function fecharAlbumNex() {
-  const modal = document.getElementById('albumModalNex');
-  if (!modal) return;
-
-  modal.hidden = true;
-  modal.style.setProperty('display', 'none', 'important');
-  modal.style.visibility = 'hidden';
-  modal.style.opacity = '0';
-  modal.style.pointerEvents = 'none';
-
-  albumDeleteModeNex = false;
-}
-
-function toggleExcluirAlbumNex() {
-  albumDeleteModeNex = !albumDeleteModeNex;
-  atualizarAlbumModalNex();
-}
-
-function removerSlotAlbumNex(index) {
-  if (index < 0 || index >= albumSlotsNex.length) return;
-
-  albumSlotsNex[index] = null;
-  albumDeleteModeNex = false;
-  atualizarAlbumModalNex();
-}
-
-function abrirAlbumNex() {
-  const menu = document.getElementById('menuAnexoNex');
-  if (menu) menu.style.display = 'none';
-
-  const modal = document.getElementById('albumModalNex');
-  if (!modal) return;
-
-  modal.hidden = false;
-  modal.style.setProperty('display', 'block', 'important');
-  modal.style.visibility = 'visible';
-  modal.style.opacity = '1';
-  modal.style.pointerEvents = 'auto';
-
-  albumDeleteModeNex = false;
-  atualizarAlbumModalNex();
-}
-
-function enviarAlbumNex() {
-  const midias = albumSlotsNex
-    .filter(Boolean)
-    .map((item) => ({
-      url: item.url,
-      type: item.type === 'video' ? 'video' : 'imagem'
-    }));
-
-  const conversaAtual = Drops.estado.conversaAtual;
-  if (!midias.length || !conversaAtual) return;
-
-  if (!conversas[conversaAtual]) {
-    conversas[conversaAtual] = [];
+      })
+      .join('');
   }
 
-  conversas[conversaAtual].push({
-    id: gerarIdMensagemNex(),
-    timestamp: Date.now(),
-    side: 'right',
-    nome: 'Eu',
-    avatar: 'EU',
-    data: new Date().toLocaleDateString('pt-BR'),
-    hora: new Date().toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    status: 'enviado',
-    anexo: {
-      type: 'album',
-      midias: [...midias],
-      urls: midias.map((item) => item.url)
+  function fecharAlbumNex() {
+    const modal = document.getElementById('albumModalNex');
+    if (!modal) return;
+
+    modal.hidden = true;
+    modal.style.setProperty('display', 'none', 'important');
+    modal.style.visibility = 'hidden';
+    modal.style.opacity = '0';
+    modal.style.pointerEvents = 'none';
+
+    albumDeleteModeNex = false;
+  }
+
+  function toggleExcluirAlbumNex() {
+    albumDeleteModeNex = !albumDeleteModeNex;
+    atualizarAlbumModalNex();
+  }
+
+  function removerSlotAlbumNex(index) {
+    if (index < 0 || index >= albumSlotsNex.length) return;
+
+    albumSlotsNex[index] = null;
+    albumDeleteModeNex = false;
+    atualizarAlbumModalNex();
+  }
+
+  function abrirAlbumNex() {
+    const menu = document.getElementById('menuAnexoNex');
+    if (menu) menu.style.display = 'none';
+
+    const modal = document.getElementById('albumModalNex');
+    if (!modal) return;
+
+    modal.hidden = false;
+    modal.style.setProperty('display', 'block', 'important');
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+
+    albumDeleteModeNex = false;
+    atualizarAlbumModalNex();
+  }
+
+  function enviarAlbumNex() {
+    const midias = albumSlotsNex
+      .filter(Boolean)
+      .map((item) => ({
+        url: item.url,
+        type: item.type === 'video' ? 'video' : 'imagem'
+      }));
+
+    const conversaAtual = Drops.estado.conversaAtual;
+    if (!midias.length || !conversaAtual) return;
+
+    if (!conversas[conversaAtual]) {
+      conversas[conversaAtual] = [];
+    }
+
+    conversas[conversaAtual].push({
+      id: gerarIdMensagemNex(),
+      timestamp: Date.now(),
+      side: 'right',
+      nome: 'Eu',
+      avatar: 'EU',
+      data: new Date().toLocaleDateString('pt-BR'),
+      hora: new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: 'enviado',
+      anexo: {
+        type: 'album',
+        midias: [...midias],
+        urls: midias.map((item) => item.url)
+      }
+    });
+
+    fecharAlbumNex();
+    renderChat(conversaAtual);
+  }
+
+  if (!window.__albumRemoveListenerNex) {
+    window.__albumRemoveListenerNex = true;
+
+    const removerAlbumHandlerNex = (e) => {
+      const btn = e.target.closest('[data-album-remove]');
+      if (!btn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const index = Number(btn.dataset.albumRemove);
+      if (Number.isNaN(index)) return;
+
+      removerSlotAlbumNex(index);
+    };
+
+    document.addEventListener('click', removerAlbumHandlerNex, true);
+    document.addEventListener('pointerup', removerAlbumHandlerNex, true);
+    document.addEventListener('touchend', removerAlbumHandlerNex, true);
+  }
+
+  // ============================================
+  // MENU DE ANEXO / CÂMERA LATERAL
+  // ============================================
+
+  function abrirCameraMenuNex() {
+    const menuAnexo = document.getElementById('menuAnexoNex');
+    const menuCamera = document.getElementById('menuCameraLateralNex');
+
+    if (menuAnexo) menuAnexo.style.display = 'none';
+    if (menuCamera) menuCamera.classList.add('aberto');
+  }
+
+  function fecharCameraMenuNex() {
+    const menuCamera = document.getElementById('menuCameraLateralNex');
+    if (menuCamera) menuCamera.classList.remove('aberto');
+  }
+
+  function abrirCameraFotoNex() {
+    fecharCameraMenuNex();
+    document.getElementById('inputCameraFotoNex')?.click();
+  }
+
+  function abrirCameraVideoNex() {
+    fecharCameraMenuNex();
+    document.getElementById('inputCameraVideoNex')?.click();
+  }
+
+  function abrirSeletorArquivoNex(id) {
+    const input = document.getElementById(id);
+    if (!input) return;
+
+    input.value = '';
+
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+        return;
+      } catch (e) {}
+    }
+
+    input.click();
+  }
+
+  function abrirMidiasNex() {
+    const menu = document.getElementById('menuAnexoNex');
+    if (menu) menu.style.display = 'none';
+
+    abrirSeletorArquivoNex('inputMidiasNex');
+  }
+
+  function abrirAnexoNex(tipo) {
+    const menu = document.getElementById('menuAnexoNex');
+    if (menu) menu.style.display = 'none';
+
+    if (tipo === 'docs') {
+      abrirSeletorArquivoNex('inputDocsNex');
+      return;
+    }
+
+    if (tipo === 'localizacao') {
+      capturarLocalizacaoFixaNex();
+      return;
+    }
+  }
+
+  function toggleMenuAnexoNex() {
+    const menu = document.getElementById('menuAnexoNex');
+    if (!menu) return;
+
+    if (menu.style.display === 'flex') {
+      menu.style.display = 'none';
+    } else {
+      menu.style.display = 'flex';
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('menuAnexoNex');
+    const btn = document.getElementById('btnAnexoNex');
+
+    if (!menu || !btn) return;
+
+    const clicouNoMenu = menu.contains(e.target);
+    const clicouNoBotao = btn.contains(e.target);
+
+    if (!clicouNoMenu && !clicouNoBotao) {
+      menu.style.display = 'none';
     }
   });
 
-  fecharAlbumNex();
-  renderChat(conversaAtual);
-}
-
-if (!window.__albumRemoveListenerNex) {
-  window.__albumRemoveListenerNex = true;
-
-  const removerAlbumHandlerNex = (e) => {
-    const btn = e.target.closest('[data-album-remove]');
-    if (!btn) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    const index = Number(btn.dataset.albumRemove);
-    if (Number.isNaN(index)) return;
-
-    removerSlotAlbumNex(index);
-  };
-
-  document.addEventListener('click', removerAlbumHandlerNex, true);
-  document.addEventListener('pointerup', removerAlbumHandlerNex, true);
-  document.addEventListener('touchend', removerAlbumHandlerNex, true);
-}
-
-// ============================================
-// MENU DE ANEXO / CÂMERA LATERAL
-// ============================================
-
-function abrirCameraMenuNex() {
-  const menuAnexo = document.getElementById('menuAnexoNex');
-  const menuCamera = document.getElementById('menuCameraLateralNex');
-
-  if (menuAnexo) menuAnexo.style.display = 'none';
-  if (menuCamera) menuCamera.classList.add('aberto');
-}
-
-function fecharCameraMenuNex() {
-  const menuCamera = document.getElementById('menuCameraLateralNex');
-  if (menuCamera) menuCamera.classList.remove('aberto');
-}
-
-function abrirCameraFotoNex() {
-  fecharCameraMenuNex();
-  document.getElementById('inputCameraFotoNex')?.click();
-}
-
-function abrirCameraVideoNex() {
-  fecharCameraMenuNex();
-  document.getElementById('inputCameraVideoNex')?.click();
-}
-
-function abrirSeletorArquivoNex(id) {
-  const input = document.getElementById(id);
-  if (!input) return;
-
-  input.value = '';
-
-  if (typeof input.showPicker === 'function') {
-    try {
-      input.showPicker();
-      return;
-    } catch (e) {}
-  }
-
-  input.click();
-}
-
-function abrirMidiasNex() {
-  const menu = document.getElementById('menuAnexoNex');
-  if (menu) menu.style.display = 'none';
-
-  abrirSeletorArquivoNex('inputMidiasNex');
-}
-
-function abrirAnexoNex(tipo) {
-  const menu = document.getElementById('menuAnexoNex');
-  if (menu) menu.style.display = 'none';
-
-  if (tipo === 'docs') {
-    abrirSeletorArquivoNex('inputDocsNex');
-    return;
-  }
-
-  if (tipo === 'localizacao') {
-    capturarLocalizacaoFixaNex();
-    return;
-  }
-}
-
-function toggleMenuAnexoNex() {
-  const menu = document.getElementById('menuAnexoNex');
-  if (!menu) return;
-
-  if (menu.style.display === 'flex') {
-    menu.style.display = 'none';
-  } else {
-    menu.style.display = 'flex';
-  }
-}
-
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('menuAnexoNex');
-  const btn = document.getElementById('btnAnexoNex');
-
-  if (!menu || !btn) return;
-
-  const clicouNoMenu = menu.contains(e.target);
-  const clicouNoBotao = btn.contains(e.target);
-
-  if (!clicouNoMenu && !clicouNoBotao) {
-    menu.style.display = 'none';
-  }
-});
-    // ============================================
+  // ============================================
   // INPUTS (câmera, docs, álbum, mídias)
   // ============================================
 
@@ -1693,6 +1701,6 @@ document.addEventListener('click', (e) => {
     initInputsNex();
   });
 
-  console.log('📎 06-nex-midia.js completo');
+  console.log('📎 06-nex-midia.js completo (com card de localização elegante)');
 
 })();
