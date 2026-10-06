@@ -882,18 +882,33 @@ renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
 
       if (!msgLocal) return;
 
-      // --- Upload da mídia única ---
-      if (midiaUnicaLocal && midiaUnicaLocal.url) {
-        const urlStorage = await window.uploadMidiaNexSupabase(
-          midiaUnicaLocal.url
-        );
+ // --- Upload da mídia única ---
+if (midiaUnicaLocal && midiaUnicaLocal.url) {
+  console.log('📸 [1] Upload da foto iniciado. Tipo:', midiaUnicaLocal.type);
+  console.log('📸 [2] Tamanho da URL (chars):', midiaUnicaLocal.url.length);
+  console.log('📸 [3] Começo da URL:', midiaUnicaLocal.url.slice(0, 80));
 
-        if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
-          throw new Error('Falha no upload da mídia única');
-        }
+  let urlStorage = null;
+  try {
+    urlStorage = await window.uploadMidiaNexSupabase(
+      midiaUnicaLocal.url
+    );
+  } catch (erroUpload) {
+    console.error('❌ [4] ERRO no upload:', erroUpload);
+    alert('❌ ERRO no upload da foto:\n\n' + (erroUpload?.message || erroUpload));
+    throw erroUpload;
+  }
 
-        msgLocal.anexo.url = urlStorage;
-      }
+  console.log('📥 [5] Upload retornou:', urlStorage);
+
+  if (!urlStorage || !/^https?:\/\//i.test(urlStorage)) {
+    alert('⚠️ [6] Upload retornou vazio ou inválido:\n\n' + urlStorage);
+    throw new Error('Falha no upload da mídia única. Retorno: ' + urlStorage);
+  }
+
+  msgLocal.anexo.url = urlStorage;
+  console.log('✅ [7] URL salva na mensagem:', urlStorage);
+}
 
       // --- Upload das múltiplas mídias ---
       if (Array.isArray(midiasLocais) && midiasLocais.length) {
@@ -985,34 +1000,35 @@ renderChat(conversaAtual); // ⚠️ APARECE IMEDIATAMENTE
         let mediaUrl = null;
         let mediaMeta = null;
 
-        if (msgLocal.audio) {
-          tipo = 'audio';
-          mediaUrl = msgLocal.audio;
-        } else if (msgLocal.anexo) {
-          if (msgLocal.anexo.type === 'location') {
-            tipo = 'location';
-            mediaMeta = {
-              lat: msgLocal.anexo.lat,
-              lng: msgLocal.anexo.lng,
-              address: msgLocal.anexo.address || 'Localização',
-              localizacao: msgLocal.anexo.localizacao || null
-            };
-          } else if (msgLocal.anexo.type === 'pdf') {
-            tipo = 'pdf';
-            mediaUrl = msgLocal.anexo.url || null;
-            mediaMeta = {
-              documento: msgLocal.anexo.documento || null,
-              name: msgLocal.anexo.name || 'Documento PDF'
-            };
-          } else {
-            tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
-            mediaUrl = msgLocal.anexo.url || null;
-          }
-        } else if (msgLocal.midias && msgLocal.midias.length) {
-          tipo = 'album';
-          mediaUrl = msgLocal.midias[0].url || null;
-          mediaMeta = { midias: msgLocal.midias };
-        }
+ if (msgLocal.audio) {
+  tipo = 'audio';
+  mediaUrl = msgLocal.audio;
+} else if (msgLocal.anexo) {
+  if (msgLocal.anexo.type === 'location') {
+    tipo = 'location';
+    mediaMeta = {
+      lat: msgLocal.anexo.lat,
+      lng: msgLocal.anexo.lng,
+      address: msgLocal.anexo.address || 'Localização',
+      localizacao: msgLocal.anexo.localizacao || null
+    };
+  } else if (msgLocal.anexo.type === 'pdf') {
+    tipo = 'pdf';
+    mediaUrl = msgLocal.anexo.url || null;
+    mediaMeta = {
+      documento: msgLocal.anexo.documento || null,
+      name: msgLocal.anexo.name || 'Documento PDF'
+    };
+  } else {
+    // ⚠️ O banco só aceita 'imagem' (confirmado via SQL)
+    tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
+    mediaUrl = msgLocal.anexo.url || null;
+  }
+} else if (msgLocal.midias && msgLocal.midias.length) {
+  tipo = 'album';
+  mediaUrl = msgLocal.midias[0].url || null;
+  mediaMeta = { midias: msgLocal.midias };
+ }
 
         let metaCompleta = mediaMeta || {};
 

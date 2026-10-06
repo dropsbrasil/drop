@@ -137,8 +137,8 @@ if (msg.anexo.localizacao || msg.anexo.type === 'location') {
         `;
       }
 
-      // ----- IMAGEM -----
-      if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
+    // ----- IMAGEM -----
+if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
         const ehDropDePerfil = !!msg.anexo.perfilId;
 
         if (ehDropDePerfil) {
