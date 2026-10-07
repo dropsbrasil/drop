@@ -1062,52 +1062,71 @@ async function processarMensagemRealtimeNex(msg) {
 
   window.conversas[nomeContato].push(nova);
 
-  const chatEl = document.getElementById('chatNex');
-  const chatEstaVisivel =
-    chatEl && getComputedStyle(chatEl).display !== 'none';
+const chatEl = document.getElementById('chatNex');
+const chatEstaVisivel =
+  chatEl && getComputedStyle(chatEl).display !== 'none';
 
-  const conversaAberta = Drops.estado.conversaAtual;
+const conversaAberta = Drops.estado.conversaAtual;
 
-  const usernameRealContato = normalizarUsernameNex(
-    (window.__convUsernamesNex && window.__convUsernamesNex[nomeContato]) ||
-    nomeContato
+// ⚠️ Nome que está EXIBIDO no header do chat aberto agora
+const headerNomeAberto = document.getElementById('chatName')?.innerText?.trim() || '';
+
+// ⚠️ Username real do contato da mensagem que chegou
+const usernameRealContato = normalizarUsernameNex(
+  (window.__convUsernamesNex && window.__convUsernamesNex[nomeContato]) ||
+  nomeContato
+);
+
+// ⚠️ Compara de 3 formas: nome exibido no header, chave da conversa aberta, username real
+const headerLimpo = normalizarUsernameNex(headerNomeAberto);
+const contatoLimpo = normalizarUsernameNex(nomeContato);
+const abertaLimpa = normalizarUsernameNex(conversaAberta);
+
+const chatDaPessoaEstaAberto =
+  chatEstaVisivel &&
+  (
+    headerLimpo === contatoLimpo ||
+    headerLimpo === usernameRealContato ||
+    abertaLimpa === contatoLimpo ||
+    abertaLimpa === usernameRealContato
   );
 
-  const usernameRealAberta = normalizarUsernameNex(
-    (window.__convUsernamesNex && window.__convUsernamesNex[Drops.estado.conversaAtual]) ||
-    Drops.estado.conversaAtual
-  );
-
-  const chatDaPessoaEstaAberto =
-    chatEstaVisivel &&
-    (usernameRealAberta === usernameRealContato ||
-     normalizarUsernameNex(nomeContato) === usernameRealAberta);
-
-  console.log('🔍 [Realtime] Comparação de chat:', {
-    conversaAberta,
-    nomeContato,
-    usernameRealContato,
-    usernameRealAberta,
-    chatEstaVisivel,
-    chatDaPessoaEstaAberto
-  });
+console.log('🔍 [Realtime] Comparação de chat:', {
+  conversaAberta,
+  nomeContato,
+  headerNomeAberto,
+  usernameRealContato,
+  headerLimpo,
+  contatoLimpo,
+  abertaLimpa,
+  chatEstaVisivel,
+  chatDaPessoaEstaAberto
+});
 
   if (chatDaPessoaEstaAberto) {
-    if (typeof window.renderChat === 'function') {
-      window.renderChat(conversaAberta);
+  // ⚠️ Usa a chave que window.conversas REALMENTE conhece
+  const chaveRender =
+    (window.conversas && window.conversas[nomeContato]) ? nomeContato :
+    (window.conversas && window.conversas[conversaAberta]) ? conversaAberta :
+    nomeContato;
 
-      setTimeout(() => {
-        if (typeof window.renderChat === 'function' && Drops.estado.conversaAtual) {
-          window.renderChat(Drops.estado.conversaAtual);
-        }
-      }, 100);
-    }
+  console.log('🖼️ Renderizando chat com chave:', chaveRender);
 
-    const convIdAberto = window.__convIdsNex && window.__convIdsNex[nomeContato];
-    if (convIdAberto) {
-      marcarConversaLidaDebounced(convIdAberto);
-    }
-  } else {
+  if (typeof window.renderChat === 'function') {
+    window.renderChat(chaveRender);
+
+    setTimeout(() => {
+      if (typeof window.renderChat === 'function') {
+        window.renderChat(chaveRender);
+      }
+    }, 100);
+  }
+
+  const convIdAberto = window.__convIdsNex && window.__convIdsNex[nomeContato];
+  if (convIdAberto) {
+    marcarConversaLidaDebounced(convIdAberto);
+  }
+} else {
     if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
       window.marcarConversaComoNaoLidaNex(nomeContato);
     }
