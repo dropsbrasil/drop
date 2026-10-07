@@ -1,6 +1,10 @@
 /* ============================================
    05-NEX-CHAT.JS
    Chat do NEX: abrir, renderizar, enviar mensagens
+
+   ⚠️ REGRA DE OURO:
+   O @username é SEMPRE a chave única da conversa.
+   NUNCA usamos o "nome exibido" como chave no Supabase.
 ============================================ */
 
 (function () {
@@ -16,258 +20,755 @@
   const cacheAvataresNex = {};
   const avataresEmBuscaNex = new Set();
 
-  async function buscarAvatarNex(username) {
-    if (!username) return null;
-    if (cacheAvataresNex[username]) return cacheAvataresNex[username];
-    if (avataresEmBuscaNex.has(username)) return null;
+  // ============================================
+  // MENU DO CHAT (3 pontinhos)
+  // ============================================
 
-    avataresEmBuscaNex.add(username);
+  let chatMenuAbertoNex = false;
 
-    try {
-      const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
-      const userLimpo = String(username).toLowerCase().replace(/^@/, '').trim();
+  function abrirMenuChatNex() {
+    let menu = document.getElementById('chatMenuDropdownNex');
 
-      if (meuUser && userLimpo === meuUser && window.supabaseClient) {
-        const { data: { user } } = await window.supabaseClient.auth.getUser();
-
-        if (user) {
-          const { data: perfil } = await window.supabaseClient
-            .from('profiles')
-            .select('avatar_url')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (perfil?.avatar_url) {
-            cacheAvataresNex[username] = perfil.avatar_url;
-            return perfil.avatar_url;
-          }
-        }
-      }
-
-      if (typeof window.buscarPerfilPublicoSupabase === 'function') {
-        const perfil = await window.buscarPerfilPublicoSupabase(username);
-        const url = perfil?.avatar_url || null;
-        cacheAvataresNex[username] = url;
-        return url;
-      }
-    } catch (err) {
-      console.warn('Erro ao buscar avatar:', err);
-    } finally {
-      avataresEmBuscaNex.delete(username);
+    // Cria o menu se ainda não existir
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = 'chatMenuDropdownNex';
+      menu.className = 'chat-menu-dropdown';
+      document.body.appendChild(menu);
     }
 
-    return null;
+    const usernameAtual = Drops.estado.conversaAtual;
+    const silenciado = estaSilenciadoNex(usernameAtual);
+
+    menu.innerHTML = `
+      <button type="button" class="chat-menu-item" data-acao="midias">
+        <span class="chat-menu-item-icone">🖼️</span>
+        <span class="chat-menu-item-texto">Ver mídias compartilhadas</span>
+      </button>
+
+      <div class="chat-menu-divisor"></div>
+
+      <button type="button" class="chat-menu-item" data-acao="silenciar">
+        <span class="chat-menu-item-icone">${silenciado ? '🔔' : '🔕'}</span>
+        <span class="chat-menu-item-texto">${silenciado ? 'Reativar notificações' : 'Silenciar conversa'}</span>
+      </button>
+
+      <div class="chat-menu-divisor"></div>
+
+      <button type="button" class="chat-menu-item danger" data-acao="apagar">
+        <span class="chat-menu-item-icone">🗑️</span>
+        <span class="chat-menu-item-texto">Apagar conversa</span>
+      </button>
+    `;
+
+    // Eventos das opções
+    menu.querySelectorAll('.chat-menu-item').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const acao = btn.dataset.acao;
+
+        fecharMenuChatNex();
+
+        if (acao === 'midias') {
+          abrirMidiasCompartilhadasNex(usernameAtual);
+        } else if (acao === 'silenciar') {
+          alternarSilenciarChatNex(usernameAtual);
+        } else if (acao === 'apagar') {
+          abrirConfirmApagarChatNex(usernameAtual);
+        }
+      });
+    });
+
+    menu.classList.add('aberto');
+    chatMenuAbertoNex = true;
   }
 
-  async function abrirChatNex(el) {
-    const card = el?.closest?.('.nex-chat') || el;
-    const nome =
-      card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
+  function fecharMenuChatNex() {
+    const menu = document.getElementById('chatMenuDropdownNex');
+    if (menu) menu.classList.remove('aberto');
+    chatMenuAbertoNex = false;
+  }
 
-    if (!nome) return;
+  // Fecha o menu ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!chatMenuAbertoNex) return;
 
-    Drops.estado.conversaAtual = nome;
-    window.setConversaAbertaNex(nome);
-    window.setCardAbertoNex(card);
+    const menu = document.getElementById('chatMenuDropdownNex');
+    const btn = document.getElementById('chatMenuBtnNex');
 
-    // ============================================
-    // ⚠️ CORREÇÃO CRÍTICA: garante que o username real
-    // está registrado no __convUsernamesNex
-    // ============================================
+    if (menu && menu.contains(e.target)) return;
+    if (btn && btn.contains(e.target)) return;
 
-    if (!window.__convUsernamesNex) {
-      window.__convUsernamesNex = {};
+    fecharMenuChatNex();
+  });
+
+  // ============================================
+  // SILENCIAR
+  // ============================================
+
+  function estaSilenciadoNex(username) {
+    if (!username) return false;
+    try {
+      const lista = JSON.parse(
+        localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
+      );
+      return Array.isArray(lista) && lista.includes(username);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function salvarSilenciadosNex(lista) {
+    try {
+      localStorage.setItem(
+        'dropsChatsSilenciadosNex',
+        JSON.stringify(Array.isArray(lista) ? lista : [])
+      );
+    } catch (e) {}
+  }
+
+  function alternarSilenciarChatNex(username) {
+    if (!username) return;
+
+    const lista = (() => {
+      try {
+        return JSON.parse(
+          localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
+        );
+      } catch (e) {
+        return [];
+      }
+    })();
+
+    const index = lista.indexOf(username);
+    let ativouSilencio = false;
+
+    if (index === -1) {
+      lista.push(username);
+      ativouSilencio = true;
+    } else {
+      lista.splice(index, 1);
     }
 
-    // Tentativa 1: pega do data-username do card
-    if (!window.__convUsernamesNex[nome]) {
-      const usernameDoCard = card?.dataset?.username;
+    salvarSilenciadosNex(lista);
+    atualizarSilenciadoNoCardNex(username);
 
-      if (usernameDoCard) {
-        window.__convUsernamesNex[nome] = String(usernameDoCard)
-          .replace(/^@/, '')
-          .trim()
-          .toLowerCase();
+    window.mostrarToastNex?.(
+      ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
+      'info'
+    );
+  }
 
-        console.log('✅ Username do card:', window.__convUsernamesNex[nome]);
+  function atualizarSilenciadoNoCardNex(username) {
+    if (!username) return;
+
+    const card =
+      typeof window.obterCardConversaNex === 'function'
+        ? window.obterCardConversaNex(username)
+        : document.querySelector(`.nex-chat[data-chat="${username}"]`);
+
+    if (!card) return;
+
+    card.classList.toggle('silenciado', estaSilenciadoNex(username));
+
+    // Se silenciado e tiver msg não lida → remove da aba "Não lidas"
+    if (estaSilenciadoNex(username)) {
+      const listaNaoLidas = document.getElementById('nex-naolidas');
+      if (listaNaoLidas && listaNaoLidas.contains(card)) {
+        const destino = document.getElementById('nex-geral');
+        if (destino) destino.prepend(card);
       }
     }
+  }
+  // ============================================
+// APAGAR CONVERSA (para todos + local)
+// ============================================
 
-    // Tentativa 2: busca no Supabase pelo nome exibido
+function abrirConfirmApagarChatNex(username) {
+  if (!username) return;
+
+  // Cria modal de confirmação
+  let modal = document.getElementById('confirmApagarChatNex');
+
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'confirmApagarChatNex';
+    modal.className = 'modal-msg-nex';
+    document.body.appendChild(modal);
+  }
+
+  modal.style.display = 'flex';
+
+  modal.innerHTML = `
+    <div class="modal-msg-box">
+      <div class="modal-confirm-delete-title">
+        Apagar esta conversa?<br>
+        <small style="font-weight:500;opacity:.7;font-size:13px;">
+          Vai apagar para todos e limpar este chat.
+        </small>
+      </div>
+
+      <div class="modal-confirm-delete-actions">
+        <button
+          type="button"
+          class="btn-delete-cancel-nex"
+          id="btnCancelarApagarChatNex">
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          class="btn-delete-confirm-nex"
+          id="btnConfirmarApagarChatNex">
+          Apagar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('btnCancelarApagarChatNex').onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  document.getElementById('btnConfirmarApagarChatNex').onclick = async () => {
+    modal.style.display = 'none';
+    await apagarChatNex(username);
+  };
+
+  // Fecha ao clicar fora
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  };
+}
+
+async function apagarChatNex(username) {
+  if (!username) return;
+
+  window.mostrarToastNex?.('Apagando conversa...', 'info');
+
+  try {
+    // 1. Apaga no Supabase
+    const convId =
+      window.__convIdsNex && window.__convIdsNex[username];
+
     if (
-      !window.__convUsernamesNex[nome] &&
+      convId &&
       window.supabaseClient &&
       typeof window.supabaseClient.from === 'function'
     ) {
       try {
+        // Apaga as mensagens dessa conversa
+        await window.supabaseClient
+          .from('mensagens')
+          .delete()
+          .eq('conversa_id', convId);
+
+        // Apaga a conversa
+        await window.supabaseClient
+          .from('conversas')
+          .delete()
+          .eq('id', convId);
+      } catch (err) {
+        console.warn('Erro ao apagar no Supabase:', err);
+      }
+    }
+
+    // 2. Limpa o cache local
+    if (window.conversas && window.conversas[username]) {
+      delete window.conversas[username];
+    }
+
+    if (window.__convIdsNex) delete window.__convIdsNex[username];
+
+    // ⚠️ NÃO apaga o __convUsernamesNex (queremos lembrar quem é quem)
+
+    // 3. Remove o card da lista do NEX
+    const card =
+      typeof window.obterCardConversaNex === 'function'
+        ? window.obterCardConversaNex(username)
+        : document.querySelector(`.nex-chat[data-chat="${username}"]`);
+
+    if (card) card.remove();
+
+    // 4. Fecha o chat e volta pra lista
+    if (typeof window.voltarChatNex === 'function') {
+      window.voltarChatNex();
+    }
+
+    // 5. Atualiza a aba "Não lidas"
+    if (typeof window.atualizarAbaNaoLidasNex === 'function') {
+      window.atualizarAbaNaoLidasNex();
+    }
+
+    window.mostrarToastNex?.('Conversa apagada.', 'sucesso');
+
+    console.log('🗑️ Chat apagado:', username);
+  } catch (err) {
+    console.error('Erro ao apagar chat:', err);
+    window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
+  }
+}
+
+// ============================================
+// VER MÍDIAS COMPARTILHADAS
+// ============================================
+
+function abrirMidiasCompartilhadasNex(username) {
+  if (!username) return;
+
+  const mensagens = (window.conversas && window.conversas[username]) || [];
+
+  // Filtra todas as mídias (imagens, vídeos, álbuns)
+  const midias = [];
+
+  mensagens.forEach((msg) => {
+    if (msg.anexo) {
+      if (
+        msg.anexo.type === 'imagem' ||
+        msg.anexo.type === 'image' ||
+        msg.anexo.type === 'video'
+      ) {
+        if (msg.anexo.url) {
+          midias.push({
+            url: msg.anexo.url,
+            type: msg.anexo.type === 'video' ? 'video' : 'imagem'
+          });
+        }
+      }
+
+      if (
+        msg.anexo.type === 'album' ||
+        msg.anexo.type === 'multi-imagem'
+      ) {
+        const lista = msg.anexo.midias || msg.anexo.urls || [];
+        lista.forEach((m) => {
+          const url = typeof m === 'string' ? m : m.url;
+          const tipo =
+            typeof m === 'object' && m.type === 'video'
+              ? 'video'
+              : 'imagem';
+          if (url) midias.push({ url, type: tipo });
+        });
+      }
+    }
+
+    if (Array.isArray(msg.midias)) {
+      msg.midias.forEach((m) => {
+        if (m.url) {
+          midias.push({
+            url: m.url,
+            type: m.type === 'video' ? 'video' : 'imagem'
+          });
+        }
+      });
+    }
+  });
+
+  // Cria modal
+  let modal = document.getElementById('midiasCompartilhadasNex');
+
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'midiasCompartilhadasNex';
+    modal.className = 'midias-compartilhadas-modal-nex';
+    document.body.appendChild(modal);
+  }
+
+  modal.style.display = 'flex';
+
+  if (!midias.length) {
+    modal.innerHTML = `
+      <div class="midias-compartilhadas-box-nex">
+        <div class="midias-compartilhadas-topo-nex">
+          <h3>Mídias compartilhadas</h3>
+          <button type="button" class="midias-compartilhadas-fechar-nex">✕</button>
+        </div>
+        <div class="midias-compartilhadas-vazio-nex">
+          Nenhuma mídia compartilhada ainda.
+        </div>
+      </div>
+    `;
+
+    modal.querySelector('.midias-compartilhadas-fechar-nex').onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    };
+
+    return;
+  }
+
+  const gridHTML = midias
+    .map(
+      (m, i) => `
+    <div class="midia-compartilhada-item-nex" data-index="${i}">
+      ${
+        m.type === 'video'
+          ? `
+        <video src="${m.url}" muted playsinline></video>
+        <div class="midia-compartilhada-play-nex">▶</div>
+      `
+          : `<img src="${m.url}" alt="">`
+      }
+    </div>
+  `
+    )
+    .join('');
+
+  modal.innerHTML = `
+    <div class="midias-compartilhadas-box-nex">
+      <div class="midias-compartilhadas-topo-nex">
+        <h3>Mídias compartilhadas (${midias.length})</h3>
+        <button type="button" class="midias-compartilhadas-fechar-nex">✕</button>
+      </div>
+
+      <div class="midias-compartilhadas-grid-nex">
+        ${gridHTML}
+      </div>
+    </div>
+  `;
+
+  modal.querySelector('.midias-compartilhadas-fechar-nex').onclick = () => {
+    modal.style.display = 'none';
+  };
+
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  };
+
+  // Clique numa mídia abre o viewer
+  modal.querySelectorAll('.midia-compartilhada-item-nex').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.index);
+      if (typeof window.abrirVisualizadorMidiasNex === 'function') {
+        window.abrirVisualizadorMidiasNex(midias, idx, false);
+      }
+    });
+  });
+}
+  // ============================================
+// RESOLVER USERNAME REAL (@) A PARTIR DE UM NOME
+// Tenta 3 estratégias em cascata:
+//   1. Cache em memória (__convUsernamesNex)
+//   2. data-username do card
+//   3. Busca no Supabase pelo nome exibido
+// ============================================
+
+async function resolverUsernameRealNex(nome, card = null) {
+  if (!nome) return '';
+
+  if (!window.__convUsernamesNex) {
+    window.__convUsernamesNex = {};
+  }
+
+  // 1. Cache
+  if (window.__convUsernamesNex[nome]) {
+    return window.__convUsernamesNex[nome];
+  }
+
+  // 2. data-username do card
+  const usernameDoCard = card?.dataset?.username;
+  if (usernameDoCard) {
+    const limpo = String(usernameDoCard)
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
+
+    if (limpo) {
+      window.__convUsernamesNex[nome] = limpo;
+      return limpo;
+    }
+  }
+
+  // 3. Busca no Supabase pelo nome exibido
+  if (
+    window.supabaseClient &&
+    typeof window.supabaseClient.from === 'function'
+  ) {
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('username')
+        .ilike('nome', String(nome).trim())
+        .maybeSingle();
+
+      if (perfil?.username) {
+        const limpo = String(perfil.username)
+          .replace(/^@/, '')
+          .trim()
+          .toLowerCase();
+
+        window.__convUsernamesNex[nome] = limpo;
+        console.log('🔍 Username resolvido no Supabase:', limpo);
+        return limpo;
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar username no Supabase:', err);
+    }
+  }
+
+  // Fallback final: limpa o nome
+  const fallback = String(nome)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
+  if (fallback) {
+    window.__convUsernamesNex[nome] = fallback;
+    console.warn('⚠️ Username fallback:', fallback);
+  }
+
+  return fallback;
+}
+
+async function buscarAvatarNex(username) {
+  if (!username) return null;
+  if (cacheAvataresNex[username]) return cacheAvataresNex[username];
+  if (avataresEmBuscaNex.has(username)) return null;
+
+  avataresEmBuscaNex.add(username);
+
+  try {
+    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+    const userLimpo = String(username).toLowerCase().replace(/^@/, '').trim();
+
+    if (meuUser && userLimpo === meuUser && window.supabaseClient) {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+
+      if (user) {
         const { data: perfil } = await window.supabaseClient
           .from('profiles')
-          .select('username')
-          .ilike('nome', nome.trim())
+          .select('avatar_url')
+          .eq('id', user.id)
           .maybeSingle();
 
-        if (perfil?.username) {
-          window.__convUsernamesNex[nome] = String(perfil.username)
-            .replace(/^@/, '')
-            .trim()
-            .toLowerCase();
-
-          console.log('🔍 Username recuperado do banco:', perfil.username);
-        } else {
-          console.warn('⚠️ Não achou username pro nome:', nome);
+        if (perfil?.avatar_url) {
+          cacheAvataresNex[username] = perfil.avatar_url;
+          return perfil.avatar_url;
         }
-      } catch (err) {
-        console.warn('Erro ao buscar username:', err);
       }
     }
 
-    // Tentativa 3: fallback — limpa o nome (só letras minúsculas/números)
-    if (!window.__convUsernamesNex[nome]) {
-      const usernameFallback = String(nome || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '');
-
-      if (usernameFallback) {
-        window.__convUsernamesNex[nome] = usernameFallback;
-        console.log('⚠️ Fallback username:', usernameFallback);
-      }
+    if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+      const perfil = await window.buscarPerfilPublicoSupabase(username);
+      const url = perfil?.avatar_url || null;
+      cacheAvataresNex[username] = url;
+      return url;
     }
+  } catch (err) {
+    console.warn('Erro ao buscar avatar:', err);
+  } finally {
+    avataresEmBuscaNex.delete(username);
+  }
 
+  return null;
+}
+
+async function abrirChatNex(el) {
+  const card = el?.closest?.('.nex-chat') || el;
+  const nome =
+    card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
+
+  if (!nome) return;
+
+  // ============================================
+  // ⚠️ RESOLVE O USERNAME REAL (@) ANTES DE TUDO
+  // ============================================
+
+  const usernameReal = await resolverUsernameRealNex(nome, card);
+
+  if (!usernameReal) {
+    console.warn('⚠️ Não foi possível resolver o username de:', nome);
+    window.mostrarToastNex?.('Não foi possível abrir a conversa.', 'erro');
+    return;
+  }
+
+  // ⚠️ A PARTIR DAQUI, TUDO USA O USERNAME COMO CHAVE
+  Drops.estado.conversaAtual = usernameReal;
+  window.setConversaAbertaNex(usernameReal);
+  window.setCardAbertoNex(card);
+
+  console.log('📂 Abrindo chat. Nome:', nome, '| Username:', usernameReal);
+
+  const connected =
+    card?.dataset?.connected === 'yes' ||
+    estaConectadoNoMyDropsNex(usernameReal);
+
+  obterEstadoConversaNex(usernameReal, connected);
+  card.dataset.connected = connected ? 'yes' : 'no';
+
+  marcarConversaComoLidaNex(usernameReal, card);
+
+  const chat = document.getElementById('chatNex');
+  const nex = document.getElementById('nex');
+
+  if (nex) {
+    nex.style.display = 'none';
+    nex.classList.remove('active');
+  }
+
+  if (chat) {
+    chat.style.display = 'block';
+    chat.classList.add('active');
+  }
+
+  document.body.classList.add('chat-aberto');
+
+  const bio =
+    el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
+
+  const chatName = document.getElementById('chatName');
+  const chatBio = document.getElementById('chatBio');
+  const chatStatus = document.getElementById('chatStatus');
+  const chatAvatar = document.getElementById('chatAvatar');
+
+  // ============================================
+  // ⚠️ CRIA O BOTÃO ⋮ NO TOPO DO CHAT
+  // (entre o nome e o botão Voltar)
+  // ============================================
+
+  const chatTopMain = document.querySelector('.chat-top-main');
+
+  if (chatTopMain) {
+    // Remove botão antigo se existir
+    const antigo = document.getElementById('chatMenuBtnNex');
+    if (antigo) antigo.remove();
+
+    // Cria novo botão
+    const btnMenu = document.createElement('button');
+    btnMenu.type = 'button';
+    btnMenu.id = 'chatMenuBtnNex';
+    btnMenu.className = 'chat-menu-btn';
+    btnMenu.setAttribute('aria-label', 'Menu da conversa');
+    btnMenu.innerHTML = '⋮';
+
+    btnMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      if (chatMenuAbertoNex) {
+        fecharMenuChatNex();
+      } else {
+        abrirMenuChatNex();
+      }
+    });
+
+    // Insere ANTES do chat-user-status-wrap (que tem o botão Voltar)
+    const statusWrap = chatTopMain.querySelector('.chat-user-status-wrap');
+
+    if (statusWrap) {
+      chatTopMain.insertBefore(btnMenu, statusWrap);
+    } else {
+      chatTopMain.appendChild(btnMenu);
+    }
+  }
+
+  // ============================================
     // ============================================
+  // PRESENÇA ONLINE/OFFLINE
+  // ============================================
 
-    const connected =
-      card?.dataset?.connected === 'yes' || estaConectadoNoMyDropsNex(nome);
+  async function atualizarPresencaChatNex() {
+    if (!usernameReal || !window.supabaseClient) return;
 
-    obterEstadoConversaNex(nome, connected);
-    card.dataset.connected = connected ? 'yes' : 'no';
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('ultima_atividade')
+        .eq('username', usernameReal)
+        .maybeSingle();
 
-    marcarConversaComoLidaNex(nome, card);
+      const ultima = perfil?.ultima_atividade;
+      const LIMITE_ONLINE_MS = 30 * 1000;
 
-    const chat = document.getElementById('chatNex');
-    const nex = document.getElementById('nex');
+      const estaOnline =
+        ultima &&
+        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
 
-    if (nex) {
-      nex.style.display = 'none';
-      nex.classList.remove('active');
+      if (chatStatus) {
+        chatStatus.innerText = estaOnline ? 'online' : 'offline';
+        chatStatus.classList.toggle('online', !!estaOnline);
+        chatStatus.classList.toggle('offline', !estaOnline);
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar presença:', err);
+      if (chatStatus) {
+        chatStatus.innerText = 'offline';
+        chatStatus.classList.add('offline');
+        chatStatus.classList.remove('online');
+      }
+    }
+  }
+
+  atualizarPresencaChatNex();
+
+  if (window.__presencaIntervalNex) {
+    clearInterval(window.__presencaIntervalNex);
+  }
+  window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
+
+  // ============================================
+  // NOME DO CHAT (clicável → abre perfil)
+  // ============================================
+
+  if (chatName) {
+    chatName.innerText = nome;
+    chatName.style.cursor = 'pointer';
+
+    if (chatName.__clickPerfilHandler) {
+      chatName.removeEventListener('click', chatName.__clickPerfilHandler);
     }
 
-    if (chat) {
-      chat.style.display = 'block';
-      chat.classList.add('active');
-    }
+    chatName.__clickPerfilHandler = () => {
+      if (typeof window.abrirPerfilVisitadoNex === 'function') {
+        window.abrirPerfilVisitadoNex(usernameReal, nome);
+      }
+    };
 
-    document.body.classList.add('chat-aberto');
+    chatName.addEventListener('click', chatName.__clickPerfilHandler);
+  }
 
-    const bio =
-      el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
+  // ============================================
+  // BIO
+  // ============================================
 
-    const chatName = document.getElementById('chatName');
-    const chatBio = document.getElementById('chatBio');
-    const chatStatus = document.getElementById('chatStatus');
-    const chatAvatar = document.getElementById('chatAvatar');
+  if (chatBio) {
+    chatBio.textContent = 'Carregando...';
+    chatBio.classList.remove('marquee-ativo');
 
-    async function atualizarPresencaChatNex() {
-      const usernameReal =
-        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
-      if (!usernameReal || !window.supabaseClient) return;
-
+    if (usernameReal && window.supabaseClient) {
       try {
         const { data: perfil } = await window.supabaseClient
           .from('profiles')
-          .select('ultima_atividade')
-          .eq(
-            'username',
-            String(usernameReal).toLowerCase().replace(/^@/, '').trim()
-          )
+          .select('bio')
+          .eq('username', usernameReal)
           .maybeSingle();
 
-        const ultima = perfil?.ultima_atividade;
-        const LIMITE_ONLINE_MS = 30 * 1000;
+        const bioReal = (perfil?.bio || '').trim();
+        const textoBio = bioReal || 'Sem bio ainda.';
+        chatBio.textContent = textoBio;
+        chatBio.setAttribute('data-texto', textoBio);
 
-        const estaOnline =
-          ultima &&
-          Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
-
-        if (chatStatus) {
-          chatStatus.innerText = estaOnline ? 'online' : 'offline';
-          chatStatus.classList.toggle('online', !!estaOnline);
-          chatStatus.classList.toggle('offline', !estaOnline);
-        }
+        setTimeout(() => {
+          if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
+            chatBio.classList.add('marquee-ativo');
+          }
+        }, 100);
       } catch (err) {
-        console.warn('Erro ao buscar presença:', err);
-        if (chatStatus) {
-          chatStatus.innerText = 'offline';
-          chatStatus.classList.add('offline');
-          chatStatus.classList.remove('online');
-        }
-      }
-    }
-
-    atualizarPresencaChatNex();
-
-    if (window.__presencaIntervalNex) {
-      clearInterval(window.__presencaIntervalNex);
-    }
-    window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
-
-    if (chatName) {
-      chatName.innerText = nome;
-      chatName.style.cursor = 'pointer';
-
-      if (chatName.__clickPerfilHandler) {
-        chatName.removeEventListener('click', chatName.__clickPerfilHandler);
-      }
-
-      chatName.__clickPerfilHandler = () => {
-        const usernameReal =
-          (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-        if (typeof window.abrirPerfilVisitadoNex === 'function') {
-          window.abrirPerfilVisitadoNex(usernameReal, nome);
-        }
-      };
-
-      chatName.addEventListener('click', chatName.__clickPerfilHandler);
-    }
-
-    if (chatBio) {
-      const usernameBio =
-        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
-      chatBio.textContent = 'Carregando...';
-      chatBio.classList.remove('marquee-ativo');
-
-      if (usernameBio && window.supabaseClient) {
-        try {
-          const { data: perfil } = await window.supabaseClient
-            .from('profiles')
-            .select('bio')
-            .eq(
-              'username',
-              String(usernameBio).toLowerCase().replace(/^@/, '').trim()
-            )
-            .maybeSingle();
-
-          const bioReal = (perfil?.bio || '').trim();
-          const textoBio = bioReal || 'Sem bio ainda.';
-          chatBio.textContent = textoBio;
-          chatBio.setAttribute('data-texto', textoBio);
-
-          setTimeout(() => {
-            if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
-              chatBio.classList.add('marquee-ativo');
-            }
-          }, 100);
-        } catch (err) {
-          console.warn('Erro ao buscar bio no chat:', err);
-          chatBio.textContent = bio || 'Sem bio ainda.';
-          chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
-        }
-      } else {
+        console.warn('Erro ao buscar bio no chat:', err);
         chatBio.textContent = bio || 'Sem bio ainda.';
         chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
       }
+    } else {
+      chatBio.textContent = bio || 'Sem bio ainda.';
+      chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
     }
+  }
+
+  // ============================================
+  // STATUS E AVATAR
+  // ============================================
+
   if (chatStatus) {
     chatStatus.innerText = '';
     chatStatus.classList.remove('online', 'offline');
@@ -279,15 +780,12 @@
     chatAvatar.style.cursor = 'pointer';
   }
 
-  const usernameAvatar =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-
   if (
-    usernameAvatar &&
+    usernameReal &&
     typeof window.buscarPerfilPublicoSupabase === 'function'
   ) {
     try {
-      const perfil = await window.buscarPerfilPublicoSupabase(usernameAvatar);
+      const perfil = await window.buscarPerfilPublicoSupabase(usernameReal);
 
       if (perfil && perfil.avatar_url && chatAvatar) {
         chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
@@ -304,8 +802,6 @@
     }
 
     chatAvatar.__clickPerfilHandler = () => {
-      const usernameReal =
-        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
       if (typeof window.abrirPerfilVisitadoNex === 'function') {
         window.abrirPerfilVisitadoNex(usernameReal, nome);
       }
@@ -314,27 +810,41 @@
     chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
   }
 
+  // ============================================
+  // CARREGA CONVERSA (com o @username como chave)
+  // ============================================
+
   if (typeof window.carregarConversaSupabase === 'function') {
     try {
-      await window.carregarConversaSupabase(nome);
+      await window.carregarConversaSupabase(usernameReal);
     } catch (err) {
       console.warn('Erro ao carregar conversa do Supabase:', err);
     }
   }
 
-  if (!conversas[nome]) {
-    conversas[nome] = [];
+  if (!conversas[usernameReal]) {
+    conversas[usernameReal] = [];
   }
 
-  renderChat(nome);
+  // Atualiza o card se estava silenciado
+  atualizarSilenciadoNoCardNex(usernameReal);
+
+  renderChat(usernameReal);
   document.getElementById('chatInput')?.focus();
 }
+
+// ============================================
+// FECHAR CHAT
+// ============================================
 
 function voltarChatNex() {
   if (window.__presencaIntervalNex) {
     clearInterval(window.__presencaIntervalNex);
     window.__presencaIntervalNex = null;
   }
+
+  // Fecha o menu se estiver aberto
+  fecharMenuChatNex();
 
   const chat = document.getElementById('chatNex');
   const nex = document.getElementById('nex');
@@ -366,18 +876,34 @@ function voltarChatNex() {
     }, 300);
   }
 }
+  // ============================================
+// ATUALIZAR NOTIFICAÇÃO DA TABBAR
+// (Respeitando conversas silenciadas)
+// ============================================
 
 function atualizarNotificacaoTabbarNex() {
   const tabNex = document.querySelector('.tab.tab-nex');
   if (!tabNex) return;
 
   const listaNaoLidas = document.getElementById('nex-naolidas');
-  const temNaoLidas =
-    listaNaoLidas &&
-    listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
+  if (!listaNaoLidas) return;
 
-  tabNex.classList.toggle('tem-notificacao', !!temNaoLidas);
+  // ⚠️ Filtra: só conta cards que NÃO estão silenciados
+  const cardsNaoLidos = Array.from(
+    listaNaoLidas.querySelectorAll('.nex-chat')
+  );
+
+  const temNaoLidasVisiveis = cardsNaoLidos.some((card) => {
+    const username = card.dataset.chat;
+    return !estaSilenciadoNex(username);
+  });
+
+  tabNex.classList.toggle('tem-notificacao', temNaoLidasVisiveis);
 }
+
+// ============================================
+// BADGE DE REAÇÃO EM MÍDIA
+// ============================================
 
 async function atualizarBadgeReacaoMidiaNex(msgId, midiaIndex) {
   if (!msgId) return;
@@ -436,6 +962,10 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
     await atualizarBadgeReacaoMidiaNex(msgId, midiaIndex);
   }
 }
+
+// ============================================
+// RENDERIZAR CHAT
+// ============================================
 
 function renderChat(nome) {
   const area = document.getElementById('chatMsgs');
@@ -524,7 +1054,8 @@ function renderChat(nome) {
 
     const idLocal = String(msg.id);
     const idSupabase = String(msg._supabaseId || '');
-        const qtdCitacoesLocal = qtdCitacoesPorOriginalNex.get(idLocal) || 0;
+
+    const qtdCitacoesLocal = qtdCitacoesPorOriginalNex.get(idLocal) || 0;
     const qtdCitacoesSupabase = idSupabase
       ? (qtdCitacoesPorOriginalNex.get(idSupabase) || 0)
       : 0;
@@ -544,7 +1075,6 @@ function renderChat(nome) {
       anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
     }
 
-    // ⚠️ Ajuste: onclick do status — só reenvia se estiver com erro
     const statusOnclick =
       lado === 'right' && msg.status === 'erro'
         ? `onclick="event.stopPropagation(); window.reenviarMensagemNex('${msg.id}')"`
@@ -711,6 +1241,9 @@ function renderChat(nome) {
     });
   });
 }
+  // ============================================
+// ENVIAR MENSAGEM
+// ============================================
 
 async function enviarMsgNex() {
   const input = document.getElementById('chatInput');
@@ -854,7 +1387,7 @@ async function enviarMsgNex() {
 
   renderChat(conversaAtual);
 
-  // ⚠️ AJUSTE 1: Limpa a prévia IMEDIATAMENTE após enviar
+  // ⚠️ Limpa a prévia IMEDIATAMENTE após enviar
   if (typeof window.limparTodosPreviewsNex === 'function') {
     window.limparTodosPreviewsNex();
   }
@@ -862,7 +1395,8 @@ async function enviarMsgNex() {
   if (respostaSelecionadaNex) {
     cancelarRespostaNex();
   }
-    (async () => {
+
+  (async () => {
     try {
       const msgLocal = conversas[conversaAtual].find(
         (m) => m.id === mensagem.id
@@ -957,8 +1491,7 @@ async function enviarMsgNex() {
           console.warn('Erro ao criar conversa antes de enviar:', err);
         }
       }
-
-      if (
+            if (
         typeof window.enviarMensagemSupabase === 'function' &&
         convId
       ) {
@@ -1023,7 +1556,6 @@ async function enviarMsgNex() {
         }
       }
 
-      // ⚠️ VALIDAÇÃO: Só marca como enviado se REALMENTE salvou no servidor
       if (!convId) {
         throw new Error('Conversa não pôde ser criada (username inválido?)');
       }
@@ -1065,7 +1597,7 @@ async function enviarMsgNex() {
 }
 
 // ============================================
-// REENVIAR MENSAGEM (após erro)
+// REENVIAR MENSAGEM
 // ============================================
 
 async function reenviarMensagemNex(msgId) {
@@ -1181,10 +1713,7 @@ async function reenviarMensagemNex(msgId) {
       }
     }
 
-    if (!convId) {
-      throw new Error('Conversa não pôde ser criada');
-    }
-
+    if (!convId) throw new Error('Conversa não pôde ser criada');
     if (!novaMensagem._supabaseId) {
       throw new Error('Mensagem não foi salva no servidor');
     }
@@ -1209,6 +1738,10 @@ async function reenviarMensagemNex(msgId) {
 }
 
 window.reenviarMensagemNex = reenviarMensagemNex;
+
+// ============================================
+// CANCELAR RESPOSTA
+// ============================================
 
 function cancelarRespostaNex() {
   respostaSelecionadaNex = null;
@@ -1255,7 +1788,11 @@ function atualizarPreviewStackNex() {
 
   stack.classList.toggle('tem-conteudo', temAlgo);
 }
-    function abrirMenuMsgNex(botao, msgId) {
+    // ============================================
+  // MENU DE MENSAGEM
+  // ============================================
+
+  function abrirMenuMsgNex(botao, msgId) {
     const conversaAtual = Drops.estado.conversaAtual;
     const lista = conversas[conversaAtual] || [];
     const msg = lista.find((m) => m.id === msgId);
@@ -1304,45 +1841,32 @@ function atualizarPreviewStackNex() {
       menu.style.top = '';
       menu.style.transform = '';
     }
-
     mensagemSelecionadaNex = null;
   }
 
   function acaoResponderNex() {
     if (!mensagemSelecionadaNex) return;
-
     respostaSelecionadaNex = mensagemSelecionadaNex;
-
     mostrarPreviewRespostaNex();
     fecharMenuMsgNex();
   }
 
   function acaoReeditarNex() {
     if (!mensagemSelecionadaNex) return;
-
     const msg = mensagemSelecionadaNex;
     const temTexto = typeof msg.text === 'string' && msg.text.trim().length > 0;
-
-    if (!temTexto) {
-      fecharMenuMsgNex();
-      return;
-    }
-
+    if (!temTexto) { fecharMenuMsgNex(); return; }
     mensagemEmEdicaoNex = msg;
     textoOriginalEdicaoNex = msg.text || '';
-
     abrirModalEdicaoNex(msg.text || '');
     fecharMenuMsgNex();
   }
 
   function acaoApagarPraMimNex() {
     if (!mensagemSelecionadaNex) return;
-
     mensagemParaApagarNex = mensagemSelecionadaNex;
-
     const modal = document.getElementById('confirmDeleteMeModalNex');
     if (!modal) return;
-
     modal.style.display = 'flex';
     fecharMenuMsgNex();
   }
@@ -1350,54 +1874,35 @@ function atualizarPreviewStackNex() {
   function fecharConfirmDeleteMeNex() {
     const modal = document.getElementById('confirmDeleteMeModalNex');
     if (modal) modal.style.display = 'none';
-
     mensagemParaApagarNex = null;
   }
 
   async function confirmarApagarPraMimNex() {
     if (!mensagemParaApagarNex) return;
-
     const msg = mensagemParaApagarNex;
     const idMsg = typeof msg === 'string' ? msg : msg.id;
+    const idSupabase = typeof msg === 'object' ? (msg._supabaseId || msg.id) : msg;
 
-    const idSupabase =
-      typeof msg === 'object'
-        ? (msg._supabaseId || msg.id)
-        : msg;
-
-    if (
-      typeof window.apagarPraMimSupabase === 'function' &&
-      idSupabase
-    ) {
-      try {
-        await window.apagarPraMimSupabase(idSupabase);
-      } catch (err) {
-        console.warn('Erro ao ocultar no Supabase:', err);
-      }
+    if (typeof window.apagarPraMimSupabase === 'function' && idSupabase) {
+      try { await window.apagarPraMimSupabase(idSupabase); }
+      catch (err) { console.warn('Erro ao ocultar no Supabase:', err); }
     }
 
     const conversaAtual = Drops.estado.conversaAtual;
     const lista = conversas[conversaAtual] || [];
     const index = lista.findIndex((m) => m.id === idMsg);
-
-    if (index !== -1) {
-      lista.splice(index, 1);
-    }
+    if (index !== -1) lista.splice(index, 1);
 
     fecharConfirmDeleteMeNex();
     renderChat(conversaAtual);
-
     mensagemParaApagarNex = null;
   }
 
   function acaoApagarMsgNex() {
     if (!mensagemSelecionadaNex) return;
-
     mensagemParaApagarNex = mensagemSelecionadaNex;
-
     const modal = document.getElementById('confirmDeleteModalNex');
     if (!modal) return;
-
     modal.style.display = 'flex';
     fecharMenuMsgNex();
   }
@@ -1405,49 +1910,35 @@ function atualizarPreviewStackNex() {
   function fecharConfirmDeleteNex() {
     const modal = document.getElementById('confirmDeleteModalNex');
     if (!modal) return;
-
     modal.style.display = 'none';
     mensagemParaApagarNex = null;
   }
 
   async function confirmarApagarMsgNex() {
     if (!mensagemParaApagarNex) return;
-
     const msg = mensagemParaApagarNex;
     const nomePessoa = msg.nome || 'usuário';
 
     fecharConfirmDeleteNex();
 
     const idSupabase = msg._supabaseId || msg.id;
-
-    if (
-      typeof window.apagarPraTodosSupabase === 'function' &&
-      idSupabase
-    ) {
-      try {
-        await window.apagarPraTodosSupabase(idSupabase);
-      } catch (err) {
-        console.warn('Erro ao apagar no Supabase:', err);
-      }
+    if (typeof window.apagarPraTodosSupabase === 'function' && idSupabase) {
+      try { await window.apagarPraTodosSupabase(idSupabase); }
+      catch (err) { console.warn('Erro ao apagar no Supabase:', err); }
     }
 
     msg.deleted = true;
     msg.deletedAt = Date.now();
-
-    if (msg.eu) {
-      msg.deletedText = '🗑️ Mensagem apagada';
-    } else {
-      msg.deletedText = `⚠️ Mensagem apagada pelo ${nomePessoa}`;
-    }
+    msg.deletedText = msg.eu
+      ? '🗑️ Mensagem apagada'
+      : `⚠️ Mensagem apagada pelo ${nomePessoa}`;
 
     renderChat(Drops.estado.conversaAtual);
 
     setTimeout(() => {
       const lista = conversas[Drops.estado.conversaAtual];
       if (!Array.isArray(lista)) return;
-
       const index = lista.indexOf(msg);
-
       if (index !== -1) {
         lista.splice(index, 1);
         renderChat(Drops.estado.conversaAtual);
@@ -1461,15 +1952,11 @@ function atualizarPreviewStackNex() {
     const modal = document.getElementById('editarMsgModalNex');
     const input = document.getElementById('editarMsgInputNex');
     const btn = document.getElementById('btnConcluirEdicaoNex');
-
     if (!modal || !input || !btn) return;
-
     input.value = texto || '';
     modal.style.display = 'flex';
     modal.style.zIndex = '999999999';
-
     btn.disabled = true;
-
     setTimeout(() => {
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
@@ -1480,15 +1967,9 @@ function atualizarPreviewStackNex() {
     const modal = document.getElementById('editarMsgModalNex');
     const input = document.getElementById('editarMsgInputNex');
     const btn = document.getElementById('btnConcluirEdicaoNex');
-
-    if (input) {
-      input.blur();
-      input.value = '';
-    }
-
+    if (input) { input.blur(); input.value = ''; }
     if (btn) btn.disabled = true;
     if (modal) modal.style.display = 'none';
-
     mensagemEmEdicaoNex = null;
     textoOriginalEdicaoNex = '';
   }
@@ -1497,245 +1978,138 @@ function atualizarPreviewStackNex() {
     const input = document.getElementById('editarMsgInputNex');
     const btn = document.getElementById('btnConcluirEdicaoNex');
     if (!input || !btn) return;
-
-    const mudou = input.value.trim() !== textoOriginalEdicaoNex.trim();
-    btn.disabled = !mudou;
+    btn.disabled = input.value.trim() === textoOriginalEdicaoNex.trim();
   }
 
   async function concluirEdicaoNex() {
     if (!mensagemEmEdicaoNex) return;
-
     const input = document.getElementById('editarMsgInputNex');
     if (!input) return;
-
     const novoTexto = input.value;
-    const textoOriginal = textoOriginalEdicaoNex;
+    if (novoTexto.trim() === textoOriginalEdicaoNex.trim()) return;
 
-    if (novoTexto.trim() === textoOriginal.trim()) return;
-
-    const idSupabase =
-      mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
-
-    if (
-      typeof window.editarMensagemSupabase === 'function' &&
-      idSupabase
-    ) {
-      try {
-        await window.editarMensagemSupabase(idSupabase, novoTexto);
-      } catch (err) {
-        console.warn('Erro ao editar no Supabase:', err);
-      }
+    const idSupabase = mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
+    if (typeof window.editarMensagemSupabase === 'function' && idSupabase) {
+      try { await window.editarMensagemSupabase(idSupabase, novoTexto); }
+      catch (err) { console.warn('Erro ao editar no Supabase:', err); }
     }
 
     mensagemEmEdicaoNex.text = novoTexto;
     mensagemEmEdicaoNex.edited = true;
-
     fecharModalEdicaoNex();
     renderChat(Drops.estado.conversaAtual);
   }
 
   function mostrarPreviewRespostaNex() {
     const preview = document.getElementById('previewRespostaNex');
-
     if (!preview || !respostaSelecionadaNex) return;
-
     preview.innerHTML = `
       <div class="reply-preview-box">
-        <div class="reply-preview-text">
-          Você está respondendo uma Msg específica.
-        </div>
-
-        <button
-          type="button"
-          id="btnCancelarRespostaNex"
-          class="reply-preview-close">
-          ✕
-        </button>
+        <div class="reply-preview-text">Você está respondendo uma Msg específica.</div>
+        <button type="button" id="btnCancelarRespostaNex" class="reply-preview-close">✕</button>
       </div>
     `;
-
     preview.style.display = 'block';
-
     const btnCancelar = document.getElementById('btnCancelarRespostaNex');
-    if (btnCancelar) {
-      btnCancelar.addEventListener('click', cancelarRespostaNex);
-    }
-
+    if (btnCancelar) btnCancelar.addEventListener('click', cancelarRespostaNex);
     atualizarPreviewStackNex();
   }
+
+  // ============================================
+  // NAVEGAÇÃO ENTRE MENSAGENS
+  // ============================================
 
   function obterCardMensagemNex(msgId) {
     const alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
     if (!alvo) return null;
-
     return (
       alvo.querySelector('.msg-layer') ||
       alvo.querySelector('.msg-card') ||
-      alvo.firstElementChild ||
-      alvo
+      alvo.firstElementChild || alvo
     );
   }
 
   function limparDestaqueMensagemNex() {
     if (!msgDestacadaNex) return;
-
-    msgDestacadaNex.classList.remove(
-      'msg-destaque-verde-nex',
-      'msg-destaque-amarelo-nex'
-    );
-
+    msgDestacadaNex.classList.remove('msg-destaque-verde-nex', 'msg-destaque-amarelo-nex');
     msgDestacadaNex = null;
   }
 
   function destacarMensagemNex(msgId, tipo) {
     const card = obterCardMensagemNex(msgId);
     if (!card) return;
-
     limparDestaqueMensagemNex();
-
-    card.classList.add(
-      tipo === 'amarelo'
-        ? 'msg-destaque-amarelo-nex'
-        : 'msg-destaque-verde-nex'
-    );
-
+    card.classList.add(tipo === 'amarelo' ? 'msg-destaque-amarelo-nex' : 'msg-destaque-verde-nex');
     msgDestacadaNex = card;
-
-    card.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
     let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-
-    if (!alvo && msgIdLocal) {
-      alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
-    }
-
+    if (!alvo && msgIdLocal) alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
     if (!alvo) {
       const msgs = conversas[Drops.estado.conversaAtual] || [];
-      const msgEncontrada = msgs.find(
-        (m) =>
-          String(m.id) === String(msgId) ||
-          String(m._supabaseId) === String(msgId) ||
-          (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
+      const msgEncontrada = msgs.find((m) =>
+        String(m.id) === String(msgId) ||
+        String(m._supabaseId) === String(msgId) ||
+        (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
       );
-
-      if (msgEncontrada) {
-        const idFinal = msgEncontrada.id || msgEncontrada._supabaseId;
-        alvo = document.querySelector(`[data-msg-id="${idFinal}"]`);
-      }
+      if (msgEncontrada) alvo = document.querySelector(`[data-msg-id="${msgEncontrada.id || msgEncontrada._supabaseId}"]`);
     }
-
-    if (!alvo) {
-      console.warn('Não achou a mensagem original:', msgId);
-      return;
-    }
-
-    const card = alvo.querySelector('.msg-layer') ||
-      alvo.querySelector('.msg-card') ||
-      alvo.firstElementChild ||
-      alvo;
-
+    if (!alvo) return;
+    const card = alvo.querySelector('.msg-layer') || alvo.querySelector('.msg-card') || alvo.firstElementChild || alvo;
     limparDestaqueMensagemNex();
-
     card.classList.add('msg-destaque-verde-nex');
     msgDestacadaNex = card;
-
-    card.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
     const msgs = conversas[Drops.estado.conversaAtual] || [];
-
-    const idsValidos = [
-      String(msgIdOriginal || ''),
-      String(msgIdSupabaseOriginal || '')
-    ].filter(Boolean);
-
-    const respostas = msgs.filter((m) => {
-      if (!m.resposta) return false;
-
-      const idResposta = String(m.resposta.id || '');
-      return idsValidos.includes(idResposta);
-    });
-
+    const idsValidos = [String(msgIdOriginal || ''), String(msgIdSupabaseOriginal || '')].filter(Boolean);
+    const respostas = msgs.filter((m) => m.resposta && idsValidos.includes(String(m.resposta.id || '')));
     if (!respostas.length) return;
-
-    const primeiraResposta = respostas[0];
-    const idParaDestacar = primeiraResposta.id || primeiraResposta._supabaseId;
-
-    destacarMensagemNex(idParaDestacar, 'amarelo');
+    const primeira = respostas[0];
+    destacarMensagemNex(primeira.id || primeira._supabaseId, 'amarelo');
   }
 
   function irParaProximaRespostaNex(originalId, ordemAtual) {
     const msgs = conversas[Drops.estado.conversaAtual] || [];
-
-    const respostas = msgs.filter(
-      (m) => m.resposta && m.resposta.id === originalId
-    );
-
+    const respostas = msgs.filter((m) => m.resposta && m.resposta.id === originalId);
     const proxima = respostas[ordemAtual];
     if (!proxima) return;
-
     destacarMensagemNex(proxima.id, 'amarelo');
   }
 
+  // ============================================
+  // EVENTOS GLOBAIS
+  // ============================================
+
   document.addEventListener('click', (e) => {
     const menu = document.getElementById('msgMenuNex');
-
-    if (
-      menu &&
-      menu.style.display !== 'none' &&
-      !menu.contains(e.target) &&
-      !e.target.closest('.msg-menu-btn')
-    ) {
+    if (menu && menu.style.display !== 'none' && !menu.contains(e.target) && !e.target.closest('.msg-menu-btn')) {
       fecharMenuMsgNex();
     }
-
     const modal = document.getElementById('editarMsgModalNex');
-
-    if (
-      modal &&
-      getComputedStyle(modal).display !== 'none' &&
-      e.target.id === 'editarMsgModalNex'
-    ) {
+    if (modal && getComputedStyle(modal).display !== 'none' && e.target.id === 'editarMsgModalNex') {
       fecharModalEdicaoNex();
     }
-
     const deleteModal = document.getElementById('confirmDeleteModalNex');
-
-    if (
-      deleteModal &&
-      getComputedStyle(deleteModal).display !== 'none' &&
-      e.target.id === 'confirmDeleteModalNex'
-    ) {
+    if (deleteModal && getComputedStyle(deleteModal).display !== 'none' && e.target.id === 'confirmDeleteModalNex') {
       fecharConfirmDeleteNex();
     }
   });
 
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (
-        e.target.closest('.msg-card') ||
-        e.target.closest('.msg-layer') ||
-        e.target.closest('.reply-linked-top') ||
-        e.target.closest('.reply-cited-bottom') ||
-        e.target.closest('.reply-next-btn')
-      ) {
-        return;
-      }
-
-      limparDestaqueMensagemNex();
-    },
-    true
-  );
+  document.addEventListener('click', (e) => {
+    if (
+      e.target.closest('.msg-card') ||
+      e.target.closest('.msg-layer') ||
+      e.target.closest('.reply-linked-top') ||
+      e.target.closest('.reply-cited-bottom') ||
+      e.target.closest('.reply-next-btn')
+    ) return;
+    limparDestaqueMensagemNex();
+  }, true);
 
   document.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('chatInput');
@@ -1749,20 +2123,18 @@ function atualizarPreviewStackNex() {
     }
 
     const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
-    if (btnConcluir) {
-      btnConcluir.addEventListener('click', concluirEdicaoNex);
-    }
+    if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
 
     const inputEdicao = document.getElementById('editarMsgInputNex');
-    if (inputEdicao) {
-      inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
-    }
+    if (inputEdicao) inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
 
     const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
-    if (btnFecharEdicao) {
-      btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
-    }
+    if (btnFecharEdicao) btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
   });
+
+  // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
 
   window.abrirMenuMsgNex = abrirMenuMsgNex;
   window.fecharMenuMsgNex = fecharMenuMsgNex;
@@ -1770,21 +2142,17 @@ function atualizarPreviewStackNex() {
   window.acaoReeditarNex = acaoReeditarNex;
   window.acaoApagarMsgNex = acaoApagarMsgNex;
   window.acaoApagarPraMimNex = acaoApagarPraMimNex;
-
   window.fecharConfirmDeleteNex = fecharConfirmDeleteNex;
   window.confirmarApagarMsgNex = confirmarApagarMsgNex;
   window.fecharConfirmDeleteMeNex = fecharConfirmDeleteMeNex;
   window.confirmarApagarPraMimNex = confirmarApagarPraMimNex;
-
   window.abrirModalEdicaoNex = abrirModalEdicaoNex;
   window.fecharModalEdicaoNex = fecharModalEdicaoNex;
   window.atualizarBotaoEdicaoNex = atualizarBotaoEdicaoNex;
   window.concluirEdicaoNex = concluirEdicaoNex;
-
   window.irParaMensagemNex = irParaMensagemNex;
   window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
   window.irParaProximaRespostaNex = irParaProximaRespostaNex;
-
   window.abrirChatNex = abrirChatNex;
   window.voltarChatNex = voltarChatNex;
   window.renderChat = renderChat;
@@ -1794,33 +2162,33 @@ function atualizarPreviewStackNex() {
   window.enviarMsgNex = enviarMsgNex;
   window.cancelarRespostaNex = cancelarRespostaNex;
   window.atualizarPreviewStackNex = atualizarPreviewStackNex;
-
   window.buscarAvatarNex = buscarAvatarNex;
+
+  // ⚠️ Exposição das novas funções do menu
+  window.abrirMenuChatNex = abrirMenuChatNex;
+  window.fecharMenuChatNex = fecharMenuChatNex;
+  window.estaSilenciadoNex = estaSilenciadoNex;
+  window.alternarSilenciarChatNex = alternarSilenciarChatNex;
+  window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;
+  window.apagarChatNex = apagarChatNex;
+  window.atualizarSilenciadoNoCardNex = atualizarSilenciadoNoCardNex;
 
   window.buscarStatusNex = async function (username) {
     if (!username || !window.supabaseClient) return false;
-
     try {
       const { data: perfil } = await window.supabaseClient
         .from('profiles')
         .select('ultima_atividade')
-        .eq(
-          'username',
-          String(username).toLowerCase().replace(/^@/, '').trim()
-        )
+        .eq('username', String(username).toLowerCase().replace(/^@/, '').trim())
         .maybeSingle();
-
       const ultima = perfil?.ultima_atividade;
       const LIMITE_ONLINE_MS = 30 * 1000;
-
-      return !!(ultima &&
-        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+      return !!(ultima && Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
     } catch (err) {
       console.warn('Erro ao buscar status:', err);
       return false;
     }
   };
 
-  console.log('💬 05-nex-chat.js completo (com fallback de username)');
- 
+  console.log('💬 05-nex-chat.js completo (com menu, silenciar e apagar)');
 })();
