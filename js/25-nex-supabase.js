@@ -272,24 +272,38 @@ async function carregarConversaSupabase(nome) {
     const ehMinha = m.autor_id === meuId;
 
     // Reconstrói o anexo com base no tipo
-    let anexo = null;
-    const meta = m.media_meta || {};
+let anexo = null;
+const meta = m.media_meta || {};
 
-    if (m.tipo === 'location') {
-      const loc = meta.localizacao || {
-        lat: meta.lat,
-        lng: meta.lng,
-        address: meta.address
-      };
+if (m.tipo === 'location') {
+  // ⚠️ Valida se os dados de location existem
+  const loc = meta.localizacao || (
+    (typeof meta.lat === 'number' && typeof meta.lng === 'number')
+      ? { lat: meta.lat, lng: meta.lng, address: meta.address }
+      : null
+  );
 
-      anexo = {
-        type: 'location',
-        lat: loc.lat,
-        lng: loc.lng,
-        address: loc.address || 'Localização',
-        localizacao: loc
-      };
-    } else if (m.tipo === 'pdf') {
+  if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+    anexo = {
+      type: 'location',
+      lat: loc.lat,
+      lng: loc.lng,
+      address: loc.address || 'Localização',
+      localizacao: loc
+    };
+  } else {
+    // ⚠️ Não tem dados válidos — cria um anexo seguro
+    anexo = {
+      type: 'location',
+      lat: 0,
+      lng: 0,
+      address: 'Localização indisponível',
+      localizacao: { lat: 0, lng: 0, address: 'Localização indisponível' },
+      _quebrado: true
+    };
+  }
+
+} else if (m.tipo === 'pdf') {
       anexo = {
         type: 'pdf',
         url: m.media_url,
@@ -776,11 +790,13 @@ async function processarMensagemRealtimeNex(msg) {
   const metaNova = msg.media_meta || {};
 
   if (msg.tipo === 'location') {
-    const loc = metaNova.localizacao || {
-      lat: metaNova.lat,
-      lng: metaNova.lng,
-      address: metaNova.address
-    };
+  const loc = metaNova.localizacao || (
+    (typeof metaNova.lat === 'number' && typeof metaNova.lng === 'number')
+      ? { lat: metaNova.lat, lng: metaNova.lng, address: metaNova.address }
+      : null
+  );
+
+  if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
     anexoNova = {
       type: 'location',
       lat: loc.lat,
@@ -788,7 +804,17 @@ async function processarMensagemRealtimeNex(msg) {
       address: loc.address || 'Localização',
       localizacao: loc
     };
-  } else if (msg.tipo === 'pdf') {
+  } else {
+    anexoNova = {
+      type: 'location',
+      lat: 0,
+      lng: 0,
+      address: 'Localização indisponível',
+      localizacao: { lat: 0, lng: 0, address: 'Localização indisponível' },
+      _quebrado: true
+    };
+  }
+} else if (msg.tipo === 'pdf') {
     anexoNova = {
       type: 'pdf',
       url: msg.media_url,
@@ -896,19 +922,31 @@ async function processarMensagemRealtimeNex(msg) {
             let anexoRecarga = null;
 
             if (m.tipo === 'location') {
-              const loc = metaRecarga.localizacao || {
-                lat: metaRecarga.lat,
-                lng: metaRecarga.lng,
-                address: metaRecarga.address
-              };
-              anexoRecarga = {
-                type: 'location',
-                lat: loc.lat,
-                lng: loc.lng,
-                address: loc.address || 'Localização',
-                localizacao: loc
-              };
-            } else if (m.tipo === 'pdf') {
+  const loc = metaRecarga.localizacao || (
+    (typeof metaRecarga.lat === 'number' && typeof metaRecarga.lng === 'number')
+      ? { lat: metaRecarga.lat, lng: metaRecarga.lng, address: metaRecarga.address }
+      : null
+  );
+
+  if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+    anexoRecarga = {
+      type: 'location',
+      lat: loc.lat,
+      lng: loc.lng,
+      address: loc.address || 'Localização',
+      localizacao: loc
+    };
+  } else {
+    anexoRecarga = {
+      type: 'location',
+      lat: 0,
+      lng: 0,
+      address: 'Localização indisponível',
+      localizacao: { lat: 0, lng: 0, address: 'Localização indisponível' },
+      _quebrado: true
+    };
+  }
+} else if (m.tipo === 'pdf') {
               anexoRecarga = {
                 type: 'pdf',
                 url: m.media_url,

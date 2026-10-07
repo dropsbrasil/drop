@@ -1081,9 +1081,15 @@ function renderChat(nome) {
 
     let anexosHTML = '';
 
-    if (typeof window.montarAnexosHTMLNex === 'function') {
-      anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
-    }
+if (typeof window.montarAnexosHTMLNex === 'function') {
+  try {
+    anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
+  } catch (errAnexo) {
+    console.error('❌ Erro ao montar anexo da msg:', msg.id, errAnexo, msg);
+    // fallback: mostra placeholder
+    anexosHTML = '<div style="padding:8px;font-size:12px;color:#94a3b8;font-style:italic;">📎 Anexo indisponível</div>';
+  }
+}
 
     const statusOnclick =
       lado === 'right' && msg.status === 'erro'
