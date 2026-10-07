@@ -158,16 +158,40 @@
     estado.expiresAt = null;
     estado.origemAbertura = '';
 
-    const card = obterCardConversaNex(nome);
+    // ⚠️ Resolve o username real pra buscar/criar o card corretamente
+const usernameReal =
+  (window.__convUsernamesNex && window.__convUsernamesNex[nome]) ||
+  String(nome || '').toLowerCase().replace(/^@/, '').trim();
 
-    if (card) {
-      card.classList.add('unread-chat');
-      moverCardConversaNex(nome, 'nex-naolidas', true);
-    }
+let card = obterCardConversaNex(usernameReal);
+if (!card) card = obterCardConversaNex(nome);
 
-    if (typeof atualizarAbaNaoLidasNex === 'function') {
-      atualizarAbaNaoLidasNex();
-    }
+if (card) {
+  card.classList.add('unread-chat');
+  moverCardConversaNex(
+    (card.dataset.chat || '').trim(),
+    'nex-naolidas',
+    true
+  );
+} else {
+  // ⚠️ Card não existe → cria
+  const ultimaMsg = (window.conversas && window.conversas[nome])
+    ? window.conversas[nome][window.conversas[nome].length - 1]
+    : null;
+
+  if (typeof window.criarCardConversaNex === 'function') {
+    window.criarCardConversaNex(
+      nome,
+      connected,
+      ultimaMsg || { text: 'Nova mensagem' },
+      'recebida'
+    );
+  }
+}
+
+if (typeof atualizarAbaNaoLidasNex === 'function') {
+  atualizarAbaNaoLidasNex();
+}
   }
 
   // ============================================
