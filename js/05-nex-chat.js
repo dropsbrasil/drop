@@ -247,31 +247,68 @@ async function apagarChatNex(username) {
   window.mostrarToastNex?.('Apagando conversa...', 'info');
 
   try {
-    // 1. Apaga no Supabase
-    const convId =
-      window.__convIdsNex && window.__convIdsNex[username];
 
-    if (
-      convId &&
-      window.supabaseClient &&
-      typeof window.supabaseClient.from === 'function'
-    ) {
-      try {
-        // Apaga as mensagens dessa conversa
-        await window.supabaseClient
-          .from('mensagens')
-          .delete()
-          .eq('conversa_id', convId);
+    // ============================================
+// 1. Apaga no Supabase
+// ⚠️ Descobre o convId SEM depender do cache
+// ============================================
 
-        // Apaga a conversa
-        await window.supabaseClient
-          .from('conversas')
-          .delete()
-          .eq('id', convId);
-      } catch (err) {
-        console.warn('Erro ao apagar no Supabase:', err);
+let convId =
+  window.__convIdsNex && window.__convIdsNex[username];
+
+if (window.supabaseClient) {
+  try {
+    // Se não tem no cache, busca no Supabase
+    if (!convId) {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+
+      if (user) {
+        // Busca o ID do outro usuário pelo @username
+        const { data: perfilOutro } = await window.supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+
+        if (perfilOutro?.id) {
+          // Busca a conversa entre os dois
+          const { data: conversa } = await window.supabaseClient
+            .from('conversas')
+            .select('id')
+            .or(
+              `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
+            )
+            .maybeSingle();
+
+          if (conversa?.id) {
+            convId = conversa.id;
+            console.log('🔍 convId recuperado do Supabase:', convId);
+          }
+        }
       }
     }
+
+    // Se achou o convId, apaga as mensagens e a conversa
+    if (convId) {
+      await window.supabaseClient
+        .from('mensagens')
+        .delete()
+        .eq('conversa_id', convId);
+
+      await window.supabaseClient
+        .from('conversas')
+        .delete()
+        .eq('id', convId);
+
+      console.log('🗑️ Conversa apagada no Supabase:', convId);
+    } else {
+      console.warn('⚠️ convId não encontrado pra apagar:', username);
+    }
+  } catch (err) {
+    console.warn('Erro ao apagar no Supabase:', err);
+  }
+}
 
     // 2. Limpa o cache local
     if (window.conversas && window.conversas[username]) {
