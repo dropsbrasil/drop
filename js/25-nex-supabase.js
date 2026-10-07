@@ -1034,17 +1034,15 @@ async function processarMensagemRealtimeNex(msg) {
 
   window.conversas[nomeContato].push(nova);
 
-// ⚠️ Verifica se o chat está REALMENTE aberto na tela
+// ⚠️ Verifica se o chat está aberto — só compara o estado e a conversa
 const chatEl = document.getElementById('chatNex');
 const chatEstaVisivel =
-  chatEl &&
-  chatEl.style.display === 'block' &&
-  chatEl.classList.contains('active');
+  chatEl && getComputedStyle(chatEl).display !== 'none';
 
 const conversaAberta = Drops.estado.conversaAtual;
 const chatDaPessoaEstaAberto =
   chatEstaVisivel && conversaAberta === nomeContato;
-
+  
 if (chatDaPessoaEstaAberto) {
   if (typeof window.renderChat === 'function') {
     window.renderChat(nomeContato);
