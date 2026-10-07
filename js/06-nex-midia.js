@@ -52,34 +52,52 @@
         const endereco = loc.address || 'Localização';
 
         // ⚠️ Pega a capa e o avatar do remetente
-        const usernameRemetente = msg.side === 'right' 
-          ? Drops.usernameAtual 
-          : (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-        
-        // Tenta buscar do cache de avatares, se disponível
-        const avatarUrl = window.cacheAvataresNex?.[usernameRemetente] || null;
-        
-        // Fallback para a inicial
-        const inicialRemetente = (msg.side === 'right' ? 'Eu' : (msg.nome || nome || '?')).charAt(0).toUpperCase();
+        let usernameRemetente = '';
+let nomeRemetente = '';
+
+if (msg.side === 'right') {
+  usernameRemetente = String(Drops.usernameAtual || '').toLowerCase().trim();
+  nomeRemetente = 'Eu';
+} else {
+  nomeRemetente = msg.nome || 'Usuário';
+
+  const convUsernames = window.__convUsernamesNex || {};
+  const conversaAberta = Drops.estado.conversaAtual || '';
+
+  usernameRemetente = String(
+    convUsernames[conversaAberta] ||
+    convUsernames[nomeRemetente] ||
+    nomeRemetente
+  ).replace(/^@/, '').toLowerCase().trim();
+}
+
+let avatarUrl = null;
+if (typeof msg.avatar === 'string' && msg.avatar.startsWith('http')) {
+  avatarUrl = msg.avatar;
+}
+
+const inicialRemetente = String(nomeRemetente || '?').charAt(0).toUpperCase();
 
         if (lat != null && lng != null) {
           html += `
             <div class="msg-location-card-elegante">
               <div class="msg-location-capa" style="background-image: url('${escapeHTML(msg.side === 'right' ? (window.AuthAdapterNex?.lerPerfil()?.capa || '') : (window.perfisVisitadosNex?.[usernameRemetente]?.capa || ''))}')">
-                <div class="msg-location-avatar">
-                  ${avatarUrl ? `<img src="${escapeHTML(avatarUrl)}" alt="">` : escapeHTML(inicialRemetente)}
-                </div>
-              </div>
-              <div class="msg-location-info">
-                <div class="msg-location-address">
-                  ${escapeHTML(endereco)}
-                </div>
-                <button
-                  type="button"
-                  class="msg-location-btn-elegante"
-                  onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
-                  Ver rota
-                </button>
+                  <div class="msg-location-avatar"
+       data-avatar-user="${escapeHTML(usernameRemetente)}"
+       data-avatar-fallback="${escapeHTML(inicialRemetente)}">
+    ${avatarUrl ? `<img src="${escapeHTML(avatarUrl)}" alt="">` : escapeHTML(inicialRemetente)}
+  </div>
+</div>
+<div class="msg-location-info">
+  <div class="msg-location-address">
+    ${escapeHTML(endereco)}
+  </div>
+  <button
+    type="button"
+    class="msg-location-btn-elegante"
+    onclick="abrirMapaLocalizacaoNex(${lat}, ${lng})">
+    Ver rota
+  </button>
               </div>
             </div>
           `;
@@ -88,9 +106,11 @@
           html += `
             <div class="msg-location-card-elegante">
               <div class="msg-location-capa" style="background-color: #334155;">
-                 <div class="msg-location-avatar">
-                  ${avatarUrl ? `<img src="${escapeHTML(avatarUrl)}" alt="">` : escapeHTML(inicialRemetente)}
-                </div>
+   <div class="msg-location-avatar"
+        data-avatar-user="${escapeHTML(usernameRemetente)}"
+        data-avatar-fallback="${escapeHTML(inicialRemetente)}">
+    ${avatarUrl ? `<img src="${escapeHTML(avatarUrl)}" alt="">` : escapeHTML(inicialRemetente)}
+  </div>
               </div>
               <div class="msg-location-info">
                 <div class="msg-location-address">

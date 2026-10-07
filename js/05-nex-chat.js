@@ -1232,20 +1232,43 @@ if (typeof window.montarAnexosHTMLNex === 'function') {
   atualizarTodosBadgesReacaoMidiaNex();
 
   area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
-    const username = el.dataset.avatarUser;
-    const fallback = el.dataset.avatarFallback || '?';
+  const username = el.dataset.avatarUser;
+  const fallback = el.dataset.avatarFallback || '?';
 
-    if (!username) return;
-    if (cacheAvataresNex[username]) return;
+  if (!username) return;
+  if (cacheAvataresNex[username]) {
+    el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
+    return;
+  }
 
-    const url = await buscarAvatarNex(username);
+  const url = await buscarAvatarNex(username);
 
-    if (url && el.isConnected) {
-      el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
-    } else if (el.isConnected && !el.querySelector('img')) {
-      el.textContent = fallback;
-    }
-  });
+  if (url && el.isConnected) {
+    el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+  } else if (el.isConnected && !el.querySelector('img')) {
+    el.textContent = fallback;
+  }
+});
+
+area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (el) => {
+  const username = el.dataset.avatarUser;
+  const fallback = el.dataset.avatarFallback || '?';
+
+  if (!username) return;
+
+  if (cacheAvataresNex[username]) {
+    el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
+    return;
+  }
+
+  const url = await buscarAvatarNex(username);
+
+  if (url && el.isConnected) {
+    el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+  } else if (el.isConnected && !el.querySelector('img')) {
+    el.textContent = fallback;
+  }
+});
 
   document.querySelectorAll('.btn-fotos-open').forEach((btn) => {
     btn.addEventListener('click', (e) => {
@@ -1550,30 +1573,35 @@ if (respostaSelecionadaNex) {
         let mediaUrl = null;
         let mediaMeta = null;
 
-        if (msgLocal.audio) {
-          tipo = 'audio';
-          mediaUrl = msgLocal.audio;
-        } else if (msgLocal.anexo) {
-          if (msgLocal.anexo.type === 'location') {
-            tipo = 'location';
-            mediaMeta = {
-              lat: msgLocal.anexo.lat,
-              lng: msgLocal.anexo.lng,
-              address: msgLocal.anexo.address || 'Localização',
-              localizacao: msgLocal.anexo.localizacao || null
-            };
-          } else if (msgLocal.anexo.type === 'pdf') {
-            tipo = 'pdf';
-            mediaUrl = msgLocal.anexo.url || null;
-            mediaMeta = {
-              documento: msgLocal.anexo.documento || null,
-              name: msgLocal.anexo.name || 'Documento PDF'
-            };
-          } else {
-            tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
-            mediaUrl = msgLocal.anexo.url || null;
-          }
-        } else if (msgLocal.midias && msgLocal.midias.length) {
+if (msgLocal.audio) {
+  tipo = 'audio';
+  mediaUrl = msgLocal.audio;
+} else if (msgLocal.anexo) {
+  if (msgLocal.anexo.type === 'location') {
+    tipo = 'location';
+
+    const latLoc = Number(msgLocal.anexo.lat);
+    const lngLoc = Number(msgLocal.anexo.lng);
+    const endLoc = msgLocal.anexo.address || 'Localização';
+
+    mediaMeta = {
+      lat: latLoc,
+      lng: lngLoc,
+      address: endLoc,
+      localizacao: { lat: latLoc, lng: lngLoc, address: endLoc }
+    };
+  } else if (msgLocal.anexo.type === 'pdf') {
+    tipo = 'pdf';
+    mediaUrl = msgLocal.anexo.url || null;
+    mediaMeta = {
+      documento: msgLocal.anexo.documento || null,
+      name: msgLocal.anexo.name || 'Documento PDF'
+    };
+  } else {
+    tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
+    mediaUrl = msgLocal.anexo.url || null;
+  }
+} else if (msgLocal.midias && msgLocal.midias.length) {
           tipo = 'album';
           mediaUrl = msgLocal.midias[0].url || null;
           mediaMeta = { midias: msgLocal.midias };
@@ -1714,13 +1742,18 @@ async function reenviarMensagemNex(msgId) {
         mediaUrl = novaMensagem.audio;
       } else if (novaMensagem.anexo) {
         if (novaMensagem.anexo.type === 'location') {
-          tipo = 'location';
-          mediaMeta = {
-            lat: novaMensagem.anexo.lat,
-            lng: novaMensagem.anexo.lng,
-            address: novaMensagem.anexo.address || 'Localização',
-            localizacao: novaMensagem.anexo.localizacao || null
-          };
+  tipo = 'location';
+
+  const latLoc = Number(novaMensagem.anexo.lat);
+  const lngLoc = Number(novaMensagem.anexo.lng);
+  const endLoc = novaMensagem.anexo.address || 'Localização';
+
+  mediaMeta = {
+    lat: latLoc,
+    lng: lngLoc,
+    address: endLoc,
+    localizacao: { lat: latLoc, lng: lngLoc, address: endLoc }
+  };
         } else if (novaMensagem.anexo.type === 'pdf') {
           tipo = 'pdf';
           mediaUrl = novaMensagem.anexo.url || null;
