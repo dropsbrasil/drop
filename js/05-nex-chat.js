@@ -1313,9 +1313,15 @@ async function enviarMsgNex() {
       : null;
 
   const audioLocal =
-    typeof window.getAudioUrlNex === 'function'
-      ? window.getAudioUrlNex()
-      : '';
+  typeof window.getAudioUrlNex === 'function'
+    ? window.getAudioUrlNex()
+    : '';
+
+// ⚠️ NOVO: pega o Blob real do áudio
+const audioBlobLocal =
+  typeof window.getAudioBlobNex === 'function'
+    ? window.getAudioBlobNex()
+    : null;
 
   const mensagem = {
     id: gerarIdMensagemNex(),
@@ -1346,18 +1352,20 @@ async function enviarMsgNex() {
   if (texto) mensagem.text = texto;
 
   if (midiaUnicaLocal && midiaUnicaLocal.url) {
-    mensagem.anexo = {
-      type: midiaUnicaLocal.type === 'video' ? 'video' : 'imagem',
-      url: midiaUnicaLocal.url
-    };
-  }
+  mensagem.anexo = {
+    type: midiaUnicaLocal.type === 'video' ? 'video' : 'imagem',
+    url: midiaUnicaLocal.url,
+    _file: midiaUnicaLocal._file || null  // ⚠️ preserva o File real
+  };
+}
 
-  if (Array.isArray(midiasLocais) && midiasLocais.length) {
-    mensagem.midias = midiasLocais.map((m) => ({
-      url: m.url,
-      type: m.type === 'video' ? 'video' : 'imagem'
-    }));
-  }
+if (Array.isArray(midiasLocais) && midiasLocais.length) {
+  mensagem.midias = midiasLocais.map((m) => ({
+    url: m.url,
+    type: m.type === 'video' ? 'video' : 'imagem',
+    _file: m._file || null  // ⚠️ preserva o File real
+  }));
+}
 
   if (documentoLocal && documentoLocal.url && !mensagem.anexo) {
     mensagem.anexo = {
@@ -1393,17 +1401,14 @@ async function enviarMsgNex() {
 
   conversas[conversaAtual].push(mensagem);
 
-  if (input) input.value = '';
+if (input) input.value = '';
 
-  renderChat(conversaAtual);
+// ⚠️ NÃO limpa o preview ainda — só depois que o upload der certo
+renderChat(conversaAtual);
 
-  if (typeof window.limparTodosPreviewsNex === 'function') {
-    window.limparTodosPreviewsNex();
-  }
-
-  if (respostaSelecionadaNex) {
-    cancelarRespostaNex();
-  }
+if (respostaSelecionadaNex) {
+  cancelarRespostaNex();
+}
 
   (async () => {
     try {
@@ -1414,42 +1419,62 @@ async function enviarMsgNex() {
       if (!msgLocal) return;
 
       if (midiaUnicaLocal && midiaUnicaLocal.url) {
-        const urlStorage = await window.uploadMidiaNexSupabase(
-          midiaUnicaLocal.url
-        );
+  // ⚠️ Prioriza o File real (evita depender de blob URL que pode estar revogada)
+  const fonteUpload = midiaUnicaLocal._file || midiaUnicaLocal.url;
 
-        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-          msgLocal.anexo.url = urlStorage;
-        } else {
-          throw new Error('Falha no upload da mídia única');
-        }
+  console.log('📤 Enviando mídia única:', {
+    temFile: !!midiaUnicaLocal._file,
+    tipo: midiaUnicaLocal.type
+  });
+
+  const urlStorage = await window.uploadMidiaNexSupabase(
+    fonteUpload,
+    midiaUnicaLocal.type
+  );
+
+  if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+    msgLocal.anexo.url = urlStorage;
+
+    if (msgLocal.anexo._file) delete msgLocal.anexo._file;
+  } else {
+    throw new Error('Falha no upload da mídia única');
+  }
       }
 
       if (Array.isArray(midiasLocais) && midiasLocais.length) {
-        const enviadas = [];
+  const enviadas = [];
 
-        for (const m of midiasLocais) {
-          const urlStorage = await window.uploadMidiaNexSupabase(m.url);
+  for (const m of midiasLocais) {
+    // ⚠️ Prioriza o File real
+    const fonteUpload = m._file || m.url;
 
-          if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-            enviadas.push({
-              url: urlStorage,
-              type: m.type === 'video' ? 'video' : 'imagem'
-            });
-          }
-        }
+    const urlStorage = await window.uploadMidiaNexSupabase(
+      fonteUpload,
+      m.type
+    );
 
-        if (!enviadas.length) {
-          throw new Error('Falha no upload das mídias');
-        }
+    if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+      enviadas.push({
+        url: urlStorage,
+        type: m.type === 'video' ? 'video' : 'imagem'
+      });
+    } else {
+      console.warn('⚠️ Falha no upload de uma mídia do álbum:', m);
+    }
+  }
 
-        msgLocal.midias = enviadas;
+  if (!enviadas.length) {
+    throw new Error('Falha no upload das mídias');
+  }
+
+  msgLocal.midias = enviadas;
       }
 
       if (documentoLocal && documentoLocal.url && !midiaUnicaLocal) {
-        const urlStorage = await window.uploadMidiaNexSupabase(
-          documentoLocal.url
-        );
+  const urlStorage = await window.uploadMidiaNexSupabase(
+    documentoLocal.url,
+    'pdf'
+  );
 
         if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
           msgLocal.anexo.url = urlStorage;
@@ -1462,13 +1487,24 @@ async function enviarMsgNex() {
       }
 
       if (audioLocal) {
-        const urlStorage = await window.uploadMidiaNexSupabase(audioLocal);
+  // ⚠️ Prioriza o Blob real (não depende de blob URL ainda viva)
+  const fonteAudio = audioBlobLocal || audioLocal;
 
-        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-          msgLocal.audio = urlStorage;
-        } else {
-          throw new Error('Falha no upload do áudio');
-        }
+  console.log('📤 Enviando áudio:', {
+    temBlob: !!audioBlobLocal,
+    tipoBlob: audioBlobLocal?.type
+  });
+
+  const urlStorage = await window.uploadMidiaNexSupabase(
+    fonteAudio,
+    'audio'
+  );
+
+  if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+    msgLocal.audio = urlStorage;
+  } else {
+    throw new Error('Falha no upload do áudio');
+  }
       }
 
       let convId =
@@ -1579,10 +1615,15 @@ async function enviarMsgNex() {
         msgLocal.status = 'visualizado';
       }
 
-      renderChat(conversaAtual);
+        renderChat(conversaAtual);
 
-      marcarConversaRespondidaNex(conversaAtual);
-    } catch (err) {
+  marcarConversaRespondidaNex(conversaAtual);
+
+  // ⚠️ SÓ AGORA limpa o preview (upload deu certo)
+  if (typeof window.limparTodosPreviewsNex === 'function') {
+    window.limparTodosPreviewsNex();
+  }
+} catch (err) {
       console.error('❌ Erro no envio:', err);
 
       const msgErro = conversas[conversaAtual].find(

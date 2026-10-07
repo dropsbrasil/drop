@@ -1060,88 +1060,186 @@ if (chatDaPessoaEstaAberto) {
       const { data: { user } } = await window.supabaseClient.auth.getUser();
       if (!user) return null;
 
-      let blob = null;
-      let extensao = 'bin';
+let blob = null;
+let extensao = 'bin';
 
-      // --- Caso 1: File/Blob direto ---
-      if (arquivo instanceof File || arquivo instanceof Blob) {
-        blob = arquivo;
-        extensao = (arquivo.name || '').split('.').pop() || 'bin';
+// ⚠️ Helper: detecta extensão por MIME com fallback
+function detectarExtensaoPorMime(mime, nomeArquivo) {
+  const m = String(mime || '').toLowerCase();
+  const nome = String(nomeArquivo || '').toLowerCase();
 
-      // --- Caso 2: URL (blob:, http:, https:) ---
-      } else if (typeof arquivo === 'string' && /^(blob:|https?:)/.test(arquivo)) {
-        const res = await fetch(arquivo);
-        blob = await res.blob();
+  // Vídeo
+  if (m.includes('video/mp4')) return 'mp4';
+  if (m.includes('video/webm')) return 'webm';
+  if (m.includes('video/quicktime')) return 'mov';
+  if (m.includes('video/ogg')) return 'ogv';
+  if (m.includes('video')) return 'mp4';
 
-        if (blob.type.includes('video')) extensao = 'mp4';
-        else if (blob.type.includes('audio')) extensao = 'webm';
-        else if (blob.type.includes('png')) extensao = 'png';
-        else if (blob.type.includes('pdf')) extensao = 'pdf';
-        else extensao = 'jpg';
+  // Áudio
+  if (m.includes('audio/webm')) return 'weba';
+  if (m.includes('audio/mpeg') || m.includes('audio/mp3')) return 'mp3';
+  if (m.includes('audio/ogg')) return 'ogg';
+  if (m.includes('audio/wav')) return 'wav';
+  if (m.includes('audio')) return 'weba';
 
-      // --- Caso 3: Data URL (base64) ---
-      } else if (typeof arquivo === 'string' && arquivo.startsWith('data:')) {
-        const res = await fetch(arquivo);
-        blob = await res.blob();
+  // Imagem
+  if (m.includes('image/png')) return 'png';
+  if (m.includes('image/jpeg') || m.includes('image/jpg')) return 'jpg';
+  if (m.includes('image/webp')) return 'webp';
+  if (m.includes('image/gif')) return 'gif';
+  if (m.includes('image')) return 'jpg';
 
-        if (blob.type.includes('video')) extensao = 'mp4';
-        else if (blob.type.includes('audio')) extensao = 'webm';
-        else if (blob.type.includes('png')) extensao = 'png';
-        else if (blob.type.includes('pdf')) extensao = 'pdf';
-        else extensao = 'jpg';
-      }
+  // Documento
+  if (m.includes('pdf')) return 'pdf';
 
-      if (!blob) {
-        console.warn('Tipo de arquivo não suportado:', arquivo);
-        return null;
-      }
+  // Fallback: tenta pela extensão do nome do arquivo
+  if (nome.includes('.')) {
+    const ext = nome.split('.').pop();
+    if (ext && ext.length <= 5) return ext;
+  }
+
+  return 'bin';
+}
+
+// --- Caso 1: File/Blob direto (câmera, MediaRecorder, input file) ---
+if (arquivo instanceof File || arquivo instanceof Blob) {
+  blob = arquivo;
+  extensao = detectarExtensaoPorMime(blob.type, arquivo.name);
+
+  console.log('📤 Upload via File/Blob:', {
+    mime: blob.type,
+    size: blob.size,
+    extensao
+  });
+
+// --- Caso 2: URL (blob:, http:, https:) ---
+} else if (typeof arquivo === 'string' && /^(blob:|https?:)/.test(arquivo)) {
+  let res;
+
+  try {
+    res = await fetch(arquivo);
+  } catch (fetchErr) {
+    console.error('❌ fetch falhou (blob URL revogada?):', arquivo.slice(0, 80), fetchErr);
+    return null;
+  }
+
+  if (!res.ok) {
+    console.error('❌ fetch status', res.status, 'para', arquivo.slice(0, 80));
+    return null;
+  }
+
+  blob = await res.blob();
+  extensao = detectarExtensaoPorMime(blob.type, '');
+
+  console.log('📤 Upload via URL:', {
+    url: arquivo.slice(0, 80),
+    mime: blob.type,
+    size: blob.size,
+    extensao
+  });
+
+// --- Caso 3: Data URL (base64) ---
+} else if (typeof arquivo === 'string' && arquivo.startsWith('data:')) {
+  const res = await fetch(arquivo);
+  blob = await res.blob();
+  extensao = detectarExtensaoPorMime(blob.type, '');
+
+  console.log('📤 Upload via DataURL:', {
+    mime: blob.type,
+    size: blob.size,
+    extensao
+  });
+}
+
+if (!blob) {
+  console.warn('⚠️ Tipo de arquivo não suportado:', arquivo);
+  return null;
+}
+
+if (blob.size === 0) {
+  console.error('❌ Blob vazio — nada pra enviar');
+  return null;
+}
 
       // Nome único
       const nomeArquivo = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
 
       // Detecta contentType correto pela extensão
-      let contentType = blob.type;
+let contentType = blob.type;
 
-      if (!contentType || contentType === 'application/octet-stream') {
-        if (extensao === 'jpg' || extensao === 'jpeg') {
-          contentType = 'image/jpeg';
-        } else if (extensao === 'png') {
-          contentType = 'image/png';
-        } else if (extensao === 'mp4') {
-          contentType = 'video/mp4';
-        } else if (extensao === 'webm') {
-          contentType = 'audio/webm';
-        } else if (extensao === 'pdf') {
-          contentType = 'application/pdf';
-        } else {
-          contentType = 'application/octet-stream';
-        }
+if (!contentType || contentType === 'application/octet-stream' || contentType === '') {
+  if (extensao === 'jpg' || extensao === 'jpeg') {
+    contentType = 'image/jpeg';
+  } else if (extensao === 'png') {
+    contentType = 'image/png';
+  } else if (extensao === 'webp') {
+    contentType = 'image/webp';
+  } else if (extensao === 'gif') {
+    contentType = 'image/gif';
+  } else if (extensao === 'mp4') {
+    contentType = 'video/mp4';
+  } else if (extensao === 'mov') {
+    contentType = 'video/quicktime';
+  } else if (extensao === 'webm') {
+    contentType = 'video/webm';
+  } else if (extensao === 'weba') {
+    contentType = 'audio/webm';
+  } else if (extensao === 'mp3') {
+    contentType = 'audio/mpeg';
+  } else if (extensao === 'ogg') {
+    contentType = 'audio/ogg';
+  } else if (extensao === 'wav') {
+    contentType = 'audio/wav';
+  } else if (extensao === 'pdf') {
+    contentType = 'application/pdf';
+  } else {
+    contentType = 'application/octet-stream';
+  }
+}
+
+          // Upload
+    const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
+      .from('nex')
+      .upload(nomeArquivo, blob, {
+        contentType: contentType,
+        upsert: false,
+        cacheControl: '3600'
+      });
+
+    if (uploadError) {
+      console.error('❌ Erro no upload do NEX:', {
+        message: uploadError.message,
+        statusCode: uploadError.statusCode,
+        bucket: 'nex',
+        nomeArquivo,
+        contentType,
+        extensao,
+        tamanhoBlob: blob.size
+      });
+
+      // ⚠️ Mostra o erro real pro usuário
+      if (typeof window.mostrarToastNex === 'function') {
+        window.mostrarToastNex(
+          'Erro no upload: ' + (uploadError.message || 'desconhecido'),
+          'erro',
+          6000
+        );
       }
 
-      // Upload
-      const { error: uploadError } = await window.supabaseClient.storage
-        .from('nex')
-        .upload(nomeArquivo, blob, {
-          contentType: contentType,
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.warn('Erro no upload:', uploadError);
-        return null;
-      }
-
-      // URL pública
-      const { data: urlData } = window.supabaseClient.storage
-        .from('nex')
-        .getPublicUrl(nomeArquivo);
-
-      console.log('☁️ Upload NEX OK:', urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (err) {
-      console.warn('Erro no upload:', err);
       return null;
     }
+
+    // URL pública
+    const { data: urlData } = window.supabaseClient.storage
+      .from('nex')
+      .getPublicUrl(nomeArquivo);
+
+    console.log('☁️ Upload NEX OK:', urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error('❌ Erro no upload (catch):', err);
+    return null;
+  }
   }
 
   // ============================================

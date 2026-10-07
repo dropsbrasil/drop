@@ -1270,6 +1270,9 @@ window.setLocalizacaoPreviaNex = (v) => { localizacaoPreviaNex = v; };
 
 window.getAudioUrlNex = () => audioUrlNex;
 
+// ⚠️ NOVO: expõe o Blob real do áudio (mais confiável que a blob URL)
+window.getAudioBlobNex = () => audioBlobNex;
+
 // ============================================
 // ÁLBUM (SELEÇÃO MÚLTIPLA)
 // ============================================
