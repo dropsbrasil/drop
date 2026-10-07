@@ -203,7 +203,6 @@
         return;
       }
 
-      // Descobre o username real desse card
       let usernameReal =
         (window.__convUsernamesNex && window.__convUsernamesNex[chave]) || '';
 
@@ -216,7 +215,6 @@
         return;
       }
 
-      // Se já tem um card pra esse username, remove o pior
       if (porUsername.has(usernameReal)) {
         const cardAntigo = porUsername.get(usernameReal);
         const chaveAntiga = (cardAntigo.dataset.chat || '').trim();
@@ -226,14 +224,11 @@
         const atualEhUsername = !/\s/.test(chaveAtual);
 
         if (atualEhUsername && !antigoEhUsername) {
-          // Atual é o bom → remove o antigo
           cardAntigo.remove();
           porUsername.set(usernameReal, card);
         } else if (!atualEhUsername && antigoEhUsername) {
-          // Antigo é o bom → remove o atual
           card.remove();
         } else {
-          // Mesma qualidade → mantém o primeiro
           card.remove();
         }
       } else {
@@ -257,7 +252,7 @@
 // CRIAR CARD DE CONVERSA NO NEX
 // ============================================
 
-function criarCardConversaNex(
+async function criarCardConversaNex(
   nome,
   connected = null,
   mensagem = null,
@@ -284,30 +279,74 @@ function criarCardConversaNex(
   const lista = document.getElementById(destino);
   if (!lista) return;
 
-  // ⚠️ RESOLVE O USERNAME REAL ANTES DE CRIAR
+  // ============================================
+  // ⚠️ RESOLVE O USERNAME REAL (@) ANTES DE CRIAR
+  // ============================================
+
   if (!window.__convUsernamesNex) {
     window.__convUsernamesNex = {};
   }
 
-  let usernameRealCard =
-    window.__convUsernamesNex[nome] ||
-    mensagem?.username ||
-    '';
+  let chaveCard = '';
 
-  // Fallback: limpa o nome (sem espaços, sem acentos)
-  if (!usernameRealCard) {
-    usernameRealCard = String(nome || '')
+  // 1. Tenta pegar do cache reverso
+  if (window.__convUsernamesNex[nome]) {
+    chaveCard = String(window.__convUsernamesNex[nome])
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  // 2. Tenta pegar do próprio nome (se já for um username válido)
+  if (!chaveCard && /^[a-z0-9]+$/.test(String(nome || '').trim())) {
+    chaveCard = String(nome).trim().toLowerCase();
+  }
+
+  // 3. Tenta resolver no Supabase (só se o nome tem espaço/maiúscula)
+  if (!chaveCard && /\s/.test(String(nome || '').trim()) && window.supabaseClient) {
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('username')
+        .ilike('nome', String(nome).trim())
+        .maybeSingle();
+
+      if (perfil?.username) {
+        chaveCard = String(perfil.username)
+          .replace(/^@/, '')
+          .trim()
+          .toLowerCase();
+
+        window.__convUsernamesNex[nome] = chaveCard;
+      }
+    } catch (err) {
+      console.warn('Erro ao resolver username no card:', err);
+    }
+  }
+
+  // 4. Fallback final: limpa o nome (sem espaços/acentos)
+  if (!chaveCard) {
+    chaveCard = String(nome || '')
       .toLowerCase()
       .replace(/[^a-z0-9]/g, '');
   }
 
-  // ⚠️ Se já existe um card pra esse username, NÃO cria outro
+  if (!chaveCard) return;
+
+  // Salva no cache (as duas direções)
+  window.__convUsernamesNex[nome] = chaveCard;
+  window.__convUsernamesNex[chaveCard] = chaveCard;
+
+  // ============================================
+  // VERIFICA SE JÁ EXISTE CARD COM ESSA CHAVE
+  // ============================================
+
   const cardExistente = Array.from(
     document.querySelectorAll('.nex-chat')
-  ).find((c) => c.dataset.chat === usernameRealCard);
+  ).find((c) => c.dataset.chat === chaveCard);
 
   if (cardExistente) {
-    // Atualiza a mensagem preview do card existente
+    // Atualiza o preview do card existente
     const p = cardExistente.querySelector('.nex-info p');
     if (p && mensagem) {
       const preview =
@@ -317,12 +356,18 @@ function criarCardConversaNex(
         'Nova mensagem';
       p.textContent = preview;
     }
+
+    // Atualiza o nome exibido (caso tenha mudado)
+    const h3 = cardExistente.querySelector('.nex-info h3');
+    if (h3) h3.textContent = nome;
+    cardExistente.dataset.nomeExibido = nome;
+
     return;
   }
 
-  // Salva no cache (consistência)
-  window.__convUsernamesNex[nome] = usernameRealCard;
-  window.__convUsernamesNex[usernameRealCard] = usernameRealCard;
+  // ============================================
+  // MONTA O CARD
+  // ============================================
 
   const textoPreview =
     mensagem?.text ||
@@ -343,16 +388,16 @@ function criarCardConversaNex(
   card.className =
     'nex-chat' + (tipoMensagem === 'recebida' ? ' unread-chat' : '');
 
-  // ⚠️ CHAVE ÚNICA = @USERNAME
-  card.dataset.chat = usernameRealCard;
+  // ⚠️ A CHAVE É O @USERNAME REAL
+  card.dataset.chat = chaveCard;
   card.dataset.nomeExibido = nome;
-  card.dataset.username = usernameRealCard;
+  card.dataset.username = chaveCard;
   card.dataset.connected = conectado ? 'yes' : 'no';
 
   card.innerHTML = `
     <div class="nex-left">
       <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
-           data-avatar-user="${escapeHTML(usernameRealCard)}"
+           data-avatar-user="${escapeHTML(chaveCard)}"
            data-avatar-fallback="${escapeHTML(inicial)}">
         ${inicial}
       </div>
@@ -365,14 +410,14 @@ function criarCardConversaNex(
 
     <div class="nex-right">
       <div class="nex-status-dot offline"
-           data-status-user="${escapeHTML(usernameRealCard)}"></div>
+           data-status-user="${escapeHTML(chaveCard)}"></div>
       <small>${escapeHTML(hora)}</small>
     </div>
   `;
 
   // Busca avatar real
   if (typeof window.buscarAvatarNex === 'function') {
-    window.buscarAvatarNex(usernameRealCard).then((url) => {
+    window.buscarAvatarNex(chaveCard).then((url) => {
       if (!url) return;
       const avatarEl = card.querySelector('.nex-avatar');
       if (avatarEl) {
@@ -383,7 +428,7 @@ function criarCardConversaNex(
 
   // Busca status real
   if (typeof window.buscarStatusNex === 'function') {
-    window.buscarStatusNex(usernameRealCard).then((online) => {
+    window.buscarStatusNex(chaveCard).then((online) => {
       const dotEl = card.querySelector('.nex-status-dot');
       if (!dotEl) return;
       dotEl.classList.toggle('online', !!online);
@@ -442,68 +487,68 @@ function atualizarAbaNaoLidasNex() {
     window.atualizarNotificacaoTabbarNex();
   }
 }
-
-// ============================================
-// MARCAR COMO LIDA
-// ============================================
-
-function marcarConversaComoLidaNex(nome, el) {
-  const conectado =
-    el?.dataset?.connected === 'yes' ||
-    window.estaConectadoNoMyDropsNex(nome);
-
-  const estado = obterEstadoConversaNex(nome, conectado);
-
-  estado.connected = conectado;
-  estado.origemAbertura = el?.closest('.nex-page')?.id || '';
-  estado.unread = false;
-
-  // Persiste no banco
-  const convId = window.__convIdsNex && window.__convIdsNex[nome];
-
-  if (convId && typeof window.marcarConversaLidaSupabase === 'function') {
-    window.marcarConversaLidaSupabase(convId).catch((err) =>
-      console.warn('Falha ao marcar lida no banco:', err)
-    );
-  }
-
-  if (!estado.replied && !estado.permanente) {
-    if (!estado.openedAt) {
-      estado.openedAt = Date.now();
-    }
-
-    if (!estado.expiresAt) {
-      estado.expiresAt = estado.openedAt + Drops.LIMITES.AUTO_LIMPEZA_MS;
-    }
-  }
-
-  if (el) {
-    el.classList.remove('unread-chat');
-    el.dataset.connected = conectado ? 'yes' : 'no';
-  }
-
-  moverCardConversaNex(
-    nome,
-    conectado ? 'nex-conectados' : 'nex-geral',
-    true
-  );
-
-  if (typeof atualizarAbaNaoLidasNex === 'function') {
-    atualizarAbaNaoLidasNex();
-  }
-}
-
-// ============================================
-// MARCAR COMO RESPONDIDA
-// ============================================
-
-function marcarConversaRespondidaNex(nome) {
-  const estado = obterEstadoConversaNex(nome);
-  estado.replied = true;
-  estado.permanente = true;
-  estado.expiresAt = null;
-}
     // ============================================
+  // MARCAR COMO LIDA
+  // ============================================
+
+  function marcarConversaComoLidaNex(nome, el) {
+    const conectado =
+      el?.dataset?.connected === 'yes' ||
+      window.estaConectadoNoMyDropsNex(nome);
+
+    const estado = obterEstadoConversaNex(nome, conectado);
+
+    estado.connected = conectado;
+    estado.origemAbertura = el?.closest('.nex-page')?.id || '';
+    estado.unread = false;
+
+    // Persiste no banco
+    const convId = window.__convIdsNex && window.__convIdsNex[nome];
+
+    if (convId && typeof window.marcarConversaLidaSupabase === 'function') {
+      window.marcarConversaLidaSupabase(convId).catch((err) =>
+        console.warn('Falha ao marcar lida no banco:', err)
+      );
+    }
+
+    if (!estado.replied && !estado.permanente) {
+      if (!estado.openedAt) {
+        estado.openedAt = Date.now();
+      }
+
+      if (!estado.expiresAt) {
+        estado.expiresAt = estado.openedAt + Drops.LIMITES.AUTO_LIMPEZA_MS;
+      }
+    }
+
+    if (el) {
+      el.classList.remove('unread-chat');
+      el.dataset.connected = conectado ? 'yes' : 'no';
+    }
+
+    moverCardConversaNex(
+      nome,
+      conectado ? 'nex-conectados' : 'nex-geral',
+      true
+    );
+
+    if (typeof atualizarAbaNaoLidasNex === 'function') {
+      atualizarAbaNaoLidasNex();
+    }
+  }
+
+  // ============================================
+  // MARCAR COMO RESPONDIDA
+  // ============================================
+
+  function marcarConversaRespondidaNex(nome) {
+    const estado = obterEstadoConversaNex(nome);
+    estado.replied = true;
+    estado.permanente = true;
+    estado.expiresAt = null;
+  }
+
+  // ============================================
   // REMOVER CONVERSA EXPIRADA
   // ============================================
 

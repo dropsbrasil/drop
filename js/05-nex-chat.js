@@ -3,8 +3,8 @@
    Chat do NEX: abrir, renderizar, enviar mensagens
 
    ⚠️ REGRA DE OURO:
-   O @username é SEMPRE a chave única da conversa.
-   NUNCA usamos o "nome exibido" como chave no Supabase.
+   - Chave interna (data-chat) = @username (usado no Supabase)
+   - Nome exibido (data-nomeExibido) = nome bonito (usado na UI)
 ============================================ */
 
 (function () {
@@ -29,7 +29,6 @@
   function abrirMenuChatNex() {
     let menu = document.getElementById('chatMenuDropdownNex');
 
-    // Cria o menu se ainda não existir
     if (!menu) {
       menu = document.createElement('div');
       menu.id = 'chatMenuDropdownNex';
@@ -61,7 +60,6 @@
       </button>
     `;
 
-    // Eventos das opções
     menu.querySelectorAll('.chat-menu-item').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -89,7 +87,6 @@
     chatMenuAbertoNex = false;
   }
 
-  // Fecha o menu ao clicar fora
   document.addEventListener('click', (e) => {
     if (!chatMenuAbertoNex) return;
 
@@ -171,7 +168,6 @@
 
     card.classList.toggle('silenciado', estaSilenciadoNex(username));
 
-    // Se silenciado e tiver msg não lida → remove da aba "Não lidas"
     if (estaSilenciadoNex(username)) {
       const listaNaoLidas = document.getElementById('nex-naolidas');
       if (listaNaoLidas && listaNaoLidas.contains(card)) {
@@ -180,205 +176,144 @@
       }
     }
   }
+
   // ============================================
-// APAGAR CONVERSA (para todos + local)
-// ============================================
+  // APAGAR CONVERSA (para todos + local)
+  // ============================================
 
-function abrirConfirmApagarChatNex(username) {
-  if (!username) return;
+  function abrirConfirmApagarChatNex(username) {
+    if (!username) return;
 
-  // Cria modal de confirmação
-  let modal = document.getElementById('confirmApagarChatNex');
+    let modal = document.getElementById('confirmApagarChatNex');
 
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'confirmApagarChatNex';
-    modal.className = 'modal-msg-nex';
-    document.body.appendChild(modal);
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'confirmApagarChatNex';
+      modal.className = 'modal-msg-nex';
+      document.body.appendChild(modal);
+    }
+
+    modal.style.display = 'flex';
+
+    modal.innerHTML = `
+      <div class="modal-msg-box">
+        <div class="modal-confirm-delete-title">
+          Apagar esta conversa?<br>
+          <small style="font-weight:500;opacity:.7;font-size:13px;">
+            Vai apagar para todos e limpar este chat.
+          </small>
+        </div>
+
+        <div class="modal-confirm-delete-actions">
+          <button
+            type="button"
+            class="btn-delete-cancel-nex"
+            id="btnCancelarApagarChatNex">
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn-delete-confirm-nex"
+            id="btnConfirmarApagarChatNex">
+            Apagar
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btnCancelarApagarChatNex').onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    document.getElementById('btnConfirmarApagarChatNex').onclick = async () => {
+      modal.style.display = 'none';
+      await apagarChatNex(username);
+    };
+
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    };
   }
 
-  modal.style.display = 'flex';
+  async function apagarChatNex(username) {
+    if (!username) return;
 
-  modal.innerHTML = `
-    <div class="modal-msg-box">
-      <div class="modal-confirm-delete-title">
-        Apagar esta conversa?<br>
-        <small style="font-weight:500;opacity:.7;font-size:13px;">
-          Vai apagar para todos e limpar este chat.
-        </small>
-      </div>
+    window.mostrarToastNex?.('Apagando conversa...', 'info');
 
-      <div class="modal-confirm-delete-actions">
-        <button
-          type="button"
-          class="btn-delete-cancel-nex"
-          id="btnCancelarApagarChatNex">
-          Cancelar
-        </button>
+    try {
+      if (window.supabaseClient) {
+        try {
+          const { data: { user } } =
+            await window.supabaseClient.auth.getUser();
 
-        <button
-          type="button"
-          class="btn-delete-confirm-nex"
-          id="btnConfirmarApagarChatNex">
-          Apagar
-        </button>
-      </div>
-    </div>
-  `;
+          if (user) {
+            const { data: perfilOutro } = await window.supabaseClient
+              .from('profiles')
+              .select('id')
+              .eq('username', username)
+              .maybeSingle();
 
-  document.getElementById('btnCancelarApagarChatNex').onclick = () => {
-    modal.style.display = 'none';
-  };
+            if (perfilOutro?.id) {
+              const { data: conversas } = await window.supabaseClient
+                .from('conversas')
+                .select('id')
+                .or(
+                  `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
+                );
 
-  document.getElementById('btnConfirmarApagarChatNex').onclick = async () => {
-    modal.style.display = 'none';
-    await apagarChatNex(username);
-  };
+              if (Array.isArray(conversas) && conversas.length) {
+                const idsConversas = conversas.map((c) => c.id);
 
-  // Fecha ao clicar fora
-  modal.onclick = (e) => {
-    if (e.target === modal) modal.style.display = 'none';
-  };
-}
+                await window.supabaseClient
+                  .from('mensagens')
+                  .delete()
+                  .in('conversa_id', idsConversas);
 
-async function apagarChatNex(username) {
-  if (!username) return;
+                await window.supabaseClient
+                  .from('conversas')
+                  .delete()
+                  .in('id', idsConversas);
 
-  window.mostrarToastNex?.('Apagando conversa...', 'info');
-
-  try {
-
-    // ============================================
-// 1. Apaga no Supabase
-// ⚠️ Descobre o convId SEM depender do cache
-// ============================================
-
-let convId =
-  window.__convIdsNex && window.__convIdsNex[username];
-
-if (window.supabaseClient) {
-  try {
-    // Se não tem no cache, busca no Supabase
-    if (!convId) {
-      const { data: { user } } =
-        await window.supabaseClient.auth.getUser();
-
-      if (user) {
-        // Busca o ID do outro usuário pelo @username
-        const { data: perfilOutro } = await window.supabaseClient
-          .from('profiles')
-          .select('id')
-          .eq('username', username)
-          .maybeSingle();
-
-        if (perfilOutro?.id) {
-          // Busca a conversa entre os dois
-          const { data: conversa } = await window.supabaseClient
-            .from('conversas')
-            .select('id')
-            .or(
-              `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
-            )
-            .maybeSingle();
-
-          if (conversa?.id) {
-            convId = conversa.id;
-            console.log('🔍 convId recuperado do Supabase:', convId);
+                console.log(
+                  `🗑️ ${idsConversas.length} conversa(s) apagada(s)`
+                );
+              }
+            }
           }
+        } catch (err) {
+          console.warn('Erro ao apagar no Supabase:', err);
         }
       }
-    }
 
-    // ============================================
-// ⚠️ APAGA **TODAS** AS CONVERSAS ENTRE OS DOIS
-// (não só uma — pode haver duplicadas)
-// ============================================
+      if (window.conversas && window.conversas[username]) {
+        delete window.conversas[username];
+      }
 
-const { data: { user } } =
-  await window.supabaseClient.auth.getUser();
+      if (window.__convIdsNex) delete window.__convIdsNex[username];
 
-if (user) {
-  // Busca o ID do outro usuário
-  const { data: perfilOutro } = await window.supabaseClient
-    .from('profiles')
-    .select('id')
-    .eq('username', username)
-    .maybeSingle();
+      const card =
+        typeof window.obterCardConversaNex === 'function'
+          ? window.obterCardConversaNex(username)
+          : document.querySelector(`.nex-chat[data-chat="${username}"]`);
 
-  if (perfilOutro?.id) {
-    // Busca TODAS as conversas entre os dois
-    const { data: conversas } = await window.supabaseClient
-      .from('conversas')
-      .select('id')
-      .or(
-        `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
-      );
+      if (card) card.remove();
 
-    if (Array.isArray(conversas) && conversas.length) {
-      const idsConversas = conversas.map((c) => c.id);
+      if (typeof window.voltarChatNex === 'function') {
+        window.voltarChatNex();
+      }
 
-      // 1. Apaga TODAS as mensagens dessas conversas
-      await window.supabaseClient
-        .from('mensagens')
-        .delete()
-        .in('conversa_id', idsConversas);
+      if (typeof window.atualizarAbaNaoLidasNex === 'function') {
+        window.atualizarAbaNaoLidasNex();
+      }
 
-      // 2. Apaga TODAS as conversas
-      await window.supabaseClient
-        .from('conversas')
-        .delete()
-        .in('id', idsConversas);
-
-      console.log(
-        `🗑️ ${idsConversas.length} conversa(s) apagada(s) do Supabase`
-      );
-    } else {
-      console.warn('⚠️ Nenhuma conversa encontrada pra apagar');
+      window.mostrarToastNex?.('Conversa apagada.', 'sucesso');
+    } catch (err) {
+      console.error('Erro ao apagar chat:', err);
+      window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
     }
   }
-}
-  } catch (err) {
-    console.warn('Erro ao apagar no Supabase:', err);
-  }
-}
-
-    // 2. Limpa o cache local
-    if (window.conversas && window.conversas[username]) {
-      delete window.conversas[username];
-    }
-
-    if (window.__convIdsNex) delete window.__convIdsNex[username];
-
-    // ⚠️ NÃO apaga o __convUsernamesNex (queremos lembrar quem é quem)
-
-    // 3. Remove o card da lista do NEX
-    const card =
-      typeof window.obterCardConversaNex === 'function'
-        ? window.obterCardConversaNex(username)
-        : document.querySelector(`.nex-chat[data-chat="${username}"]`);
-
-    if (card) card.remove();
-
-    // 4. Fecha o chat e volta pra lista
-    if (typeof window.voltarChatNex === 'function') {
-      window.voltarChatNex();
-    }
-
-    // 5. Atualiza a aba "Não lidas"
-    if (typeof window.atualizarAbaNaoLidasNex === 'function') {
-      window.atualizarAbaNaoLidasNex();
-    }
-
-    window.mostrarToastNex?.('Conversa apagada.', 'sucesso');
-
-    console.log('🗑️ Chat apagado:', username);
-  } catch (err) {
-    console.error('Erro ao apagar chat:', err);
-    window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
-  }
-}
-
-// ============================================
+  // ============================================
 // VER MÍDIAS COMPARTILHADAS
 // ============================================
 
@@ -387,7 +322,6 @@ function abrirMidiasCompartilhadasNex(username) {
 
   const mensagens = (window.conversas && window.conversas[username]) || [];
 
-  // Filtra todas as mídias (imagens, vídeos, álbuns)
   const midias = [];
 
   mensagens.forEach((msg) => {
@@ -433,7 +367,6 @@ function abrirMidiasCompartilhadasNex(username) {
     }
   });
 
-  // Cria modal
   let modal = document.getElementById('midiasCompartilhadasNex');
 
   if (!modal) {
@@ -507,7 +440,6 @@ function abrirMidiasCompartilhadasNex(username) {
     if (e.target === modal) modal.style.display = 'none';
   };
 
-  // Clique numa mídia abre o viewer
   modal.querySelectorAll('.midia-compartilhada-item-nex').forEach((el) => {
     el.addEventListener('click', () => {
       const idx = Number(el.dataset.index);
@@ -517,24 +449,21 @@ function abrirMidiasCompartilhadasNex(username) {
     });
   });
 }
-  // ============================================
-// RESOLVER USERNAME REAL (@) A PARTIR DE UM NOME
-// Tenta 3 estratégias em cascata:
-//   1. Cache em memória (__convUsernamesNex)
-//   2. data-username do card
-//   3. Busca no Supabase pelo nome exibido
+
+// ============================================
+// RESOLVER USERNAME REAL (@) A PARTIR DE UMA CHAVE
 // ============================================
 
-async function resolverUsernameRealNex(nome, card = null) {
-  if (!nome) return '';
+async function resolverUsernameRealNex(chave, card = null) {
+  if (!chave) return '';
 
   if (!window.__convUsernamesNex) {
     window.__convUsernamesNex = {};
   }
 
   // 1. Cache
-  if (window.__convUsernamesNex[nome]) {
-    return window.__convUsernamesNex[nome];
+  if (window.__convUsernamesNex[chave]) {
+    return window.__convUsernamesNex[chave];
   }
 
   // 2. data-username do card
@@ -546,21 +475,26 @@ async function resolverUsernameRealNex(nome, card = null) {
       .toLowerCase();
 
     if (limpo) {
-      window.__convUsernamesNex[nome] = limpo;
+      window.__convUsernamesNex[chave] = limpo;
       return limpo;
     }
   }
 
-  // 3. Busca no Supabase pelo nome exibido
-  if (
-    window.supabaseClient &&
-    typeof window.supabaseClient.from === 'function'
-  ) {
+  // 3. Se já é um @username válido, usa direto
+  const chaveLimpa = String(chave).replace(/^@/, '').trim().toLowerCase();
+
+  if (/^[a-z0-9]+$/.test(chaveLimpa)) {
+    window.__convUsernamesNex[chave] = chaveLimpa;
+    return chaveLimpa;
+  }
+
+  // 4. Busca no Supabase pelo nome exibido
+  if (window.supabaseClient) {
     try {
       const { data: perfil } = await window.supabaseClient
         .from('profiles')
         .select('username')
-        .ilike('nome', String(nome).trim())
+        .ilike('nome', String(chave).trim())
         .maybeSingle();
 
       if (perfil?.username) {
@@ -569,7 +503,7 @@ async function resolverUsernameRealNex(nome, card = null) {
           .trim()
           .toLowerCase();
 
-        window.__convUsernamesNex[nome] = limpo;
+        window.__convUsernamesNex[chave] = limpo;
         console.log('🔍 Username resolvido no Supabase:', limpo);
         return limpo;
       }
@@ -578,18 +512,21 @@ async function resolverUsernameRealNex(nome, card = null) {
     }
   }
 
-  // Fallback final: limpa o nome
-  const fallback = String(nome)
+  // Fallback final
+  const fallback = String(chave)
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
 
   if (fallback) {
-    window.__convUsernamesNex[nome] = fallback;
-    console.warn('⚠️ Username fallback:', fallback);
+    window.__convUsernamesNex[chave] = fallback;
   }
 
   return fallback;
 }
+
+// ============================================
+// BUSCAR AVATAR
+// ============================================
 
 async function buscarAvatarNex(username) {
   if (!username) return null;
@@ -634,31 +571,43 @@ async function buscarAvatarNex(username) {
   return null;
 }
 
+// ============================================
+// ABRIR CHAT (⚠️ CORRIGIDO: chave interna vs nome exibido)
+// ============================================
+
 async function abrirChatNex(el) {
   const card = el?.closest?.('.nex-chat') || el;
-  const nome =
+
+  // ⚠️ Chave interna (usada pra tudo no Supabase)
+  const chaveInterna =
     card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
 
-  if (!nome) return;
+  // ⚠️ Nome exibido (usado na UI)
+  const nomeExibido =
+    card?.dataset?.nomeExibido ||
+    card?.querySelector('h3')?.innerText?.trim() ||
+    chaveInterna;
+
+  if (!chaveInterna) return;
 
   // ============================================
-  // ⚠️ RESOLVE O USERNAME REAL (@) ANTES DE TUDO
+  // RESOLVE O USERNAME REAL
   // ============================================
 
-  const usernameReal = await resolverUsernameRealNex(nome, card);
+  const usernameReal = await resolverUsernameRealNex(chaveInterna, card);
 
   if (!usernameReal) {
-    console.warn('⚠️ Não foi possível resolver o username de:', nome);
+    console.warn('⚠️ Não foi possível resolver o username de:', chaveInterna);
     window.mostrarToastNex?.('Não foi possível abrir a conversa.', 'erro');
     return;
   }
 
-  // ⚠️ A PARTIR DAQUI, TUDO USA O USERNAME COMO CHAVE
+  // ⚠️ A partir daqui, tudo usa o USERNAME como chave
   Drops.estado.conversaAtual = usernameReal;
   window.setConversaAbertaNex(usernameReal);
   window.setCardAbertoNex(card);
 
-  console.log('📂 Abrindo chat. Nome:', nome, '| Username:', usernameReal);
+  console.log('📂 Abrindo chat. Chave:', chaveInterna, '| Username:', usernameReal, '| Nome:', nomeExibido);
 
   const connected =
     card?.dataset?.connected === 'yes' ||
@@ -694,17 +643,14 @@ async function abrirChatNex(el) {
 
   // ============================================
   // ⚠️ CRIA O BOTÃO ⋮ NO TOPO DO CHAT
-  // (entre o nome e o botão Voltar)
   // ============================================
 
   const chatTopMain = document.querySelector('.chat-top-main');
 
   if (chatTopMain) {
-    // Remove botão antigo se existir
     const antigo = document.getElementById('chatMenuBtnNex');
     if (antigo) antigo.remove();
 
-    // Cria novo botão
     const btnMenu = document.createElement('button');
     btnMenu.type = 'button';
     btnMenu.id = 'chatMenuBtnNex';
@@ -722,7 +668,6 @@ async function abrirChatNex(el) {
       }
     });
 
-    // Insere ANTES do chat-user-status-wrap (que tem o botão Voltar)
     const statusWrap = chatTopMain.querySelector('.chat-user-status-wrap');
 
     if (statusWrap) {
@@ -731,8 +676,6 @@ async function abrirChatNex(el) {
       chatTopMain.appendChild(btnMenu);
     }
   }
-
-  // ============================================
     // ============================================
   // PRESENÇA ONLINE/OFFLINE
   // ============================================
@@ -777,11 +720,11 @@ async function abrirChatNex(el) {
   window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
 
   // ============================================
-  // NOME DO CHAT (clicável → abre perfil)
+  // ⚠️ NOME DO CHAT = NOME EXIBIDO (não o @username)
   // ============================================
 
   if (chatName) {
-    chatName.innerText = nome;
+    chatName.innerText = nomeExibido;
     chatName.style.cursor = 'pointer';
 
     if (chatName.__clickPerfilHandler) {
@@ -790,7 +733,7 @@ async function abrirChatNex(el) {
 
     chatName.__clickPerfilHandler = () => {
       if (typeof window.abrirPerfilVisitadoNex === 'function') {
-        window.abrirPerfilVisitadoNex(usernameReal, nome);
+        window.abrirPerfilVisitadoNex(usernameReal, nomeExibido);
       }
     };
 
@@ -843,8 +786,9 @@ async function abrirChatNex(el) {
     chatStatus.classList.remove('online', 'offline');
   }
 
+  // ⚠️ Avatar mostra a inicial do NOME EXIBIDO
   if (chatAvatar) {
-    chatAvatar.innerText = nome.charAt(0).toUpperCase();
+    chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
     chatAvatar.style.backgroundImage = 'none';
     chatAvatar.style.cursor = 'pointer';
   }
@@ -857,7 +801,7 @@ async function abrirChatNex(el) {
       const perfil = await window.buscarPerfilPublicoSupabase(usernameReal);
 
       if (perfil && perfil.avatar_url && chatAvatar) {
-        chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+        chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
         chatAvatar.style.backgroundImage = 'none';
       }
     } catch (err) {
@@ -872,7 +816,7 @@ async function abrirChatNex(el) {
 
     chatAvatar.__clickPerfilHandler = () => {
       if (typeof window.abrirPerfilVisitadoNex === 'function') {
-        window.abrirPerfilVisitadoNex(usernameReal, nome);
+        window.abrirPerfilVisitadoNex(usernameReal, nomeExibido);
       }
     };
 
@@ -895,7 +839,6 @@ async function abrirChatNex(el) {
     conversas[usernameReal] = [];
   }
 
-  // Atualiza o card se estava silenciado
   atualizarSilenciadoNoCardNex(usernameReal);
 
   renderChat(usernameReal);
@@ -912,7 +855,6 @@ function voltarChatNex() {
     window.__presencaIntervalNex = null;
   }
 
-  // Fecha o menu se estiver aberto
   fecharMenuChatNex();
 
   const chat = document.getElementById('chatNex');
@@ -945,9 +887,9 @@ function voltarChatNex() {
     }, 300);
   }
 }
-  // ============================================
+
+// ============================================
 // ATUALIZAR NOTIFICAÇÃO DA TABBAR
-// (Respeitando conversas silenciadas)
 // ============================================
 
 function atualizarNotificacaoTabbarNex() {
@@ -957,7 +899,6 @@ function atualizarNotificacaoTabbarNex() {
   const listaNaoLidas = document.getElementById('nex-naolidas');
   if (!listaNaoLidas) return;
 
-  // ⚠️ Filtra: só conta cards que NÃO estão silenciados
   const cardsNaoLidos = Array.from(
     listaNaoLidas.querySelectorAll('.nex-chat')
   );
@@ -1456,7 +1397,6 @@ async function enviarMsgNex() {
 
   renderChat(conversaAtual);
 
-  // ⚠️ Limpa a prévia IMEDIATAMENTE após enviar
   if (typeof window.limparTodosPreviewsNex === 'function') {
     window.limparTodosPreviewsNex();
   }
@@ -1642,8 +1582,6 @@ async function enviarMsgNex() {
       renderChat(conversaAtual);
 
       marcarConversaRespondidaNex(conversaAtual);
-
-      console.log('✅ Enviado com sucesso. ID:', msgLocal._supabaseId);
     } catch (err) {
       console.error('❌ Erro no envio:', err);
 
@@ -2233,7 +2171,6 @@ function atualizarPreviewStackNex() {
   window.atualizarPreviewStackNex = atualizarPreviewStackNex;
   window.buscarAvatarNex = buscarAvatarNex;
 
-  // ⚠️ Exposição das novas funções do menu
   window.abrirMenuChatNex = abrirMenuChatNex;
   window.fecharMenuChatNex = fecharMenuChatNex;
   window.estaSilenciadoNex = estaSilenciadoNex;
@@ -2259,5 +2196,6 @@ function atualizarPreviewStackNex() {
     }
   };
 
-  console.log('💬 05-nex-chat.js completo (com menu, silenciar e apagar)');
+  console.log('💬 05-nex-chat.js completo (nome exibido + @username como chave)');
+
 })();
