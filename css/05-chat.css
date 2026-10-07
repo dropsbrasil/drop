@@ -553,3 +553,285 @@
   border-radius: 50%;
   display: block;
 }
+
+/* ============================================
+   BOTÃO MENU DO CHAT (topo direito)
+============================================ */
+
+.chat-menu-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  font-size: 22px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1;
+  padding: 0 0 6px 0;
+}
+
+.chat-menu-btn:active {
+  transform: scale(0.92);
+  background: rgba(37, 99, 235, 0.16);
+}
+
+/* Ajusta o header do chat pra caber o novo botão */
+.chat-top-main {
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-user-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-user-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   MENU FLUTUANTE DO CHAT
+============================================ */
+
+.chat-menu-dropdown {
+  position: fixed;
+  top: 74px;
+  right: 12px;
+  z-index: 9999999;
+  min-width: 230px;
+  max-width: calc(100vw - 24px);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 8px;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  animation: chatMenuEntrada 0.16s ease-out;
+  box-sizing: border-box;
+}
+
+.chat-menu-dropdown.aberto {
+  display: flex;
+}
+
+@keyframes chatMenuEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-menu-item {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chat-menu-item:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.chat-menu-item:active {
+  background: rgba(37, 99, 235, 0.12);
+  transform: scale(0.98);
+}
+
+.chat-menu-item-icone {
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1;
+  width: 22px;
+  text-align: center;
+}
+
+.chat-menu-item-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-menu-item.danger {
+  color: #dc2626;
+}
+
+.chat-menu-item.danger:hover {
+  background: rgba(220, 38, 38, 0.06);
+}
+
+.chat-menu-item.danger:active {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.chat-menu-divisor {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 4px 8px;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   INDICADOR DE SILENCIADO NO CARD
+============================================ */
+
+.nex-chat.silenciado {
+  border-color: transparent !important;
+}
+
+.nex-chat.silenciado.unread-chat {
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15),
+              0 8px 20px rgba(37, 99, 235, 0.22);
+}
+
+/* Ícone de silenciado (sininho cortado) */
+.nex-chat.silenciado .nex-info h3::after {
+  content: '🔕';
+  font-size: 12px;
+  margin-left: 6px;
+  opacity: 0.7;
+  vertical-align: middle;
+}
+/* ============================================
+   MODAL DE MÍDIAS COMPARTILHADAS
+============================================ */
+
+.midias-compartilhadas-modal-nex {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.midias-compartilhadas-box-nex {
+  width: min(100%, 480px);
+  max-height: 85vh;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-sizing: border-box;
+}
+
+.midias-compartilhadas-topo-nex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.midias-compartilhadas-topo-nex h3 {
+  font-size: 17px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0;
+}
+
+.midias-compartilhadas-fechar-nex {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.midias-compartilhadas-grid-nex {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.midia-compartilhada-item-nex {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1e293b;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.midia-compartilhada-item-nex:active {
+  transform: scale(0.96);
+}
+
+.midia-compartilhada-item-nex img,
+.midia-compartilhada-item-nex video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.midia-compartilhada-play-nex {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.midias-compartilhadas-vazio-nex {
+  padding: 40px 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+}
