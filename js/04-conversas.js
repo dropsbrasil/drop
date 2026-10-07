@@ -252,12 +252,44 @@ async function atualizarStatusTodosCardsNex() {
 
     const inicial = (nome || '?').charAt(0).toUpperCase();
 
-    const card = document.createElement('div');
-    card.className =
-      'nex-chat' + (tipoMensagem === 'recebida' ? ' unread-chat' : '');
-    card.dataset.chat = nome;
-    card.dataset.connected = conectado ? 'yes' : 'no';
+    // ============================================
+// ⚠️ SEMPRE USA O @USERNAME COMO CHAVE DO CARD
+// (nunca o nome exibido)
+// ============================================
 
+if (!window.__convUsernamesNex) {
+  window.__convUsernamesNex = {};
+}
+
+// Tenta pegar o username real (3 tentativas)
+let usernameRealCard =
+  window.__convUsernamesNex[nome] ||
+  (mensagem?.username) ||
+  '';
+
+// Se não tem, limpa o nome como fallback
+if (!usernameRealCard) {
+  usernameRealCard = String(nome || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// Salva no cache (garante consistência)
+window.__convUsernamesNex[nome] = usernameRealCard;
+window.__convUsernamesNex[usernameRealCard] = usernameRealCard;
+
+const card = document.createElement('div');
+card.className =
+  'nex-chat' + (tipoMensagem === 'recebida' ? ' unread-chat' : '');
+
+// ⚠️ CHAVE DO CARD = @USERNAME REAL
+card.dataset.chat = usernameRealCard;
+
+// Guarda o nome bonito pra exibir
+card.dataset.nomeExibido = nome;
+card.dataset.username = usernameRealCard;
+card.dataset.connected = conectado ? 'yes' : 'no';
+    
     // ⚠️ REGISTRA no mapa (garante que sempre terá entrada)
     if (!window.__convUsernamesNex) window.__convUsernamesNex = {};
     if (!window.__convUsernamesNex[nome]) {
@@ -273,7 +305,7 @@ const usernameReal =
 card.innerHTML = `
   <div class="nex-left">
     <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
-         data-avatar-user="${escapeHTML(usernameReal)}"
+         data-avatar-user="${escapeHTML(usernameRealCard)}"
          data-avatar-fallback="${escapeHTML(inicial)}">
       ${inicial}
     </div>
@@ -286,14 +318,14 @@ card.innerHTML = `
 
   <div class="nex-right">
     <div class="nex-status-dot offline"
-         data-status-user="${escapeHTML(usernameReal)}"></div>
+         data-status-user="${escapeHTML(usernameRealCard)}"></div>
     <small>${escapeHTML(hora)}</small>
   </div>
 `;
 
 // ⚠️ Busca avatar real (se a função estiver disponível)
 if (typeof window.buscarAvatarNex === 'function') {
-  window.buscarAvatarNex(usernameReal).then((url) => {
+  window.buscarAvatarNex(usernameRealCard).then((url) => {
     if (!url) return;
     const avatarEl = card.querySelector('.nex-avatar');
     if (avatarEl) {
@@ -304,7 +336,7 @@ if (typeof window.buscarAvatarNex === 'function') {
 
 // ⚠️ Busca status real
 if (typeof window.buscarStatusNex === 'function') {
-  window.buscarStatusNex(usernameReal).then((online) => {
+  window.buscarStatusNex(usernameRealCard).then((online) => {
     const dotEl = card.querySelector('.nex-status-dot');
     if (!dotEl) return;
     dotEl.classList.toggle('online', !!online);
