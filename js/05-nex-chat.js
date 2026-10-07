@@ -289,22 +289,54 @@ if (window.supabaseClient) {
       }
     }
 
-    // Se achou o convId, apaga as mensagens e a conversa
-    if (convId) {
+    // ============================================
+// ⚠️ APAGA **TODAS** AS CONVERSAS ENTRE OS DOIS
+// (não só uma — pode haver duplicadas)
+// ============================================
+
+const { data: { user } } =
+  await window.supabaseClient.auth.getUser();
+
+if (user) {
+  // Busca o ID do outro usuário
+  const { data: perfilOutro } = await window.supabaseClient
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (perfilOutro?.id) {
+    // Busca TODAS as conversas entre os dois
+    const { data: conversas } = await window.supabaseClient
+      .from('conversas')
+      .select('id')
+      .or(
+        `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
+      );
+
+    if (Array.isArray(conversas) && conversas.length) {
+      const idsConversas = conversas.map((c) => c.id);
+
+      // 1. Apaga TODAS as mensagens dessas conversas
       await window.supabaseClient
         .from('mensagens')
         .delete()
-        .eq('conversa_id', convId);
+        .in('conversa_id', idsConversas);
 
+      // 2. Apaga TODAS as conversas
       await window.supabaseClient
         .from('conversas')
         .delete()
-        .eq('id', convId);
+        .in('id', idsConversas);
 
-      console.log('🗑️ Conversa apagada no Supabase:', convId);
+      console.log(
+        `🗑️ ${idsConversas.length} conversa(s) apagada(s) do Supabase`
+      );
     } else {
-      console.warn('⚠️ convId não encontrado pra apagar:', username);
+      console.warn('⚠️ Nenhuma conversa encontrada pra apagar');
     }
+  }
+}
   } catch (err) {
     console.warn('Erro ao apagar no Supabase:', err);
   }
