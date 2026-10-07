@@ -958,32 +958,43 @@ function renderChat(nome) {
         }
       }
 
-      // ⚠️ AJUSTE 2: Status atualizado para 'entregue' / 'visualizado'
-      msgLocal.status = 'entregue';
+        // ⚠️ VALIDAÇÃO: Só marca como enviado se REALMENTE salvou no servidor
+  if (!convId) {
+    throw new Error('Conversa não pôde ser criada (username inválido?)');
+  }
 
-      if (Drops.estado.conversaAtual === conversaAtual) {
-        msgLocal.status = 'visualizado';
-      }
+  if (!msgLocal._supabaseId) {
+    throw new Error('Mensagem não foi salva no servidor');
+  }
 
-      renderChat(conversaAtual);
+  msgLocal.status = 'entregue';
 
-      marcarConversaRespondidaNex(conversaAtual);
-    } catch (err) {
-      console.warn('Erro no envio:', err);
+  if (Drops.estado.conversaAtual === conversaAtual) {
+    msgLocal.status = 'visualizado';
+  }
 
-      const msgErro = conversas[conversaAtual].find(
-        (m) => m.id === mensagem.id
-      );
+  renderChat(conversaAtual);
 
-      if (msgErro) {
-        msgErro.status = 'erro';
-        renderChat(conversaAtual);
-      }
+  marcarConversaRespondidaNex(conversaAtual);
 
-      window.mostrarToastNex?.(
-        'Falha ao enviar. Toque em 📤 para tentar de novo.',
-        'erro'
-      );
+  console.log('✅ Enviado com sucesso. ID:', msgLocal._supabaseId);
+} catch (err) {
+  console.error('❌ Erro no envio:', err);
+
+  const msgErro = conversas[conversaAtual].find(
+    (m) => m.id === mensagem.id
+  );
+
+  if (msgErro) {
+    msgErro.status = 'erro';
+    renderChat(conversaAtual);
+  }
+
+  window.mostrarToastNex?.(
+    'Erro: ' + (err.message || 'desconhecido'),
+    'erro',
+    6000
+  );
     }
   })();
 }
