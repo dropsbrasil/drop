@@ -9,19 +9,11 @@
   'use strict';
 
   // ============================================
-// ESTADO DAS CONVERSAS
-// ============================================
-// As conversas reais vêm do Supabase (via 25-nex-supabase.js).
-// Este objeto começa vazio e é populado dinamicamente.
-
-const conversas = {};
-
-// Expõe globalmente
-window.conversas = conversas;
-
+  // ESTADO DAS CONVERSAS
   // ============================================
-  // ESTADO DAS CONVERSAS (unread, replied, etc)
-  // ============================================
+
+  const conversas = {};
+  window.conversas = conversas;
 
   const estadoConversasNex = {};
   window.estadoConversasNex = estadoConversasNex;
@@ -74,58 +66,55 @@ window.conversas = conversas;
   // ============================================
 
   function sincronizarConversasComConectadosMyDropsNex() {
-  Object.entries(estadoConversasNex).forEach(([nome, estado]) => {
-    const conectado = window.estaConectadoNoMyDropsNex(nome);
-    estado.connected = conectado;
+    Object.entries(estadoConversasNex).forEach(([nome, estado]) => {
+      const conectado = window.estaConectadoNoMyDropsNex(nome);
+      estado.connected = conectado;
 
-    const card = obterCardConversaNex(nome);
-    if (!card) return;
+      const card = obterCardConversaNex(nome);
+      if (!card) return;
 
-    card.dataset.connected = conectado ? 'yes' : 'no';
+      card.dataset.connected = conectado ? 'yes' : 'no';
 
-    // Mensagem ainda não lida
-    if (estado.unread || card.classList.contains('unread-chat')) {
-      card.classList.add('unread-chat');
-      moverCardConversaNex(nome, 'nex-naolidas', true);
-      return;
-    }
+      if (estado.unread || card.classList.contains('unread-chat')) {
+        card.classList.add('unread-chat');
+        moverCardConversaNex(nome, 'nex-naolidas', true);
+        return;
+      }
 
-    // Mensagem já lida
-    card.classList.remove('unread-chat');
+      card.classList.remove('unread-chat');
 
-    moverCardConversaNex(
-      nome,
-      conectado ? 'nex-conectados' : 'nex-geral',
-      true
-    );
-  });
+      moverCardConversaNex(
+        nome,
+        conectado ? 'nex-conectados' : 'nex-geral',
+        true
+      );
+    });
 
-  // ⚠️ Atualiza status online/offline de todos os cards
-  atualizarStatusTodosCardsNex();
-}
+    atualizarStatusTodosCardsNex();
+  }
 
-// ⚠️ Atualiza o status de todos os cards visíveis
-async function atualizarStatusTodosCardsNex() {
-  if (typeof window.buscarStatusNex !== 'function') return;
+  // ⚠️ Atualiza o status de todos os cards visíveis
+  async function atualizarStatusTodosCardsNex() {
+    if (typeof window.buscarStatusNex !== 'function') return;
 
-  const cards = document.querySelectorAll('.nex-chat');
+    const cards = document.querySelectorAll('.nex-chat');
 
-  for (const card of cards) {
-    const dotEl = card.querySelector('.nex-status-dot');
-    if (!dotEl) continue;
+    for (const card of cards) {
+      const dotEl = card.querySelector('.nex-status-dot');
+      if (!dotEl) continue;
 
-    const username = dotEl.dataset.statusUser;
-    if (!username) continue;
+      const username = dotEl.dataset.statusUser;
+      if (!username) continue;
 
-    try {
-      const online = await window.buscarStatusNex(username);
-      dotEl.classList.toggle('online', !!online);
-      dotEl.classList.toggle('offline', !online);
-    } catch (err) {
-      // silencioso
+      try {
+        const online = await window.buscarStatusNex(username);
+        dotEl.classList.toggle('online', !!online);
+        dotEl.classList.toggle('offline', !online);
+      } catch (err) {
+        // silencioso
+      }
     }
   }
-}
 
   // ============================================
   // OBTER CARD DE UMA CONVERSA
@@ -171,17 +160,16 @@ async function atualizarStatusTodosCardsNex() {
 
     const card = obterCardConversaNex(nome);
 
-      if (card) {
-    card.classList.add('unread-chat');
-    moverCardConversaNex(nome, 'nex-naolidas', true);
+    if (card) {
+      card.classList.add('unread-chat');
+      moverCardConversaNex(nome, 'nex-naolidas', true);
+    }
+
+    if (typeof atualizarAbaNaoLidasNex === 'function') {
+      atualizarAbaNaoLidasNex();
+    }
   }
 
-  // ⚠️ Garante que a aba apareça
-  if (typeof atualizarAbaNaoLidasNex === 'function') {
-    atualizarAbaNaoLidasNex();
-  }
-  }
-  
   // ============================================
   // REGISTRAR MENSAGEM RECEBIDA
   // ============================================
@@ -201,6 +189,60 @@ async function atualizarStatusTodosCardsNex() {
   }
 
   // ============================================
+  // LIMPAR CARDS DUPLICADOS
+  // ============================================
+
+  function limparCardsDuplicadosNex() {
+    const cards = Array.from(document.querySelectorAll('.nex-chat'));
+    const porUsername = new Map();
+
+    cards.forEach((card) => {
+      const chave = (card.dataset.chat || '').trim();
+      if (!chave) {
+        card.remove();
+        return;
+      }
+
+      // Descobre o username real desse card
+      let usernameReal =
+        (window.__convUsernamesNex && window.__convUsernamesNex[chave]) || '';
+
+      if (!usernameReal) {
+        usernameReal = chave.toLowerCase().replace(/[^a-z0-9]/g, '');
+      }
+
+      if (!usernameReal) {
+        card.remove();
+        return;
+      }
+
+      // Se já tem um card pra esse username, remove o pior
+      if (porUsername.has(usernameReal)) {
+        const cardAntigo = porUsername.get(usernameReal);
+        const chaveAntiga = (cardAntigo.dataset.chat || '').trim();
+        const chaveAtual = chave;
+
+        const antigoEhUsername = !/\s/.test(chaveAntiga);
+        const atualEhUsername = !/\s/.test(chaveAtual);
+
+        if (atualEhUsername && !antigoEhUsername) {
+          // Atual é o bom → remove o antigo
+          cardAntigo.remove();
+          porUsername.set(usernameReal, card);
+        } else if (!atualEhUsername && antigoEhUsername) {
+          // Antigo é o bom → remove o atual
+          card.remove();
+        } else {
+          // Mesma qualidade → mantém o primeiro
+          card.remove();
+        }
+      } else {
+        porUsername.set(usernameReal, card);
+      }
+    });
+  }
+
+  // ============================================
   // EXPÕE GLOBALMENTE (parte 1)
   // ============================================
 
@@ -210,153 +252,164 @@ async function atualizarStatusTodosCardsNex() {
   window.obterCardConversaNex = obterCardConversaNex;
   window.moverCardConversaNex = moverCardConversaNex;
   window.marcarConversaComoNaoLidaNex = marcarConversaComoNaoLidaNex;
-
-    // ============================================
-  // CRIAR CARD DE CONVERSA NO NEX
+  window.limparCardsDuplicadosNex = limparCardsDuplicadosNex;
   // ============================================
-
-  function criarCardConversaNex(
-    nome,
-    connected = null,
-    mensagem = null,
-    tipoMensagem = 'recebida'
-  ) {
-    // Não cria card de perfil bloqueado
-    if (window.perfisBloqueadosNex && window.perfisBloqueadosNex.has(String(nome || '').toLowerCase())) return;
-
-    const conectado =
-      typeof connected === 'boolean'
-        ? connected
-        : window.estaConectadoNoMyDropsNex(nome);
-
-    const destino =
-      tipoMensagem === 'recebida'
-        ? 'nex-naolidas'
-        : (conectado ? 'nex-conectados' : 'nex-geral');
-
-    const lista = document.getElementById(destino);
-    if (!lista || obterCardConversaNex(nome)) return;
-
-    const textoPreview =
-      mensagem?.text ||
-      mensagem?.anexo?.perfilNome ||
-      mensagem?.anexo?.url ||
-      'Novo comentário';
-
-    const hora =
-      mensagem?.hora ||
-      new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-    const inicial = (nome || '?').charAt(0).toUpperCase();
-
-    // ============================================
-// ⚠️ SEMPRE USA O @USERNAME COMO CHAVE DO CARD
-// (nunca o nome exibido)
+// CRIAR CARD DE CONVERSA NO NEX
 // ============================================
 
-if (!window.__convUsernamesNex) {
-  window.__convUsernamesNex = {};
-}
-
-// Tenta pegar o username real (3 tentativas)
-let usernameRealCard =
-  window.__convUsernamesNex[nome] ||
-  (mensagem?.username) ||
-  '';
-
-// Se não tem, limpa o nome como fallback
-if (!usernameRealCard) {
-  usernameRealCard = String(nome || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-}
-
-// Salva no cache (garante consistência)
-window.__convUsernamesNex[nome] = usernameRealCard;
-window.__convUsernamesNex[usernameRealCard] = usernameRealCard;
-
-const card = document.createElement('div');
-card.className =
-  'nex-chat' + (tipoMensagem === 'recebida' ? ' unread-chat' : '');
-
-// ⚠️ CHAVE DO CARD = @USERNAME REAL
-card.dataset.chat = usernameRealCard;
-
-// Guarda o nome bonito pra exibir
-card.dataset.nomeExibido = nome;
-card.dataset.username = usernameRealCard;
-card.dataset.connected = conectado ? 'yes' : 'no';
-    
-    // ⚠️ REGISTRA no mapa (garante que sempre terá entrada)
-    if (!window.__convUsernamesNex) window.__convUsernamesNex = {};
-    if (!window.__convUsernamesNex[nome]) {
-      window.__convUsernamesNex[nome] =
-        String(nome || '').toLowerCase().replace(/^@/, '').trim();
-    }
-
-    // ⚠️ Pega o username real (do mapa) ou o nome
-const usernameReal =
-  (window.__convUsernamesNex && window.__convUsernamesNex[nome]) ||
-  String(nome || '').toLowerCase().replace(/^@/, '').trim();
-    
-card.innerHTML = `
-  <div class="nex-left">
-    <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
-         data-avatar-user="${escapeHTML(usernameRealCard)}"
-         data-avatar-fallback="${escapeHTML(inicial)}">
-      ${inicial}
-    </div>
-
-    <div class="nex-info">
-      <h3>${escapeHTML(nome)}</h3>
-      <p>${escapeHTML(textoPreview)}</p>
-    </div>
-  </div>
-
-  <div class="nex-right">
-    <div class="nex-status-dot offline"
-         data-status-user="${escapeHTML(usernameRealCard)}"></div>
-    <small>${escapeHTML(hora)}</small>
-  </div>
-`;
-
-// ⚠️ Busca avatar real (se a função estiver disponível)
-if (typeof window.buscarAvatarNex === 'function') {
-  window.buscarAvatarNex(usernameRealCard).then((url) => {
-    if (!url) return;
-    const avatarEl = card.querySelector('.nex-avatar');
-    if (avatarEl) {
-      avatarEl.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
-    }
-  });
-}
-
-// ⚠️ Busca status real
-if (typeof window.buscarStatusNex === 'function') {
-  window.buscarStatusNex(usernameRealCard).then((online) => {
-    const dotEl = card.querySelector('.nex-status-dot');
-    if (!dotEl) return;
-    dotEl.classList.toggle('online', !!online);
-    dotEl.classList.toggle('offline', !online);
-  });
-}
-
-    card.addEventListener('click', function () {
-  if (typeof window.abrirChatNex === 'function') {
-    window.abrirChatNex(card);
-  } else {
-    console.error('❌ abrirChatNex ainda não foi carregado!');
+function criarCardConversaNex(
+  nome,
+  connected = null,
+  mensagem = null,
+  tipoMensagem = 'recebida'
+) {
+  // Não cria card de perfil bloqueado
+  if (
+    window.perfisBloqueadosNex &&
+    window.perfisBloqueadosNex.has(String(nome || '').toLowerCase())
+  ) {
+    return;
   }
-});
 
-    lista.prepend(card);
+  const conectado =
+    typeof connected === 'boolean'
+      ? connected
+      : window.estaConectadoNoMyDropsNex(nome);
 
-  // ⚠️ Atualiza visibilidade da aba "Não lidas"
+  const destino =
+    tipoMensagem === 'recebida'
+      ? 'nex-naolidas'
+      : (conectado ? 'nex-conectados' : 'nex-geral');
+
+  const lista = document.getElementById(destino);
+  if (!lista) return;
+
+  // ⚠️ RESOLVE O USERNAME REAL ANTES DE CRIAR
+  if (!window.__convUsernamesNex) {
+    window.__convUsernamesNex = {};
+  }
+
+  let usernameRealCard =
+    window.__convUsernamesNex[nome] ||
+    mensagem?.username ||
+    '';
+
+  // Fallback: limpa o nome (sem espaços, sem acentos)
+  if (!usernameRealCard) {
+    usernameRealCard = String(nome || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  // ⚠️ Se já existe um card pra esse username, NÃO cria outro
+  const cardExistente = Array.from(
+    document.querySelectorAll('.nex-chat')
+  ).find((c) => c.dataset.chat === usernameRealCard);
+
+  if (cardExistente) {
+    // Atualiza a mensagem preview do card existente
+    const p = cardExistente.querySelector('.nex-info p');
+    if (p && mensagem) {
+      const preview =
+        mensagem.text ||
+        mensagem.anexo?.perfilNome ||
+        mensagem.anexo?.url ||
+        'Nova mensagem';
+      p.textContent = preview;
+    }
+    return;
+  }
+
+  // Salva no cache (consistência)
+  window.__convUsernamesNex[nome] = usernameRealCard;
+  window.__convUsernamesNex[usernameRealCard] = usernameRealCard;
+
+  const textoPreview =
+    mensagem?.text ||
+    mensagem?.anexo?.perfilNome ||
+    mensagem?.anexo?.url ||
+    'Novo comentário';
+
+  const hora =
+    mensagem?.hora ||
+    new Date().toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+  const inicial = (nome || '?').charAt(0).toUpperCase();
+
+  const card = document.createElement('div');
+  card.className =
+    'nex-chat' + (tipoMensagem === 'recebida' ? ' unread-chat' : '');
+
+  // ⚠️ CHAVE ÚNICA = @USERNAME
+  card.dataset.chat = usernameRealCard;
+  card.dataset.nomeExibido = nome;
+  card.dataset.username = usernameRealCard;
+  card.dataset.connected = conectado ? 'yes' : 'no';
+
+  card.innerHTML = `
+    <div class="nex-left">
+      <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
+           data-avatar-user="${escapeHTML(usernameRealCard)}"
+           data-avatar-fallback="${escapeHTML(inicial)}">
+        ${inicial}
+      </div>
+
+      <div class="nex-info">
+        <h3>${escapeHTML(nome)}</h3>
+        <p>${escapeHTML(textoPreview)}</p>
+      </div>
+    </div>
+
+    <div class="nex-right">
+      <div class="nex-status-dot offline"
+           data-status-user="${escapeHTML(usernameRealCard)}"></div>
+      <small>${escapeHTML(hora)}</small>
+    </div>
+  `;
+
+  // Busca avatar real
+  if (typeof window.buscarAvatarNex === 'function') {
+    window.buscarAvatarNex(usernameRealCard).then((url) => {
+      if (!url) return;
+      const avatarEl = card.querySelector('.nex-avatar');
+      if (avatarEl) {
+        avatarEl.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+      }
+    });
+  }
+
+  // Busca status real
+  if (typeof window.buscarStatusNex === 'function') {
+    window.buscarStatusNex(usernameRealCard).then((online) => {
+      const dotEl = card.querySelector('.nex-status-dot');
+      if (!dotEl) return;
+      dotEl.classList.toggle('online', !!online);
+      dotEl.classList.toggle('offline', !online);
+    });
+  }
+
+  // Clique abre o chat
+  card.addEventListener('click', function () {
+    if (typeof window.abrirChatNex === 'function') {
+      window.abrirChatNex(card);
+    } else {
+      console.error('❌ abrirChatNex ainda não foi carregado!');
+    }
+  });
+
+  lista.prepend(card);
+
+  // Atualiza visibilidade da aba "Não lidas"
   if (typeof atualizarAbaNaoLidasNex === 'function') {
     atualizarAbaNaoLidasNex();
+  }
+
+  // ⚠️ Garante que não exista duplicado
+  if (typeof limparCardsDuplicadosNex === 'function') {
+    setTimeout(limparCardsDuplicadosNex, 200);
   }
 }
 
@@ -370,15 +423,14 @@ function atualizarAbaNaoLidasNex() {
 
   if (!tabsEl || !listaNaoLidas) return;
 
-  // ⚠️ Tem alguma conversa na aba "Não lidas"?
-  const temNaoLidas = listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
+  const temNaoLidas =
+    listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
 
   if (temNaoLidas) {
     tabsEl.classList.remove('sem-naolidas');
   } else {
     tabsEl.classList.add('sem-naolidas');
 
-    // ⚠️ Se a aba ativa era "Não lidas", muda pra "Geral"
     if (Drops.estado.abaNex === 'naolidas') {
       if (typeof window.mostrarNexTab === 'function') {
         window.mostrarNexTab('geral');
@@ -386,19 +438,19 @@ function atualizarAbaNaoLidasNex() {
     }
   }
 
-  // ⚠️ Atualiza a bolinha na tabbar
   if (typeof window.atualizarNotificacaoTabbarNex === 'function') {
     window.atualizarNotificacaoTabbarNex();
   }
 }
 
-  // ============================================
-  // MARCAR COMO LIDA
-  // ============================================
+// ============================================
+// MARCAR COMO LIDA
+// ============================================
 
-  function marcarConversaComoLidaNex(nome, el) {
+function marcarConversaComoLidaNex(nome, el) {
   const conectado =
-    el?.dataset?.connected === 'yes' || window.estaConectadoNoMyDropsNex(nome);
+    el?.dataset?.connected === 'yes' ||
+    window.estaConectadoNoMyDropsNex(nome);
 
   const estado = obterEstadoConversaNex(nome, conectado);
 
@@ -406,9 +458,8 @@ function atualizarAbaNaoLidasNex() {
   estado.origemAbertura = el?.closest('.nex-page')?.id || '';
   estado.unread = false;
 
-  // ⚠️ Persiste no banco (fonte de verdade)
-  const convId =
-    window.__convIdsNex && window.__convIdsNex[nome];
+  // Persiste no banco
+  const convId = window.__convIdsNex && window.__convIdsNex[nome];
 
   if (convId && typeof window.marcarConversaLidaSupabase === 'function') {
     window.marcarConversaLidaSupabase(convId).catch((err) =>
@@ -416,46 +467,43 @@ function atualizarAbaNaoLidasNex() {
     );
   }
 
-    if (!estado.replied && !estado.permanente) {
-      if (!estado.openedAt) {
-        estado.openedAt = Date.now();
-      }
-
-      if (!estado.expiresAt) {
-        estado.expiresAt =
-          estado.openedAt + Drops.LIMITES.AUTO_LIMPEZA_MS;
-      }
+  if (!estado.replied && !estado.permanente) {
+    if (!estado.openedAt) {
+      estado.openedAt = Date.now();
     }
 
-    if (el) {
-      el.classList.remove('unread-chat');
-      el.dataset.connected = conectado ? 'yes' : 'no';
+    if (!estado.expiresAt) {
+      estado.expiresAt = estado.openedAt + Drops.LIMITES.AUTO_LIMPEZA_MS;
     }
+  }
 
-      moverCardConversaNex(
+  if (el) {
+    el.classList.remove('unread-chat');
+    el.dataset.connected = conectado ? 'yes' : 'no';
+  }
+
+  moverCardConversaNex(
     nome,
     conectado ? 'nex-conectados' : 'nex-geral',
     true
   );
 
-  // ⚠️ Verifica se a aba "Não lidas" ainda tem itens
   if (typeof atualizarAbaNaoLidasNex === 'function') {
     atualizarAbaNaoLidasNex();
   }
-  }
+}
 
-  // ============================================
-  // MARCAR COMO RESPONDIDA
-  // ============================================
+// ============================================
+// MARCAR COMO RESPONDIDA
+// ============================================
 
-  function marcarConversaRespondidaNex(nome) {
-    const estado = obterEstadoConversaNex(nome);
-    estado.replied = true;
-    estado.permanente = true;
-    estado.expiresAt = null;
-  }
-
-  // ============================================
+function marcarConversaRespondidaNex(nome) {
+  const estado = obterEstadoConversaNex(nome);
+  estado.replied = true;
+  estado.permanente = true;
+  estado.expiresAt = null;
+}
+    // ============================================
   // REMOVER CONVERSA EXPIRADA
   // ============================================
 
@@ -468,31 +516,29 @@ function atualizarAbaNaoLidasNex() {
     if (card) card.remove();
 
     if (conversaAbertaNex === nome || Drops.estado.conversaAtual === nome) {
-  conversaAbertaNex = '';
-  cardAbertoNex = null;
+      conversaAbertaNex = '';
+      cardAbertoNex = null;
 
-  const chat = document.getElementById('chatNex');
-  const nex = document.getElementById('nex');
+      const chat = document.getElementById('chatNex');
+      const nex = document.getElementById('nex');
 
-  if (chat) {
-    chat.style.display = 'none';
-    chat.classList.remove('active');
-  }
+      if (chat) {
+        chat.style.display = 'none';
+        chat.classList.remove('active');
+      }
 
-  if (nex) {
-    nex.style.display = 'block';
-    nex.classList.add('active');
-  }
+      if (nex) {
+        nex.style.display = 'block';
+        nex.classList.add('active');
+      }
 
-  // ⚠️ CORREÇÃO: restaura a tabbar via classe
-  document.body.classList.remove('chat-aberto');
+      document.body.classList.remove('chat-aberto');
 
-  if (typeof window.mostrarNexTab === 'function') {
-    window.mostrarNexTab('naolidas');
-  }
+      if (typeof window.mostrarNexTab === 'function') {
+        window.mostrarNexTab('naolidas');
+      }
     }
   }
-  
 
   // ============================================
   // AUTO-LIMPEZA (30 dias)
@@ -514,14 +560,15 @@ function atualizarAbaNaoLidasNex() {
   // EXPÕE GLOBALMENTE (parte 2)
   // ============================================
 
-window.criarCardConversaNex = criarCardConversaNex;
-window.atualizarAbaNaoLidasNex = atualizarAbaNaoLidasNex;
-window.marcarConversaComoLidaNex = marcarConversaComoLidaNex;
-window.marcarConversaRespondidaNex = marcarConversaRespondidaNex;
-window.removerConversaExpiradaNex = removerConversaExpiradaNex;
-window.executarAutoLimpezaNex = executarAutoLimpezaNex;
-window.atualizarStatusTodosCardsNex = atualizarStatusTodosCardsNex;
-  
+  window.criarCardConversaNex = criarCardConversaNex;
+  window.atualizarAbaNaoLidasNex = atualizarAbaNaoLidasNex;
+  window.marcarConversaComoLidaNex = marcarConversaComoLidaNex;
+  window.marcarConversaRespondidaNex = marcarConversaRespondidaNex;
+  window.removerConversaExpiradaNex = removerConversaExpiradaNex;
+  window.executarAutoLimpezaNex = executarAutoLimpezaNex;
+  window.atualizarStatusTodosCardsNex = atualizarStatusTodosCardsNex;
+  window.limparCardsDuplicadosNex = limparCardsDuplicadosNex;
+
   // ============================================
   // DEBUG
   // ============================================
