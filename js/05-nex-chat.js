@@ -977,14 +977,20 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
 // RENDERIZAR CHAT
 // ============================================
 
-function renderChat(nome) {
+  function renderChat(nome) {
   const area = document.getElementById('chatMsgs');
   if (!area) return;
 
   area.innerHTML = '';
 
-  const msgs = conversas[nome] || [];
+  // ⚠️ Sempre resolve pro username real (chave única)
+  const chaveUnica = (typeof window.resolverChaveNex === 'function')
+    ? window.resolverChaveNex(nome)
+    : String(nome || '').replace(/^@/, '').toLowerCase().trim();
 
+  const msgs = conversas[chaveUnica] || conversas[nome] || [];
+
+  
   msgs.forEach((msg) => {
     if (!msg.id) msg.id = gerarIdMensagemNex();
     if (!msg.timestamp) msg.timestamp = Date.now();

@@ -3,6 +3,10 @@
    NEX — conversas e mensagens no Supabase
 
    Depende de: 00-config.js, 20-supabase.js
+
+   ⚠️ REGRA DE OURO:
+   A CHAVE ÚNICA de tudo é o USERNAME REAL (@).
+   Nome exibido é só rótulo visual.
 ============================================ */
 
 (function () {
@@ -11,6 +15,21 @@
   const __carregandoConversaNex = new Set();
   const __bufferRealtimeNex = new Map();
   const __debounceLidaNex = { timer: null, pendente: null };
+
+  function normalizarUsernameNex(valor) {
+    return String(valor || '')
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  // ⚠️ Garante que a chave é SEMPRE o username real
+  function resolverChaveNex(nome) {
+    if (!nome) return '';
+    const cache = window.__convUsernamesNex || {};
+    if (cache[nome]) return normalizarUsernameNex(cache[nome]);
+    return normalizarUsernameNex(nome);
+  }
 
   async function aguardarSupabase() {
     return new Promise((resolve) => {
@@ -79,7 +98,7 @@
     try {
       const { data, error } = await window.supabaseClient
         .rpc('obter_ou_criar_conversa', {
-          username_outro: String(usernameOutro).replace(/^@/, '').trim()
+          username_outro: normalizarUsernameNex(usernameOutro)
         });
 
       if (error) {
@@ -155,6 +174,7 @@
       return [];
     }
   }
+
   // ============================================
 // ENVIAR MENSAGEM
 // ============================================
@@ -290,14 +310,13 @@ async function apagarPraTodosSupabase(mensagemId) {
 // CARREGAR CONVERSA COMPLETA (para o chat)
 // ============================================
 async function carregarConversaSupabase(nome) {
-  const usernameReal =
-    (window.__convUsernamesNex && window.__convUsernamesNex[nome]) ||
-    String(nome || '').toLowerCase().replace(/^@/, '').trim();
+  // ⚠️ Resolve pro username real (chave única)
+  const chave = resolverChaveNex(nome);
 
-  const convId = await obterOuCriarConversaSupabase(usernameReal);
+  const convId = await obterOuCriarConversaSupabase(chave);
 
   window.__convIdsNex = window.__convIdsNex || {};
-  window.__convIdsNex[nome] = convId;
+  window.__convIdsNex[chave] = convId;
 
   if (convId) __carregandoConversaNex.add(convId);
 
@@ -418,8 +437,8 @@ async function carregarConversaSupabase(nome) {
       id: m.id,
       timestamp: dataObj.getTime(),
       side: ehMinha ? 'right' : 'left',
-      nome: ehMinha ? 'Eu' : nome,
-      avatar: ehMinha ? 'EU' : (nome || '?').charAt(0).toUpperCase(),
+      nome: ehMinha ? 'Eu' : chave,
+      avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
       data: dataObj.toLocaleDateString('pt-BR'),
       hora: dataObj.toLocaleTimeString('pt-BR', {
         hour: '2-digit',
@@ -437,16 +456,24 @@ async function carregarConversaSupabase(nome) {
   });
 
   if (typeof window.conversas === 'object') {
-    window.conversas[nome] = convertidas;
+    // ⚠️ Salva SEMPRE na chave do username real
+    window.conversas[chave] = convertidas;
+
+    // ⚠️ Se veio por outro nome, aponta pra MESMA referência
+    if (nome && nome !== chave) {
+      window.conversas[nome] = convertidas;
+    }
   }
 
-  if (convId && Drops.estado.conversaAtual === nome) {
+  if (
+    convId &&
+    (resolverChaveNex(Drops.estado.conversaAtual) === chave)
+  ) {
     marcarConversaLidaDebounced(convId);
   }
 
   return convertidas;
 }
-
   // ============================================
 // SINCRONIZAR CARDS DO NEX
 // ============================================
@@ -464,40 +491,44 @@ async function sincronizarCardsNexSupabase() {
       return;
     }
 
-    const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
-
-    const { data: { user: usuarioLogado } } =
-      await window.supabaseClient.auth.getUser();
-    const meuId = usuarioLogado?.id || null;
+    const meuUser = normalizarUsernameNex(Drops.usernameAtual || '');
 
     for (const conv of lista) {
-      const usernameOutro = String(conv.outro_username || '')
-        .toLowerCase()
-        .trim();
+      const usernameOutro = normalizarUsernameNex(conv.outro_username || '');
       if (!usernameOutro) continue;
       if (usernameOutro === meuUser) continue;
 
       const nomeExibicao =
         conv.outro_nome || conv.outro_username || 'Usuário';
 
+      // ⚠️ Conversa sempre indexada pelo username real
       if (
         typeof window.conversas === 'object' &&
-        !window.conversas[nomeExibicao]
+        !window.conversas[usernameOutro]
       ) {
-        window.conversas[nomeExibicao] = [];
+        window.conversas[usernameOutro] = [];
+      }
+
+      // ⚠️ Aponta o nome exibido pra MESMA lista
+      if (
+        typeof window.conversas === 'object' &&
+        nomeExibicao !== usernameOutro
+      ) {
+        window.conversas[nomeExibicao] = window.conversas[usernameOutro];
       }
 
       window.__convIdsNex = window.__convIdsNex || {};
-      window.__convIdsNex[nomeExibicao] = conv.conversa_id;
+      window.__convIdsNex[usernameOutro] = conv.conversa_id;
 
       window.__convUsernamesNex = window.__convUsernamesNex || {};
+      window.__convUsernamesNex[usernameOutro] = usernameOutro;
       window.__convUsernamesNex[nomeExibicao] = usernameOutro;
 
       const cardExistente =
         typeof window.obterCardConversaNex === 'function'
-          ? window.obterCardConversaNex(nomeExibicao)
+          ? window.obterCardConversaNex(usernameOutro)
           : document.querySelector(
-              `.nex-chat[data-chat="${nomeExibicao}"]`
+              `.nex-chat[data-chat="${usernameOutro}"]`
             );
 
       const conectado =
@@ -512,18 +543,23 @@ async function sincronizarCardsNexSupabase() {
         }
 
         const naoLida = conv.nao_lida === true;
-        const jaEstaMarcadoNaoLida = cardExistente.classList.contains('unread-chat');
+        const jaEstaMarcadoNaoLida =
+          cardExistente.classList.contains('unread-chat');
 
         if (naoLida && !jaEstaMarcadoNaoLida) {
           cardExistente.classList.add('unread-chat');
           if (typeof window.moverCardConversaNex === 'function') {
-            window.moverCardConversaNex(nomeExibicao, 'nex-naolidas', true);
+            window.moverCardConversaNex(
+              cardExistente.dataset.chat || usernameOutro,
+              'nex-naolidas',
+              true
+            );
           }
         } else if (!naoLida && jaEstaMarcadoNaoLida) {
           cardExistente.classList.remove('unread-chat');
           if (typeof window.moverCardConversaNex === 'function') {
             window.moverCardConversaNex(
-              nomeExibicao,
+              cardExistente.dataset.chat || usernameOutro,
               conectado ? 'nex-conectados' : 'nex-geral',
               true
             );
@@ -696,20 +732,21 @@ window.addEventListener('online', () => {
 async function processarAtualizacaoMensagemNex(msg) {
   if (!msg || !msg.id) return;
 
-  let nomeContato = null;
+  // ⚠️ Descobre a chave (username real) da conversa
+  let chaveContato = null;
 
   if (window.__convIdsNex) {
     for (const [nome, id] of Object.entries(window.__convIdsNex)) {
       if (id === msg.conversa_id) {
-        nomeContato = nome;
+        chaveContato = resolverChaveNex(nome);
         break;
       }
     }
   }
 
-  if (!nomeContato) return;
+  if (!chaveContato) return;
 
-  const lista = window.conversas[nomeContato] || [];
+  const lista = window.conversas[chaveContato] || [];
   const local = lista.find(
     (m) => m._supabaseId === msg.id || m.id === msg.id
   );
@@ -725,22 +762,22 @@ async function processarAtualizacaoMensagemNex(msg) {
     if (ehMinha) {
       local.deletedText = '🗑️ Mensagem apagada';
     } else {
-      local.deletedText = `⚠️ Mensagem apagada pelo ${nomeContato}`;
+      local.deletedText = `⚠️ Mensagem apagada pelo ${chaveContato}`;
     }
 
     local.text = '';
 
     setTimeout(() => {
-      const listaAtual = window.conversas[nomeContato];
+      const listaAtual = window.conversas[chaveContato];
       if (!Array.isArray(listaAtual)) return;
 
       const index = listaAtual.indexOf(local);
       if (index !== -1) {
         listaAtual.splice(index, 1);
 
-        if (Drops.estado.conversaAtual === nomeContato) {
+        if (resolverChaveNex(Drops.estado.conversaAtual) === chaveContato) {
           if (typeof window.renderChat === 'function') {
-            window.renderChat(nomeContato);
+            window.renderChat(chaveContato);
           }
         }
       }
@@ -756,49 +793,47 @@ async function processarAtualizacaoMensagemNex(msg) {
     local.edited = msg.editada === true;
   }
 
-  if (Drops.estado.conversaAtual === nomeContato) {
+  if (resolverChaveNex(Drops.estado.conversaAtual) === chaveContato) {
     if (typeof window.renderChat === 'function') {
-      window.renderChat(nomeContato);
+      window.renderChat(chaveContato);
     }
   }
 }
 
-function normalizarUsernameNex(valor) {
-  return String(valor || '')
-    .replace(/^@/, '')
-    .toLowerCase()
-    .trim();
-}
-
+// ============================================
+// PROCESSA MENSAGEM NOVA (INSERT)
+// ============================================
 async function processarMensagemRealtimeNex(msg) {
   if (!msg || !msg.conversa_id) return;
 
-  let nomeContato = null;
+  // ⚠️ Descobre a chave (username real) da conversa
+  let chaveContato = null;
 
   if (window.__convIdsNex) {
     for (const [nome, id] of Object.entries(window.__convIdsNex)) {
       if (id === msg.conversa_id) {
-        nomeContato = nome;
+        chaveContato = resolverChaveNex(nome);
         break;
       }
     }
   }
 
-  if (!nomeContato) {
+  if (!chaveContato) {
     await sincronizarCardsNexSupabase();
 
     if (window.__convIdsNex) {
       for (const [nome, id] of Object.entries(window.__convIdsNex)) {
         if (id === msg.conversa_id) {
-          nomeContato = nome;
+          chaveContato = resolverChaveNex(nome);
           break;
         }
       }
     }
   }
 
-  if (!nomeContato) return;
+  if (!chaveContato) return;
 
+  // ⚠️ Conversa carregando? Guarda no buffer
   if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
     if (!__bufferRealtimeNex.has(msg.conversa_id)) {
       __bufferRealtimeNex.set(msg.conversa_id, []);
@@ -808,11 +843,13 @@ async function processarMensagemRealtimeNex(msg) {
     return;
   }
 
-  if (!window.conversas[nomeContato]) {
-    window.conversas[nomeContato] = [];
+  // ⚠️ Garante a lista na chave única
+  if (!window.conversas[chaveContato]) {
+    window.conversas[chaveContato] = [];
   }
 
-  const jaExiste = window.conversas[nomeContato].some(
+  // ⚠️ Evita duplicata
+  const jaExiste = window.conversas[chaveContato].some(
     (m) => m.id === msg.id || m._supabaseId === msg.id
   );
   if (jaExiste) return;
@@ -910,8 +947,8 @@ async function processarMensagemRealtimeNex(msg) {
     id: msg.id,
     timestamp: dataObj.getTime(),
     side: 'left',
-    nome: nomeContato,
-    avatar: (nomeContato || '?').charAt(0).toUpperCase(),
+    nome: chaveContato,
+    avatar: (chaveContato || '?').charAt(0).toUpperCase(),
     data: dataObj.toLocaleDateString('pt-BR'),
     hora: dataObj.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
@@ -927,23 +964,22 @@ async function processarMensagemRealtimeNex(msg) {
     _supabaseId: msg.id
   };
 
+  // ⚠️ Se tem resposta, e a original não está carregada, recarrega tudo
   if (msg.resposta_a_id) {
-    const jaTemOriginal = window.conversas[nomeContato].some(
+    const jaTemOriginal = window.conversas[chaveContato].some(
       (m) => m._supabaseId === msg.resposta_a_id || m.id === msg.resposta_a_id
     );
 
     if (!jaTemOriginal) {
       try {
-        const convId = window.__convIdsNex[nomeContato];
-        if (
-          convId &&
-          typeof window.buscarMensagensSupabase === 'function'
-        ) {
+        const convId = window.__convIdsNex[chaveContato];
+        if (convId && typeof window.buscarMensagensSupabase === 'function') {
           const todas = await window.buscarMensagensSupabase(convId);
-          const { data: { user } } = await window.supabaseClient.auth.getUser();
+          const { data: { user } } =
+            await window.supabaseClient.auth.getUser();
           const meuId = user?.id || null;
 
-          window.conversas[nomeContato] = (todas || []).map((m) => {
+          window.conversas[chaveContato] = (todas || []).map((m) => {
             const d = new Date(m.criado_em);
             const ehMinha = m.autor_id === meuId;
 
@@ -952,8 +988,13 @@ async function processarMensagemRealtimeNex(msg) {
 
             if (m.tipo === 'location') {
               const loc = metaRecarga.localizacao || (
-                (typeof metaRecarga.lat === 'number' && typeof metaRecarga.lng === 'number')
-                  ? { lat: metaRecarga.lat, lng: metaRecarga.lng, address: metaRecarga.address }
+                (typeof metaRecarga.lat === 'number' &&
+                 typeof metaRecarga.lng === 'number')
+                  ? {
+                      lat: metaRecarga.lat,
+                      lng: metaRecarga.lng,
+                      address: metaRecarga.address
+                    }
                   : null
               );
 
@@ -971,7 +1012,11 @@ async function processarMensagemRealtimeNex(msg) {
                   lat: 0,
                   lng: 0,
                   address: 'Localização indisponível',
-                  localizacao: { lat: 0, lng: 0, address: 'Localização indisponível' },
+                  localizacao: {
+                    lat: 0,
+                    lng: 0,
+                    address: 'Localização indisponível'
+                  },
                   _quebrado: true
                 };
               }
@@ -991,13 +1036,19 @@ async function processarMensagemRealtimeNex(msg) {
               const mids = metaRecarga.midias || metaRecarga.urls || [];
               if (mids.length === 1) {
                 const u = typeof mids[0] === 'string' ? mids[0] : mids[0].url;
-                const t = (typeof mids[0] === 'object' && mids[0].type) || 'imagem';
-                anexoRecarga = { type: t === 'video' ? 'video' : 'imagem', url: u };
+                const t =
+                  (typeof mids[0] === 'object' && mids[0].type) || 'imagem';
+                anexoRecarga = {
+                  type: t === 'video' ? 'video' : 'imagem',
+                  url: u
+                };
               } else {
                 anexoRecarga = {
                   type: 'album',
                   midias: mids,
-                  urls: mids.map((x) => (typeof x === 'string' ? x : x.url))
+                  urls: mids.map((x) =>
+                    typeof x === 'string' ? x : x.url
+                  )
                 };
               }
             } else if (m.media_url && m.tipo !== 'audio') {
@@ -1032,10 +1083,13 @@ async function processarMensagemRealtimeNex(msg) {
               id: m.id,
               timestamp: d.getTime(),
               side: ehMinha ? 'right' : 'left',
-              nome: ehMinha ? 'Eu' : nomeContato,
-              avatar: ehMinha ? 'EU' : (nomeContato || '?').charAt(0).toUpperCase(),
+              nome: ehMinha ? 'Eu' : chaveContato,
+              avatar: ehMinha ? 'EU' : (chaveContato || '?').charAt(0).toUpperCase(),
               data: d.toLocaleDateString('pt-BR'),
-              hora: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+              hora: d.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
               status: 'enviado',
               text: m.texto || '',
               audio: m.tipo === 'audio' ? m.media_url : null,
@@ -1047,9 +1101,9 @@ async function processarMensagemRealtimeNex(msg) {
             };
           });
 
-          if (Drops.estado.conversaAtual === nomeContato) {
+          if (resolverChaveNex(Drops.estado.conversaAtual) === chaveContato) {
             if (typeof window.renderChat === 'function') {
-              window.renderChat(nomeContato);
+              window.renderChat(chaveContato);
             }
           }
           return;
@@ -1060,84 +1114,42 @@ async function processarMensagemRealtimeNex(msg) {
     }
   }
 
-  window.conversas[nomeContato].push(nova);
+  // ⚠️ Insere na chave única
+  window.conversas[chaveContato].push(nova);
 
-const chatEl = document.getElementById('chatNex');
-const chatEstaVisivel =
-  chatEl && getComputedStyle(chatEl).display !== 'none';
+  // ⚠️ Chat aberto = compara pelo username real
+  const chatEl = document.getElementById('chatNex');
+  const chatEstaVisivel =
+    chatEl && getComputedStyle(chatEl).display !== 'none';
 
-const conversaAberta = Drops.estado.conversaAtual;
+  const chaveAberta = resolverChaveNex(Drops.estado.conversaAtual);
 
-// ⚠️ Nome que está EXIBIDO no header do chat aberto agora
-const headerNomeAberto = document.getElementById('chatName')?.innerText?.trim() || '';
-
-// ⚠️ Username real do contato da mensagem que chegou
-const usernameRealContato = normalizarUsernameNex(
-  (window.__convUsernamesNex && window.__convUsernamesNex[nomeContato]) ||
-  nomeContato
-);
-
-// ⚠️ Compara de 3 formas: nome exibido no header, chave da conversa aberta, username real
-const headerLimpo = normalizarUsernameNex(headerNomeAberto);
-const contatoLimpo = normalizarUsernameNex(nomeContato);
-const abertaLimpa = normalizarUsernameNex(conversaAberta);
-
-const chatDaPessoaEstaAberto =
-  chatEstaVisivel &&
-  (
-    headerLimpo === contatoLimpo ||
-    headerLimpo === usernameRealContato ||
-    abertaLimpa === contatoLimpo ||
-    abertaLimpa === usernameRealContato
-  );
-
-console.log('🔍 [Realtime] Comparação de chat:', {
-  conversaAberta,
-  nomeContato,
-  headerNomeAberto,
-  usernameRealContato,
-  headerLimpo,
-  contatoLimpo,
-  abertaLimpa,
-  chatEstaVisivel,
-  chatDaPessoaEstaAberto
-});
+  const chatDaPessoaEstaAberto =
+    chatEstaVisivel && chaveAberta === chaveContato;
 
   if (chatDaPessoaEstaAberto) {
-  // ⚠️ Usa a chave que window.conversas REALMENTE conhece
-  const chaveRender =
-    (window.conversas && window.conversas[nomeContato]) ? nomeContato :
-    (window.conversas && window.conversas[conversaAberta]) ? conversaAberta :
-    nomeContato;
+    if (typeof window.renderChat === 'function') {
+      window.renderChat(chaveContato);
+    }
 
-  console.log('🖼️ Renderizando chat com chave:', chaveRender);
-
-  if (typeof window.renderChat === 'function') {
-    window.renderChat(chaveRender);
-
-    setTimeout(() => {
-      if (typeof window.renderChat === 'function') {
-        window.renderChat(chaveRender);
-      }
-    }, 100);
-  }
-
-  const convIdAberto = window.__convIdsNex && window.__convIdsNex[nomeContato];
-  if (convIdAberto) {
-    marcarConversaLidaDebounced(convIdAberto);
-  }
-} else {
+    const convIdAberto =
+      window.__convIdsNex && window.__convIdsNex[chaveContato];
+    if (convIdAberto) {
+      marcarConversaLidaDebounced(convIdAberto);
+    }
+  } else {
     if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
-      window.marcarConversaComoNaoLidaNex(nomeContato);
+      window.marcarConversaComoNaoLidaNex(chaveContato);
     }
 
     if (typeof window.notificarMensagemNovaNex === 'function') {
-      window.notificarMensagemNovaNex(nomeContato, nova);
+      window.notificarMensagemNovaNex(chaveContato, nova);
     }
   }
 
+  // ⚠️ Atualiza preview do card
   const card = typeof window.obterCardConversaNex === 'function'
-    ? window.obterCardConversaNex(nomeContato)
+    ? window.obterCardConversaNex(chaveContato)
     : null;
 
   if (card) {
@@ -1147,6 +1159,7 @@ console.log('🔍 [Realtime] Comparação de chat:', {
     await sincronizarCardsNexSupabase();
   }
 }
+
   // ============================================
 // UPLOAD DE MÍDIA DO NEX
 // ============================================
@@ -1201,13 +1214,20 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
         size: blob.size,
         extensao
       });
-    } else if (typeof arquivo === 'string' && /^(blob:|https?:)/.test(arquivo)) {
+    } else if (
+      typeof arquivo === 'string' &&
+      /^(blob:|https?:)/.test(arquivo)
+    ) {
       let res;
 
       try {
         res = await fetch(arquivo);
       } catch (fetchErr) {
-        console.error('❌ fetch falhou (blob URL revogada?):', arquivo.slice(0, 80), fetchErr);
+        console.error(
+          '❌ fetch falhou (blob URL revogada?):',
+          arquivo.slice(0, 80),
+          fetchErr
+        );
         return null;
       }
 
@@ -1247,11 +1267,17 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
       return null;
     }
 
-    const nomeArquivo = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${extensao}`;
+    const nomeArquivo = `${user.id}/${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2, 8)}.${extensao}`;
 
     let contentType = blob.type;
 
-    if (!contentType || contentType === 'application/octet-stream' || contentType === '') {
+    if (
+      !contentType ||
+      contentType === 'application/octet-stream' ||
+      contentType === ''
+    ) {
       if (extensao === 'jpg' || extensao === 'jpeg') {
         contentType = 'image/jpeg';
       } else if (extensao === 'png') {
@@ -1281,13 +1307,14 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
       }
     }
 
-    const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
-      .from('nex')
-      .upload(nomeArquivo, blob, {
-        contentType: contentType,
-        upsert: false,
-        cacheControl: '3600'
-      });
+    const { data: uploadData, error: uploadError } =
+      await window.supabaseClient.storage
+        .from('nex')
+        .upload(nomeArquivo, blob, {
+          contentType: contentType,
+          upsert: false,
+          cacheControl: '3600'
+        });
 
     if (uploadError) {
       console.error('❌ Erro no upload do NEX:', {
@@ -1345,7 +1372,10 @@ function notificarMensagemNovaNex(nomeContato, mensagem) {
     corpo = String(mensagem.text).slice(0, 80);
   } else if (mensagem.audio) {
     corpo = '🎙️ Áudio';
-  } else if (mensagem.anexo?.type === 'imagem' || mensagem.anexo?.type === 'image') {
+  } else if (
+    mensagem.anexo?.type === 'imagem' ||
+    mensagem.anexo?.type === 'image'
+  ) {
     corpo = '📷 Foto';
   } else if (mensagem.anexo?.type === 'video') {
     corpo = '🎥 Vídeo';
@@ -1398,7 +1428,7 @@ async function pedirPermissaoNotificacaoNex() {
     return false;
   }
 }
-  
+
     // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
@@ -1418,6 +1448,8 @@ async function pedirPermissaoNotificacaoNex() {
   window.uploadMidiaNexSupabase = uploadMidiaNexSupabase;
   window.notificarMensagemNovaNex = notificarMensagemNovaNex;
   window.pedirPermissaoNotificacaoNex = pedirPermissaoNotificacaoNex;
+  window.normalizarUsernameNex = normalizarUsernameNex;
+  window.resolverChaveNex = resolverChaveNex;
 
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
