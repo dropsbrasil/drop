@@ -841,3 +841,18 @@
   font-size: 14px;
   font-weight: 600;
 }
+/* ⚠️ Cobre a faixa abaixo do input (Android PWA) */
+#chatNex::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100px;
+  background: #ffffff;
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: 71;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
