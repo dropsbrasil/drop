@@ -831,18 +831,33 @@ window.__convNomesExibidosNex[usernameReal] = nomeExibido;
   // ============================================
 
   if (typeof window.carregarConversaSupabase === 'function') {
-    try {
-      await window.carregarConversaSupabase(usernameReal);
-    } catch (err) {
-      console.warn('Erro ao carregar conversa do Supabase:', err);
-    }
+  try {
+    await window.carregarConversaSupabase(usernameReal);
+  } catch (err) {
+    console.warn('Erro ao carregar conversa do Supabase:', err);
   }
+}
 
-  if (!conversas[usernameReal]) {
-    conversas[usernameReal] = [];
-  }
+if (!conversas[usernameReal]) {
+  conversas[usernameReal] = [];
+}
 
-  atualizarSilenciadoNoCardNex(usernameReal);
+// ⚠️ Marca as mensagens da conversa como VISUALIZADAS no banco
+const convIdParaMarcarVisto =
+  window.__convIdsNex && window.__convIdsNex[usernameReal];
+
+if (
+  convIdParaMarcarVisto &&
+  typeof window.marcarMensagensComoVisualizadasSupabase === 'function'
+) {
+  window
+    .marcarMensagensComoVisualizadasSupabase(convIdParaMarcarVisto)
+    .catch((err) =>
+      console.warn('Falha ao marcar visualizadas:', err)
+    );
+}
+
+atualizarSilenciadoNoCardNex(usernameReal);
 
   renderChat(usernameReal);
   document.getElementById('chatInput')?.focus();
@@ -1668,13 +1683,12 @@ if (msgLocal.audio) {
         throw new Error('Mensagem não foi salva no servidor');
       }
 
-      msgLocal.status = 'entregue';
+      // ⚠️ Sempre 'enviado'. O backend atualiza pra 'entregue'
+//    e 'visualizado' via Realtime quando o outro lado
+//    receber/abrir a mensagem.
+msgLocal.status = 'enviado';
 
-      if (Drops.estado.conversaAtual === conversaAtual) {
-        msgLocal.status = 'visualizado';
-      }
-
-        renderChat(conversaAtual);
+  renderChat(conversaAtual);
 
   marcarConversaRespondidaNex(conversaAtual);
 
@@ -1830,13 +1844,10 @@ async function reenviarMensagemNex(msgId) {
       throw new Error('Mensagem não foi salva no servidor');
     }
 
-    novaMensagem.status = 'entregue';
+    novaMensagem.status = 'enviado';
 
-    if (Drops.estado.conversaAtual === conversaAtual) {
-      novaMensagem.status = 'visualizado';
-    }
-
-    renderChat(conversaAtual);
+renderChat(conversaAtual);
+    
   } catch (err) {
     console.warn('Erro no reenvio:', err);
     novaMensagem.status = 'erro';

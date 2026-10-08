@@ -71,28 +71,134 @@
   }
 
   // ============================================
-  // DEBOUNCE — marcar conversa como lida
-  // ============================================
-  function marcarConversaLidaDebounced(conversaId) {
-    if (!conversaId) return;
-    __debounceLidaNex.pendente = conversaId;
-    if (__debounceLidaNex.timer) clearTimeout(__debounceLidaNex.timer);
-    __debounceLidaNex.timer = setTimeout(() => {
-      const id = __debounceLidaNex.pendente;
-      __debounceLidaNex.pendente = null;
-      __debounceLidaNex.timer = null;
-      if (id) {
-        marcarConversaLidaSupabase(id).catch((err) =>
-          console.warn('Falha ao marcar lida (debounce):', err)
-        );
-      }
-    }, 600);
-  }
+// DEBOUNCE — marcar conversa como lida
+// ============================================
+function marcarConversaLidaDebounced(conversaId) {
+  if (!conversaId) return;
+  __debounceLidaNex.pendente = conversaId;
+  if (__debounceLidaNex.timer) clearTimeout(__debounceLidaNex.timer);
+  __debounceLidaNex.timer = setTimeout(() => {
+    const id = __debounceLidaNex.pendente;
+    __debounceLidaNex.pendente = null;
+    __debounceLidaNex.timer = null;
+    if (id) {
+      marcarConversaLidaSupabase(id).catch((err) =>
+        console.warn('Falha ao marcar lida (debounce):', err)
+      );
+    }
+  }, 600);
+}
 
-  // ============================================
-  // OBTER OU CRIAR CONVERSA
-  // ============================================
-  async function obterOuCriarConversaSupabase(usernameOutro) {
+// ============================================
+// MARCAR MENSAGENS COMO ENTREGUES
+// ============================================
+async function marcarMensagensComoEntreguesSupabase(conversaId) {
+  if (!window.supabaseClient || !conversaId) return false;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return false;
+
+    const { error } = await window.supabaseClient
+      .from('mensagens')
+      .update({ entregue_em: new Date().toISOString() })
+      .eq('conversa_id', conversaId)
+      .neq('autor_id', user.id)
+      .is('entregue_em', null);
+
+    if (error) {
+      console.warn('Erro ao marcar entregue:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Erro ao marcar entregue:', err);
+    return false;
+  }
+}
+
+// ============================================
+// MARCAR MENSAGENS COMO VISUALIZADAS
+// ============================================
+async function marcarMensagensComoVisualizadasSupabase(conversaId) {
+  if (!window.supabaseClient || !conversaId) return false;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return false;
+
+    const agora = new Date().toISOString();
+
+    const { error } = await window.supabaseClient
+      .from('mensagens')
+      .update({
+        visualizado_em: agora,
+        entregue_em: agora
+      })
+      .eq('conversa_id', conversaId)
+      .neq('autor_id', user.id)
+      .is('visualizado_em', null);
+
+    if (error) {
+      console.warn('Erro ao marcar visualizado:', error);
+      return false;
+    }
+
+    const { error: errEntrega } = await window.supabaseClient
+      .from('mensagens')
+      .update({ entregue_em: agora })
+      .eq('conversa_id', conversaId)
+      .neq('autor_id', user.id)
+      .is('entregue_em', null);
+
+    if (errEntrega) {
+      console.warn('Erro ao completar entregue_em:', errEntrega);
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('Erro ao marcar visualizado:', err);
+    return false;
+  }
+}
+
+// ============================================
+// BUSCAR STATUS DAS MENSAGENS (entregue/visualizado)
+// ============================================
+async function buscarStatusMensagensSupabase(conversaId) {
+  if (!window.supabaseClient || !conversaId) return {};
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('mensagens')
+      .select('id, entregue_em, visualizado_em')
+      .eq('conversa_id', conversaId);
+
+    if (error) {
+      console.warn('Erro ao buscar status:', error);
+      return {};
+    }
+
+    const mapa = {};
+    (data || []).forEach((m) => {
+      mapa[m.id] = {
+        entregue_em: m.entregue_em,
+        visualizado_em: m.visualizado_em
+      };
+    });
+
+    return mapa;
+  } catch (err) {
+    console.warn('Erro ao buscar status:', err);
+    return {};
+  }
+}
+
+// ============================================
+// OBTER OU CRIAR CONVERSA
+// ============================================
+async function obterOuCriarConversaSupabase(usernameOutro) {
     if (!window.supabaseClient || !usernameOutro) return null;
 
     try {
@@ -433,26 +539,33 @@ async function carregarConversaSupabase(nome) {
       };
     }
 
-    return {
-      id: m.id,
-      timestamp: dataObj.getTime(),
-      side: ehMinha ? 'right' : 'left',
-      nome: ehMinha ? 'Eu' : chave,
-      avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
-      data: dataObj.toLocaleDateString('pt-BR'),
-      hora: dataObj.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: 'enviado',
-      text: m.texto || '',
-      audio: m.tipo === 'audio' ? m.media_url : null,
-      anexo,
-      resposta: respostaCompleta,
-      edited: m.editada === true,
-      deleted: m.apagada_para_todos === true,
-      _supabaseId: m.id
-    };
+    let statusMsg = 'enviado';
+
+if (ehMinha) {
+  if (m.visualizado_em) statusMsg = 'visualizado';
+  else if (m.entregue_em) statusMsg = 'entregue';
+}
+
+return {
+  id: m.id,
+  timestamp: dataObj.getTime(),
+  side: ehMinha ? 'right' : 'left',
+  nome: ehMinha ? 'Eu' : chave,
+  avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
+  data: dataObj.toLocaleDateString('pt-BR'),
+  hora: dataObj.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }),
+  status: statusMsg,
+  text: m.texto || '',
+  audio: m.tipo === 'audio' ? m.media_url : null,
+  anexo,
+  resposta: respostaCompleta,
+  edited: m.editada === true,
+  deleted: m.apagada_para_todos === true,
+  _supabaseId: m.id
+};
   });
 
   if (typeof window.conversas === 'object') {
@@ -647,12 +760,18 @@ async function iniciarRealtimeNexSupabase() {
           table: 'mensagens'
         },
         (payload) => {
-          const msg = payload.new;
-          if (!msg) return;
-          if (msg.autor_id === user.id) return;
+  const msg = payload.new;
+  if (!msg) return;
 
-          console.log('✏️ Mensagem atualizada via Realtime:', msg);
-          processarAtualizacaoMensagemNex(msg);
+  // ⚠️ Se é MINHA mensagem e mudou status (entregue/visto),
+  //    atualiza o objeto local pra refletir ✓✓ e 👁️
+  if (msg.autor_id === user.id) {
+    processarStatusMinhaMensagemNex(msg);
+    return;
+  }
+
+  console.log('✏️ Mensagem atualizada via Realtime:', msg);
+  processarAtualizacaoMensagemNex(msg);
         }
       )
       .subscribe((status) => {
@@ -729,7 +848,52 @@ window.addEventListener('online', () => {
   iniciarRealtimeNexSupabase();
 });
 
-  // ============================================
+// ============================================
+// ATUALIZA STATUS DE MENSAGEM MINHA (entregue/visto)
+// ============================================
+function processarStatusMinhaMensagemNex(msg) {
+  if (!msg || !msg.id) return;
+
+  let chaveContato = null;
+
+  if (window.__convIdsNex) {
+    for (const [nome, id] of Object.entries(window.__convIdsNex)) {
+      if (id === msg.conversa_id) {
+        chaveContato = resolverChaveNex(nome);
+        break;
+      }
+    }
+  }
+
+  if (!chaveContato) return;
+
+  const lista = window.conversas[chaveContato] || [];
+  const local = lista.find(
+    (m) => m._supabaseId === msg.id || m.id === msg.id
+  );
+
+  if (!local) return;
+
+  let novoStatus = 'enviado';
+
+  if (msg.visualizado_em) {
+    novoStatus = 'visualizado';
+  } else if (msg.entregue_em) {
+    novoStatus = 'entregue';
+  }
+
+  if (local.status === novoStatus) return;
+
+  local.status = novoStatus;
+
+  if (resolverChaveNex(Drops.estado.conversaAtual) === chaveContato) {
+    if (typeof window.renderChat === 'function') {
+      window.renderChat(chaveContato);
+    }
+  }
+}
+
+// ============================================
 // PROCESSA UPDATE (edição / apagar pra todos)
 // ============================================
 async function processarAtualizacaoMensagemNex(msg) {
@@ -836,8 +1000,13 @@ async function processarMensagemRealtimeNex(msg) {
 
   if (!chaveContato) return;
 
-  // ⚠️ Conversa carregando? Guarda no buffer
-  if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
+// ⚠️ Marca as mensagens dessa conversa como ENTREGUES
+marcarMensagensComoEntreguesSupabase(msg.conversa_id).catch((err) =>
+  console.warn('Falha ao marcar entregues (realtime):', err)
+);
+
+// ⚠️ Conversa carregando? Guarda no buffer
+if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
     if (!__bufferRealtimeNex.has(msg.conversa_id)) {
       __bufferRealtimeNex.set(msg.conversa_id, []);
     }
@@ -1082,26 +1251,33 @@ async function processarMensagemRealtimeNex(msg) {
               };
             }
 
-            return {
-              id: m.id,
-              timestamp: d.getTime(),
-              side: ehMinha ? 'right' : 'left',
-              nome: ehMinha ? 'Eu' : chaveContato,
-              avatar: ehMinha ? 'EU' : (chaveContato || '?').charAt(0).toUpperCase(),
-              data: d.toLocaleDateString('pt-BR'),
-              hora: d.toLocaleTimeString('pt-BR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              }),
-              status: 'enviado',
-              text: m.texto || '',
-              audio: m.tipo === 'audio' ? m.media_url : null,
-              anexo: anexoRecarga,
-              resposta: respostaRecarga,
-              edited: m.editada === true,
-              deleted: m.apagada_para_todos === true,
-              _supabaseId: m.id
-            };
+            let statusMsgR = 'enviado';
+
+if (ehMinha) {
+  if (m.visualizado_em) statusMsgR = 'visualizado';
+  else if (m.entregue_em) statusMsgR = 'entregue';
+}
+
+return {
+  id: m.id,
+  timestamp: d.getTime(),
+  side: ehMinha ? 'right' : 'left',
+  nome: ehMinha ? 'Eu' : chaveContato,
+  avatar: ehMinha ? 'EU' : (chaveContato || '?').charAt(0).toUpperCase(),
+  data: d.toLocaleDateString('pt-BR'),
+  hora: d.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }),
+  status: statusMsgR,
+  text: m.texto || '',
+  audio: m.tipo === 'audio' ? m.media_url : null,
+  anexo: anexoRecarga,
+  resposta: respostaRecarga,
+  edited: m.editada === true,
+  deleted: m.apagada_para_todos === true,
+  _supabaseId: m.id
+};
           });
 
           if (resolverChaveNex(Drops.estado.conversaAtual) === chaveContato) {
@@ -1438,6 +1614,9 @@ async function pedirPermissaoNotificacaoNex() {
   window.carregarConversaSupabase = carregarConversaSupabase;
   window.marcarConversaLidaSupabase = marcarConversaLidaSupabase;
   window.marcarConversaLidaDebounced = marcarConversaLidaDebounced;
+window.marcarMensagensComoEntreguesSupabase = marcarMensagensComoEntreguesSupabase;
+window.marcarMensagensComoVisualizadasSupabase = marcarMensagensComoVisualizadasSupabase;
+window.buscarStatusMensagensSupabase = buscarStatusMensagensSupabase;
   window.obterOuCriarConversaSupabase = obterOuCriarConversaSupabase;
   window.listarMinhasConversasSupabase = listarMinhasConversasSupabase;
   window.buscarMensagensSupabase = buscarMensagensSupabase;
