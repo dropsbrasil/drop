@@ -1287,5 +1287,42 @@ if (window.pdfjsLib) {
 <!-- Script de selos (por último) -->
 <script src="./js/selos.js"></script>
 
+<!-- ============================================
+     ATUALIZAÇÃO AUTOMÁTICA DO SERVICE WORKER
+============================================ -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+
+        // Verifica atualização a cada 60 segundos
+        setInterval(() => reg.update(), 60 * 1000);
+
+        // Detectou SW novo esperando
+        reg.addEventListener('updatefound', () => {
+          const novoSW = reg.installing;
+          if (!novoSW) return;
+
+          novoSW.addEventListener('statechange', () => {
+            if (novoSW.state === 'installed' && navigator.serviceWorker.controller) {
+              // Há versão nova pronta — ativa direto e recarrega
+              novoSW.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      });
+
+      // Quando o SW novo assumir, recarrega a página uma vez
+      let recarregando = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (recarregando) return;
+        recarregando = true;
+        window.location.reload();
+      });
+    });
+  }
+</script>
+
 </body>
 </html>
+
