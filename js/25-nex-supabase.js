@@ -1307,16 +1307,22 @@ return {
     chatEstaVisivel && chaveAberta === chaveContato;
 
   if (chatDaPessoaEstaAberto) {
-    if (typeof window.renderChat === 'function') {
-      window.renderChat(chaveContato);
-    }
+  if (typeof window.renderChat === 'function') {
+    window.renderChat(chaveContato);
+  }
 
-    const convIdAberto =
-      window.__convIdsNex && window.__convIdsNex[chaveContato];
-    if (convIdAberto) {
-      marcarConversaLidaDebounced(convIdAberto);
-    }
-  } else {
+  const convIdAberto =
+    window.__convIdsNex && window.__convIdsNex[chaveContato];
+  if (convIdAberto) {
+    marcarConversaLidaDebounced(convIdAberto);
+
+    // ⚠️ Se o chat está aberto e chegou mensagem nova,
+    //    marca as mensagens dessa conversa como VISUALIZADAS
+    marcarMensagensComoVisualizadasSupabase(convIdAberto).catch((err) =>
+      console.warn('Falha ao marcar visualizadas (realtime):', err)
+    );
+  }
+} else {
     if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
       window.marcarConversaComoNaoLidaNex(chaveContato);
     }
