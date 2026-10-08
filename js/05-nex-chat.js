@@ -861,6 +861,47 @@ atualizarSilenciadoNoCardNex(usernameReal);
 
   renderChat(usernameReal);
   document.getElementById('chatInput')?.focus();
+
+  if (window.__statusPollingNex) {
+    clearInterval(window.__statusPollingNex);
+  }
+
+  window.__statusPollingNex = setInterval(async () => {
+    const convIdAtual = window.__convIdsNex?.[usernameReal];
+    if (!convIdAtual) return;
+
+    if (typeof window.buscarStatusMensagensSupabase !== 'function') return;
+
+    try {
+      const mapa = await window.buscarStatusMensagensSupabase(convIdAtual);
+      const listaAtual = conversas[usernameReal] || [];
+
+      let mudou = false;
+
+      listaAtual.forEach((m) => {
+        if (m.side !== 'right') return;
+
+        const idSupa = m._supabaseId || m.id;
+        const info = mapa[idSupa];
+        if (!info) return;
+
+        let novoStatus = 'enviado';
+        if (info.visualizado_em) novoStatus = 'visualizado';
+        else if (info.entregue_em) novoStatus = 'entregue';
+
+        if (m.status !== novoStatus) {
+          m.status = novoStatus;
+          mudou = true;
+        }
+      });
+
+      if (mudou) {
+        renderChat(usernameReal);
+      }
+    } catch (err) {
+      // silencioso
+    }
+  }, 3000);
 }
 
 // ============================================
@@ -871,6 +912,11 @@ function voltarChatNex() {
   if (window.__presencaIntervalNex) {
     clearInterval(window.__presencaIntervalNex);
     window.__presencaIntervalNex = null;
+  }
+
+  if (window.__statusPollingNex) {
+    clearInterval(window.__statusPollingNex);
+    window.__statusPollingNex = null;
   }
 
   fecharMenuChatNex();
