@@ -604,8 +604,11 @@ async function abrirChatNex(el) {
 
   // ⚠️ A partir daqui, tudo usa o USERNAME como chave
   Drops.estado.conversaAtual = usernameReal;
-  window.setConversaAbertaNex(usernameReal);
-  window.setCardAbertoNex(card);
+window.setConversaAbertaNex(usernameReal);
+window.setCardAbertoNex(card);
+
+window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
+window.__convNomesExibidosNex[usernameReal] = nomeExibido;
 
   console.log('📂 Abrindo chat. Chave:', chaveInterna, '| Username:', usernameReal, '| Nome:', nomeExibido);
 
@@ -1029,7 +1032,23 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
     }
 
     const lado = msg.side === 'right' ? 'right' : 'left';
-    const nomeExibido = msg.nome || (lado === 'right' ? 'Eu' : nome);
+
+let nomeExibido;
+
+if (lado === 'right') {
+  nomeExibido = 'Eu';
+} else {
+  const usernameContato =
+    (typeof window.resolverChaveNex === 'function')
+      ? window.resolverChaveNex(nome)
+      : String(nome || '').replace(/^@/, '').toLowerCase().trim();
+
+  nomeExibido =
+    (window.__convNomesExibidosNex &&
+     window.__convNomesExibidosNex[usernameContato]) ||
+    msg.nome ||
+    usernameContato;
+}
     const avatarTexto = (msg.avatar || nomeExibido || 'U')
       .toString()
       .slice(0, 2)

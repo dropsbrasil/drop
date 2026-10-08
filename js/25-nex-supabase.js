@@ -521,8 +521,11 @@ async function sincronizarCardsNexSupabase() {
       window.__convIdsNex[usernameOutro] = conv.conversa_id;
 
       window.__convUsernamesNex = window.__convUsernamesNex || {};
-      window.__convUsernamesNex[usernameOutro] = usernameOutro;
-      window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+window.__convUsernamesNex[usernameOutro] = usernameOutro;
+window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+
+window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
+window.__convNomesExibidosNex[usernameOutro] = nomeExibicao;
 
       const cardExistente =
         typeof window.obterCardConversaNex === 'function'

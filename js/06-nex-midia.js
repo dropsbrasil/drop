@@ -6,6 +6,36 @@
 (function () {
   'use strict';
 
+  const cacheCapasNex = {};
+  const capasEmBuscaNex = new Set();
+
+  async function buscarCapaNex(username) {
+    if (!username) return null;
+
+    const chave = String(username).replace(/^@/, '').toLowerCase().trim();
+    if (!chave) return null;
+
+    if (cacheCapasNex[chave]) return cacheCapasNex[chave];
+    if (capasEmBuscaNex.has(chave)) return null;
+
+    capasEmBuscaNex.add(chave);
+
+    try {
+      if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+        const perfil = await window.buscarPerfilPublicoSupabase(chave);
+        const url = perfil?.capa_url || null;
+        cacheCapasNex[chave] = url;
+        return url;
+      }
+    } catch (err) {
+      console.warn('Erro ao buscar capa:', err);
+    } finally {
+      capasEmBuscaNex.delete(chave);
+    }
+
+    return null;
+  }
+
   function montarAnexosHTMLNex(msg, dataExibida, horaExibida) {
     let html = '';
 
@@ -78,10 +108,35 @@ if (typeof msg.avatar === 'string' && msg.avatar.startsWith('http')) {
 
 const inicialRemetente = String(nomeRemetente || '?').charAt(0).toUpperCase();
 
-        if (lat != null && lng != null) {
+               if (lat != null && lng != null) {
+          let capaUrl = '';
+          if (msg.side === 'right') {
+            capaUrl = window.AuthAdapterNex?.lerPerfil()?.capa || '';
+          } else {
+            capaUrl =
+              (window.perfisVisitadosNex?.[usernameRemetente]?.capa) ||
+              (cacheCapasNex[usernameRemetente]) ||
+              '';
+          }
+
+          if (!capaUrl && msg.side !== 'right' && usernameRemetente) {
+            buscarCapaNex(usernameRemetente).then((url) => {
+              if (!url) return;
+              document
+                .querySelectorAll(
+                  `.msg-location-capa[data-capa-user="${CSS.escape(usernameRemetente)}"]`
+                )
+                .forEach((el) => {
+                  el.style.backgroundImage = `url('${url}')`;
+                });
+            });
+          }
+
           html += `
             <div class="msg-location-card-elegante">
-              <div class="msg-location-capa" style="background-image: url('${escapeHTML(msg.side === 'right' ? (window.AuthAdapterNex?.lerPerfil()?.capa || '') : (window.perfisVisitadosNex?.[usernameRemetente]?.capa || ''))}')">
+              <div class="msg-location-capa"
+                   data-capa-user="${escapeHTML(usernameRemetente)}"
+                   style="background-image: url('${escapeHTML(capaUrl)}')">
                   <div class="msg-location-avatar"
        data-avatar-user="${escapeHTML(usernameRemetente)}"
        data-avatar-fallback="${escapeHTML(inicialRemetente)}">
@@ -101,7 +156,7 @@ const inicialRemetente = String(nomeRemetente || '?').charAt(0).toUpperCase();
               </div>
             </div>
           `;
-        } else {
+        } else { 
           // Fallback para quando não tem lat/lng
           html += `
             <div class="msg-location-card-elegante">
@@ -1664,7 +1719,7 @@ let albumDeleteModeNex = false;
   // ============================================
 
   window.montarAnexosHTMLNex = montarAnexosHTMLNex;
-
+window.buscarCapaNex = buscarCapaNex;
   window.abrirMidiaComContextoNex = function (url, tipo, msgId, midiaIndex) {
     if (typeof window.abrirMidiaChatNex === 'function') {
       window.abrirMidiaChatNex(url, tipo, {
