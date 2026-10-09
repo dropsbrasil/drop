@@ -492,48 +492,62 @@ function fecharMuralEmBrevePerfilNex() {
   }
 
   // ============================================
-  // ABRIR CHAT DIRETO COM PERFIL
-  // ============================================
+// ABRIR CHAT DIRETO COM PERFIL
+// ============================================
 
-  function abrirChatDiretoPerfilNex() {
-    const perfilAberto = Drops.estado.perfilAberto;
-    const perfilUsername = String(Drops.estado.perfilBloquearAtual || '')
-      .replace(/^@/, '')
-      .trim()
-      .toLowerCase();
+function abrirChatDiretoPerfilNex() {
+  const perfilAberto = Drops.estado.perfilAberto;
+  const perfilUsername = String(Drops.estado.perfilBloquearAtual || '')
+    .replace(/^@/, '')
+    .trim()
+    .toLowerCase();
 
-    if (!perfilAberto) return;
+  if (!perfilAberto) return;
 
-    // ⚠️ REGISTRA o username real ANTES de criar o card
-    if (perfilUsername) {
-      window.__convUsernamesNex = window.__convUsernamesNex || {};
-      window.__convUsernamesNex[perfilAberto] = perfilUsername;
-    }
-
-    if (typeof mostrarTela === 'function') {
-      mostrarTela('nex');
-    }
-
-    if (typeof mostrarNexTab === 'function') {
-      mostrarNexTab('naolidas');
-    }
-
-    let card = obterCardConversaNex(perfilAberto);
-
-    if (!card) {
-      if (typeof criarCardConversaNex === 'function') {
-        criarCardConversaNex(
-          perfilAberto,
-          estaConectadoNoMyDropsNex(perfilAberto),
-          { text: 'Começou uma conversa no NEX' }
-        );
-      }
-
-      card = obterCardConversaNex(perfilAberto);
-    }
-
-    if (card) card.click();
+  // ⚠️ REGISTRA o username real ANTES de criar o card
+  if (perfilUsername) {
+    window.__convUsernamesNex = window.__convUsernamesNex || {};
+    window.__convUsernamesNex[perfilAberto] = perfilUsername;
   }
+
+  // ⚠️ 1. Tenta achar o card PRIMEIRO (sem sair do perfil)
+  let card = obterCardConversaNex(perfilAberto);
+
+  // ⚠️ 2. Se não existe, cria o card
+  if (!card) {
+    if (typeof criarCardConversaNex === 'function') {
+      criarCardConversaNex(
+        perfilAberto,
+        estaConectadoNoMyDropsNex(perfilAberto),
+        { text: 'Começou uma conversa no NEX' }
+      );
+    }
+
+    card = obterCardConversaNex(perfilAberto);
+  }
+
+  // ⚠️ 3. Se conseguiu o card, abre o chat DIRETAMENTE
+  if (card && typeof window.abrirChatNex === 'function') {
+    window.abrirChatNex(card);
+    return;
+  }
+
+  // ⚠️ 4. Fallback: se algo falhou, vai pro NEX
+  console.warn('⚠️ Não foi possível abrir o chat direto. Indo pro NEX.');
+
+  if (typeof mostrarTela === 'function') {
+    mostrarTela('nex');
+  }
+
+  if (typeof mostrarNexTab === 'function') {
+    mostrarNexTab('naolidas');
+  }
+
+  // Tenta clicar no card (se existir agora)
+  const cardFallback = obterCardConversaNex(perfilAberto);
+  if (cardFallback) cardFallback.click();
+}
+  
 
   // ============================================
   // EXPÕE GLOBALMENTE
