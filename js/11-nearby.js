@@ -589,9 +589,13 @@ function abrirViewerPublicacaoNex(
   usuarioId
 );
 
-// ⚠️ FEEDBACK: vibra + toca ao reagir
+// ⚠️ DEBUG TEMPORÁRIO — REMOVER DEPOIS
+window.mostrarToastNex?.('DEBUG: reagiu disparou!', 'info');
 if (typeof window.feedbackNex?.reagiu === 'function') {
+  window.mostrarToastNex?.('DEBUG: feedbackNex existe', 'info');
   window.feedbackNex.reagiu();
+} else {
+  window.mostrarToastNex?.('DEBUG: feedbackNex NÃO existe', 'erro');
 }
 
 // ⚠️ Pop visual
