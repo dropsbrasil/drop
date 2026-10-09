@@ -592,7 +592,7 @@ function abrirViewerPublicacaoNex(
 // ⚠️ FEEDBACK: vibra + toca ao reagir
 if (typeof window.feedbackNex?.reagiu === 'function') {
   window.feedbackNex.reagiu();
-}=
+}
 
 // ⚠️ Pop visual
     btn.classList.remove('pop-anim');
