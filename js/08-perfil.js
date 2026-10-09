@@ -491,7 +491,11 @@ function fecharMuralEmBrevePerfilNex() {
     }
   }
 
-  // ============================================
+// ============================================
+// ABRIR CHAT DIRETO COM PERFIL
+// ============================================
+
+// ============================================
 // ABRIR CHAT DIRETO COM PERFIL
 // ============================================
 
@@ -502,52 +506,38 @@ function abrirChatDiretoPerfilNex() {
     .trim()
     .toLowerCase();
 
-  if (!perfilAberto) return;
-
-  // ⚠️ REGISTRA o username real ANTES de criar o card
-  if (perfilUsername) {
-    window.__convUsernamesNex = window.__convUsernamesNex || {};
-    window.__convUsernamesNex[perfilAberto] = perfilUsername;
-  }
-
-  // ⚠️ 1. Tenta achar o card PRIMEIRO (sem sair do perfil)
-  let card = obterCardConversaNex(perfilAberto);
-
-  // ⚠️ 2. Se não existe, cria o card
-  if (!card) {
-    if (typeof criarCardConversaNex === 'function') {
-      criarCardConversaNex(
-        perfilAberto,
-        estaConectadoNoMyDropsNex(perfilAberto),
-        { text: 'Começou uma conversa no NEX' }
-      );
-    }
-
-    card = obterCardConversaNex(perfilAberto);
-  }
-
-  // ⚠️ 3. Se conseguiu o card, abre o chat DIRETAMENTE
-  if (card && typeof window.abrirChatNex === 'function') {
-    window.abrirChatNex(card);
+  if (!perfilAberto || !perfilUsername) {
+    console.warn('⚠️ Perfil sem username. Não é possível abrir chat.');
     return;
   }
 
-  // ⚠️ 4. Fallback: se algo falhou, vai pro NEX
-  console.warn('⚠️ Não foi possível abrir o chat direto. Indo pro NEX.');
+  console.log('💬 Abrindo chat direto:', perfilUsername, '(nome:', perfilAberto + ')');
 
-  if (typeof mostrarTela === 'function') {
-    mostrarTela('nex');
+  // ⚠️ 1. Popula os caches ANTES de tudo
+  window.__convUsernamesNex = window.__convUsernamesNex || {};
+  window.__convUsernamesNex[perfilAberto] = perfilUsername;
+  window.__convUsernamesNex[perfilUsername] = perfilUsername;
+
+  window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
+  window.__convNomesExibidosNex[perfilUsername] = perfilAberto;
+
+  // ⚠️ 2. Garante que a lista de mensagens existe
+  if (typeof window.conversas === 'object') {
+    if (!window.conversas[perfilUsername]) {
+      window.conversas[perfilUsername] = [];
+    }
   }
 
-  if (typeof mostrarNexTab === 'function') {
-    mostrarNexTab('naolidas');
+  // ⚠️ 3. Abre o chat DIRETO (sem card, sem NEX)
+  if (typeof window.abrirChatNex === 'function') {
+    window.abrirChatNex({
+      username: perfilUsername,
+      nome: perfilAberto
+    });
+  } else {
+    console.error('❌ abrirChatNex não existe!');
   }
-
-  // Tenta clicar no card (se existir agora)
-  const cardFallback = obterCardConversaNex(perfilAberto);
-  if (cardFallback) cardFallback.click();
 }
-  
 
   // ============================================
   // EXPÕE GLOBALMENTE

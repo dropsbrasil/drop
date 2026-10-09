@@ -576,17 +576,33 @@ async function buscarAvatarNex(username) {
 // ============================================
 
 async function abrirChatNex(el) {
-  const card = el?.closest?.('.nex-chat') || el;
+  // ⚠️ NOVO: aceita DOM (card) OU objeto { username, nome }
+  const ehObjetoDireto =
+    el &&
+    typeof el === 'object' &&
+    !el.closest &&
+    !el.querySelector &&
+    (el.username || el.chave);
 
-  // ⚠️ Chave interna (usada pra tudo no Supabase)
-  const chaveInterna =
-    card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
+  let card = null;
+  let chaveInterna = '';
+  let nomeExibido = '';
 
-  // ⚠️ Nome exibido (usado na UI)
-  const nomeExibido =
-    card?.dataset?.nomeExibido ||
-    card?.querySelector('h3')?.innerText?.trim() ||
-    chaveInterna;
+  if (ehObjetoDireto) {
+    chaveInterna = String(el.username || el.chave || '')
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
+    nomeExibido = el.nome || chaveInterna;
+  } else {
+    card = el?.closest?.('.nex-chat') || el;
+    chaveInterna =
+      card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
+    nomeExibido =
+      card?.dataset?.nomeExibido ||
+      card?.querySelector('h3')?.innerText?.trim() ||
+      chaveInterna;
+  }
 
   if (!chaveInterna) return;
 
@@ -604,21 +620,25 @@ async function abrirChatNex(el) {
 
   // ⚠️ A partir daqui, tudo usa o USERNAME como chave
   Drops.estado.conversaAtual = usernameReal;
-window.setConversaAbertaNex(usernameReal);
-window.setCardAbertoNex(card);
-
+  window.setConversaAbertaNex(usernameReal);
+window.setCardAbertoNex(card || null);
+  
 window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
 window.__convNomesExibidosNex[usernameReal] = nomeExibido;
 
   console.log('📂 Abrindo chat. Chave:', chaveInterna, '| Username:', usernameReal, '| Nome:', nomeExibido);
 
   const connected =
-    card?.dataset?.connected === 'yes' ||
-    estaConectadoNoMyDropsNex(usernameReal);
+  card?.dataset?.connected === 'yes' ||
+  estaConectadoNoMyDropsNex(usernameReal);
 
-  obterEstadoConversaNex(usernameReal, connected);
+obterEstadoConversaNex(usernameReal, connected);
+
+// ⚠️ Só escreve no card se ele existir
+if (card && card.dataset) {
   card.dataset.connected = connected ? 'yes' : 'no';
-
+}
+  
   marcarConversaComoLidaNex(usernameReal, card);
 
   const chat = document.getElementById('chatNex');
