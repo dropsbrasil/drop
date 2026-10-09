@@ -582,14 +582,19 @@ function abrirViewerPublicacaoNex(
     const usuarioId = Drops.usernameAtual || 'anonimo';
 
     registrarReacaoDropNex(
-      perfilIdCalc,
-      dropIndexAtual,
-      urlCalc,
-      btn.textContent.trim(),
-      usuarioId
-    );
+  perfilIdCalc,
+  dropIndexAtual,
+  urlCalc,
+  btn.textContent.trim(),
+  usuarioId
+);
 
-    // ⚠️ Pop visual
+// ⚠️ FEEDBACK: vibra + toca ao reagir
+if (typeof window.feedbackNex?.reagiu === 'function') {
+  window.feedbackNex.reagiu();
+}
+
+// ⚠️ Pop visual
     btn.classList.remove('pop-anim');
     void btn.offsetWidth;
     btn.classList.add('pop-anim');
