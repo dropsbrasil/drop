@@ -1734,14 +1734,19 @@ if (msgLocal.audio) {
 //    receber/abrir a mensagem.
 msgLocal.status = 'enviado';
 
-  renderChat(conversaAtual);
+renderChat(conversaAtual);
 
-  marcarConversaRespondidaNex(conversaAtual);
+marcarConversaRespondidaNex(conversaAtual);
 
-  // ⚠️ SÓ AGORA limpa o preview (upload deu certo)
-  if (typeof window.limparTodosPreviewsNex === 'function') {
-    window.limparTodosPreviewsNex();
-  }
+// ⚠️ FEEDBACK: toca + vibra leve ao enviar msg
+if (typeof window.feedbackNex?.enviouMsg === 'function') {
+  window.feedbackNex.enviouMsg();
+}
+
+// ⚠️ SÓ AGORA limpa o preview (upload deu certo)
+if (typeof window.limparTodosPreviewsNex === 'function') {
+  window.limparTodosPreviewsNex();
+}
 } catch (err) {
       console.error('❌ Erro no envio:', err);
 

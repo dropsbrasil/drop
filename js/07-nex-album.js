@@ -403,6 +403,11 @@ async function acaoReagirMidiaNex(tipo) {
   return;
 }
 
+// ⚠️ FEEDBACK: vibra + toca ao reagir
+if (typeof window.feedbackNex?.reagiu === 'function') {
+  window.feedbackNex.reagiu();
+}
+
 // ⚠️ Não mostra toast — deixa o 26-reacoes-midia mostrar o erro real
 await window.alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo);
 
@@ -558,13 +563,18 @@ await atualizarBotoesReacaoViewerNex();
       btnEnviar.classList.remove('is-active');
     }
 
-    if (typeof window.renderChat === 'function') {
-      window.renderChat(conversaAtual);
-    }
+      if (typeof window.renderChat === 'function') {
+    window.renderChat(conversaAtual);
+  }
 
-    if (typeof window.mostrarToastNex === 'function') {
-      window.mostrarToastNex('Comentário enviado!', 'sucesso');
-    }
+  // ⚠️ FEEDBACK: só toca (sem vibração) ao comentar
+  if (typeof window.feedbackNex?.comentou === 'function') {
+    window.feedbackNex.comentou();
+  }
+
+  if (typeof window.mostrarToastNex === 'function') {
+    window.mostrarToastNex('Comentário enviado!', 'sucesso');
+  }
   }
 
   // ============================================

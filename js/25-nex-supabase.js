@@ -1311,6 +1311,11 @@ return {
     window.renderChat(chaveContato);
   }
 
+  // ⚠️ FEEDBACK: vibra + toca (ela te respondeu — sem notificação, sem badge)
+  if (typeof window.feedbackNex?.msgRecebida === 'function') {
+    window.feedbackNex.msgRecebida({ contarBadge: false });
+  }
+
   const convIdAberto =
     window.__convIdsNex && window.__convIdsNex[chaveContato];
   if (convIdAberto) {
@@ -1325,6 +1330,11 @@ return {
 } else {
     if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
       window.marcarConversaComoNaoLidaNex(chaveContato);
+    }
+
+    // ⚠️ FEEDBACK: vibra + toca + badge + notificação
+    if (typeof window.feedbackNex?.msgRecebida === 'function') {
+      window.feedbackNex.msgRecebida();
     }
 
     if (typeof window.notificarMensagemNovaNex === 'function') {

@@ -1145,9 +1145,14 @@ async function iniciarGravacaoAudioNex() {
       : new MediaRecorder(stream);
 
     audioChunksNex = [];
-    tempoGravacaoNex = 0;
-    gravandoAudioNex = true;
-    atualizarUIGravacaoNex();
+tempoGravacaoNex = 0;
+gravandoAudioNex = true;
+atualizarUIGravacaoNex();
+
+// ⚠️ FEEDBACK: SÓ VIBRA ao começar a gravar (nunca som)
+if (typeof window.feedbackNex?.gravandoInicio === 'function') {
+  window.feedbackNex.gravandoInicio();
+}
 
     mediaRecorderNex.ondataavailable = (evento) => {
       if (evento.data && evento.data.size > 0) {
@@ -1202,6 +1207,11 @@ function pararGravacaoAudioNex() {
 
   gravandoAudioNex = false;
   atualizarUIGravacaoNex();
+
+  // ⚠️ FEEDBACK: SÓ VIBRA ao parar a gravação (nunca som)
+  if (typeof window.feedbackNex?.gravandoFim === 'function') {
+    window.feedbackNex.gravandoFim();
+  }
 
   if (timerGravacaoNex) {
     clearInterval(timerGravacaoNex);

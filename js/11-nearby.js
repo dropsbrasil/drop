@@ -589,14 +589,10 @@ function abrirViewerPublicacaoNex(
   usuarioId
 );
 
-// ⚠️ DEBUG TEMPORÁRIO — REMOVER DEPOIS
-window.mostrarToastNex?.('DEBUG: reagiu disparou!', 'info');
+// ⚠️ FEEDBACK: vibra + toca ao reagir
 if (typeof window.feedbackNex?.reagiu === 'function') {
-  window.mostrarToastNex?.('DEBUG: feedbackNex existe', 'info');
   window.feedbackNex.reagiu();
-} else {
-  window.mostrarToastNex?.('DEBUG: feedbackNex NÃO existe', 'erro');
-}
+}=
 
 // ⚠️ Pop visual
     btn.classList.remove('pop-anim');
@@ -745,21 +741,26 @@ if (
 }
 
     if (inputComentario) {
-      inputComentario.value = 'Você enviou um comentário.';
-      atualizarEstadoEnviarNex();
+  inputComentario.value = 'Você enviou um comentário.';
+  atualizarEstadoEnviarNex();
 
-      setTimeout(() => {
-        inputComentario.value = '';
-        atualizarEstadoEnviarNex();
-      }, 1200);
-    }
+  setTimeout(() => {
+    inputComentario.value = '';
+    atualizarEstadoEnviarNex();
+  }, 1200);
+}
 
-    // Registra comentário como interação pro sistema de adeptos
-    registrarInteracaoNex(
-      perfil.id || perfilAtualId || perfil.nome || '',
-      'comment',
-      `nearby::${dropIndexAtual}`
-    );
+// ⚠️ FEEDBACK: só toca (sem vibração) ao comentar
+if (typeof window.feedbackNex?.comentou === 'function') {
+  window.feedbackNex.comentou();
+}
+
+// Registra comentário como interação pro sistema de adeptos
+registrarInteracaoNex(
+  perfil.id || perfilAtualId || perfil.nome || '',
+  'comment',
+  `nearby::${dropIndexAtual}`
+);
   }
 
   if (botaoEnviar) {
