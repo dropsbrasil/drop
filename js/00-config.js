@@ -101,7 +101,7 @@
   // ============================================
 
   Drops.estado = {
-    conversaAtual: 'Julia',
+  conversaAtual: '',
     abaNex: 'naolidas',
     telaOrigemPerfilVisitado: 'nex',
     perfilBloquearAtual: '',

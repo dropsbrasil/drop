@@ -33,6 +33,10 @@ Drops.estado.telaOrigemPerfilVisitado =
 
 const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
 
+if (typeof window.dropsEmpilharEstado === 'function') {
+  window.dropsEmpilharEstado('perfil', { id, nome: perfilNome });
+}
+
 Drops.estado.perfilBloquearAtual = id;
 Drops.estado.perfilAberto = perfilNome;
 
@@ -495,25 +499,26 @@ function fecharMuralEmBrevePerfilNex() {
 // ABRIR CHAT DIRETO COM PERFIL
 // ============================================
 
-// ============================================
-// ABRIR CHAT DIRETO COM PERFIL
-// ============================================
-
 function abrirChatDiretoPerfilNex() {
-  const perfilAberto = Drops.estado.perfilAberto;
-  const perfilUsername = String(Drops.estado.perfilBloquearAtual || '')
+  const nomeEl = document.getElementById('perfilNomeNex');
+  const userEl = document.getElementById('perfilUsernameNex');
+
+  const perfilAberto = (nomeEl?.textContent || '').trim();
+  const perfilUsername = String(userEl?.textContent || '')
     .replace(/^@/, '')
     .trim()
     .toLowerCase();
 
   if (!perfilAberto || !perfilUsername) {
-    console.warn('⚠️ Perfil sem username. Não é possível abrir chat.');
+    alert('Perfil sem dados. Volte e tente novamente.');
     return;
   }
 
-  console.log('💬 Abrindo chat direto:', perfilUsername, '(nome:', perfilAberto + ')');
+  // ⚠️ Atualiza os caches
+  Drops.estado.perfilAberto = perfilAberto;
+  Drops.estado.perfilBloquearAtual = perfilUsername;
+  Drops.estado.conversaAtual = perfilUsername;
 
-  // ⚠️ 1. Popula os caches ANTES de tudo
   window.__convUsernamesNex = window.__convUsernamesNex || {};
   window.__convUsernamesNex[perfilAberto] = perfilUsername;
   window.__convUsernamesNex[perfilUsername] = perfilUsername;
@@ -521,23 +526,77 @@ function abrirChatDiretoPerfilNex() {
   window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
   window.__convNomesExibidosNex[perfilUsername] = perfilAberto;
 
-  // ⚠️ 2. Garante que a lista de mensagens existe
-  if (typeof window.conversas === 'object') {
-    if (!window.conversas[perfilUsername]) {
-      window.conversas[perfilUsername] = [];
-    }
+  if (!window.conversas[perfilUsername]) {
+    window.conversas[perfilUsername] = [];
   }
 
-  // ⚠️ 3. Abre o chat DIRETO (sem card, sem NEX)
-  if (typeof window.abrirChatNex === 'function') {
-    window.abrirChatNex({
-      username: perfilUsername,
-      nome: perfilAberto
-    });
-  } else {
-    console.error('❌ abrirChatNex não existe!');
+  // ⚠️ ESCONDE telas, MOSTRA chat manualmente
+  document.querySelectorAll('.screen').forEach((t) => {
+    t.style.display = 'none';
+    t.classList.remove('active');
+  });
+
+  const chat = document.getElementById('chatNex');
+  if (chat) {
+    chat.style.display = 'block';
+    chat.classList.add('active');
+  }
+
+  document.body.classList.add('chat-aberto');
+
+  // ⚠️ PREENCHE O TOPO DO CHAT direto
+  const chatName = document.getElementById('chatName');
+  const chatBio = document.getElementById('chatBio');
+  const chatAvatar = document.getElementById('chatAvatar');
+  const chatStatus = document.getElementById('chatStatus');
+
+  if (chatName) chatName.innerText = perfilAberto;
+  if (chatBio) chatBio.innerText = 'Carregando...';
+  if (chatStatus) chatStatus.innerText = 'offline';
+
+  if (chatAvatar) {
+    chatAvatar.innerText = perfilAberto.charAt(0).toUpperCase();
+  }
+
+  // ⚠️ Carrega conversa do Supabase
+  if (typeof window.carregarConversaSupabase === 'function') {
+    window.carregarConversaSupabase(perfilUsername)
+      .then(() => {
+        if (typeof window.renderChat === 'function') {
+          window.renderChat(perfilUsername);
+        }
+
+        // ⚠️ Busca nome real e avatar do Supabase
+        if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+          window.buscarPerfilPublicoSupabase(perfilUsername)
+            .then((perfil) => {
+              if (!perfil) return;
+
+              const nomeReal = perfil.nome || perfilAberto;
+              const bioReal = perfil.bio || 'Sem bio ainda.';
+
+              if (chatName) chatName.innerText = nomeReal;
+              if (chatBio) chatBio.innerText = bioReal;
+
+              if (perfil.avatar_url && chatAvatar) {
+                chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+              }
+
+              // ⚠️ Atualiza status online
+              const ultima = perfil.ultima_atividade;
+              if (ultima && chatStatus) {
+                const online = Date.now() - new Date(ultima).getTime() < 30000;
+                chatStatus.innerText = online ? 'online' : 'offline';
+              }
+            })
+            .catch((e) => console.warn('Erro ao buscar perfil:', e));
+        }
+      })
+      .catch((e) => console.warn('Erro ao carregar conversa:', e));
   }
 }
+
+window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;
 
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -572,12 +631,8 @@ window.fecharMuralEmBrevePerfilNex = fecharMuralEmBrevePerfilNex;
     btnConectarPerfil.addEventListener('click', alternarConexaoPerfilNex);
   }
 
-  // Botão Abrir Chat
-  const btnAbrirChat = document.getElementById('btnAbrirChatPerfilNex');
-  if (btnAbrirChat) {
-    btnAbrirChat.addEventListener('click', abrirChatDiretoPerfilNex);
-  }
-
+// Botão Abrir Chat — usa onclick inline no HTML
+    
   // Modal "Mural em breve" — botão OK
   const btnOkMural = document.getElementById('perfilMuralEmBreveOkNex');
   if (btnOkMural) {

@@ -619,6 +619,10 @@ async function abrirChatNex(el) {
   }
 
   // ⚠️ A partir daqui, tudo usa o USERNAME como chave
+    if (typeof window.dropsEmpilharEstado === 'function') {
+    window.dropsEmpilharEstado('chat', { username: usernameReal });
+  }
+
   Drops.estado.conversaAtual = usernameReal;
   window.setConversaAbertaNex(usernameReal);
 window.setCardAbertoNex(card || null);

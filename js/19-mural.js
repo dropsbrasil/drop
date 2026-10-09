@@ -217,10 +217,14 @@ function fecharBalaoAutorNex() {
       }
     }
 
-    modal.style.display = 'flex';
+      modal.style.display = 'flex';
 
-    setTimeout(async () => {
-  iniciarRolagemMuralNex();
+  if (typeof window.dropsEmpilharEstado === 'function') {
+    window.dropsEmpilharEstado('mural', null);
+  }
+
+  setTimeout(async () => {
+iniciarRolagemMuralNex();
   await carregarMuralSalvoNex();
 }, 80);
   }

@@ -109,6 +109,10 @@
 
     document.body.appendChild(viewer);
 
+if (typeof window.dropsEmpilharEstado === 'function') {
+  window.dropsEmpilharEstado('viewer-midia', null);
+}
+
     // Botão fechar
     viewer.querySelector('.viewer-close').onclick = () => {
       viewer.remove();
