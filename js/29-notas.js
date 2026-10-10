@@ -1139,6 +1139,16 @@ function garantirCapsulaMarcaNex() {
 
   const nome = localStorage.getItem('drops_nome') || 'Usuário';
 
+  // ⚠️ Busca avatar do localStorage
+  const avatarSalvo = meuUser
+    ? localStorage.getItem('mydropsAvatar_' + meuUser)
+    : null;
+
+  const avatarValido =
+    avatarSalvo &&
+    typeof avatarSalvo === 'string' &&
+    (avatarSalvo.startsWith('http') || avatarSalvo.startsWith('data:image'));
+
   const escapar = (txt) =>
     String(txt || '')
       .replace(/&/g, '&amp;')
@@ -1147,7 +1157,12 @@ function garantirCapsulaMarcaNex() {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
 
+  const avatarHTML = avatarValido
+    ? `<img src="${escapar(avatarSalvo)}" alt="">`
+    : `👤`;
+
   cap.innerHTML = `
+    <span class="capsula-avatar">${avatarHTML}</span>
     <span class="capsula-icone">📌</span>
     <span>Drops</span>
     <span class="capsula-sep">·</span>

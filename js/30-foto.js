@@ -1094,42 +1094,57 @@ function configurarLegendaFotoNex() {
   // ============================================
 
   function garantirCapsulaMarcaFotoNex() {
-    const papel = fotoPapel();
-    if (!papel) return null;
+  const papel = fotoPapel();
+  if (!papel) return null;
 
-    let cap = document.getElementById('fotoCapsulaMarcaNex');
-    if (cap) return cap;
+  let cap = document.getElementById('fotoCapsulaMarcaNex');
+  if (cap) return cap;
 
-    cap = document.createElement('div');
-    cap.id = 'fotoCapsulaMarcaNex';
+  cap = document.createElement('div');
+  cap.id = 'fotoCapsulaMarcaNex';
 
-    const meuUser = String(window.Drops?.usernameAtual || '')
-      .replace(/^@/, '')
-      .trim();
+  const meuUser = String(window.Drops?.usernameAtual || '')
+    .replace(/^@/, '')
+    .trim();
 
-    const nome = localStorage.getItem('drops_nome') || 'Usuário';
+  const nome = localStorage.getItem('drops_nome') || 'Usuário';
 
-    const escapar = (txt) =>
-      String(txt || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+  // ⚠️ Busca avatar do localStorage
+  const avatarSalvo = meuUser
+    ? localStorage.getItem('mydropsAvatar_' + meuUser)
+    : null;
 
-    cap.innerHTML = `
-      <span class="capsula-icone">📌</span>
-      <span>Drops</span>
-      <span class="capsula-sep">·</span>
-      <span>${escapar(nome)}</span>
-      <span class="capsula-sep">·</span>
-      <span class="capsula-user">@${escapar(meuUser || 'usuario')}</span>
-    `;
+  const avatarValido =
+    avatarSalvo &&
+    typeof avatarSalvo === 'string' &&
+    (avatarSalvo.startsWith('http') || avatarSalvo.startsWith('data:image'));
 
-    papel.appendChild(cap);
-    return cap;
+  const escapar = (txt) =>
+    String(txt || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  const avatarHTML = avatarValido
+    ? `<img src="${escapar(avatarSalvo)}" alt="">`
+    : `👤`;
+
+  cap.innerHTML = `
+    <span class="capsula-avatar">${avatarHTML}</span>
+    <span class="capsula-icone">📌</span>
+    <span>Drops</span>
+    <span class="capsula-sep">·</span>
+    <span>${escapar(nome)}</span>
+    <span class="capsula-sep">·</span>
+    <span class="capsula-user">@${escapar(meuUser || 'usuario')}</span>
+  `;
+
+  papel.appendChild(cap);
+  return cap;
   }
-
+  
   // ============================================
   // OBSERVER DE SELEÇÃO
   // ============================================
