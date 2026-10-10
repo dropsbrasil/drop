@@ -1300,39 +1300,38 @@ function configurarLegendaFotoNex() {
   // ============================================
 
   function configurarTecladoFotoNex() {
-    if (!window.visualViewport) return;
-    if (window.__fotoTecladoConfigurado) return;
-    window.__fotoTecladoConfigurado = true;
+  if (!window.visualViewport) return;
+  if (window.__fotoTecladoConfigurado) return;
+  window.__fotoTecladoConfigurado = true;
 
-    const ajustar = () => {
-      const editor = document.getElementById('fotoEditorNex');
-      if (!editor || !editor.classList.contains('aberto')) return;
+  const ajustar = () => {
+    const editor = document.getElementById('fotoEditorNex');
+    if (!editor || !editor.classList.contains('aberto')) return;
 
-      const alturaVisivel = window.visualViewport.height;
-      const alturaJanela = window.innerHeight;
+    const vv = window.visualViewport;
+    if (!vv) return;
 
-      const tecladoAberto = alturaJanela - alturaVisivel > 150;
+    const alturaVisivel = vv.height;
+    const topoVisivel = vv.offsetTop;
+    const alturaJanela = window.innerHeight;
 
-      const palco = document.getElementById('fotoPalcoNex');
-      const rodape = document.getElementById('fotoLegendaRowNex');
+    const tecladoAberto = alturaJanela - alturaVisivel > 150;
 
-      if (tecladoAberto) {
-        if (palco) palco.style.bottom = `${alturaJanela - alturaVisivel + 80}px`;
-        if (rodape) {
-          rodape.style.opacity = '0';
-          rodape.style.pointerEvents = 'none';
-        }
-      } else {
-        if (palco) palco.style.bottom = '90px';
-        if (rodape) {
-          rodape.style.opacity = '1';
-          rodape.style.pointerEvents = 'auto';
-        }
-      }
-    };
+    if (tecladoAberto) {
+      // ⚠️ Encolhe o editor inteiro pra caber na área visível
+      editor.style.setProperty('top', topoVisivel + 'px', 'important');
+      editor.style.setProperty('height', alturaVisivel + 'px', 'important');
+      editor.style.setProperty('bottom', 'auto', 'important');
+    } else {
+      // Volta ao normal (viewport cheio)
+      editor.style.removeProperty('top');
+      editor.style.removeProperty('height');
+      editor.style.removeProperty('bottom');
+    }
+  };
 
-    window.visualViewport.addEventListener('resize', ajustar);
-    window.visualViewport.addEventListener('scroll', ajustar);
+  window.visualViewport.addEventListener('resize', ajustar);
+  window.visualViewport.addEventListener('scroll', ajustar);
   }
 
   // ============================================
