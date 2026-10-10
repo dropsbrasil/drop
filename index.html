@@ -29,6 +29,9 @@
   <link rel="stylesheet" href="./css/13-modais.css">
   <link rel="stylesheet" href="./css/14-utils.css">
   <link rel="stylesheet" href="./css/15-mural.css">
+  <link rel="stylesheet" href="./css/16-notas.css">
+  <link rel="stylesheet" href="./css/17-foto.css">
+  <link rel="stylesheet" href="./css/18-video.css">
 </head>
 <body>
 
@@ -110,13 +113,25 @@
     </div>
 
     <div class="mydrops-tab-panel active" data-panel="drops">
-      <div class="mydrops-action-row">
-        <button type="button" class="mydrops-action-btn" id="btnDropsMyDropsNex">📝 Notas</button>
-        <button type="button" class="mydrops-action-btn" id="btnFotoDropsMyDropsNex">Foto</button>
-        <button type="button" class="mydrops-action-btn" id="btnVideoDropsMyDropsNex">Vídeo</button>
-      </div>
+  <!-- Divisor 1: CRIAR -->
+  <div class="mydrops-divisor-titulo">
+    <img src="./assets/icone-criar.png" alt="" class="mydrops-divisor-img">
+    <span class="mydrops-divisor-texto">CRIAR</span>
+  </div>
 
-      <div class="mydrops-grid"></div>
+  <div class="mydrops-action-row">
+    <button type="button" class="mydrops-action-btn" id="btnDropsMyDropsNex">📝 Notas</button>
+    <button type="button" class="mydrops-action-btn" id="btnFotoDropsMyDropsNex">Foto</button>
+    <button type="button" class="mydrops-action-btn" id="btnVideoDropsMyDropsNex">Vídeo</button>
+  </div>
+
+  <!-- Divisor 2: PUBLICAÇÕES -->
+  <div class="mydrops-divisor-titulo">
+    <img src="./assets/icone-publicacoes.png" alt="" class="mydrops-divisor-img">
+    <span class="mydrops-divisor-texto">PUBLICAÇÕES</span>
+  </div>
+
+  <div class="mydrops-grid"></div>
     </div>
 
         <div class="mydrops-tab-panel" data-panel="conectados">
@@ -124,7 +139,6 @@
     </div>
   </div>
 </section>
-  
 <!-- ============================================
      TELA: NEARBY
 ============================================ -->
@@ -679,7 +693,6 @@
     <div id="listaDesconectadosNex" class="lista-desconectados-nex"></div>
   </div>
 </div>
-
 <!-- ============================================
      MODAL DO MURAL
 ============================================ -->
@@ -1084,49 +1097,6 @@
   </div>
 </div>
 
-<!-- Modal de texto -->
-<div id="modalTextoMyDropsNex" class="hidden">
-  <div class="modal-texto-box">
-    <div class="modal-topo-texto">
-      <button class="btn-align-texto" data-align="left">⍇</button>
-      <button class="btn-align-texto active" data-align="center">⍗</button>
-      <button class="btn-align-texto" data-align="right">⍈</button>
-    </div>
-
-    <div id="inputTextoMyDropsNex" class="modal-texto-editavel" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Toque para editar"></div>
-
-    <div class="modal-cores-texto">
-      <button class="modal-cor-btn" style="background:#ffffff;" data-cor="#ffffff"></button>
-      <button class="modal-cor-btn" style="background:#000000;" data-cor="#000000"></button>
-      <button class="modal-cor-btn" style="background:#ff0000;" data-cor="#ff0000"></button>
-      <button class="modal-cor-btn" style="background:#2563eb;" data-cor="#2563eb"></button>
-      <button class="modal-cor-btn" style="background:#16a34a;" data-cor="#16a34a"></button>
-      <button class="modal-cor-btn" style="background:#f59e0b;" data-cor="#f59e0b"></button>
-      <button class="modal-cor-btn" style="background:#8b5cf6;" data-cor="#8b5cf6"></button>
-      <button class="modal-cor-btn" style="background:#ec4899;" data-cor="#ec4899"></button>
-    </div>
-
-    <div class="modal-estilo-texto">
-      <div class="modal-tamanho">
-        <button id="tamanhoMenosTexto">−</button>
-        <span id="tamanhoValorTexto">24</span>
-        <button id="tamanhoMaisTexto">+</button>
-      </div>
-
-      <div class="modal-estilo-botoes">
-        <button id="estiloNegritoTexto"><b>B</b></button>
-        <button id="estiloItalicoTexto"><i>I</i></button>
-        <button id="estiloNormalTexto">N</button>
-      </div>
-    </div>
-
-    <div class="modal-footer-texto">
-      <button id="cancelarTextoMyDropsNex">Cancelar</button>
-      <button id="aplicarTextoMyDropsNex">Aplicar</button>
-    </div>
-  </div>
-</div>
-
 <!-- Modal de Fundo -->
 <div id="modalFundoMyDropsNex" class="hidden">
   <div class="modal-fundo-box">
@@ -1235,6 +1205,165 @@
 
 <!-- Canvas escondido para renderizar vídeo com texto -->
 <canvas id="videoRenderCanvasMyDropsNex" style="display:none;"></canvas>
+  <!-- ============================================
+     EDITOR DE NOTAS
+============================================ -->
+<div id="notasEditorNex">
+
+  <!-- Palco (mesa escura ao redor do papel) -->
+  <div id="notasPalcoNex">
+
+    <!-- Papel onde o usuário escreve -->
+    <div id="notasPapelNex">
+
+      <!-- Camada de elementos (texto, foto) -->
+      <div id="notasCamadaNex"></div>
+
+    </div>
+
+  </div>
+
+<!-- Barra superior — modo normal (nada selecionado) -->
+<div id="notasBarraTopoNex">
+  <button type="button" class="notas-btn-topo" id="notasBtnTextoNex">T/🙂</button>
+  <button type="button" class="notas-btn-topo" id="notasBtnFotoNex">📷</button>
+  <button type="button" class="notas-btn-topo" id="notasBtnFundoNex">🖼️</button>
+  <button type="button" class="notas-btn-topo" id="notasBtnSalvarNex">💾 Salvar</button>
+  <button type="button" class="notas-btn-topo" id="notasBtnSairNex">Sair</button>
+</div>
+
+<!-- Barra superior — modo texto selecionado -->
+<div id="notasBarraContextoNex">
+  <button type="button" class="notas-btn-topo" id="notasBtnTemaNex">🎨 Tema</button>
+  <button type="button" class="notas-btn-topo" id="notasBtnAaNex">Aa</button>
+</div>
+  
+
+  <!-- Rodapé — Legenda cápsula + Publicar -->
+  <div id="notasLegendaRowNex">
+    <div class="notas-legenda-capsula">
+      <textarea
+        id="notasLegendaInputNex"
+        class="notas-legenda-input"
+        maxlength="500"
+        placeholder="✍🏼 Legenda (opcional)"></textarea>
+      <span id="notasLegendaContadorNex" class="notas-legenda-contador">0/500</span>
+    </div>
+
+    <button type="button" id="notasBtnPublicarNex">Publicar</button>
+  </div>
+
+</div>
+
+<!-- Input escondido pra foto do Notas -->
+<input type="file" id="notasInputFotoNex" accept="image/*" hidden>
+
+
+  <!-- ============================================
+     EDITOR DE FOTO
+============================================ -->
+<div id="fotoEditorNex">
+
+  <!-- Palco (mesa escura ao redor da foto) -->
+  <div id="fotoPalcoNex">
+
+    <!-- Papel onde fica a foto + elementos -->
+    <div id="fotoPapelNex">
+
+      <!-- Camada de elementos (texto, fotos por cima) -->
+      <div id="fotoCamadaNex"></div>
+
+    </div>
+
+  </div>
+
+  <!-- Barra superior — modo normal (nada selecionado) -->
+  <div id="fotoBarraTopoNex">
+    <button type="button" class="foto-btn-topo" id="fotoBtnTextoNex">T/🙂</button>
+    <button type="button" class="foto-btn-topo" id="fotoBtnFotoNex">📷</button>
+    <button type="button" class="foto-btn-topo" id="fotoBtnSalvarNex">💾 Salvar</button>
+    <button type="button" class="foto-btn-topo" id="fotoBtnSairNex">Sair</button>
+  </div>
+
+  <!-- Barra superior — modo texto selecionado -->
+  <div id="fotoBarraContextoNex">
+    <button type="button" class="foto-btn-topo" id="fotoBtnTemaNex">🎨 Tema</button>
+    <button type="button" class="foto-btn-topo" id="fotoBtnAaNex">Aa</button>
+  </div>
+
+  <!-- Rodapé — Legenda cápsula + Publicar -->
+  <div id="fotoLegendaRowNex">
+    <div class="foto-legenda-capsula">
+      <textarea
+        id="legendaMyDropsInput"
+        class="foto-legenda-input"
+        maxlength="500"
+        placeholder="✍🏼 Legenda (opcional)"></textarea>
+      <span id="legendaContadorMyDrops" class="foto-legenda-contador">0/500</span>
+    </div>
+
+    <button type="button" id="fotoBtnPublicarNex">Publicar</button>
+  </div>
+
+</div>
+
+<!-- Input escondido pra foto principal do Foto -->
+<input type="file" id="fotoInputImagemNex" accept="image/*" hidden>
+
+<!-- Input escondido pra adicionar fotos por cima (sticker) -->
+<input type="file" id="fotoInputStickerNex" accept="image/*" hidden>
+
+ <!-- ============================================
+     EDITOR DE VÍDEO
+============================================ -->
+<div id="videoEditorNex">
+
+  <!-- Palco (mesa escura ao redor do vídeo) -->
+  <div id="videoPalcoNex">
+
+    <!-- Papel onde fica o vídeo em COVER -->
+    <div id="videoPapelNex">
+
+      <!-- Vídeo em si -->
+      <video id="videoPreviewNex" autoplay playsinline muted></video>
+
+      <!-- Camada de elementos (futuro: stickers) -->
+      <div id="videoCamadaNex"></div>
+
+      <!-- Controles play/pause + tempo -->
+      <div id="videoControlesNex">
+        <button type="button" id="videoBtnPlayNex" aria-label="Play/Pause">❚❚</button>
+        <span id="videoTempoNex">00:00</span>
+        <div id="videoProgressoNex">
+          <div id="videoProgressoFillNex"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Barra superior — pill (Loop + Sair) -->
+  <div id="videoBarraTopoNex">
+    <button type="button" class="video-btn-topo" id="videoBtnLoopNex">🔁</button>
+    <button type="button" class="video-btn-topo" id="videoBtnSairNex">Sair</button>
+  </div>
+
+  <!-- Rodapé — Legenda cápsula + Publicar -->
+  <div id="videoLegendaRowNex">
+    <div class="video-legenda-capsula">
+      <textarea
+        id="legendaVideoMyDropsInput"
+        class="video-legenda-input"
+        maxlength="500"
+        placeholder="✍🏼 Legenda (opcional)"></textarea>
+      <span id="legendaVideoContadorMyDrops" class="video-legenda-contador">0/500</span>
+    </div>
+
+    <button type="button" id="videoBtnPublicarNex">Publicar</button>
+  </div>
+
+</div> 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -1283,8 +1412,10 @@ if (window.pdfjsLib) {
 <script src="./js/15-reacoes.js"></script>
 <script src="./js/16-visitas.js"></script>
 <script src="./js/19-mural.js"></script>
+<script src="./js/29-notas.js"></script>
+<script src="./js/30-foto.js"></script>
+<script src="./js/31-video.js"></script>
 <script src="./js/14-init.js"></script>
-
 <!-- Script de selos (por último) -->
 <script src="./js/selos.js"></script>
 <script src="./js/28-history.js"></script>
@@ -1327,4 +1458,3 @@ if (window.pdfjsLib) {
 
 </body>
 </html>
-
