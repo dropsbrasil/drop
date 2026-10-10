@@ -916,31 +916,6 @@
 }
 
 /* ============================================
-   MODO DROPS (NOTAS)
-============================================ */
-
-#fotoEditorMyDropsNex.modo-drops .foto-editor-stage-mydrops-nex {
-  background-color: #ffffff;
-}
-
-#fotoEditorMyDropsNex.modo-drops .video-editor-text-body-mydrops-nex {
-  color: #000000;
-  font-weight: 500;
-}
-
-#fotoEditorMyDropsNex.modo-drops .video-editor-text-body-mydrops-nex[style*="color"] {
-  color: inherit;
-}
-
-#fotoEditorMyDropsNex.modo-drops .video-editor-text-body-mydrops-nex:empty::before {
-  color: #666666 !important;
-}
-
-#fotoEditorMyDropsNex.modo-drops #fotoEditorPreviewMyDropsNex {
-  background-color: #ffffff;
-}
-
-/* ============================================
    AJUSTE FINAL: MÍDIA RENTE AO CAMPO DE LEGENDA
 ============================================ */
 

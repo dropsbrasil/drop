@@ -1,0 +1,458 @@
+/* ============================================
+   18-VIDEO.CSS
+   Editor de Vídeo: palco, papel, controles,
+   barra pill, rodapé cápsula.
+============================================ */
+
+/* ============================================
+   OVERLAY DO EDITOR
+============================================ */
+
+#videoEditorNex {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0f;
+  z-index: 90000;
+  display: none;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+#videoEditorNex.aberto {
+  display: block;
+}
+
+/* ============================================
+   PALCO (mesa escura ao redor do vídeo)
+============================================ */
+
+#videoPalcoNex {
+  position: absolute;
+  top: 60px;
+  bottom: 90px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+/* ============================================
+   PAPEL (onde fica o vídeo em COVER)
+============================================ */
+
+#videoPapelNex {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  animation: videoEntrada 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes videoEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
+   VÍDEO EM COVER
+============================================ */
+
+#videoPreviewNex {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #000;
+}
+
+/* ============================================
+   CAMADA DE ELEMENTOS (futuro)
+============================================ */
+
+#videoCamadaNex {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#videoCamadaNex > * {
+  pointer-events: auto;
+}
+
+/* ============================================
+   CONTROLES DE PLAY/TEMPO (rodapé do papel)
+============================================ */
+
+#videoControlesNex {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#videoBtnPlayNex {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  line-height: 1;
+}
+
+#videoBtnPlayNex:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+#videoTempoNex {
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+  min-width: 42px;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+#videoProgressoNex {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Aumenta a área clicável sem mudar o visual */
+  padding: 8px 0;
+  margin: -8px 0;
+  box-sizing: content-box;
+}
+
+/* Área visual da barra (mantém 4px) */
+#videoProgressoNex::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+#videoProgressoFillNex {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 4px;
+  width: 0%;
+  transform: translateY(-50%);
+  background: #2f8cff;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Bolinha azul (scrubber) — aparece ao tocar/arrastar */
+#videoProgressoScrubNex {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2f8cff;
+  border: 2px solid #ffffff;
+  box-shadow:
+    0 0 0 3px rgba(47, 140, 255, 0.28),
+    0 4px 10px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.18s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Quando o usuário está tocando/arrastando, a bolinha cresce */
+#videoProgressoNex.scrubando #videoProgressoScrubNex {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+/* Durante o drag, o vídeo é pausado — mas mantém visual */
+#videoProgressoNex.scrubando #videoProgressoFillNex {
+  transition: none;
+}
+
+
+/* ============================================
+   BARRA SUPERIOR — PILL (Loop + Sair)
+============================================ */
+
+#videoBarraTopoNex {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 30, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 6px;
+  gap: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  max-width: calc(100vw - 20px);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  display: flex;
+  align-items: center;
+  z-index: 100001;
+}
+
+#videoBarraTopoNex::-webkit-scrollbar {
+  display: none;
+}
+
+.video-btn-topo {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 999px;
+  font-size: 14px;
+  padding: 0 12px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.video-btn-topo:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.94);
+}
+
+/* Botão Loop — padrão */
+#videoBtnLoopNex {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Botão Loop — ativo */
+#videoBtnLoopNex.ativo {
+  background: rgba(37, 99, 235, 0.4);
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+}
+
+/* Botão Sair */
+#videoBtnSairNex {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  margin-left: 4px;
+}
+
+/* ============================================
+   RODAPÉ — LEGENDA CÁPSULA CLARA + PUBLICAR
+============================================ */
+
+#videoLegendaRowNex {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 100000;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+#videoLegendaRowNex .video-legenda-capsula {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 22px;
+  padding: 10px 16px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: padding 0.2s ease;
+}
+
+#legendaVideoMyDropsInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  width: 100%;
+  resize: none;
+  min-height: 20px;
+  max-height: 60px;
+  overflow-y: auto;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
+  caret-color: #2563eb;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+#legendaVideoMyDropsInput::-webkit-scrollbar {
+  width: 3px;
+}
+
+#legendaVideoMyDropsInput::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+
+#legendaVideoMyDropsInput::placeholder {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+#legendaVideoContadorMyDrops {
+  color: rgba(0, 0, 0, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+  display: none;
+}
+
+#legendaVideoContadorMyDrops.visivel {
+  display: block;
+}
+
+#videoBtnPublicarNex {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  height: 52px;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#videoBtnPublicarNex:active {
+  transform: scale(0.96);
+  filter: brightness(1.08);
+}
+
+/* ============================================
+   TABBAR / SCROLL LOCK
+============================================ */
+
+body.video-aberto {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding: 0 !important;
+}
+
+body.video-aberto .tabbar {
+  display: none !important;
+}
+
+/* ============================================
+   Z-INDEX DE EMPILHAMENTO
+============================================ */
+
+#videoPapelNex {
+  z-index: 1;
+}
+
+#videoPreviewNex {
+  z-index: 1;
+}
+
+#videoCamadaNex {
+  z-index: 2;
+}
+
+#videoControlesNex {
+  z-index: 5;
+}
+
+#videoBarraTopoNex {
+  z-index: 100;
+}
+
+#videoLegendaRowNex {
+  z-index: 100;
+}

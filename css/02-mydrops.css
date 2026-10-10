@@ -571,3 +571,63 @@
   font-weight: 900;
   font-size: 12px;
 }
+
+/* ============================================
+   DIVISOR DE TÍTULO (CRIAR / PUBLICAÇÕES)
+   Espelha o padrão do perfil visitado
+============================================ */
+
+.mydrops-divisor-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 8px 14px;
+}
+
+.mydrops-divisor-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(47, 140, 255, 0.35));
+}
+
+.mydrops-divisor-texto {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  color: #ffffff;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.mydrops-divisor-titulo::after {
+  content: '';
+  flex: 1;
+  height: 2.5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #2f8cff 0%,
+    #8b5cf6 45%,
+    rgba(139, 92, 246, 0) 100%
+  );
+}
+
+/* ============================================
+   AJUSTE — grid respira melhor com o divisor
+============================================ */
+
+.mydrops-tab-panel[data-panel="drops"] .mydrops-grid {
+  margin-top: 0;
+}
+
+/* ============================================
+   AJUSTE — action-row já tinha margin-top 18px
+   Agora o divisor cuida do espaçamento
+============================================ */
+
+.mydrops-tab-panel[data-panel="drops"] .mydrops-action-row {
+  margin-top: 0;
+}

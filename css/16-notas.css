@@ -1,0 +1,1033 @@
+/* ============================================
+   16-NOTAS.CSS
+   Editor de Notas: papel, barra, alças, painel Aa,
+   rodapé, cápsula de marca, borda dupla.
+============================================ */
+
+/* ============================================
+   ALÇAS DE TRANSFORMAÇÃO (➕ e ↻)
+   Compartilhadas por editor de foto/vídeo/notas
+============================================ */
+
+.editor-alca-nex {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #ffffff;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999999;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+  padding: 0;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.editor-alca-nex:active {
+  transform: scale(0.9);
+  background: rgba(37, 99, 235, 0.95);
+}
+
+.editor-alca-rotacionar-nex {
+  top: -42px;
+  left: -42px;
+}
+
+.editor-alca-redimensionar-nex {
+  bottom: -42px;
+  right: -42px;
+}
+
+/* Esconde alças quando o elemento não está selecionado */
+.video-editor-text-mydrops-nex:not(.is-selected) .editor-alca-nex,
+.video-editor-photo-mydrops-nex:not(.is-selected) .editor-alca-nex,
+.video-editor-video-mydrops-nex:not(.is-selected) .editor-alca-nex {
+  display: none;
+}
+
+/* Esconde alças durante edição inline de texto */
+.video-editor-text-mydrops-nex[data-editando="1"] .editor-alca-nex {
+  display: none;
+}
+
+/* ============================================
+   EDITOR DE NOTAS — OVERLAY
+============================================ */
+
+#notasEditorNex {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0f;
+  z-index: 90000;
+  display: none;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+#notasEditorNex.aberto {
+  display: block;
+}
+
+/* ============================================
+   PALCO (área ao redor do papel)
+============================================ */
+
+#notasPalcoNex {
+  position: absolute;
+  top: 60px;
+  bottom: 90px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+/* ============================================
+   PAPEL (onde o usuário escreve)
+============================================ */
+
+#notasPapelNex {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #fffef8;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(0,0,0,0.015), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(0,0,0,0.015), transparent 40%);
+  animation: notasEntrada 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes notasEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
+   CAMADA DE ELEMENTOS
+============================================ */
+
+#notasCamadaNex {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#notasCamadaNex > * {
+  pointer-events: auto;
+}
+
+/* ============================================
+   TEXTO NO PAPEL
+============================================ */
+
+/* Regra base — só tipografia, sem background/border */
+#notasEditorNex .video-editor-text-body-mydrops-nex {
+  font-family: 'Caveat', 'Comic Sans MS', cursive !important;
+  font-weight: 500 !important;
+  color: #1a1a1a !important;
+  font-size: 28px !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0.2px !important;
+  padding: 8px !important;
+}
+
+/* Só aplica transparente quando NÃO tiver tema */
+#notasEditorNex .video-editor-text-body-mydrops-nex:not([class*="tema-"]) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#notasEditorNex .video-editor-text-body-mydrops-nex:empty::before {
+  content: '✍🏼 Escreva algo bonito...';
+  color: rgba(0, 0, 0, 0.28);
+}
+
+/* ============================================
+   SELEÇÃO COM LINHA TRACEJADA AZUL
+============================================ */
+
+#notasEditorNex .video-editor-text-mydrops-nex.is-selected,
+#notasEditorNex .video-editor-photo-mydrops-nex.is-selected {
+  outline: 2px dashed #2563eb !important;
+  outline-offset: 6px !important;
+  animation: notasPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes notasPulse {
+  0%, 100% { outline-offset: 6px; }
+  50%      { outline-offset: 8px; }
+}
+
+/* ============================================
+   BARRA SUPERIOR — PILL FLUTUANTE
+============================================ */
+
+#notasBarraTopoNex {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 30, 0.82);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 6px;
+  gap: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  max-width: calc(100vw - 20px);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  display: flex;
+  align-items: center;
+  z-index: 100001;
+}
+
+#notasBarraTopoNex::-webkit-scrollbar {
+  display: none;
+}
+
+.notas-btn-topo {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 999px;
+  font-size: 14px;
+  padding: 0 10px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.notas-btn-topo:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.94);
+}
+
+/* Foto e Fundo — leve destaque */
+#notasBtnFotoNex,
+#notasBtnFundoNex {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Salvar — destaque azul sempre visível */
+#notasBtnSalvarNex {
+  background: rgba(37, 99, 235, 0.22);
+  color: #bfdbfe;
+}
+
+#notasBtnSalvarNex:active {
+  background: rgba(37, 99, 235, 0.38);
+}
+
+/* Sair — destaque vermelho suave */
+#notasBtnSairNex {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  margin-left: 4px;
+}
+
+/* ============================================
+   FOCO TOTAL — versão reforçada
+============================================ */
+
+/* Por padrão, Tema e Aa ficam escondidos */
+#notasBtnTemaNex,
+#notasBtnAaNex {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
+
+/* Quando texto selecionado: mostra Tema e Aa */
+#notasEditorNex.modo-notas-texto-selecionado #notasBtnTemaNex,
+#notasEditorNex.modo-notas-texto-selecionado #notasBtnAaNex {
+  display: inline-flex !important;
+  visibility: visible !important;
+  width: auto !important;
+  min-width: 36px !important;
+  padding: 0 10px !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+  background: rgba(37, 99, 235, 0.16);
+  color: #bfdbfe;
+}
+
+/* Quando texto selecionado: esconde Foto e Fundo */
+#notasEditorNex.modo-notas-texto-selecionado #notasBtnFotoNex,
+#notasEditorNex.modo-notas-texto-selecionado #notasBtnFundoNex {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
+
+/* Quando foto selecionada: esconde Tema, Aa e Fundo */
+#notasEditorNex.modo-notas-foto-selecionada #notasBtnTemaNex,
+#notasEditorNex.modo-notas-foto-selecionada #notasBtnAaNex,
+#notasEditorNex.modo-notas-foto-selecionada #notasBtnFundoNex {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
+
+/* ============================================
+   LIXEIRA DO NOTAS
+============================================ */
+
+#notasLixeiraNex {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #ffffff;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999999;
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+  padding: 0;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+#notasLixeiraNex.visivel {
+  display: flex;
+}
+
+#notasLixeiraNex:active {
+  transform: scale(0.9);
+  background: rgba(239, 68, 68, 0.95);
+}
+
+/* ============================================
+   PAINEL Aa (Fonte, Cor, Tamanho, Estilo)
+============================================ */
+
+#notasPainelAaNex {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2147483647;
+  background: rgba(20, 20, 30, 0.96);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  animation: notasPainelSubir 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#notasPainelAaNex.aberto {
+  display: flex;
+}
+
+@keyframes notasPainelSubir {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.notas-painel-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notas-painel-titulo {
+  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+.notas-painel-fechar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notas-painel-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notas-painel-label {
+  color: rgba(226, 232, 240, 0.65);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.notas-fontes-lista {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.notas-fonte-btn {
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+
+.notas-fonte-btn:active {
+  transform: scale(0.94);
+}
+
+.notas-fonte-btn.ativo {
+  background: rgba(37, 99, 235, 0.4);
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+.notas-cores-lista {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notas-cor-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.notas-cor-btn:active {
+  transform: scale(0.9);
+}
+
+.notas-cor-btn.ativo {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+.notas-tamanho-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notas-tamanho-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+
+.notas-tamanho-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(0.94);
+}
+
+.notas-tamanho-valor {
+  min-width: 48px;
+  text-align: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.notas-estilos-linha {
+  display: flex;
+  gap: 8px;
+}
+
+.notas-estilo-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+
+.notas-estilo-btn.ativo {
+  background: rgba(37, 99, 235, 0.4);
+  border-color: rgba(96, 165, 250, 0.7);
+}
+
+/* ============================================
+   RODAPÉ — LEGENDA CÁPSULA + PUBLICAR
+============================================ */
+
+#notasLegendaRowNex {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 100000;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+#notasLegendaRowNex .notas-legenda-capsula {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 22px;
+  padding: 10px 16px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: padding 0.2s ease;
+}
+
+#notasLegendaInputNex {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  width: 100%;
+  resize: none;
+  min-height: 20px;
+  max-height: 60px;
+  overflow-y: auto;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
+  caret-color: #2563eb;
+}
+
+#notasLegendaInputNex::placeholder {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+#notasLegendaContadorNex {
+  color: rgba(226, 232, 240, 0.5);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+  display: none;
+}
+
+#notasLegendaContadorNex.visivel {
+  display: block;
+}
+
+#notasBtnPublicarNex {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  height: 52px;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#notasBtnPublicarNex:active {
+  transform: scale(0.96);
+  filter: brightness(1.08);
+}
+
+#notasBtnPublicarNex:disabled {
+  background: rgba(100, 116, 139, 0.4);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ============================================
+   CÁPSULA DE MARCA (só no PNG salvo)
+============================================ */
+
+#notasCapsulaMarcaNex {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 500;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#notasCapsulaMarcaNex.visivel {
+  display: inline-flex;
+}
+
+#notasCapsulaMarcaNex .capsula-icone {
+  font-size: 12px;
+  line-height: 1;
+}
+
+#notasCapsulaMarcaNex .capsula-sep {
+  opacity: 0.4;
+  font-weight: 400;
+  margin: 0 2px;
+}
+
+#notasCapsulaMarcaNex .capsula-user {
+  color: #93c5fd;
+}
+
+/* ============================================
+   BORDA DUPLA NO PNG SALVO
+   (aplicada só durante a captura)
+============================================ */
+
+#notasEditorNex.nota-capturando-borda #notasPapelNex {
+  box-shadow:
+    0 0 0 3px #0a0a0f,
+    0 0 0 4.5px #f5f0e0,
+    0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* ============================================
+   TABBAR / SCROLL LOCK
+============================================ */
+
+body.notas-aberto {
+  overflow: hidden !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding: 0 !important;
+}
+
+body.notas-aberto .tabbar {
+  display: none !important;
+}
+
+/* ============================================
+   AJUSTES FINAIS — FOTO NO NOTAS
+============================================ */
+
+#notasCamadaNex .video-editor-photo-mydrops-nex {
+  width: 180px;
+  z-index: 3;
+}
+
+#notasCamadaNex .video-editor-photo-body-mydrops-nex {
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+#notasCamadaNex .video-editor-photo-body-mydrops-nex img {
+  border-radius: 14px;
+}
+
+/* ============================================
+   AJUSTES FINAIS — TEXTO NO NOTAS
+   (sobrescreve tema-branco/escuro/etc
+    pra combinar com o papel creme)
+============================================ */
+
+/* Tema padrão (sem caixa) no Notas */
+#notasEditorNex .video-editor-text-body-mydrops-nex:not([class*="tema-"]) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 8px !important;
+  box-shadow: none !important;
+}
+
+/* Temas aplicados no Notas — ajusta o padding */
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-branco,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-escuro,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-azul,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-verde,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-amarelo,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-rosa,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-roxo,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-neon,
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-vidro {
+  padding: 14px 18px !important;
+}
+
+#notasEditorNex .video-editor-text-body-mydrops-nex.tema-papel {
+  padding: 16px 18px 16px 24px !important;
+}
+
+/* ============================================
+   Z-INDEX DE EMPILHAMENTO (ordem visual)
+============================================ */
+
+#notasPapelNex {
+  z-index: 1;
+}
+
+#notasCamadaNex {
+  z-index: 2;
+}
+
+#notasCamadaNex > .video-editor-text-mydrops-nex,
+#notasCamadaNex > .video-editor-photo-mydrops-nex {
+  z-index: 3;
+}
+
+.editor-alca-nex,
+#notasLixeiraNex {
+  z-index: 10;
+}
+
+#notasCapsulaMarcaNex {
+  z-index: 15;
+}
+
+#notasBarraTopoNex {
+  z-index: 100;
+}
+
+#notasLegendaRowNex {
+  z-index: 100;
+}
+
+#notasPainelAaNex {
+  z-index: 200;
+}
+
+/* ============================================
+   TRAVA DE SELEÇÃO DE TEXTO
+   (evita selecionar o texto ao arrastar)
+============================================ */
+
+#notasCamadaNex .video-editor-text-mydrops-nex,
+#notasCamadaNex .video-editor-photo-mydrops-nex {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Mas durante edição inline, permite selecionar */
+#notasCamadaNex .video-editor-text-mydrops-nex[data-editando="1"] .video-editor-text-body-mydrops-nex {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* ============================================
+   ANIMAÇÃO DE SAÍDA DO EDITOR
+============================================ */
+
+#notasEditorNex:not(.aberto) #notasPapelNex {
+  animation: none;
+}
+
+/* ============================================
+   FUNDO PERSONALIZADO — mantém o radius
+============================================ */
+
+#notasPapelNex[style*="background-image"] {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* ============================================
+   CURSOR — cursor de texto no contentEditable
+============================================ */
+
+#notasCamadaNex .video-editor-text-body-mydrops-nex[contenteditable="true"] {
+  cursor: text;
+}
+
+#notasCamadaNex .video-editor-text-body-mydrops-nex[contenteditable="false"] {
+  cursor: move;
+}
+
+/* ============================================
+   PAINEL Aa — REFORÇO (v2)
+============================================ */
+
+#notasPainelAaNex {
+  display: none !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  background: #1a1a24 !important;
+  background-color: #1a1a24 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 24px !important;
+  padding: 16px !important;
+  position: fixed !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  z-index: 2147483647 !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
+}
+
+#notasPainelAaNex.aberto {
+  display: flex !important;
+}
+
+#notasPainelAaNex .notas-painel-topo,
+#notasPainelAaNex .notas-painel-secao {
+  display: flex !important;
+}
+
+#notasPainelAaNex .notas-painel-topo {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+#notasPainelAaNex .notas-painel-secao {
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+#notasPainelAaNex .notas-painel-label {
+  display: block !important;
+  color: rgba(226, 232, 240, 0.75) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+}
+
+#notasPainelAaNex .notas-fontes-lista {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 8px !important;
+}
+
+#notasPainelAaNex .notas-cores-lista {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+#notasPainelAaNex .notas-tamanho-linha,
+#notasPainelAaNex .notas-estilos-linha {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* ============================================
+   BARRAS — Sistema de 2 barras (v3)
+============================================ */
+
+/* Por padrão: barra principal visível, contexto escondido */
+#notasBarraTopoNex {
+  display: flex !important;
+}
+
+#notasBarraContextoNex {
+  display: none !important;
+}
+
+/* Quando TEXTO selecionado:
+   - Esconde a barra principal
+   - Mostra a barra de contexto */
+#notasEditorNex.modo-notas-texto-selecionado #notasBarraTopoNex {
+  display: none !important;
+}
+
+#notasEditorNex.modo-notas-texto-selecionado #notasBarraContextoNex {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 30, 0.92);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 100001;
+  animation: notasBarraEntrada 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes notasBarraEntrada {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Quando FOTO selecionada: esconde as duas */
+#notasEditorNex.modo-notas-foto-selecionada #notasBarraTopoNex,
+#notasEditorNex.modo-notas-foto-selecionada #notasBarraContextoNex {
+  display: none !important;
+}
+
+/* Esconde os antigos botões contexto (caso fiquem por aí) */
+#notasBtnTemaNex,
+#notasBtnAaNex {
+  display: inline-flex !important;
+  visibility: visible !important;
+  width: auto !important;
+  min-width: 36px !important;
+  padding: 0 12px !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+  background: rgba(37, 99, 235, 0.16) !important;
+  color: #bfdbfe !important;
+}
+

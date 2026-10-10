@@ -593,3 +593,414 @@
 .mydrops-publication-viewer video::-webkit-media-controls-timeline {
   pointer-events: auto !important;
 }
+
+/* ============================================
+   VIEWER DE PUBLICAÇÕES — LAYOUT NOVO
+   Palco + papel + topbar (4 linhas) + rodapé
+============================================ */
+
+.mydrops-publication-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  overflow: hidden;
+  background: #050b18;
+  box-sizing: border-box;
+}
+
+.mydrops-pub-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(143, 208, 255, 0.14), transparent 42%),
+    radial-gradient(circle at bottom, rgba(45, 140, 255, 0.12), transparent 45%),
+    linear-gradient(180deg, rgba(5, 11, 24, 0.86), rgba(5, 11, 24, 0.96));
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mydrops-pub-shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   TOPBAR (3 LINHAS FINAS)
+============================================ */
+
+.mydrops-pub-topbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 2px 4px;
+}
+
+.mydrops-pub-topbar-linha1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+/* Grupo Voltar + Contador (à direita) */
+.mydrops-pub-voltar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Contador */
+.mydrops-pub-contador {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  line-height: 1;
+}
+
+/* Botão Voltar — pequeno */
+.mydrops-pub-voltar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(47, 140, 255, 0.85);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  line-height: 1;
+  box-shadow:
+    0 4px 12px rgba(47, 140, 255, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.mydrops-pub-voltar:active {
+  transform: scale(0.92);
+  filter: brightness(1.08);
+}
+
+/* Título */
+.mydrops-pub-titulo {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Data + hora */
+.mydrops-pub-data {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+/* Selos — 1 linha só */
+.mydrops-pub-selos {
+  display: block;
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mydrops-pub-selos .selos-origem {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  gap: 4px 8px !important;
+  margin-top: 0 !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+}
+
+/* ============================================
+   PALCO + PAPEL (mídia em cover retangular)
+============================================ */
+
+.mydrops-pub-palco {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mydrops-pub-papel {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  background: #000000;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.mydrops-pub-papel img,
+.mydrops-pub-papel video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+.mydrops-pub-papel video {
+  z-index: 2;
+}
+
+/* ============================================
+   RODAPÉ — SETAS + CÁPSULA + STATS + LIXEIRA
+============================================ */
+
+.mydrops-pub-rodape {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* Setas redondas */
+.mydrops-pub-seta {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(47, 140, 255, 0.85);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  line-height: 1;
+  box-shadow:
+    0 6px 16px rgba(47, 140, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.mydrops-pub-seta:active {
+  transform: scale(0.92);
+  filter: brightness(1.08);
+}
+
+.mydrops-pub-seta:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+/* Espaçador quando não tem cápsula */
+.mydrops-pub-rodape-vazio {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================
+   CÁPSULA DE LEGENDA (4 linhas + Ver mais)
+============================================ */
+
+.mydrops-pub-capsula {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 20px;
+  padding: 10px 14px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  max-height: 34vh;
+  overflow: hidden;
+}
+
+.mydrops-pub-capsula-texto {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+  margin: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
+.mydrops-pub-capsula-texto.expandido {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow-y: auto;
+  max-height: 30vh;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.mydrops-pub-capsula-texto.expandido::-webkit-scrollbar {
+  width: 3px;
+}
+
+.mydrops-pub-capsula-texto.expandido::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+
+.mydrops-pub-capsula-ver-mais {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  font-style: italic;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 2px;
+  -webkit-tap-highlight-color: transparent;
+  display: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.mydrops-pub-capsula-ver-mais.visivel {
+  display: inline-block;
+}
+
+.mydrops-pub-capsula-ver-mais:active {
+  opacity: 0.7;
+}
+
+/* ============================================
+   STATS + LIXEIRA
+============================================ */
+
+.mydrops-pub-stats-row {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 0;
+}
+
+.mydrops-pub-stats-lista {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mydrops-pub-stat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.mydrops-pub-stat-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.mydrops-pub-stat-btn span {
+  font-weight: 900;
+}
+
+/* Lixeira */
+.mydrops-pub-trash-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  font-size: 20px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 0;
+}
+
+.mydrops-pub-trash-btn:active {
+  transform: scale(0.92);
+  background: rgba(239, 68, 68, 0.35);
+}
