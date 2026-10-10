@@ -800,18 +800,18 @@ body.foto-aberto .tabbar {
 ============================================ */
 
 #fotoCapsulaMarcaNex .capsula-avatar {
-  width: 22px !important;
-  height: 22px !important;
-  min-width: 22px !important;
-  max-width: 22px !important;
-  max-height: 22px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
   border-radius: 50% !important;
   overflow: hidden !important;
   background: rgba(255, 255, 255, 0.12) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 13px !important;
+  font-size: 18px !important;
   line-height: 1 !important;
   flex-shrink: 0 !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
@@ -833,7 +833,7 @@ body.foto-aberto .tabbar {
 }
 
 #fotoCapsulaMarcaNex {
-  padding: 5px 14px 5px 5px !important;
-  gap: 6px !important;
+  padding: 6px 16px 6px 6px !important;
+  gap: 8px !important;
   align-items: center !important;
 }
