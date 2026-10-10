@@ -1,0 +1,237 @@
+/* ============================================
+   33-NOTIFICACOES-REALTIME.JS
+   Realtime que detecta novidades e sinaliza bolinhas
+
+   FASE 6 — Parte 1: Reações nos meus drops
+   → sinalizaNovidadeNex('mydrops')
+
+   Depende de: 20-supabase.js, 32-notificacoes-tabs.js
+============================================ */
+
+(function () {
+  'use strict';
+
+  // ============================================
+  // ESTADO
+  // ============================================
+
+  let canalRealtimeReacoesNex = null;
+  let tentativaReconexaoReacoesNex = 0;
+  let timerReconexaoReacoesNex = null;
+  const MAX_TENTATIVAS_REACOES_NEX = 10;
+
+  // Cache dos IDs das minhas publicações
+  let cacheMinhasPublicacoesNex = null;
+  let cacheExpiraEmNex = 0;
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+
+  // ============================================
+  // CACHE — minhas publicações
+  // ============================================
+
+  async function carregarMinhasPublicacoesNex() {
+    const agora = Date.now();
+
+    if (cacheMinhasPublicacoesNex && agora < cacheExpiraEmNex) {
+      return cacheMinhasPublicacoesNex;
+    }
+
+    const usernameAtual = String(window.Drops?.usernameAtual || '')
+      .replace(/^@/, '')
+      .toLowerCase()
+      .trim();
+
+    if (!usernameAtual || !window.supabaseClient) {
+      return new Set();
+    }
+
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('publicacoes')
+        .select('id')
+        .eq('autor_username', usernameAtual);
+
+      if (error) {
+        console.warn('Erro ao buscar minhas publicações:', error);
+        return new Set();
+      }
+
+      const ids = new Set((data || []).map((p) => p.id));
+
+      cacheMinhasPublicacoesNex = ids;
+      cacheExpiraEmNex = agora + CACHE_TTL_MS;
+
+      console.log(`📦 Cache de publicações: ${ids.size} itens`);
+
+      return ids;
+    } catch (err) {
+      console.warn('Erro ao buscar minhas publicações:', err);
+      return new Set();
+    }
+  }
+
+  function invalidarCacheMinhasPublicacoesNex() {
+    cacheMinhasPublicacoesNex = null;
+    cacheExpiraEmNex = 0;
+  }
+
+  // ============================================
+  // PROCESSAR REAÇÃO NOVA
+  // ============================================
+
+  async function processarReacaoRealtimeNex(reacao) {
+    if (!reacao?.publicacao_id) return;
+
+    try {
+      const minhasPublicacoes = await carregarMinhasPublicacoesNex();
+
+      if (!minhasPublicacoes.has(reacao.publicacao_id)) {
+        // Reação em publicação de outro — ignora
+        return;
+      }
+
+      console.log('❤️ Nova reação nos meus drops');
+      window.sinalizarNovidadeNex?.('mydrops');
+    } catch (err) {
+      console.warn('Erro ao processar reação realtime:', err);
+    }
+  }
+
+  // ============================================
+  // INICIAR REALTIME
+  // ============================================
+
+  async function iniciarRealtimeReacoesNex() {
+    if (!window.supabaseClient) return;
+
+    if (
+      canalRealtimeReacoesNex &&
+      canalRealtimeReacoesNex.state === 'joined'
+    ) {
+      return;
+    }
+
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
+
+      if (!user) return;
+
+      if (canalRealtimeReacoesNex) {
+        try {
+          await window.supabaseClient.removeChannel(canalRealtimeReacoesNex);
+        } catch (e) {}
+        canalRealtimeReacoesNex = null;
+      }
+
+      console.log('📡 Iniciando Realtime de reações...');
+
+      canalRealtimeReacoesNex = window.supabaseClient
+        .channel('drops-reacoes-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'reacoes'
+          },
+          (payload) => {
+            const reacao = payload.new;
+            if (!reacao) return;
+
+            // Ignora reações que eu mesmo fiz
+            if (reacao.usuario_id === user.id) return;
+
+            processarReacaoRealtimeNex(reacao);
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 Realtime reações status:', status);
+
+          if (status === 'SUBSCRIBED') {
+            tentativaReconexaoReacoesNex = 0;
+
+            if (timerReconexaoReacoesNex) {
+              clearTimeout(timerReconexaoReacoesNex);
+              timerReconexaoReacoesNex = null;
+            }
+          }
+
+          if (
+            status === 'CHANNEL_ERROR' ||
+            status === 'TIMED_OUT' ||
+            status === 'CLOSED'
+          ) {
+            console.warn('⚠️ Realtime reações caiu. Agendando reconexão...');
+            agendarReconexaoReacoesNex();
+          }
+        });
+    } catch (err) {
+      console.warn('Erro ao iniciar Realtime de reações:', err);
+      agendarReconexaoReacoesNex();
+    }
+  }
+
+  function agendarReconexaoReacoesNex() {
+    if (timerReconexaoReacoesNex) return;
+
+    if (tentativaReconexaoReacoesNex >= MAX_TENTATIVAS_REACOES_NEX) {
+      console.warn('❌ Máximo de tentativas de reconexão (reações).');
+      return;
+    }
+
+    tentativaReconexaoReacoesNex += 1;
+
+    const delay = Math.min(
+      2000 * Math.pow(2, tentativaReconexaoReacoesNex - 1),
+      30000
+    );
+
+    timerReconexaoReacoesNex = setTimeout(() => {
+      timerReconexaoReacoesNex = null;
+      iniciarRealtimeReacoesNex();
+    }, delay);
+  }
+
+  // ============================================
+  // RECONEXÃO POR VISIBILIDADE / ONLINE
+  // ============================================
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+
+    if (
+      !canalRealtimeReacoesNex ||
+      canalRealtimeReacoesNex.state !== 'joined'
+    ) {
+      tentativaReconexaoReacoesNex = 0;
+      iniciarRealtimeReacoesNex();
+    }
+  });
+
+  window.addEventListener('online', () => {
+    tentativaReconexaoReacoesNex = 0;
+    iniciarRealtimeReacoesNex();
+  });
+
+  // ============================================
+  // INIT — espera Supabase ficar pronto
+  // ============================================
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      iniciarRealtimeReacoesNex();
+    }, 1500);
+  });
+
+  // ============================================
+  // EXPÕE
+  // ============================================
+
+  window.iniciarRealtimeReacoesNex = iniciarRealtimeReacoesNex;
+  window.carregarMinhasPublicacoesNex = carregarMinhasPublicacoesNex;
+  window.invalidarCacheMinhasPublicacoesNex = invalidarCacheMinhasPublicacoesNex;
+
+  console.log('🔔 33-notificacoes-realtime.js carregado');
+
+})();
