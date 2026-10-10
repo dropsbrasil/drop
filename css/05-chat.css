@@ -15,9 +15,8 @@
 
 #chatNex.active {
   display: flex !important;
-  flex-direction: column;
-  height: 100dvh;
-  max-height: 100dvh;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 /* ============================================
@@ -216,16 +215,16 @@
 ============================================ */
 
 .chat-bottom {
-  position: relative;
-  flex-shrink: 0;
+  position: relative !important;
+  flex-shrink: 0 !important;
   z-index: 72;
   display: flex;
   gap: 8px;
   padding: 10px 12px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   background: rgba(255,255,255,.85);
   backdrop-filter: blur(10px);
   box-sizing: border-box;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
 #chatInput {
