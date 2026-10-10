@@ -1942,9 +1942,15 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
   // IDENTIFICA O AUTOR CLICADO E O ÍNDICE DO DROP
   // ============================================
   const autorClicado = dropClicado.autorUsername || 'usuario';
-  const perfilClicado = base[autorClicado];
+const perfilClicado = base[autorClicado];
 
-  if (!perfilClicado) return;
+if (!perfilClicado) return;
+
+// ⚠️ Fase 5: limpa a borda azul do conectado que postou algo novo
+window.limparNovidadePostConectado?.(autorClicado);
+window.atualizarBordasCardsNex?.();
+
+// Acha o índice do drop clicado dentro do perfil dele
 
   // Acha o índice do drop clicado dentro do perfil dele
   const indexClicado = perfilClicado.drops.findIndex(

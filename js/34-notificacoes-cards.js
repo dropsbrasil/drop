@@ -144,6 +144,19 @@
 
   window.atualizarBordasCardsNex       = atualizarBordasCardsNex;
 
-  console.log('🟦 34-notificacoes-cards.js carregado');
+// ⚠️ Reforço: os cards são re-renderizados depois do DOMContentLoaded
+// (sincronização Supabase, init, etc). Sem isso, a borda some ao recarregar.
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(atualizarBordasCardsNex, 500);
+  setTimeout(atualizarBordasCardsNex, 1500);
+  setTimeout(atualizarBordasCardsNex, 3000);
+});
 
+// ⚠️ Cobre "sair e voltar" via bfcache
+window.addEventListener('pageshow', () => {
+  setTimeout(atualizarBordasCardsNex, 300);
+});
+
+console.log('🟦 34-notificacoes-cards.js carregado');
+  
 })();

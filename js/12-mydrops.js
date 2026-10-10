@@ -999,11 +999,19 @@ modal.querySelectorAll('.mydrops-list-modal-item').forEach((el) => {
   if (!publicacoesViewerMyDropsNex.length) return;
 
   publicacaoViewerIndexMyDropsNex = Math.max(
-    0,
-    Math.min(indexInicial, publicacoesViewerMyDropsNex.length - 1)
-  );
+  0,
+  Math.min(indexInicial, publicacoesViewerMyDropsNex.length - 1)
+);
 
-  const antigo = document.querySelector('.mydrops-publication-viewer');
+// ⚠️ Fase 5: limpa a borda azul do drop que está sendo aberto
+const pubAberta = publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
+if (pubAberta) {
+  const idLimpar = pubAberta.idSupabase || pubAberta.id;
+  window.limparNovidadeReacaoDrop?.(idLimpar);
+  window.atualizarBordasCardsNex?.();
+}
+
+const antigo = document.querySelector('.mydrops-publication-viewer');
   if (antigo) antigo.remove();
 
   const viewer = document.createElement('div');
