@@ -1675,11 +1675,11 @@ async function renderizarPublicacoesNearbyNex() {
   // RENDERIZA CONECTADOS (dentro do .nearby-stories)
   // ============================================
   autoresConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
-    const dropPrincipal = dropsDoAutor[0];
+  const dropPrincipal = dropsDoAutor[0];
 
-    const card = document.createElement('div');
-    card.className = 'story-card my-story';
-
+  const card = document.createElement('div');
+  card.className = 'story-card my-story';
+  card.dataset.autorId = autorId;
     // Avatar
     const avatar = document.createElement('div');
     avatar.className = 'story-avatar';

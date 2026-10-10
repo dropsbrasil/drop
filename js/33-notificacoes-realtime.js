@@ -97,7 +97,9 @@ const MAX_TENTATIVAS_PUBLICACOES_NEX = 10;
       }
 
       console.log('❤️ Nova reação nos meus drops');
-      window.sinalizarNovidadeNex?.('mydrops');
+window.sinalizarNovidadeNex?.('mydrops');
+window.marcarNovidadeReacaoDrop?.(reacao.publicacao_id);
+window.atualizarBordasCardsNex?.();
     } catch (err) {
       console.warn('Erro ao processar reação realtime:', err);
     }
@@ -137,7 +139,9 @@ function processarPublicacaoRealtimeNex(pub) {
   if (!idsConectados.has(autorLimpo)) return;
 
   console.log('📸 Conectado postou algo novo:', autorLimpo);
-  window.sinalizarNovidadeNex?.('nearby');
+window.sinalizarNovidadeNex?.('nearby');
+window.marcarNovidadePostConectado?.(autorLimpo);
+window.atualizarBordasCardsNex?.();
 }
 
 // ============================================

@@ -636,7 +636,8 @@ function criarCardPublicacaoMyDropsNex(pub) {
   const card = document.createElement('article');
   card.className = 'mydrops-publication-card';
   card.dataset.pubId = pub.id;
-
+  card.dataset.novidadeId = pub.idSupabase || pub.id || '';
+  
   // ============================================
   // MÍDIA
   // ============================================
