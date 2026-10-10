@@ -17,7 +17,11 @@
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  min-height: 0 !important;
+  max-height: 100dvh !important;
+  height: 100dvh !important;
 }
+
 
 /* ============================================
    TOPO DO CHAT
