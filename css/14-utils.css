@@ -1120,3 +1120,14 @@ body.chat-aberto {
     0 0 4px rgba(239, 68, 68, 0.6);
   animation: pulsoNotificacaoNex 1.6s ease-in-out infinite;
 }
+
+/* ============================================
+   FASE 5 — Borda azul em cards com novidade
+============================================ */
+
+.story-card.tem-novidade,
+.mydrops-publication-card.tem-novidade {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
