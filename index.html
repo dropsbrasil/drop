@@ -408,10 +408,11 @@
      TABBAR
 ============================================ -->
 <nav class="tabbar">
-  <button type="button" class="tab active-tab" onclick="abrirTela('mydrops', 0)">My Drops</button>
-  <button type="button" class="tab" onclick="abrirTela('nearby', 1)">Nearby</button>
+  <button type="button" class="tab tab-mydrops active-tab" onclick="abrirTela('mydrops', 0)">My Drops</button>
+  <button type="button" class="tab tab-nearby" onclick="abrirTela('nearby', 1)">Nearby</button>
 <button type="button" class="tab tab-nex" onclick="abrirTela('nex', 2)">NEX</button>
 </nav>
+  
 <!-- ============================================
      MODAIS
 ============================================ -->
@@ -1415,14 +1416,17 @@ if (window.pdfjsLib) {
 <script src="./js/29-notas.js"></script>
 <script src="./js/30-foto.js"></script>
 <script src="./js/31-video.js"></script>
+<script src="./js/32-notificacoes-tabs.js"></script>
+<script src="./js/33-notificacoes-realtime.js"></script>
 <script src="./js/14-init.js"></script>
-<!-- Script de selos (por último) -->
+  <!-- Script de selos (por último) -->
 <script src="./js/selos.js"></script>
 <script src="./js/28-history.js"></script>
 
 <!-- ============================================
      ATUALIZAÇÃO AUTOMÁTICA DO SERVICE WORKER
 ============================================ -->
+
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
