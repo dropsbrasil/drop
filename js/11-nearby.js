@@ -349,6 +349,104 @@ function calcularTempoExpiracaoNex(expiraEm) {
 
   return `Expira em ${seg}s`;
 }
+// ============================================
+// ANIMAÇÃO DE MÍDIA (Tinder + Scroll)
+// ============================================
+
+function animarMidiaNex(container, url, tipo, direcao) {
+  if (!container || !url) return;
+
+  const ehVideo =
+    tipo === 'video' ||
+    /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+
+  // ============================================
+  // CRIA O NOVO ELEMENTO DE MÍDIA
+  // ============================================
+
+  const novo = document.createElement('div');
+  novo.className = 'nearby-pub-midia-item';
+
+  if (ehVideo) {
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.setAttribute('controls', '');
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    novo.appendChild(video);
+  } else {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    novo.appendChild(img);
+  }
+
+  // ============================================
+  // DEFINE A DIREÇÃO DA ANIMAÇÃO
+  // ============================================
+
+  let transformEntrada = 'translateX(100%)';
+  let transformSaida = 'translateX(-100%)';
+
+  if (direcao === 'left') {
+    // Próximo drop → entra pela direita, antigo sai pra esquerda
+    transformEntrada = 'translateX(100%)';
+    transformSaida = 'translateX(-100%)';
+  } else if (direcao === 'right') {
+    // Drop anterior → entra pela esquerda, antigo sai pra direita
+    transformEntrada = 'translateX(-100%)';
+    transformSaida = 'translateX(100%)';
+  } else if (direcao === 'down') {
+    // Próximo perfil → entra por baixo, antigo sobe
+    transformEntrada = 'translateY(100%)';
+    transformSaida = 'translateY(-100%)';
+  } else if (direcao === 'up') {
+    // Perfil anterior → entra por cima, antigo desce
+    transformEntrada = 'translateY(-100%)';
+    transformSaida = 'translateY(100%)';
+  }
+
+  // Aplica o estado inicial (fora da tela)
+  novo.style.transform = transformEntrada;
+  novo.style.opacity = '0';
+
+  // ============================================
+  // PEGA A MÍDIA ATUAL E PREPARA A SAÍDA
+  // ============================================
+
+  const midiaAtual = container.querySelector('.nearby-pub-midia-item');
+
+  // Adiciona o novo antes de animar
+  container.appendChild(novo);
+
+  // Força reflow pra garantir que a animação rode
+  void novo.offsetWidth;
+
+  // ============================================
+  // ANIMA: NOVO ENTRA + ANTIGO SAI
+  // ============================================
+
+  novo.style.transition =
+  'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
+novo.style.transform = 'translateX(0) translateY(0)';
+novo.style.opacity = '1';
+
+if (midiaAtual) {
+  midiaAtual.style.transition =
+    'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
+  midiaAtual.style.transform = transformSaida;
+  midiaAtual.style.opacity = '0';
+
+      setTimeout(() => {
+      if (midiaAtual.parentNode === container) {
+        midiaAtual.remove();
+      }
+    }, 540);
+  }
+}
 
 // ============================================
 // OBTER DROPS DE UM PERFIL
@@ -418,6 +516,10 @@ function abrirViewerPublicacaoNex(
   let perfilAtualId = id && base[id] ? id : ids[0];
   let dropIndexAtual = Math.max(0, Number(dropIndexInicial) || 0);
 
+// ⚠️ Controla a direção da animação entre drops/perfis
+let direcaoAnimacaoNex = 'left';
+let primeiraRenderizacaoNex = true;
+  
   // ============================================
   // REMOVE VIEWER ANTIGO
   // ============================================
@@ -433,72 +535,67 @@ function abrirViewerPublicacaoNex(
   viewer.className = 'nearby-drop-viewer';
 
   viewer.innerHTML = `
-    <div class="nearby-drop-bg"></div>
+  <div class="nearby-drop-bg"></div>
 
-    <div class="nearby-drop-shell">
-      <div class="nearby-drop-topbar">
-        <div class="nearby-drop-top-left">
-          <div class="nearby-drop-user">
-            <div class="nearby-drop-avatar" id="nearbyDropAvatar"></div>
+  <div class="nearby-pub-shell">
 
-            <div class="nearby-drop-user-meta">
-              <strong id="nearbyDropNome"></strong>
-              <span id="nearbyDropDistancia"></span>
-              <small id="nearbyDropExpire"></small>
-            </div>
+    <!-- TOPBAR -->
+    <div class="nearby-pub-topbar">
+      <div class="nearby-pub-topbar-linha1">
+        <div class="nearby-drop-user">
+          <div class="nearby-drop-avatar" id="nearbyDropAvatar"></div>
+          <div class="nearby-drop-user-meta">
+            <strong id="nearbyDropNome"></strong>
+            <span id="nearbyDropDistancia"></span>
+            <small id="nearbyDropExpire"></small>
           </div>
         </div>
 
-        <div class="nearby-drop-top-right">
+        <div class="nearby-pub-voltar-group">
+          <span class="nearby-pub-counter" id="nearbyDropCounter">1/1</span>
           <button class="nearby-drop-close" type="button" aria-label="Voltar">➥</button>
-          <div class="nearby-drop-counter" id="nearbyDropCounter"></div>
-        </div>
-      </div>
-
-      <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">
-        ⌃
-      </button>
-
-      <button class="nearby-drop-arrow nearby-drop-arrow-left" type="button" aria-label="Anterior">
-        ‹
-      </button>
-
-      <div class="nearby-drop-media-wrap">
-        <div class="nearby-drop-media" id="nearbyDropMedia"></div>
-      </div>
-
-      <button class="nearby-drop-arrow nearby-drop-arrow-right" type="button" aria-label="Próxima">
-        ›
-      </button>
-
-      <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">
-        ⌄
-      </button>
-
-      <div class="nearby-drop-footer">
-        <div class="nearby-drop-footer-top">
-          <div class="nearby-drop-left-stats">
-            <div class="nearby-drop-views">
-              👁️‍🗨️ <span id="nearbyDropViews">0</span>
-            </div>
-
-            <div class="nearby-drop-reactions" id="nearbyDropReactions"></div>
-          </div>
-
-          <button class="nearby-drop-profile-btn" type="button">
-            👣 Visitar perfil
-          </button>
-        </div>
-
-        <div class="nearby-drop-comment-box">
-          <input class="nearby-drop-comment-input" placeholder="Comentar...">
-          <button class="nearby-drop-reaction" type="button">❤️</button>
-          <button class="nearby-drop-reaction" type="button">💔</button>
-          <button class="nearby-drop-send" type="button">⌯⌲</button>
         </div>
       </div>
     </div>
-  `;
+
+    <!-- PALCO + PAPEL -->
+    <div class="nearby-pub-palco">
+      <div class="nearby-pub-papel" id="nearbyDropMedia"></div>
+
+      <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">⌃</button>
+      <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">⌄</button>
+    </div>
+
+    <!-- RODAPÉ — SETAS + COMMENT -->
+    <div class="nearby-pub-rodape">
+      <button class="nearby-drop-arrow nearby-drop-arrow-left" type="button" aria-label="Anterior">←</button>
+
+      <div class="nearby-drop-comment-box">
+        <input class="nearby-drop-comment-input" placeholder="Comentar...">
+        <button class="nearby-drop-reaction" type="button">❤️</button>
+        <button class="nearby-drop-reaction" type="button">💔</button>
+        <button class="nearby-drop-send" type="button">⌯⌲</button>
+      </div>
+
+      <button class="nearby-drop-arrow nearby-drop-arrow-right" type="button" aria-label="Próxima">→</button>
+    </div>
+
+    <!-- STATS + VISITAR -->
+    <div class="nearby-pub-stats-row">
+      <div class="nearby-pub-stats-lista">
+        <div class="nearby-drop-views">
+          👁 <span id="nearbyDropViews">0</span>
+        </div>
+        <div class="nearby-drop-reactions" id="nearbyDropReactions"></div>
+      </div>
+
+      <button class="nearby-drop-profile-btn" type="button">
+        👣 Visitar perfil
+      </button>
+    </div>
+
+  </div>
+`;
 
   document.body.appendChild(viewer);
 
@@ -603,8 +700,30 @@ if (typeof window.feedbackNex?.reagiu === 'function') {
     // ⚠️ Atualiza estado ativo dos botões
     atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 
-    // Re-renderiza contador
-    renderizar();
+    // ⚠️ NÃO chamar renderizar() — evita animar a mídia
+    // Atualiza só o contador de reações localmente
+    const reacoesElAtual = viewer.querySelector('#nearbyDropReactions');
+
+    if (reacoesElAtual) {
+      const statsAtual = obterStatsReacaoDropNex(
+        perfilIdCalc,
+        dropIndexAtual,
+        urlCalc
+      );
+
+      const totalAtual = statsAtual.heart + statsAtual.broken;
+
+      if (totalAtual > 0) {
+        reacoesElAtual.innerHTML = `
+          <span class="nearby-drop-reaction-count">❤️${statsAtual.heart}</span>
+          <span class="nearby-drop-reaction-count">💔${statsAtual.broken}</span>
+        `;
+        reacoesElAtual.style.display = 'inline-flex';
+      } else {
+        reacoesElAtual.innerHTML = '';
+        reacoesElAtual.style.display = 'none';
+      }
+    }
 
     if (typeof renderChat === 'function') {
       renderChat(Drops.estado.conversaAtual);
@@ -972,35 +1091,50 @@ if (
 }
 
       // ============================================
-      // MÍDIA (imagem ou vídeo)
-      // ============================================
+// MÍDIA (imagem ou vídeo) — COM ANIMAÇÃO
+// ============================================
 
-      if (media) {
-        const url = String(drop.url || drop.imagem || '');
-        const tipoDrop = String(drop.type || drop.tipo || '').toLowerCase();
+if (media) {
+  const url = String(drop.url || drop.imagem || '');
+  const tipoDrop = String(drop.type || drop.tipo || '').toLowerCase();
 
-        const ehVideo =
-          tipoDrop.includes('video') ||
-          /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+  // ⚠️ Primeira renderização: monta direto (sem animação)
+  // ⚠️ Navegações: usa animação direcional
+  if (primeiraRenderizacaoNex) {
+    primeiraRenderizacaoNex = false;
 
-        media.innerHTML = '';
+    const ehVideo =
+      tipoDrop.includes('video') ||
+      /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
 
-        if (ehVideo) {
-          const video = document.createElement('video');
-          video.src = url;
-          video.controls = true;
-          video.autoplay = true;
-          video.muted = true;
-          video.playsInline = true;
-          video.preload = 'metadata';
-          media.appendChild(video);
-        } else {
-          const img = document.createElement('img');
-          img.src = url;
-          img.alt = perfil.nome || '';
-          media.appendChild(img);
-        }
-      }
+    media.innerHTML = '';
+
+    const novoInicial = document.createElement('div');
+    novoInicial.className = 'nearby-pub-midia-item';
+
+    if (ehVideo) {
+      const video = document.createElement('video');
+      video.src = url;
+      video.controls = true;
+      video.setAttribute('controls', '');
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      novoInicial.appendChild(video);
+    } else {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = perfil.nome || '';
+      novoInicial.appendChild(img);
+    }
+
+    media.appendChild(novoInicial);
+  } else {
+    // Navegação → animação
+    animarMidiaNex(media, url, tipoDrop, direcaoAnimacaoNex);
+  }
+}
 
       // ============================================
       // NAVEGAÇÃO (setas desabilitadas nos extremos)
@@ -1036,42 +1170,70 @@ if (
     });
 
     // ============================================
-    // NAVEGAÇÃO ENTRE DROPS (setas laterais)
-    // ============================================
+// NAVEGAÇÃO ENTRE DROPS (setas laterais)
+// ============================================
 
-    viewer.querySelector('.nearby-drop-arrow-left').onclick = () => {
-      if (dropIndexAtual <= 0) return;
-      dropIndexAtual -= 1;
-      renderizar();
-    };
+viewer.querySelector('.nearby-drop-arrow-left').onclick = () => {
+  if (dropIndexAtual <= 0) return;
+  dropIndexAtual -= 1;
+  direcaoAnimacaoNex = 'right'; // drop anterior entra pela esquerda
 
-    viewer.querySelector('.nearby-drop-arrow-right').onclick = () => {
-      const perfil = base[perfilAtualId];
-      const drops = obterDropsDoPerfil(perfil);
-      if (dropIndexAtual >= drops.length - 1) return;
-      dropIndexAtual += 1;
-      renderizar();
-    };
+  // ⚠️ FEEDBACK: vibra + toca ao trocar drop
+  if (typeof window.feedbackNex?.navegouDrop === 'function') {
+    window.feedbackNex.navegouDrop();
+  }
 
-    // ============================================
-    // NAVEGAÇÃO ENTRE PERFIS (setas verticais)
-    // ============================================
+  renderizar();
+};
 
-    viewer.querySelector('.nearby-drop-nav-up').onclick = () => {
-      const idx = ids.indexOf(perfilAtualId);
-      if (idx <= 0) return;
-      perfilAtualId = ids[idx - 1];
-      dropIndexAtual = 0;
-      renderizar();
-    };
+viewer.querySelector('.nearby-drop-arrow-right').onclick = () => {
+  const perfil = base[perfilAtualId];
+  const drops = obterDropsDoPerfil(perfil);
+  if (dropIndexAtual >= drops.length - 1) return;
+  dropIndexAtual += 1;
+  direcaoAnimacaoNex = 'left'; // próximo drop entra pela direita
 
-    viewer.querySelector('.nearby-drop-nav-down').onclick = () => {
-      const idx = ids.indexOf(perfilAtualId);
-      if (idx >= ids.length - 1) return;
-      perfilAtualId = ids[idx + 1];
-      dropIndexAtual = 0;
-      renderizar();
-    };
+  // ⚠️ FEEDBACK: vibra + toca ao trocar drop
+  if (typeof window.feedbackNex?.navegouDrop === 'function') {
+    window.feedbackNex.navegouDrop();
+  }
+
+  renderizar();
+};
+
+// ============================================
+// NAVEGAÇÃO ENTRE PERFIS (setas verticais)
+// ============================================
+
+viewer.querySelector('.nearby-drop-nav-up').onclick = () => {
+  const idx = ids.indexOf(perfilAtualId);
+  if (idx <= 0) return;
+  perfilAtualId = ids[idx - 1];
+  dropIndexAtual = 0;
+  direcaoAnimacaoNex = 'up'; // perfil anterior entra por cima
+
+  // ⚠️ FEEDBACK: só vibra ao trocar perfil
+  if (typeof window.feedbackNex?.trocouPerfil === 'function') {
+    window.feedbackNex.trocouPerfil();
+  }
+
+  renderizar();
+};
+
+viewer.querySelector('.nearby-drop-nav-down').onclick = () => {
+  const idx = ids.indexOf(perfilAtualId);
+  if (idx >= ids.length - 1) return;
+  perfilAtualId = ids[idx + 1];
+  dropIndexAtual = 0;
+  direcaoAnimacaoNex = 'down'; // próximo perfil entra por baixo
+
+  // ⚠️ FEEDBACK: só vibra ao trocar perfil
+  if (typeof window.feedbackNex?.trocouPerfil === 'function') {
+    window.feedbackNex.trocouPerfil();
+  }
+
+  renderizar();
+};
 
       // ============================================
       // SWIPE (ARRASTAR) — horizontal = troca drop
@@ -1091,18 +1253,19 @@ if (
 
         const alvo = e.target;
         if (
-          alvo.closest('.nearby-drop-arrow') ||
-          alvo.closest('.nearby-drop-nav') ||
-          alvo.closest('.nearby-drop-close') ||
-          alvo.closest('.nearby-drop-comment-box') ||
-          alvo.closest('.nearby-drop-footer') ||
-          alvo.closest('.nearby-drop-profile-btn') ||
-          alvo.closest('input') ||
-          alvo.closest('video')
-        ) {
-          swipeAtivo = false;
-          return;
+  alvo.closest('.nearby-drop-arrow') ||
+  alvo.closest('.nearby-drop-nav') ||
+  alvo.closest('.nearby-drop-close') ||
+  alvo.closest('.nearby-drop-comment-box') ||
+  alvo.closest('.nearby-drop-footer') ||
+  alvo.closest('.nearby-drop-profile-btn') ||
+  alvo.closest('.nearby-pub-stats-row') ||
+  alvo.closest('input')
+) {
+  swipeAtivo = false;
+  return;
         }
+        
 
         swipeAtivo = true;
         swipeStartX = e.touches[0].clientX;
@@ -1125,51 +1288,80 @@ if (
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
-        // Horizontal dominante
-        if (absX > LIMITE_SWIPE && absX > absY * 1.3) {
-          if (dx < 0) {
-            // arrastou para a ESQUERDA → próximo drop
-            const perfil = base[perfilAtualId];
-            const drops = obterDropsDoPerfil(perfil);
-            if (dropIndexAtual < drops.length - 1) {
-              dropIndexAtual += 1;
-              renderizar();
-            }
-          } else {
-            // arrastou para a DIREITA → drop anterior
-            if (dropIndexAtual > 0) {
-              dropIndexAtual -= 1;
-              renderizar();
-            }
-          }
-          return;
-        }
+                // Horizontal dominante
+if (absX > LIMITE_SWIPE && absX > absY * 1.3) {
+  if (dx < 0) {
+    // arrastou para a ESQUERDA → próximo drop
+    const perfil = base[perfilAtualId];
+    const drops = obterDropsDoPerfil(perfil);
+    if (dropIndexAtual < drops.length - 1) {
+      dropIndexAtual += 1;
+      direcaoAnimacaoNex = 'left';
 
-        // Vertical dominante
-        if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
-          const idx = ids.indexOf(perfilAtualId);
+      // ⚠️ FEEDBACK: vibra + toca ao trocar drop
+      if (typeof window.feedbackNex?.navegouDrop === 'function') {
+        window.feedbackNex.navegouDrop();
+      }
 
-          if (dy < 0) {
-            // arrastou para CIMA → próximo perfil
-            if (idx < ids.length - 1) {
-              perfilAtualId = ids[idx + 1];
-              dropIndexAtual = 0;
-              renderizar();
-            }
-          } else {
-            // arrastou para BAIXO → perfil anterior
-            if (idx > 0) {
-              perfilAtualId = ids[idx - 1];
-              dropIndexAtual = 0;
-              renderizar();
-            }
-          }
-        }
+      renderizar();
+    }
+  } else {
+    // arrastou para a DIREITA → drop anterior
+    if (dropIndexAtual > 0) {
+      dropIndexAtual -= 1;
+      direcaoAnimacaoNex = 'right';
+
+      // ⚠️ FEEDBACK: vibra + toca ao trocar drop
+      if (typeof window.feedbackNex?.navegouDrop === 'function') {
+        window.feedbackNex.navegouDrop();
+      }
+
+      renderizar();
+    }
+  }
+  return;
+}
+
+// Vertical dominante
+if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
+  const idx = ids.indexOf(perfilAtualId);
+
+  if (dy < 0) {
+    // arrastou para CIMA → próximo perfil
+    if (idx < ids.length - 1) {
+      perfilAtualId = ids[idx + 1];
+      dropIndexAtual = 0;
+      direcaoAnimacaoNex = 'down';
+
+      // ⚠️ FEEDBACK: só vibra ao trocar perfil
+      if (typeof window.feedbackNex?.trocouPerfil === 'function') {
+        window.feedbackNex.trocouPerfil();
+      }
+
+      renderizar();
+    }
+  } else {
+    // arrastou para BAIXO → perfil anterior
+    if (idx > 0) {
+      perfilAtualId = ids[idx - 1];
+      dropIndexAtual = 0;
+      direcaoAnimacaoNex = 'up';
+
+      // ⚠️ FEEDBACK: só vibra ao trocar perfil
+      if (typeof window.feedbackNex?.trocouPerfil === 'function') {
+        window.feedbackNex.trocouPerfil();
+      }
+
+      renderizar();
+    }
+  }
+}
       }, { passive: true });
 
       // Renderiza primeira vez
   renderizar();
 }
+  
 
 // ============================================
 // MARCA BOTÕES DE REAÇÃO COM ESTADO ATIVO

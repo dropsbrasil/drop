@@ -339,49 +339,59 @@ if (weatherLocationEl) {
     // ============================================
 
     document.addEventListener(
-      'pointerdown',
-      (e) => {
-        const dentroDoTexto = e.target.closest('.video-editor-text-mydrops-nex');
-        const dentroDaFoto = e.target.closest('.video-editor-photo-mydrops-nex');
-        const dentroDoVideo = e.target.closest('.video-editor-video-mydrops-nex');
-        const dentroDosControles = e.target.closest(
-          '.video-editor-controls-mydrops-nex'
-        );
+  'pointerdown',
+  (e) => {
+  // ⚠️ Se o editor de Notas estiver aberto, deixa o 29-notas cuidar
+  const notasEditor = document.getElementById('notasEditorNex');
+  if (notasEditor && notasEditor.classList.contains('aberto')) {
+    return;
+  }
 
-        const dentroDaBarraDoEditor = e.target.closest(
-          '#videoEditorThemeMyDropsNex, ' +
-            '#videoEditorLoopMyDropsNex, ' +
-            '#videoEditorAddTextMyDropsNex, ' +
-            '#videoEditorDeleteMyDropsNex, ' +
-            '#videoEditorPublishMyDropsNex, ' +
-            '#videoEditorTrashFloatingMyDropsNex, ' +
-            '#fotoEditorThemeMyDropsNex, ' +
-            '#fotoEditorLoopMyDropsNex, ' +
-            '#fotoEditorAddTextMyDropsNex, ' +
-            '#fotoEditorDeleteMyDropsNex, ' +
-            '#fotoEditorPublishMyDropsNex, ' +
-            '#fotoEditorMediaActionsMyDropsNex, ' +
-            '#dropsFotoMyDropsNex, ' +
-            '#dropsVideoMyDropsNex, ' +
-            '#dropsFundoMyDropsNex, ' +
-            '#fotoEditorAjustarMyDropsNex, ' +
-            '#fotoEditorTrashMyDropsNex'
-        );
+  // ⚠️ Se o editor de Foto estiver aberto, deixa o 30-foto cuidar
+  const fotoEditor = document.getElementById('fotoEditorNex');
+  if (fotoEditor && fotoEditor.classList.contains('aberto')) {
+    return;
+  }
 
-        if (
-          !dentroDoTexto &&
-          !dentroDaFoto &&
-          !dentroDoVideo &&
-          !dentroDosControles &&
-          !dentroDaBarraDoEditor
-        ) {
-          if (typeof desselecionarTextoMyDropsNex === 'function') {
-            desselecionarTextoMyDropsNex();
-          }
-        }
-      },
-      true
+    const dentroDoTexto = e.target.closest('.video-editor-text-mydrops-nex');
+    const dentroDaFoto = e.target.closest('.video-editor-photo-mydrops-nex');
+    const dentroDoVideo = e.target.closest('.video-editor-video-mydrops-nex');
+    const dentroDasAlcas = e.target.closest('.editor-alca-nex');
+
+    const dentroDaBarraDoEditor = e.target.closest(
+      '#videoEditorThemeMyDropsNex, ' +
+        '#videoEditorLoopMyDropsNex, ' +
+        '#videoEditorAddTextMyDropsNex, ' +
+        '#videoEditorDeleteMyDropsNex, ' +
+        '#videoEditorPublishMyDropsNex, ' +
+        '#videoEditorTrashFloatingMyDropsNex, ' +
+        '#fotoEditorThemeMyDropsNex, ' +
+        '#fotoEditorLoopMyDropsNex, ' +
+        '#fotoEditorAddTextMyDropsNex, ' +
+        '#fotoEditorDeleteMyDropsNex, ' +
+        '#fotoEditorPublishMyDropsNex, ' +
+        '#fotoEditorMediaActionsMyDropsNex, ' +
+        '#dropsFotoMyDropsNex, ' +
+        '#dropsVideoMyDropsNex, ' +
+        '#dropsFundoMyDropsNex, ' +
+        '#fotoEditorAjustarMyDropsNex, ' +
+        '#fotoEditorTrashMyDropsNex'
     );
+
+    if (
+      !dentroDoTexto &&
+      !dentroDaFoto &&
+      !dentroDoVideo &&
+      !dentroDasAlcas &&
+      !dentroDaBarraDoEditor
+    ) {
+      if (typeof desselecionarTextoMyDropsNex === 'function') {
+        desselecionarTextoMyDropsNex();
+      }
+    }
+  },
+  true
+);
 
     // ============================================
     // 7. CONTADOR DE LEGENDA DO VÍDEO
@@ -550,18 +560,12 @@ if (weatherLocationEl) {
           criarMenuFotoVideoMyDrops('video');
         });
       }
-
-      const btnCanvas = document.getElementById('btnDropsMyDropsNex');
-      if (btnCanvas && !btnCanvas.__listener) {
-        btnCanvas.__listener = true;
-        // Já tem listener de 13-editor.js, não precisa duplicar
-      }
     }, 500);
 
   console.log('✅ Drops inicializado com sucesso!');
 });
 
-// ============================================
+  // ============================================
 // TRAVA SCROLL DO BODY QUANDO EDITOR ABRIR
 // E FORÇA ALTURA REAL DO EDITOR
 // ============================================
@@ -639,7 +643,6 @@ function atualizarClassesBodyNex() {
 
   // 3. MODAL ABERTO?
   const modais = [
-    'modalTextoMyDropsNex',
     'modalFundoMyDropsNex',
     'modalDuracaoPublicacaoMyDropsNex'
   ];
@@ -683,18 +686,6 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener(
   'click',
   (e) => {
-    const modalTexto = document.getElementById('modalTextoMyDropsNex');
-    if (
-      modalTexto &&
-      !modalTexto.classList.contains('hidden') &&
-      e.target === modalTexto
-    ) {
-      if (typeof window.fecharModalEdicaoNex === 'function') {
-        window.fecharModalEdicaoNex();
-      }
-      return;
-    }
-
     const modalFundo = document.getElementById('modalFundoMyDropsNex');
     if (
       modalFundo &&
@@ -730,7 +721,6 @@ document.addEventListener(
   'click',
   (e) => {
     const modaisAbertos = [
-      'modalTextoMyDropsNex',
       'modalFundoMyDropsNex',
       'modalDuracaoPublicacaoMyDropsNex'
     ].filter((id) => {
@@ -755,4 +745,3 @@ document.addEventListener(
   console.log('🎯 14-init.js carregado');
 
 })();
-
