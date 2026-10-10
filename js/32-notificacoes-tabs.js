@@ -109,23 +109,34 @@
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Aplica estado salvo ao carregar
-    atualizarBolinhasTabsNex();
+  // Aplica estado salvo ao carregar
+  atualizarBolinhasTabsNex();
 
-    // Escuta clique em cada tab
-    document.querySelectorAll('.tabbar .tab').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        // Pequeno delay pro mostrarTela() rodar primeiro
-        setTimeout(() => {
-          if (tab.classList.contains('tab-nearby')) {
-            marcarViuNex('nearby');
-          } else if (tab.classList.contains('tab-mydrops')) {
-            marcarViuNex('mydrops');
-          }
-        }, 50);
-      });
+  // ⚠️ Reforço: o 14-init.js restaura a tela DEPOIS do DOMContentLoaded.
+  // Sem isso, a bolinha some ao recarregar estando em outra tab.
+  setTimeout(atualizarBolinhasTabsNex, 400);
+  setTimeout(atualizarBolinhasTabsNex, 1200);
+  setTimeout(atualizarBolinhasTabsNex, 2500);
+
+  // Escuta clique em cada tab
+  document.querySelectorAll('.tabbar .tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      // Pequeno delay pro mostrarTela() rodar primeiro
+      setTimeout(() => {
+        if (tab.classList.contains('tab-nearby')) {
+          marcarViuNex('nearby');
+        } else if (tab.classList.contains('tab-mydrops')) {
+          marcarViuNex('mydrops');
+        }
+      }, 50);
     });
   });
+});
+
+// ⚠️ Cobre o caso de "sair e voltar" via bfcache (Android Chrome)
+window.addEventListener('pageshow', () => {
+  atualizarBolinhasTabsNex();
+});
 
   // ============================================
   // EXPOR GLOBALMENTE
