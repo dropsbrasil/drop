@@ -96,14 +96,15 @@ const MAX_TENTATIVAS_PUBLICACOES_NEX = 10;
         return;
       }
 
-      console.log('❤️ Nova reação nos meus drops');
+           console.log('❤️ Nova reação nos meus drops');
 window.sinalizarNovidadeNex?.('mydrops');
 window.marcarNovidadeReacaoDrop?.(reacao.publicacao_id);
 window.atualizarBordasCardsNex?.();
+window.feedbackNex?.reacaoRecebida?.();
     } catch (err) {
       console.warn('Erro ao processar reação realtime:', err);
     }
-  }
+  } 
 
  // ============================================
 // PROCESSAR PUBLICAÇÃO NOVA (conectado postou)

@@ -930,10 +930,89 @@ function initSocialEventos() {
   // INICIALIZAÇÃO DOS EVENTOS (DOMContentLoaded)
   // ============================================
 
-  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
     initBioEventos();
     initSocialEventos();
     atualizarSocialLinksNex();
+
+// ============================================
+// BOTÕES DE SOM E VIBRAÇÃO (feedbackNex)
+// ============================================
+
+const btnToggleSom = document.getElementById('btnToggleSomNex');
+if (btnToggleSom) {
+  btnToggleSom.addEventListener('click', () => {
+    if (!window.feedbackNex) return;
+
+    const ligado = window.feedbackNex.somLigado();
+
+    if (ligado) {
+      window.feedbackNex.desligarSom();
+      btnToggleSom.textContent = '🔇 Sons';
+      window.mostrarToastNex?.('Sons desativados', 'info');
+    } else {
+      window.feedbackNex.ligarSom();
+      btnToggleSom.textContent = '🔊 Sons';
+      window.mostrarToastNex?.('Sons ativados', 'sucesso');
+    }
+  });
+}
+
+const btnToggleVibracao = document.getElementById('btnToggleVibracaoNex');
+if (btnToggleVibracao) {
+  btnToggleVibracao.addEventListener('click', () => {
+    if (!window.feedbackNex) return;
+
+    const ligado = window.feedbackNex.vibracaoLigada();
+
+    if (ligado) {
+      window.feedbackNex.desligarVibracao();
+      btnToggleVibracao.textContent = '📴 Vibração';
+      window.mostrarToastNex?.('Vibração desativada', 'info');
+    } else {
+      window.feedbackNex.ligarVibracao();
+      btnToggleVibracao.textContent = '📳 Vibração';
+      window.mostrarToastNex?.('Vibração ativada', 'sucesso');
+
+      // Vibra uma vez pra confirmar
+      if (navigator.vibrate) {
+        try { navigator.vibrate([60, 40, 60]); } catch (e) {}
+      }
+    }
+  });
+}
+
+// ============================================
+// ATUALIZA TEXTO DOS BOTÕES AO ABRIR O PAINEL
+// ============================================
+
+function atualizarBotoesSomVibracaoNex() {
+  const btnSom = document.getElementById('btnToggleSomNex');
+  const btnVib = document.getElementById('btnToggleVibracaoNex');
+
+  if (btnSom && window.feedbackNex) {
+    btnSom.textContent = window.feedbackNex.somLigado()
+      ? '🔊 Sons'
+      : '🔇 Sons';
+  }
+
+  if (btnVib && window.feedbackNex) {
+    btnVib.textContent = window.feedbackNex.vibracaoLigada()
+      ? '📳 Vibração'
+      : '📴 Vibração';
+  }
+}
+
+window.atualizarBotoesSomVibracaoNex = atualizarBotoesSomVibracaoNex;
+
+// Atualiza sempre que o painel de controle abrir
+const btnMenuGlobal = document.querySelector('.btn-menu-global');
+if (btnMenuGlobal) {
+  btnMenuGlobal.addEventListener('click', () => {
+    setTimeout(atualizarBotoesSomVibracaoNex, 50);
+  });
+}
+
     // Botão Editar Nome
 const btnEditarNome = document.getElementById('btnEditarNomeNex');
 if (btnEditarNome) {

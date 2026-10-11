@@ -1136,14 +1136,15 @@ async function salvarMuralNex() {
     if (t.pendente) t.pendente = false;
   });
 
-  muralAlteradoNex = false;
+    muralAlteradoNex = false;
 
   desregistrarSelecaoNex();
   atualizarBotaoSalvarNex();
 
   window.mostrarToastNex?.('Arte salva!', 'sucesso');
+  window.feedbackNex?.muralSalvo?.();
 }
-
+  
 async function carregarMuralSalvoNex() {
   const camada = document.getElementById('muralCamadaElementosNex');
   if (!camada) return;
