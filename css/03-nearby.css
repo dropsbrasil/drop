@@ -345,3 +345,103 @@
   font-weight: 700;
   color: #94a3b8;
 }
+
+/* ============================================
+   CÁPSULA DE LEGENDA NO NEARBY
+   Efeito Vidro Embaçado + Texto Preto
+   Aparece sobreposta na mídia (parte inferior)
+============================================ */
+
+.nearby-pub-legenda {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 15;
+
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+
+  padding: 14px 16px;
+
+  /* Vidro embaçado */
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 18px;
+
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+/* Texto da legenda (estado normal = 3 linhas) */
+.nearby-pub-legenda-texto {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  padding: 0;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  transition: all 0.25s ease;
+  word-break: break-word;
+}
+
+/* Estado expandido = 5 linhas visíveis + scroll interno */
+.nearby-pub-legenda-texto.expandido {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  max-height: calc(14px * 1.5 * 5); /* 5 linhas de 14px com line-height 1.5 */
+  padding-right: 6px;
+
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Scrollbar discreta no estado expandido */
+.nearby-pub-legenda-texto.expandido::-webkit-scrollbar {
+  width: 4px;
+}
+
+.nearby-pub-legenda-texto.expandido::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.4);
+  border-radius: 999px;
+}
+
+/* Botão "Ver mais" / "Ver menos" */
+.nearby-pub-legenda-ver-mais {
+  display: none;
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nearby-pub-legenda-ver-mais.visivel {
+  display: block;
+}
+
+.nearby-pub-legenda-ver-mais:active {
+  opacity: 0.6;
+}
