@@ -2,7 +2,7 @@
   "name": "Drop — Proximidade e conexão",
   "short_name": "Drop",
   "description": "Descubra quem está perto mesmo estando longe.",
-  "start_url": "./index.html=2",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

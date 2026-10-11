@@ -534,26 +534,26 @@
     <span class="sobre-app-link-seta-nex">→</span>
   </button>
 
-      <button
-        type="button"
-        class="sobre-app-link-nex"
-        onclick="abrirDocSobreNex('privacidade')"
-      >
-        <span class="sobre-app-link-icone-nex">🔒</span>
-        <span class="sobre-app-link-texto-nex">Privacidade</span>
-        <span class="sobre-app-link-seta-nex">→</span>
-      </button>
-
-      <button
-        type="button"
-        class="sobre-app-link-nex"
-        onclick="abrirSuporteSobreNex()"
-      >
-        <span class="sobre-app-link-icone-nex">💬</span>
-        <span class="sobre-app-link-texto-nex">Suporte</span>
-            <span class="sobre-app-link-seta-nex">→</span>
+        <button
+    type="button"
+    class="sobre-app-link-nex"
+    onclick="abrirDocSobreNex('privacidade')"
+  >
+    <span class="sobre-app-link-icone-nex">🔒</span>
+    <span class="sobre-app-link-texto-nex">Privacidade</span>
+    <span class="sobre-app-link-seta-nex">→</span>
   </button>
-</div>
+
+  <button
+    type="button"
+    class="sobre-app-link-nex"
+    onclick="abrirSuporteSobreNex()"
+  >
+    <span class="sobre-app-link-icone-nex">💬</span>
+    <span class="sobre-app-link-texto-nex">Suporte</span>
+    <span class="sobre-app-link-seta-nex">→</span>
+  </button>
+  </div>
 
 <div class="sobre-app-divisor-nex"></div>
 
@@ -647,12 +647,14 @@
       <button type="button" id="btnMeusAdeptosNex">👑 Meus Adeptos</button>
     </div>
 
-    <div class="controle-bloco-nex">
+       <div class="controle-bloco-nex">
 <h4>⚙️ Sistema</h4>
+<button type="button" id="btnToggleSomNex">🔊 Sons</button>
+<button type="button" id="btnToggleVibracaoNex">📳 Vibração</button>
 <button type="button" id="btnLimparPerfilNex">🧹 Limpar perfil</button>
 <button type="button" id="btnSobreAppNex">ℹ️ Sobre o app</button>
             <button type="button" onclick="sairDaContaNex()">🚪 Sair da conta</button>
-    </div>
+       </div>
   </div>
 </div>
 
@@ -1389,14 +1391,15 @@ if (window.pdfjsLib) {
 ============================================ -->
 <script src="./js/00-config.js"></script>
 <script src="./js/20-supabase.js"></script>
+<script src="./js/17-adapters.js"></script>
 <script src="./js/21-perfil-supabase.js"></script>
 <script src="./js/22-publicacoes-supabase.js"></script>
 <script src="./js/23-reacoes-supabase.js"></script>
 <script src="./js/24-visualizacoes-supabase.js"></script>
 <script src="./js/25-nex-supabase.js"></script>
 <script src="./js/26-reacoes-midia-supabase.js"></script>
+<script src="./js/16-visitas.js"></script>
 <script src="./js/27-feedback.js"></script>
-<script src="./js/17-adapters.js"></script>
 <script src="./js/01-auth.js"></script>
 <script src="./js/02-ui.js"></script>
 <script src="./js/03-utils.js"></script>
@@ -1412,7 +1415,6 @@ if (window.pdfjsLib) {
 <script src="./js/12-mydrops.js"></script>
 <script src="./js/13-editor.js"></script>
 <script src="./js/15-reacoes.js"></script>
-<script src="./js/16-visitas.js"></script>
 <script src="./js/19-mural.js"></script>
 <script src="./js/29-notas.js"></script>
 <script src="./js/30-foto.js"></script>
