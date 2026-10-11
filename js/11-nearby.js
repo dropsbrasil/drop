@@ -559,12 +559,18 @@ let primeiraRenderizacaoNex = true;
     </div>
 
     <!-- PALCO + PAPEL -->
-    <div class="nearby-pub-palco">
-      <div class="nearby-pub-papel" id="nearbyDropMedia"></div>
-
-      <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">⌃</button>
-      <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">⌄</button>
+<div class="nearby-pub-palco">
+  <div class="nearby-pub-papel" id="nearbyDropMedia">
+    <!-- CÁPSULA DE LEGENDA (sobreposta na mídia) -->
+    <div class="nearby-pub-legenda" id="nearbyDropLegenda" style="display:none;">
+      <p class="nearby-pub-legenda-texto" id="nearbyDropLegendaTexto"></p>
+      <button type="button" class="nearby-pub-legenda-ver-mais" id="nearbyDropVerMais">Ver mais</button>
     </div>
+  </div>
+
+  <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">⌃</button>
+  <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">⌄</button>
+</div>
 
     <!-- RODAPÉ — SETAS + COMMENT -->
     <div class="nearby-pub-rodape">
@@ -644,9 +650,35 @@ let primeiraRenderizacaoNex = true;
   }
 
   if (inputComentario) {
-    atualizarEstadoEnviarNex();
-    inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
-  }
+  atualizarEstadoEnviarNex();
+  inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
+}
+
+// ============================================
+// BOTÃO "VER MAIS" / "VER MENOS" DA LEGENDA
+// ============================================
+const btnVerMaisLegenda = viewer.querySelector('#nearbyDropVerMais');
+const legendaTextoEl = viewer.querySelector('#nearbyDropLegendaTexto');
+
+if (btnVerMaisLegenda && legendaTextoEl) {
+  btnVerMaisLegenda.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const expandido = btnVerMaisLegenda.dataset.expandido === 'true';
+
+    if (expandido) {
+      legendaTextoEl.classList.remove('expandido');
+      btnVerMaisLegenda.textContent = 'Ver mais';
+      btnVerMaisLegenda.dataset.expandido = 'false';
+    } else {
+      legendaTextoEl.classList.add('expandido');
+      btnVerMaisLegenda.textContent = 'Ver menos';
+      btnVerMaisLegenda.dataset.expandido = 'true';
+    }
+  };
+}
+  
 
   // ============================================
   // BOTÕES DE REAÇÃO
@@ -947,9 +979,41 @@ if (nome) nome.textContent = perfil.nome || 'Perfil';
         }
       }
       if (counter) {
-        counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
+  counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
+}
+if (views) views.textContent = drop.views || 0;
+
+// ============================================
+// LEGENDA DO DROP (cápsula sobre a mídia)
+// ============================================
+const legendaEl = viewer.querySelector('#nearbyDropLegenda');
+const legendaTextoEl = viewer.querySelector('#nearbyDropLegendaTexto');
+const btnVerMaisLegenda = viewer.querySelector('#nearbyDropVerMais');
+
+const temLegenda =
+  drop.legenda &&
+  typeof drop.legenda === 'string' &&
+  drop.legenda.trim().length > 0;
+
+if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
+  if (temLegenda) {
+    legendaEl.style.display = 'flex';
+    legendaTextoEl.textContent = drop.legenda.trim();
+    legendaTextoEl.classList.remove('expandido');
+    btnVerMaisLegenda.classList.remove('visivel');
+    btnVerMaisLegenda.dataset.expandido = 'false';
+    btnVerMaisLegenda.textContent = 'Ver mais';
+
+    // Mostra "Ver mais" só se o texto passar de 3 linhas
+    setTimeout(() => {
+      if (legendaTextoEl.scrollHeight > legendaTextoEl.clientHeight + 2) {
+        btnVerMaisLegenda.classList.add('visivel');
       }
-      if (views) views.textContent = drop.views || 0;
+    }, 30);
+  } else {
+    legendaEl.style.display = 'none';
+  }
+}
 
       // ============================================
       // REAÇÕES
@@ -1924,7 +1988,7 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
 
     window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
 
-        return {
+                return {
   url: d.mediaUrl,
   type: d.tipo === 'video' ? 'video' : 'image',
   autorId: d.autorUsername,
@@ -1932,7 +1996,8 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
   dropIndex: d.id,
   publicacaoIdSupabase: d.id,
   expiraEm: d.expiraEm || null,
-  selos: d.selos || null
+  selos: d.selos || null,
+  legenda: d.legenda || ''
 };
   })
   };
