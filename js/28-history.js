@@ -373,18 +373,30 @@
     }
   });
 
-  // ============================================
-  // INICIALIZAÇÃO
-  // ============================================
-  document.addEventListener('DOMContentLoaded', () => {
-    try {
-      history.replaceState(
-        { [HISTORY_KEY]: 'tela-mydrops' },
-        '',
-        location.href
-      );
-    } catch (e) {}
-  });
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    // ⚠️ Cria 2 entradas no histórico:
+    // 1ª: state "tela-mydrops" (a que o app ocupa agora)
+    // 2ª: state "sentinela" (pra onde o 1º voltar cai)
+
+    history.replaceState(
+      { [HISTORY_KEY]: 'tela-mydrops' },
+      '',
+      location.href
+    );
+
+    // ⚠️ Empilha uma entrada extra
+    // Assim o 1º "voltar" cai aqui em vez de sair do app
+    history.pushState(
+      { [HISTORY_KEY]: 'tela-mydrops' },
+      '',
+      location.href
+    );
+  } catch (e) {}
+});
 
   console.log('🕹️ 28-history.js carregado');
 })();
