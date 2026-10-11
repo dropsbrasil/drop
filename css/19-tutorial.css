@@ -1,0 +1,309 @@
+/* ============================================
+   19-TUTORIAL.CSS
+   Tutorial interativo: overlay, anel, balão
+   e modal de confirmação "Pular tutorial".
+============================================ */
+
+.tut-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483644;
+  display: none;
+  background: transparent;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tut-overlay.ativo {
+  display: block;
+}
+
+.tut-overlay.sem-target {
+  background: rgba(5, 11, 24, 0.78);
+}
+
+.tut-ring {
+  position: fixed;
+  z-index: 2147483645;
+  display: none;
+  border-radius: 18px;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(5, 11, 24, 0.78);
+  outline: 2px solid rgba(96, 165, 250, 0.65);
+  outline-offset: 3px;
+  transition:
+    top 0.28s ease,
+    left 0.28s ease,
+    width 0.28s ease,
+    height 0.28s ease;
+  will-change: top, left, width, height;
+}
+
+.tut-ring.ativo {
+  display: block;
+}
+
+.tut-ring.pulsando {
+  animation: tutPulso 1.8s ease-in-out infinite;
+}
+
+@keyframes tutPulso {
+  0%, 100% {
+    outline-color: rgba(96, 165, 250, 0.65);
+    outline-offset: 3px;
+  }
+  50% {
+    outline-color: rgba(147, 197, 253, 0.95);
+    outline-offset: 6px;
+  }
+}
+
+.tut-tooltip {
+  position: fixed;
+  z-index: 2147483646;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 28px));
+  min-width: 260px;
+  padding: 18px 20px 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: top 0.25s ease, left 0.25s ease;
+  will-change: top, left;
+  box-sizing: border-box;
+}
+
+.tut-tooltip-progresso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.tut-tooltip-pular {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: inherit;
+}
+
+.tut-tooltip-pular:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+
+.tut-tooltip-pular:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tut-tooltip-titulo {
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.tut-tooltip-texto {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.tut-tooltip-texto strong {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.tut-tooltip-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tut-btn {
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.15s ease, background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+
+.tut-btn:active {
+  transform: scale(0.96);
+}
+
+.tut-btn-voltar {
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tut-btn-voltar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tut-btn-voltar:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.tut-btn-voltar:disabled:active {
+  transform: none;
+}
+
+.tut-btn-proximo {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+  margin-left: auto;
+}
+
+.tut-btn-proximo:hover {
+  filter: brightness(1.08);
+}
+
+.tut-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-sizing: border-box;
+}
+
+.tut-confirm-overlay.ativo {
+  display: flex;
+}
+
+.tut-confirm-box {
+  width: min(100%, 360px);
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 26px 22px 20px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  animation: tutConfirmEntra 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tutConfirmEntra {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tut-confirm-icone {
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.tut-confirm-titulo {
+  font-size: 19px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 8px;
+  letter-spacing: -0.2px;
+}
+
+.tut-confirm-texto {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin-bottom: 22px;
+}
+
+.tut-confirm-acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.tut-confirm-btn {
+  flex: 1;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  transition: filter 0.15s ease, background 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+}
+
+.tut-confirm-btn:active {
+  transform: scale(0.97);
+}
+
+.tut-confirm-btn-cancelar {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.tut-confirm-btn-cancelar:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.tut-confirm-btn-confirmar {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.28);
+}
+
+.tut-confirm-btn-confirmar:hover {
+  filter: brightness(1.08);
+}
+
+@media (max-width: 400px) {
+  .tut-tooltip {
+    padding: 16px 16px 14px;
+    min-width: 0;
+    width: calc(100vw - 28px);
+  }
+  .tut-tooltip-titulo {
+    font-size: 16px;
+  }
+  .tut-tooltip-texto {
+    font-size: 13px;
+  }
+  .tut-btn {
+    height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
