@@ -653,12 +653,38 @@ window.__convNomesExibidosNex[usernameOutro] = nomeExibicao;
           : false;
 
       if (cardExistente) {
-        if (conv.ultima_msg_texto) {
-          const p = cardExistente.querySelector('.nex-info p');
-          if (p) p.textContent = conv.ultima_msg_texto;
-        }
+  // ⚠️ Atualiza preview
+  if (conv.ultima_msg_texto) {
+    const p = cardExistente.querySelector('.nex-info p');
+    if (p) p.textContent = conv.ultima_msg_texto;
+  }
 
-        const naoLida = conv.nao_lida === true;
+  // ⚠️ Atualiza timestamp + hora do card
+  const tsMsg =
+    conv.ultima_msg_em ||
+    conv.ultima_msg_data ||
+    conv.atualizado_em ||
+    null;
+
+  if (tsMsg) {
+    const tsNum = new Date(tsMsg).getTime();
+
+    if (!isNaN(tsNum)) {
+      cardExistente.dataset.timestamp = String(tsNum);
+
+      const smallEl = cardExistente.querySelector('.nex-right small');
+      if (smallEl && typeof window.formatarHoraCardNex === 'function') {
+        smallEl.textContent = window.formatarHoraCardNex(tsNum);
+      }
+    }
+  }
+
+  // ⚠️ Atualiza nome exibido (caso tenha mudado)
+  const h3 = cardExistente.querySelector('.nex-info h3');
+  if (h3) h3.textContent = nomeExibicao;
+  cardExistente.dataset.nomeExibido = nomeExibicao;
+
+  const naoLida = conv.nao_lida === true;
         const jaEstaMarcadoNaoLida =
           cardExistente.classList.contains('unread-chat');
 
@@ -685,18 +711,33 @@ window.__convNomesExibidosNex[usernameOutro] = nomeExibicao;
         continue;
       }
 
-      if (typeof window.criarCardConversaNex === 'function') {
-        const preview = conv.ultima_msg_texto || 'Nova conversa';
-        const naoLida = conv.nao_lida === true;
-        const tipoCard = naoLida ? 'recebida' : 'enviada';
+if (typeof window.criarCardConversaNex === 'function') {
+  const preview = conv.ultima_msg_texto || 'Nova conversa';
+  const naoLida = conv.nao_lida === true;
+  const tipoCard = naoLida ? 'recebida' : 'enviada';
 
-        window.criarCardConversaNex(
-          nomeExibicao,
-          conectado,
-          { text: preview },
-          tipoCard
-        );
-      }
+  // ⚠️ Passa timestamp real da última mensagem (pra ordenar)
+  const tsMsg =
+    conv.ultima_msg_em ||
+    conv.ultima_msg_data ||
+    conv.atualizado_em ||
+    null;
+
+  const timestampFinal = tsMsg
+    ? new Date(tsMsg).getTime()
+    : Date.now();
+
+  window.criarCardConversaNex(
+    nomeExibicao,
+    conectado,
+    {
+      text: preview,
+      timestamp: timestampFinal
+    },
+    tipoCard
+  );
+}
+      
     }
   } catch (err) {
     console.warn('Erro ao sincronizar cards:', err);

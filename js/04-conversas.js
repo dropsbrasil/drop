@@ -370,23 +370,47 @@ async function criarCardConversaNex(
   ).find((c) => c.dataset.chat === chaveCard);
 
   if (cardExistente) {
-    // Atualiza o preview do card existente
-    const p = cardExistente.querySelector('.nex-info p');
-    if (p && mensagem) {
-      const preview =
-        mensagem.text ||
-        mensagem.anexo?.perfilNome ||
-        mensagem.anexo?.url ||
-        'Nova mensagem';
-      p.textContent = preview;
+  // Atualiza o preview do card existente
+  const p = cardExistente.querySelector('.nex-info p');
+  if (p && mensagem) {
+    const preview =
+      mensagem.text ||
+      mensagem.anexo?.perfilNome ||
+      mensagem.anexo?.url ||
+      'Nova mensagem';
+    p.textContent = preview;
+  }
+
+  // Atualiza o nome exibido (caso tenha mudado)
+  const h3 = cardExistente.querySelector('.nex-info h3');
+  if (h3) h3.textContent = nome;
+  cardExistente.dataset.nomeExibido = nome;
+
+  // ⚠️ Atualiza timestamp + hora
+  if (mensagem) {
+    const tsNovo =
+      mensagem.timestamp ||
+      mensagem.criadoEm ||
+      (mensagem.criado_em ? new Date(mensagem.criado_em).getTime() : null);
+
+    if (tsNovo) {
+      cardExistente.dataset.timestamp = String(tsNovo);
+
+      const smallEl = cardExistente.querySelector('.nex-right small');
+      if (smallEl && typeof formatarHoraCardNex === 'function') {
+        smallEl.textContent = formatarHoraCardNex(tsNovo);
+      }
     }
+  }
 
-    // Atualiza o nome exibido (caso tenha mudado)
-    const h3 = cardExistente.querySelector('.nex-info h3');
-    if (h3) h3.textContent = nome;
-    cardExistente.dataset.nomeExibido = nome;
+  // ⚠️ Reordena (pra subir pro topo se for a mais recente)
+  setTimeout(() => {
+    if (typeof reordenarCardsNex === 'function') {
+      reordenarCardsNex();
+    }
+  }, 100);
 
-    return;
+  return;
   }
 
   // ============================================
@@ -399,12 +423,14 @@ async function criarCardConversaNex(
     mensagem?.anexo?.url ||
     'Novo comentário';
 
-  const hora =
-    mensagem?.hora ||
-    new Date().toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  // ⚠️ Pega timestamp REAL da mensagem (não a hora atual)
+const timestampMensagem =
+  mensagem?.timestamp ||
+  mensagem?.criadoEm ||
+  (mensagem?.criado_em ? new Date(mensagem.criado_em).getTime() : null) ||
+  Date.now();
+
+const hora = formatarHoraCardNex(timestampMensagem);
 
   const inicial = (nome || '?').charAt(0).toUpperCase();
 
@@ -412,12 +438,14 @@ async function criarCardConversaNex(
   card.className =
     'nex-chat' + (tipoMensagem === 'recebida' ? ' unread-chat' : '');
 
-  // ⚠️ A CHAVE É O @USERNAME REAL
-  card.dataset.chat = chaveCard;
-  card.dataset.nomeExibido = nome;
-  card.dataset.username = chaveCard;
-  card.dataset.connected = conectado ? 'yes' : 'no';
+// ⚠️ A CHAVE É O @USERNAME REAL
+card.dataset.chat = chaveCard;
+card.dataset.nomeExibido = nome;
+card.dataset.username = chaveCard;
+card.dataset.connected = conectado ? 'yes' : 'no';
 
+// ⚠️ Timestamp real da mensagem (pra ordenar depois)
+card.dataset.timestamp = String(timestampMensagem);
   card.innerHTML = `
     <div class="nex-left">
       <div class="nex-avatar ${conectado ? 'ring-blue' : ''}"
@@ -480,8 +508,15 @@ async function criarCardConversaNex(
   if (typeof limparCardsDuplicadosNex === 'function') {
     setTimeout(limparCardsDuplicadosNex, 200);
   }
-}
 
+  // ⚠️ Reordena depois de adicionar (mais recente no topo)
+  setTimeout(() => {
+    if (typeof reordenarCardsNex === 'function') {
+      reordenarCardsNex();
+    }
+  }, 250);
+}
+  
 // ============================================
 // ATUALIZAR VISIBILIDADE DA ABA "NÃO LIDAS"
 // ============================================
@@ -638,6 +673,84 @@ function atualizarAbaNaoLidasNex() {
   window.atualizarStatusTodosCardsNex = atualizarStatusTodosCardsNex;
   window.limparCardsDuplicadosNex = limparCardsDuplicadosNex;
 
+
+  // ============================================
+// FORMATAR HORA ESTILO WHATSAPP
+// ============================================
+
+function formatarHoraCardNex(timestamp) {
+  if (!timestamp) return '';
+
+  const agora = new Date();
+  const data = new Date(timestamp);
+
+  if (isNaN(data.getTime())) return '';
+
+  // Diferença em dias
+  const umDia = 24 * 60 * 60 * 1000;
+  const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  const diaMsg = new Date(data.getFullYear(), data.getMonth(), data.getDate());
+
+  const diffDias = Math.floor((hoje - diaMsg) / umDia);
+
+  // Hoje → HH:MM
+  if (diffDias === 0) {
+    return data.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Ontem → "ontem"
+  if (diffDias === 1) {
+    return 'ontem';
+  }
+
+  // Últimos 7 dias → dia da semana (seg, ter, ...)
+  if (diffDias < 7) {
+    const dias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    return dias[data.getDay()];
+  }
+
+  // Mais antigo → DD/MM
+  return data.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit'
+  });
+}
+
+window.formatarHoraCardNex = formatarHoraCardNex;
+
+// ============================================
+// REORDENAR CARDS POR ÚLTIMA MENSAGEM
+// ============================================
+
+function reordenarCardsNex() {
+  // Pega todas as listas (não lidas, geral, conectados)
+  const listas = [
+    document.getElementById('nex-naolidas'),
+    document.getElementById('nex-geral'),
+    document.getElementById('nex-conectados')
+  ].filter(Boolean);
+
+  listas.forEach((lista) => {
+    const cards = Array.from(lista.querySelectorAll('.nex-chat'));
+
+    // Ordena: mais recente no topo
+    cards.sort((a, b) => {
+      const tsA = Number(a.dataset.timestamp || 0);
+      const tsB = Number(b.dataset.timestamp || 0);
+      return tsB - tsA;
+    });
+
+    // Reinsere na ordem
+    cards.forEach((card) => lista.appendChild(card));
+  });
+}
+
+window.reordenarCardsNex = reordenarCardsNex;
+
+  
   // ============================================
   // DEBUG
   // ============================================

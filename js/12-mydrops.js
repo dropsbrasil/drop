@@ -1003,6 +1003,11 @@ modal.querySelectorAll('.mydrops-list-modal-item').forEach((el) => {
   Math.min(indexInicial, publicacoesViewerMyDropsNex.length - 1)
 );
 
+// ⚠️ FEEDBACK: vibra + toca ao abrir minhas publicações
+if (typeof window.feedbackNex?.navegouDrop === 'function') {
+  window.feedbackNex.navegouDrop();
+}
+
 // ⚠️ Fase 5: limpa a borda azul do drop que está sendo aberto
 const pubAberta = publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
 if (pubAberta) {
@@ -1293,25 +1298,37 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
   const btnRight = viewer.querySelector('.mydrops-pub-nav-right');
 
   if (btnLeft) {
-    btnLeft.onclick = () => {
-      if (publicacaoViewerIndexMyDropsNex <= 0) return;
-      publicacaoViewerIndexMyDropsNex -= 1;
-      renderizarViewer();
-    };
-  }
+  btnLeft.onclick = () => {
+    if (publicacaoViewerIndexMyDropsNex <= 0) return;
+    publicacaoViewerIndexMyDropsNex -= 1;
 
-  if (btnRight) {
-    btnRight.onclick = () => {
-      if (
-        publicacaoViewerIndexMyDropsNex >=
-        publicacoesViewerMyDropsNex.length - 1
-      ) {
-        return;
-      }
-      publicacaoViewerIndexMyDropsNex += 1;
-      renderizarViewer();
-    };
-  }
+    // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
+    if (typeof window.feedbackNex?.navegouDrop === 'function') {
+      window.feedbackNex.navegouDrop();
+    }
+
+    renderizarViewer();
+  };
+}
+
+if (btnRight) {
+  btnRight.onclick = () => {
+    if (
+      publicacaoViewerIndexMyDropsNex >=
+      publicacoesViewerMyDropsNex.length - 1
+    ) {
+      return;
+    }
+    publicacaoViewerIndexMyDropsNex += 1;
+
+    // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
+    if (typeof window.feedbackNex?.navegouDrop === 'function') {
+      window.feedbackNex.navegouDrop();
+    }
+
+    renderizarViewer();
+  };
+}
 
   // ============================================
   // BOTÃO "VER MAIS" (legenda)
@@ -1394,18 +1411,30 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
     if (absX < absY * 1.3) return;
 
     if (dx < 0) {
-      if (
-        publicacaoViewerIndexMyDropsNex <
-        publicacoesViewerMyDropsNex.length - 1
-      ) {
-        publicacaoViewerIndexMyDropsNex += 1;
-        renderizarViewer();
-      }
-    } else {
-      if (publicacaoViewerIndexMyDropsNex > 0) {
-        publicacaoViewerIndexMyDropsNex -= 1;
-        renderizarViewer();
-      }
+  if (
+    publicacaoViewerIndexMyDropsNex <
+    publicacoesViewerMyDropsNex.length - 1
+  ) {
+    publicacaoViewerIndexMyDropsNex += 1;
+
+    // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
+    if (typeof window.feedbackNex?.navegouDrop === 'function') {
+      window.feedbackNex.navegouDrop();
+    }
+
+    renderizarViewer();
+  }
+} else {
+  if (publicacaoViewerIndexMyDropsNex > 0) {
+    publicacaoViewerIndexMyDropsNex -= 1;
+
+    // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
+    if (typeof window.feedbackNex?.navegouDrop === 'function') {
+      window.feedbackNex.navegouDrop();
+    }
+
+    renderizarViewer();
+  }
     }
   }, { passive: true });
 

@@ -267,8 +267,22 @@ trocouPerfil() {
   // EXPÕE
   // ============================================
 
-  window.feedbackNex = feedbackNex;
+    window.feedbackNex = feedbackNex;
   window.vibrarNex = vibrarNex;
+
+  // ============================================
+  // VIBRAÇÃO NAS TABS CENTRAIS
+  // ============================================
+
+  function vibrarTrocouTabNex() {
+  vibrarNex([40]);
+  }
+
+  document.addEventListener('click', function (e) {
+    const tab = e.target.closest('.tabbar .tab');
+    if (!tab) return;
+    vibrarTrocouTabNex();
+  }, true);
 
   console.log('🔔 27-feedback.js carregado');
 })();
