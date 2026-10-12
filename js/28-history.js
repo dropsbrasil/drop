@@ -292,10 +292,20 @@
       }
 
       case 'viewer-pub': {
-        const v = document.querySelector('.mydrops-publication-viewer');
-        if (v) v.remove();
-        document.body.style.overflow = '';
-        return true;
+  const v = document.querySelector('.mydrops-publication-viewer');
+  if (!v) return false;
+
+  // ⚠️ Se estiver em modo expandido, sai primeiro dele
+  if (v.classList.contains('modo-expandido')) {
+    v.classList.remove('modo-expandido');
+    const btnExp = v.querySelector('#mydropsPubExpandir');
+    if (btnExp) btnExp.textContent = '⤢';
+    return true;
+  }
+
+  v.remove();
+  document.body.style.overflow = '';
+  return true;
       }
 
       case 'lista-modal': {

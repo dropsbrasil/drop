@@ -1043,23 +1043,22 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
 </div>
 
       <!-- PALCO + PAPEL -->
-      <div class="mydrops-pub-palco">
-        <div class="mydrops-pub-papel" id="mydropsPubMedia"></div>
-      </div>
+<div class="mydrops-pub-palco">
+  <div class="mydrops-pub-papel" id="mydropsPubMedia"></div>
 
-      <!-- RODAPÉ — SETAS + CÁPSULA -->
-      <div class="mydrops-pub-rodape">
-        <button type="button" class="mydrops-pub-seta mydrops-pub-nav-left" aria-label="Anterior">←</button>
+  <!-- BOTÃO EXPANDIR (canto superior esquerdo da mídia) -->
+  <button type="button" class="mydrops-pub-expandir" id="mydropsPubExpandir" aria-label="Expandir mídia">⤢</button>
+</div>
 
-        <div class="mydrops-pub-capsula" id="mydropsPubCapsula" style="display:none;">
-          <p class="mydrops-pub-capsula-texto" id="mydropsPubLegendaTexto"></p>
-          <button type="button" class="mydrops-pub-capsula-ver-mais" id="mydropsPubVerMais">Ver mais</button>
-        </div>
+      <!-- RODAPÉ — CÁPSULA -->
+<div class="mydrops-pub-rodape">
+  <div class="mydrops-pub-capsula" id="mydropsPubCapsula" style="display:none;">
+    <p class="mydrops-pub-capsula-texto" id="mydropsPubLegendaTexto"></p>
+    <button type="button" class="mydrops-pub-capsula-ver-mais" id="mydropsPubVerMais">Ver mais</button>
+  </div>
 
-        <div class="mydrops-pub-rodape-vazio" id="mydropsPubRodapeVazio"></div>
-
-        <button type="button" class="mydrops-pub-seta mydrops-pub-nav-right" aria-label="Próxima">→</button>
-      </div>
+  <div class="mydrops-pub-rodape-vazio" id="mydropsPubRodapeVazio"></div>
+</div>
 
       <!-- STATS + LIXEIRA -->
       <div class="mydrops-pub-stats-row">
@@ -1098,11 +1097,18 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
   // ============================================
 
   const renderizarViewer = () => {
-    const pub = publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
-    if (!pub) {
-      fechar();
-      return;
-    }
+  const pub = publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
+  if (!pub) {
+    fechar();
+    return;
+  }
+
+  // ⚠️ Sai do modo expandido ao trocar de publicação
+  if (viewer.classList.contains('modo-expandido')) {
+    viewer.classList.remove('modo-expandido');
+    const btnExp = viewer.querySelector('#mydropsPubExpandir');
+    if (btnExp) btnExp.textContent = '⤢';
+  }
 
     const counter = viewer.querySelector('#mydropsPubCounter');
     const dataEl = viewer.querySelector('#mydropsPubData');
@@ -1265,20 +1271,7 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
         .catch((err) => console.warn('Erro ao buscar views MyDrops:', err));
     }
 
-    // ============================================
-    // SETAS (habilitar / desabilitar)
-    // ============================================
-
-    const leftBtn = viewer.querySelector('.mydrops-pub-nav-left');
-    const rightBtn = viewer.querySelector('.mydrops-pub-nav-right');
-
-    if (leftBtn) leftBtn.disabled = publicacaoViewerIndexMyDropsNex <= 0;
-    if (rightBtn) {
-      rightBtn.disabled =
-        publicacaoViewerIndexMyDropsNex >= publicacoesViewerMyDropsNex.length - 1;
-    }
   };
-
     // ============================================
   // EVENTO — VOLTAR
   // ============================================
@@ -1290,45 +1283,10 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
     if (e.target === viewer) fechar();
   });
 
-  // ============================================
-  // SETAS DE NAVEGAÇÃO
-  // ============================================
-
-  const btnLeft = viewer.querySelector('.mydrops-pub-nav-left');
-  const btnRight = viewer.querySelector('.mydrops-pub-nav-right');
-
-  if (btnLeft) {
-  btnLeft.onclick = () => {
-    if (publicacaoViewerIndexMyDropsNex <= 0) return;
-    publicacaoViewerIndexMyDropsNex -= 1;
-
-    // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
-    if (typeof window.feedbackNex?.navegouDrop === 'function') {
-      window.feedbackNex.navegouDrop();
-    }
-
-    renderizarViewer();
-  };
-}
-
-if (btnRight) {
-  btnRight.onclick = () => {
-    if (
-      publicacaoViewerIndexMyDropsNex >=
-      publicacoesViewerMyDropsNex.length - 1
-    ) {
-      return;
-    }
-    publicacaoViewerIndexMyDropsNex += 1;
-
-    // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
-    if (typeof window.feedbackNex?.navegouDrop === 'function') {
-      window.feedbackNex.navegouDrop();
-    }
-
-    renderizarViewer();
-  };
-}
+// ============================================
+// NAVEGAÇÃO — feita apenas por SWIPE
+// (as setas horizontais foram removidas)
+// ============================================
 
   // ============================================
   // BOTÃO "VER MAIS" (legenda)
@@ -1357,10 +1315,11 @@ if (btnRight) {
   }
 
   // ============================================
-  // SWIPE — horizontal troca publicação
-  // ============================================
+// SWIPE — horizontal troca publicação
+// ⚠️ Continua funcionando em modo expandido (igual Nearby)
+// ============================================
 
-  let swipeStartX = 0;
+let swipeStartX = 0;
   let swipeStartY = 0;
   let swipeStartTime = 0;
   let swipeAtivo = false;
@@ -1372,19 +1331,20 @@ if (btnRight) {
     if (e.touches.length !== 1) return;
 
     const alvo = e.target;
-    if (
-      alvo.closest('.mydrops-pub-voltar') ||
-      alvo.closest('.mydrops-pub-seta') ||
-      alvo.closest('.mydrops-pub-capsula') ||
-      alvo.closest('.mydrops-pub-stats-row') ||
-      alvo.closest('.mydrops-pub-stat-btn') ||
-      alvo.closest('.mydrops-pub-trash-btn') ||
-      alvo.closest('video') ||
-      alvo.closest('button')
-    ) {
-      swipeAtivo = false;
-      return;
-    }
+if (
+  alvo.closest('.mydrops-pub-voltar') ||
+  alvo.closest('.mydrops-pub-seta') ||
+  alvo.closest('.mydrops-pub-capsula') ||
+  alvo.closest('.mydrops-pub-stats-row') ||
+  alvo.closest('.mydrops-pub-stat-btn') ||
+  alvo.closest('.mydrops-pub-trash-btn') ||
+  alvo.closest('.mydrops-pub-expandir') ||
+  alvo.closest('video') ||
+  alvo.closest('button')
+) {
+  swipeAtivo = false;
+  return;
+}
 
     swipeAtivo = true;
     swipeStartX = e.touches[0].clientX;
@@ -1545,11 +1505,55 @@ if (btnRight) {
     });
   }
 
-  // ============================================
-  // RENDERIZA PRIMEIRA VEZ
-  // ============================================
+// ============================================
+// BOTÃO EXPANDIR — TELA CHEIA (FOCO TOTAL)
+// ============================================
 
-  renderizarViewer();
+const btnExpandir = viewer.querySelector('#mydropsPubExpandir');
+
+function entrarModoExpandidoNex() {
+  if (!viewer) return;
+  viewer.classList.add('modo-expandido');
+  if (btnExpandir) btnExpandir.textContent = '⤡';
+}
+
+function sairModoExpandidoNex() {
+  if (!viewer) return;
+  viewer.classList.remove('modo-expandido');
+  if (btnExpandir) btnExpandir.textContent = '⤢';
+}
+
+function toggleModoExpandidoNex() {
+  if (!viewer) return;
+  const estaExpandido = viewer.classList.contains('modo-expandido');
+  if (estaExpandido) {
+    sairModoExpandidoNex();
+  } else {
+    entrarModoExpandidoNex();
+  }
+}
+
+if (btnExpandir) {
+  btnExpandir.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleModoExpandidoNex();
+  });
+}
+
+// ============================================
+// ONBOARDING — primeira vez abrindo
+// ============================================
+
+if (typeof window.mostrarOnboardingMinhasPublicacoesNex === 'function') {
+  window.mostrarOnboardingMinhasPublicacoesNex();
+}
+
+// ============================================
+// RENDERIZA PRIMEIRA VEZ
+// ============================================
+
+renderizarViewer();
   }
 
   // ============================================
