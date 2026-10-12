@@ -9,9 +9,10 @@
   'use strict';
 
   // ============================================
-  // MAPA: chave local → id uuid do Supabase
-  // ============================================
-  window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
+// MAPA: chave local → id uuid do Supabase
+// ============================================
+window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
+
 
   // ============================================
   // DADOS DOS PERFIS NEARBY (fixos por enquanto)
@@ -513,12 +514,21 @@ function abrirViewerPublicacaoNex(
 
   const ids = Object.keys(base);
 
-  let perfilAtualId = id && base[id] ? id : ids[0];
+    let perfilAtualId = id && base[id] ? id : ids[0];
   let dropIndexAtual = Math.max(0, Number(dropIndexInicial) || 0);
 
 // ⚠️ Controla a direção da animação entre drops/perfis
 let direcaoAnimacaoNex = 'left';
 let primeiraRenderizacaoNex = true;
+
+// ⚠️ Controle do swipe
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartTime = 0;
+let swipeAtivo = false;
+
+const LIMITE_SWIPE = 50;
+const TEMPO_MAX_SWIPE = 800;
   
   // ============================================
   // REMOVE VIEWER ANTIGO
@@ -570,22 +580,15 @@ let primeiraRenderizacaoNex = true;
 
   <!-- BOTÃO EXPANDIR (canto superior esquerdo da mídia) -->
   <button type="button" class="nearby-drop-expandir" id="nearbyDropExpandir" aria-label="Expandir mídia">⤢</button>
-
-  <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">⌃</button>
-  <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">⌄</button>
 </div>
-    <!-- RODAPÉ — SETAS + COMMENT -->
+    <!-- RODAPÉ — COMMENT -->
     <div class="nearby-pub-rodape">
-      <button class="nearby-drop-arrow nearby-drop-arrow-left" type="button" aria-label="Anterior">←</button>
-
       <div class="nearby-drop-comment-box">
   <textarea class="nearby-drop-comment-input" placeholder="Comentar..." rows="1"></textarea>
   <button class="nearby-drop-reaction" type="button">❤️</button>
   <button class="nearby-drop-reaction" type="button">💔</button>
   <button class="nearby-drop-send" type="button">⌯⌲</button>
 </div>
-
-      <button class="nearby-drop-arrow nearby-drop-arrow-right" type="button" aria-label="Próxima">→</button>
     </div>
 
     <!-- STATS + VISITAR -->
@@ -605,12 +608,11 @@ let primeiraRenderizacaoNex = true;
   </div>
 `;
 
-  document.body.appendChild(viewer);
+    document.body.appendChild(viewer);
 
-  // ============================================
-  // BOTÃO VISITAR PERFIL
-  // ============================================
-
+// ============================================
+// BOTÃO VISITAR PERFIL
+// ============================================
   const btnVisitarPerfil = viewer.querySelector('.nearby-drop-profile-btn');
 
   if (tipo === 'perfil') {
@@ -1329,23 +1331,12 @@ if (media) {
   }
 }
 
-      // ============================================
-      // NAVEGAÇÃO (setas desabilitadas nos extremos)
-      // ============================================
+    // ============================================
+  // NAVEGAÇÃO — setas foram removidas
+  // ============================================
 
-      const profileIndex = ids.indexOf(perfilAtualId);
-
-      const upBtn = viewer.querySelector('.nearby-drop-nav-up');
-      const downBtn = viewer.querySelector('.nearby-drop-nav-down');
-      const leftBtn = viewer.querySelector('.nearby-drop-arrow-left');
-      const rightBtn = viewer.querySelector('.nearby-drop-arrow-right');
-
-      if (upBtn) upBtn.disabled = profileIndex <= 0;
-      if (downBtn) downBtn.disabled = profileIndex >= ids.length - 1;
-      if (leftBtn) leftBtn.disabled = dropIndexAtual <= 0;
-      if (rightBtn) rightBtn.disabled = dropIndexAtual >= drops.length - 1;
-    }
-
+}
+  
     // ============================================
 // EVENTOS DE FECHAR
 // ============================================
@@ -1366,103 +1357,39 @@ viewer.addEventListener('click', (e) => {
   }
 });
   
-    // ============================================
-// NAVEGAÇÃO ENTRE DROPS (setas laterais)
+// ============================================
+// NAVEGAÇÃO ENTRE DROPS E PERFIS
+// (feita apenas por SWIPE)
 // ============================================
 
-viewer.querySelector('.nearby-drop-arrow-left').onclick = () => {
-  if (dropIndexAtual <= 0) return;
-  dropIndexAtual -= 1;
-  direcaoAnimacaoNex = 'right'; // drop anterior entra pela esquerda
-
-  // ⚠️ FEEDBACK: vibra + toca ao trocar drop
-  if (typeof window.feedbackNex?.navegouDrop === 'function') {
-    window.feedbackNex.navegouDrop();
-  }
-
-  renderizar();
-};
-
-viewer.querySelector('.nearby-drop-arrow-right').onclick = () => {
-  const perfil = base[perfilAtualId];
-  const drops = obterDropsDoPerfil(perfil);
-  if (dropIndexAtual >= drops.length - 1) return;
-  dropIndexAtual += 1;
-  direcaoAnimacaoNex = 'left'; // próximo drop entra pela direita
-
-  // ⚠️ FEEDBACK: vibra + toca ao trocar drop
-  if (typeof window.feedbackNex?.navegouDrop === 'function') {
-    window.feedbackNex.navegouDrop();
-  }
-
-  renderizar();
-};
-
-// ============================================
-// NAVEGAÇÃO ENTRE PERFIS (setas verticais)
-// ============================================
-
-viewer.querySelector('.nearby-drop-nav-up').onclick = () => {
-  const idx = ids.indexOf(perfilAtualId);
-  if (idx <= 0) return;
-  perfilAtualId = ids[idx - 1];
-  dropIndexAtual = 0;
-  direcaoAnimacaoNex = 'up'; // perfil anterior entra por cima
-
-  // ⚠️ FEEDBACK: só vibra ao trocar perfil
-  if (typeof window.feedbackNex?.trocouPerfil === 'function') {
-    window.feedbackNex.trocouPerfil();
-  }
-
-  renderizar();
-};
-
-viewer.querySelector('.nearby-drop-nav-down').onclick = () => {
-  const idx = ids.indexOf(perfilAtualId);
-  if (idx >= ids.length - 1) return;
-  perfilAtualId = ids[idx + 1];
-  dropIndexAtual = 0;
-  direcaoAnimacaoNex = 'down'; // próximo perfil entra por baixo
-
-  // ⚠️ FEEDBACK: só vibra ao trocar perfil
-  if (typeof window.feedbackNex?.trocouPerfil === 'function') {
-    window.feedbackNex.trocouPerfil();
-  }
-
-  renderizar();
-};
+// As setas foram removidas. O usuário navega apenas com swipe.
 
       // ============================================
-      // SWIPE (ARRASTAR) — horizontal = troca drop
-      //                 — vertical   = troca perfil
-      // ============================================
+// SWIPE (ARRASTAR) — horizontal = troca drop
+//                 — vertical   = troca perfil
+// ============================================
 
-      let swipeStartX = 0;
-      let swipeStartY = 0;
-      let swipeStartTime = 0;
-      let swipeAtivo = false;
-
-      const LIMITE_SWIPE = 50;
-      const TEMPO_MAX_SWIPE = 800;
+// ⚠️ As variáveis (swipeStartX, swipeStartY,
+//    LIMITE_SWIPE, etc.) foram movidas pra cima,
+//    junto das declarações do viewer, pra poderem
+//    ser usadas também no bloco de onboarding.
 
       viewer.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
 
         const alvo = e.target;
         if (
-  alvo.closest('.nearby-drop-arrow') ||
-  alvo.closest('.nearby-drop-nav') ||
   alvo.closest('.nearby-drop-close') ||
   alvo.closest('.nearby-drop-comment-box') ||
   alvo.closest('.nearby-drop-footer') ||
   alvo.closest('.nearby-drop-profile-btn') ||
   alvo.closest('.nearby-pub-stats-row') ||
+  alvo.closest('.nearby-drop-expandir') ||
   alvo.closest('input')
 ) {
   swipeAtivo = false;
   return;
         }
-        
 
         swipeAtivo = true;
         swipeStartX = e.touches[0].clientX;
@@ -1555,9 +1482,11 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
 }
       }, { passive: true });
 
-      // Renderiza primeira vez
+  // ⚠️ Renderiza primeira vez
+  //    (o agendamento da dica flutuante já acontece dentro do renderizar)
   renderizar();
 }
+  
   
 
 // ============================================
