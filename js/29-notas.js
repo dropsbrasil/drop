@@ -597,14 +597,16 @@ function criarPainelAaNex() {
   painel.id = 'notasPainelAaNex';
 
   painel.innerHTML = `
-    <div class="notas-painel-topo">
-      <span class="notas-painel-titulo">Aa — Estilo do texto</span>
-      <button type="button" class="notas-painel-fechar" aria-label="Fechar">✕</button>
-    </div>
+  <div class="notas-painel-topo">
+    <span class="notas-painel-titulo">Aa — Estilo do texto</span>
+    <button type="button" class="notas-painel-fechar" aria-label="Fechar">✕</button>
+  </div>
 
-    <div class="notas-painel-secao">
-      <span class="notas-painel-label">Fonte</span>
-      <div class="notas-fontes-lista">
+  <div class="notas-painel-conteudo">
+
+  <div class="notas-painel-secao">
+    <span class="notas-painel-label">Fonte</span>
+    <div class="notas-fontes-lista">
         ${NOTAS_FONTES.map((f) => `
           <button type="button" class="notas-fonte-btn" data-fonte="${f.id}"
                   style="font-family:${f.css};">
@@ -633,15 +635,46 @@ function criarPainelAaNex() {
       </div>
     </div>
 
-    <div class="notas-painel-secao">
-      <span class="notas-painel-label">Estilo</span>
-      <div class="notas-estilos-linha">
-        <button type="button" class="notas-estilo-btn" data-estilo="bold"><b>B</b></button>
-        <button type="button" class="notas-estilo-btn" data-estilo="italic"><i>I</i></button>
-        <button type="button" class="notas-estilo-btn" data-estilo="normal">N</button>
+      <div class="notas-painel-secao">
+    <span class="notas-painel-label">Estilo</span>
+    <div class="notas-estilos-linha">
+      <button type="button" class="notas-estilo-btn" data-estilo="bold"><b>B</b></button>
+      <button type="button" class="notas-estilo-btn" data-estilo="italic"><i>I</i></button>
+      <button type="button" class="notas-estilo-btn" data-estilo="normal">N</button>
+    </div>
+  </div>
+
+      <div class="notas-painel-secao">
+      <span class="notas-painel-label">Alinhamento</span>
+      <div class="notas-alinhamento-linha">
+        <button type="button" class="notas-alinhamento-btn" data-align="left" aria-label="Alinhar à esquerda">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="15" y2="12"/>
+            <line x1="3" y1="18" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        <button type="button" class="notas-alinhamento-btn" data-align="center" aria-label="Centralizar">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="7" y1="12" x2="17" y2="12"/>
+            <line x1="5" y1="18" x2="19" y2="18"/>
+          </svg>
+        </button>
+
+        <button type="button" class="notas-alinhamento-btn" data-align="right" aria-label="Alinhar à direita">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="9" y1="12" x2="21" y2="12"/>
+            <line x1="6" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
       </div>
     </div>
-  `;
+
+  </div>
+`;
 
   document.body.appendChild(painel);
 
@@ -697,6 +730,17 @@ painel.querySelectorAll('.notas-estilo-btn').forEach((b) => {
   b.addEventListener('click', (e) => {
     e.stopPropagation();
     aplicarEstiloAaNex(b.dataset.estilo);
+  });
+});
+
+painel.querySelectorAll('.notas-alinhamento-btn').forEach((b) => {
+  b.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    aplicarAlinhamentoAaNex(b.dataset.align);
   });
 });
 }
@@ -772,12 +816,22 @@ function sincronizarPainelAaNex() {
   const elTam = document.getElementById('notasTamanhoValorNex');
   if (elTam) elTam.textContent = String(Math.round(tam));
 
-  // Estilo
+    // Estilo
   const isBold = body.style.fontWeight === 'bold' || body.style.fontWeight === '700';
   const isItalic = body.style.fontStyle === 'italic';
 
   painel.querySelector('[data-estilo="bold"]')?.classList.toggle('ativo', isBold);
   painel.querySelector('[data-estilo="italic"]')?.classList.toggle('ativo', isItalic);
+
+  // Alinhamento
+  const alignAtual =
+    body.style.textAlign ||
+    notasElementoSelecionado?.dataset?.align ||
+    'center';
+
+  painel.querySelectorAll('.notas-alinhamento-btn').forEach((b) => {
+    b.classList.toggle('ativo', b.dataset.align === alignAtual);
+  });
 }
 
 function aplicarFonteAaNex(id) {
@@ -839,6 +893,23 @@ function aplicarEstiloAaNex(estilo) {
   sincronizarPainelAaNex();
 }
 
+function aplicarAlinhamentoAaNex(align) {
+  const body = notasBodySelecionado();
+  if (!body) return;
+
+  const valor = align === 'center' ? 'center'
+              : align === 'right'  ? 'right'
+              : 'left';
+
+  body.style.setProperty('text-align', valor, 'important');
+
+  // ⚠️ Guarda a escolha no dataset do elemento pra sincronizar depois
+  const el = notasElementoSelecionado;
+  if (el) el.dataset.align = valor;
+
+  sincronizarPainelAaNex();
+}
+  
 // ============================================
 // TEMA (cicla os temas existentes)
 // ============================================
@@ -1171,14 +1242,11 @@ function garantirCapsulaMarcaNex() {
     : `👤`;
 
   cap.innerHTML = `
-    <span class="capsula-avatar">${avatarHTML}</span>
-    <span class="capsula-icone">📌</span>
-    <span>Drops</span>
-    <span class="capsula-sep">·</span>
-    <span>${escapar(nome)}</span>
-    <span class="capsula-sep">·</span>
-    <span class="capsula-user">@${escapar(meuUser || 'usuario')}</span>
-  `;
+  <span class="capsula-avatar">${avatarHTML}</span>
+  <span>Drop</span>
+  <span class="capsula-sep">·</span>
+  <span class="capsula-user">@${escapar(meuUser || 'usuario')}</span>
+`;
 
   papel.appendChild(cap);
   return cap;

@@ -580,14 +580,16 @@ function finalizarEdicaoTextoFotoNex() {
     painel.id = 'fotoPainelAaNex';
 
     painel.innerHTML = `
-      <div class="foto-painel-topo">
-        <span class="foto-painel-titulo">Aa — Estilo do texto</span>
-        <button type="button" class="foto-painel-fechar" aria-label="Fechar">✕</button>
-      </div>
+  <div class="foto-painel-topo">
+    <span class="foto-painel-titulo">Aa — Estilo do texto</span>
+    <button type="button" class="foto-painel-fechar" aria-label="Fechar">✕</button>
+  </div>
 
-      <div class="foto-painel-secao">
-        <span class="foto-painel-label">Fonte</span>
-        <div class="foto-fontes-lista">
+  <div class="foto-painel-conteudo">
+
+  <div class="foto-painel-secao">
+    <span class="foto-painel-label">Fonte</span>
+    <div class="foto-fontes-lista">
           ${FOTO_FONTES.map((f) => `
             <button type="button" class="foto-fonte-btn" data-fonte="${f.id}"
                     style="font-family:${f.css};">
@@ -616,15 +618,46 @@ function finalizarEdicaoTextoFotoNex() {
         </div>
       </div>
 
-      <div class="foto-painel-secao">
-        <span class="foto-painel-label">Estilo</span>
-        <div class="foto-estilos-linha">
-          <button type="button" class="foto-estilo-btn" data-estilo="bold"><b>B</b></button>
-          <button type="button" class="foto-estilo-btn" data-estilo="italic"><i>I</i></button>
-          <button type="button" class="foto-estilo-btn" data-estilo="normal">N</button>
-        </div>
-      </div>
-    `;
+        <div class="foto-painel-secao">
+    <span class="foto-painel-label">Estilo</span>
+    <div class="foto-estilos-linha">
+      <button type="button" class="foto-estilo-btn" data-estilo="bold"><b>B</b></button>
+      <button type="button" class="foto-estilo-btn" data-estilo="italic"><i>I</i></button>
+      <button type="button" class="foto-estilo-btn" data-estilo="normal">N</button>
+    </div>
+  </div>
+
+    <div class="foto-painel-secao">
+    <span class="foto-painel-label">Alinhamento</span>
+    <div class="foto-alinhamento-linha">
+      <button type="button" class="foto-alinhamento-btn" data-align="left" aria-label="Alinhar à esquerda">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="15" y2="12"/>
+          <line x1="3" y1="18" x2="18" y2="18"/>
+        </svg>
+      </button>
+
+      <button type="button" class="foto-alinhamento-btn" data-align="center" aria-label="Centralizar">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="7" y1="12" x2="17" y2="12"/>
+          <line x1="5" y1="18" x2="19" y2="18"/>
+        </svg>
+      </button>
+
+      <button type="button" class="foto-alinhamento-btn" data-align="right" aria-label="Alinhar à direita">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="9" y1="12" x2="21" y2="12"/>
+          <line x1="6" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  </div>
+`;
 
     document.body.appendChild(painel);
 
@@ -672,16 +705,27 @@ function finalizarEdicaoTextoFotoNex() {
       });
     });
 
-    painel.querySelectorAll('.foto-estilo-btn').forEach((b) => {
-      b.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, true);
-      b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        aplicarEstiloAaFotoNex(b.dataset.estilo);
-      });
+      painel.querySelectorAll('.foto-estilo-btn').forEach((b) => {
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      aplicarEstiloAaFotoNex(b.dataset.estilo);
     });
+  });
+
+  painel.querySelectorAll('.foto-alinhamento-btn').forEach((b) => {
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      aplicarAlinhamentoAaFotoNex(b.dataset.align);
+    });
+  });
   }
 
   function abrirPainelAaFotoNex() {
@@ -750,13 +794,23 @@ function finalizarEdicaoTextoFotoNex() {
     const elTam = document.getElementById('fotoTamanhoValorNex');
     if (elTam) elTam.textContent = String(Math.round(tam));
 
-    const isBold = body.style.fontWeight === 'bold' || body.style.fontWeight === '700';
-    const isItalic = body.style.fontStyle === 'italic';
+      const isBold = body.style.fontWeight === 'bold' || body.style.fontWeight === '700';
+  const isItalic = body.style.fontStyle === 'italic';
 
-    painel.querySelector('[data-estilo="bold"]')?.classList.toggle('ativo', isBold);
-    painel.querySelector('[data-estilo="italic"]')?.classList.toggle('ativo', isItalic);
+  painel.querySelector('[data-estilo="bold"]')?.classList.toggle('ativo', isBold);
+  painel.querySelector('[data-estilo="italic"]')?.classList.toggle('ativo', isItalic);
+
+  // Alinhamento
+  const alignAtual =
+    body.style.textAlign ||
+    fotoElementoSelecionado?.dataset?.align ||
+    'center';
+
+  painel.querySelectorAll('.foto-alinhamento-btn').forEach((b) => {
+    b.classList.toggle('ativo', b.dataset.align === alignAtual);
+  });
   }
-
+  
   function aplicarFonteAaFotoNex(id) {
     const body = fotoBodySelecionado();
     if (!body) return;
@@ -799,22 +853,38 @@ function finalizarEdicaoTextoFotoNex() {
   }
 
   function aplicarEstiloAaFotoNex(estilo) {
-    const body = fotoBodySelecionado();
-    if (!body) return;
+  const body = fotoBodySelecionado();
+  if (!body) return;
 
-    if (estilo === 'bold') {
-      const isBold = body.style.fontWeight === 'bold';
-      body.style.setProperty('font-weight', isBold ? 'normal' : 'bold', 'important');
-    } else if (estilo === 'italic') {
-      const isItalic = body.style.fontStyle === 'italic';
-      body.style.setProperty('font-style', isItalic ? 'normal' : 'italic', 'important');
-    } else {
-      body.style.setProperty('font-weight', 'normal', 'important');
-      body.style.setProperty('font-style', 'normal', 'important');
-    }
-
-    sincronizarPainelAaFotoNex();
+  if (estilo === 'bold') {
+    const isBold = body.style.fontWeight === 'bold';
+    body.style.setProperty('font-weight', isBold ? 'normal' : 'bold', 'important');
+  } else if (estilo === 'italic') {
+    const isItalic = body.style.fontStyle === 'italic';
+    body.style.setProperty('font-style', isItalic ? 'normal' : 'italic', 'important');
+  } else {
+    body.style.setProperty('font-weight', 'normal', 'important');
+    body.style.setProperty('font-style', 'normal', 'important');
   }
+
+  sincronizarPainelAaFotoNex();
+}
+
+function aplicarAlinhamentoAaFotoNex(align) {
+  const body = fotoBodySelecionado();
+  if (!body) return;
+
+  const valor = align === 'center' ? 'center'
+              : align === 'right'  ? 'right'
+              : 'left';
+
+  body.style.setProperty('text-align', valor, 'important');
+
+  const el = fotoElementoSelecionado;
+  if (el) el.dataset.align = valor;
+
+  sincronizarPainelAaFotoNex();
+}
 
     // ============================================
   // TEMA (cicla os temas existentes)
@@ -1140,14 +1210,11 @@ function configurarLegendaFotoNex() {
     : `👤`;
 
   cap.innerHTML = `
-    <span class="capsula-avatar">${avatarHTML}</span>
-    <span class="capsula-icone">📌</span>
-    <span>Drops</span>
-    <span class="capsula-sep">·</span>
-    <span>${escapar(nome)}</span>
-    <span class="capsula-sep">·</span>
-    <span class="capsula-user">@${escapar(meuUser || 'usuario')}</span>
-  `;
+  <span class="capsula-avatar">${avatarHTML}</span>
+  <span>Drop</span>
+  <span class="capsula-sep">·</span>
+  <span class="capsula-user">@${escapar(meuUser || 'usuario')}</span>
+`;
 
   papel.appendChild(cap);
   return cap;
