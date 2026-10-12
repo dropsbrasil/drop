@@ -1,0 +1,245 @@
+/* ============================================
+   20-ONBOARDING-VIEWERS.CSS
+   Balão instrutivo de primeira vez nos viewers
+   (Minhas Publicações e Nearby)
+
+   Independente do 19-tutorial.css.
+   Aparece só na primeira vez que o usuário
+   abre cada viewer. Salvo no localStorage.
+
+   Nearby tem 2 balões em sequência:
+     1) vertical (mudar de perfil)
+     2) horizontal (navegar entre publicações)
+============================================ */
+
+/* ============================================
+   OVERLAY
+============================================ */
+
+.onb-viewer-overlay-nex {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483640;
+  background: rgba(5, 11, 24, 0.82);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.onb-viewer-overlay-nex.visivel {
+  display: flex;
+  opacity: 1;
+}
+
+/* ============================================
+   BALÃO CENTRAL
+============================================ */
+
+.onb-viewer-balao-nex {
+  position: relative;
+  width: min(100%, 340px);
+  padding: 22px 22px 18px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(96, 165, 250, 0.15) inset;
+  color: #ffffff;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  animation: onbViewerBalaoEntra 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes onbViewerBalaoEntra {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
+   ÍCONES ANIMADOS
+============================================ */
+
+.onb-viewer-icones-nex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  min-height: 60px;
+}
+
+.onb-viewer-icone-nex {
+  font-size: 40px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 12px rgba(96, 165, 250, 0.4));
+}
+
+/* Setas horizontais — vão e voltam */
+.onb-viewer-icone-horizontal-nex {
+  font-size: 36px;
+  animation: onbViewerSetaHorizontal 1.6s ease-in-out infinite;
+}
+
+@keyframes onbViewerSetaHorizontal {
+  0%, 100% {
+    transform: translateX(-10px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateX(10px);
+    opacity: 1;
+  }
+}
+
+/* Setas verticais — sobem e descem */
+.onb-viewer-icone-vertical-nex {
+  font-size: 36px;
+  animation: onbViewerSetaVertical 1.6s ease-in-out infinite;
+}
+
+@keyframes onbViewerSetaVertical {
+  0%, 100% {
+    transform: translateY(-10px);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(10px);
+    opacity: 1;
+  }
+}
+
+/* Mão apontando — pulsa */
+.onb-viewer-icone-mao-nex {
+  animation: onbViewerMaoPulsa 1.4s ease-in-out infinite;
+}
+
+@keyframes onbViewerMaoPulsa {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   TEXTO
+============================================ */
+
+.onb-viewer-titulo-nex {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.onb-viewer-texto-nex {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin-bottom: 20px;
+}
+
+.onb-viewer-texto-nex strong {
+  color: #60a5fa;
+  font-weight: 800;
+}
+
+/* ============================================
+   BOTÃO "ENTENDI"
+============================================ */
+
+.onb-viewer-btn-nex {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+  transition: filter 0.15s ease, transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+}
+
+.onb-viewer-btn-nex:hover {
+  filter: brightness(1.08);
+}
+
+.onb-viewer-btn-nex:active {
+  transform: scale(0.97);
+}
+
+/* ============================================
+   LISTA DE INSTRUÇÕES (caso precise no futuro)
+============================================ */
+
+.onb-viewer-lista-nex {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.onb-viewer-lista-item-nex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+}
+
+.onb-viewer-lista-icone-nex {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.onb-viewer-lista-texto-nex {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #e2e8f0;
+}
+
+.onb-viewer-lista-texto-nex strong {
+  color: #60a5fa;
+  font-weight: 800;
+}
