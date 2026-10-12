@@ -286,11 +286,11 @@ function criarAlcasMyDropsNex(el) {
   alcaRot.setAttribute('aria-label', 'Rotacionar');
 
   const alcaRes = document.createElement('button');
-  alcaRes.type = 'button';
-  alcaRes.className = 'editor-alca-nex editor-alca-redimensionar-nex';
-  alcaRes.textContent = '➕';
-  alcaRes.setAttribute('aria-label', 'Redimensionar');
-
+alcaRes.type = 'button';
+alcaRes.className = 'editor-alca-nex editor-alca-redimensionar-nex';
+alcaRes.textContent = '+';
+alcaRes.setAttribute('aria-label', 'Redimensionar');
+  
   el.appendChild(alcaRot);
   el.appendChild(alcaRes);
 
@@ -376,16 +376,26 @@ function ativarAlcaRedimensionarMyDropsNex(el, alca) {
     pointerId = e.pointerId;
     try { alca.setPointerCapture(pointerId); } catch (_) {}
 
-    const onMove = (ev) => {
-      if (ev.pointerId !== pointerId) return;
+    // ⚠️ Pega o font-size atual do texto (em px)
+const body = el.querySelector('.video-editor-text-body-mydrops-nex');
+const fontAtual = body ? (parseFloat(body.style.fontSize) || 28) : 28;
 
-      const dist = Math.hypot(ev.clientX - centroX, ev.clientY - centroY);
-      const fator = dist / distInicial;
-      const nova = Math.max(0.3, Math.min(4, escalaInicial * fator));
+// ⚠️ Limite visual: font-size × scale ≤ 50
+const LIMITE_VISUAL = 50;
+const scaleMaxima = Math.max(0.3, LIMITE_VISUAL / fontAtual);
 
-      el.dataset.scale = String(nova);
-      atualizarTransformacaoItemMyDropsNex(el);
-    };
+const onMove = (ev) => {
+  if (ev.pointerId !== pointerId) return;
+
+  const dist = Math.hypot(ev.clientX - centroX, ev.clientY - centroY);
+  const fator = dist / distInicial;
+
+  // ⚠️ Aplica o limite visual dinâmico
+  const nova = Math.max(0.3, Math.min(scaleMaxima, escalaInicial * fator));
+
+  el.dataset.scale = String(nova);
+  atualizarTransformacaoItemMyDropsNex(el);
+};
 
     const onUp = (ev) => {
       if (ev.pointerId !== pointerId) return;
@@ -2129,13 +2139,33 @@ function capturarFotoMyDropsNex() {
       true
     );
   });
+  // ============================================
+// LIMITE VISUAL DO TEXTO (font-size × scale ≤ 50)
+// ============================================
+window.aplicarLimiteVisualTextoNex = function (el) {
+  if (!el) return;
+
+  const body = el.querySelector('.video-editor-text-body-mydrops-nex');
+  if (!body) return;
+
+  const LIMITE_VISUAL = 50;
+
+  const fontAtual = parseFloat(body.style.fontSize) || 28;
+  const scaleAtual = Number(el.dataset.scale || 1);
+
+  // ⚠️ Se font × scale passar do limite, ajusta a scale
+  if (fontAtual * scaleAtual > LIMITE_VISUAL) {
+    const scaleMaxima = LIMITE_VISUAL / fontAtual;
+    el.dataset.scale = String(scaleMaxima);
+    atualizarTransformacaoItemMyDropsNex(el);
+  }
+};
+
+// ============================================
+// DEBUG
+// ============================================
+
+console.log('🎬 13-editor.js carregado');
   
-
-  // ============================================
-  // DEBUG
-  // ============================================
-
-  console.log('🎬 13-editor.js carregado');
-
 })();
 

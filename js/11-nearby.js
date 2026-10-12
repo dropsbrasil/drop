@@ -558,30 +558,32 @@ let primeiraRenderizacaoNex = true;
       </div>
     </div>
 
-    <!-- PALCO + PAPEL -->
+     <!-- PALCO + PAPEL -->
 <div class="nearby-pub-palco">
-  <div class="nearby-pub-papel" id="nearbyDropMedia">
-    <!-- CÁPSULA DE LEGENDA (sobreposta na mídia) -->
-    <div class="nearby-pub-legenda" id="nearbyDropLegenda" style="display:none;">
-      <p class="nearby-pub-legenda-texto" id="nearbyDropLegendaTexto"></p>
-      <button type="button" class="nearby-pub-legenda-ver-mais" id="nearbyDropVerMais">Ver mais</button>
-    </div>
+  <div class="nearby-pub-papel" id="nearbyDropMedia"></div>
+
+  <!-- CÁPSULA DE LEGENDA (sobreposta na mídia) -->
+  <div class="nearby-pub-legenda" id="nearbyDropLegenda" style="display:none;">
+    <p class="nearby-pub-legenda-texto" id="nearbyDropLegendaTexto"></p>
+    <button type="button" class="nearby-pub-legenda-ver-mais" id="nearbyDropVerMais">Ver mais</button>
   </div>
+
+  <!-- BOTÃO EXPANDIR (canto superior esquerdo da mídia) -->
+  <button type="button" class="nearby-drop-expandir" id="nearbyDropExpandir" aria-label="Expandir mídia">⤢</button>
 
   <button class="nearby-drop-nav nearby-drop-nav-up" type="button" aria-label="Perfil anterior">⌃</button>
   <button class="nearby-drop-nav nearby-drop-nav-down" type="button" aria-label="Próximo perfil">⌄</button>
 </div>
-
     <!-- RODAPÉ — SETAS + COMMENT -->
     <div class="nearby-pub-rodape">
       <button class="nearby-drop-arrow nearby-drop-arrow-left" type="button" aria-label="Anterior">←</button>
 
       <div class="nearby-drop-comment-box">
-        <input class="nearby-drop-comment-input" placeholder="Comentar...">
-        <button class="nearby-drop-reaction" type="button">❤️</button>
-        <button class="nearby-drop-reaction" type="button">💔</button>
-        <button class="nearby-drop-send" type="button">⌯⌲</button>
-      </div>
+  <textarea class="nearby-drop-comment-input" placeholder="Comentar..." rows="1"></textarea>
+  <button class="nearby-drop-reaction" type="button">❤️</button>
+  <button class="nearby-drop-reaction" type="button">💔</button>
+  <button class="nearby-drop-send" type="button">⌯⌲</button>
+</div>
 
       <button class="nearby-drop-arrow nearby-drop-arrow-right" type="button" aria-label="Próxima">→</button>
     </div>
@@ -634,26 +636,122 @@ let primeiraRenderizacaoNex = true;
   });
   }
 
-  // ============================================
-  // INPUT DE COMENTÁRIO
-  // ============================================
+// ============================================
+// BOTÃO EXPANDIR — TELA CHEIA (FOCO TOTAL)
+// ============================================
 
-  const inputComentario = viewer.querySelector('.nearby-drop-comment-input');
-  const botaoEnviar = viewer.querySelector('.nearby-drop-send');
+const btnExpandir = viewer.querySelector('#nearbyDropExpandir');
 
-  function atualizarEstadoEnviarNex() {
-    const texto = (inputComentario?.value || '').trim();
-    if (!botaoEnviar) return;
+function entrarModoExpandidoNex() {
+  if (!viewer) return;
 
-    botaoEnviar.disabled = !texto;
-    botaoEnviar.classList.toggle('is-active', !!texto);
-  }
-
-  if (inputComentario) {
-  atualizarEstadoEnviarNex();
-  inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
+  viewer.classList.add('modo-expandido');
+  if (btnExpandir) btnExpandir.textContent = '⤡';
 }
 
+function sairModoExpandidoNex() {
+  if (!viewer) return;
+
+  viewer.classList.remove('modo-expandido');
+  if (btnExpandir) btnExpandir.textContent = '⤢';
+}
+
+function toggleModoExpandidoNex() {
+  if (!viewer) return;
+
+  const estaExpandido = viewer.classList.contains('modo-expandido');
+
+  if (estaExpandido) {
+    sairModoExpandidoNex();
+  } else {
+    entrarModoExpandidoNex();
+  }
+}
+
+if (btnExpandir) {
+  btnExpandir.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleModoExpandidoNex();
+  });
+}
+
+// ============================================
+// INPUT DE COMENTÁRIO — MODO FOCO TOTAL
+// ============================================
+  
+const inputComentario = viewer.querySelector('.nearby-drop-comment-input');
+const botaoEnviar = viewer.querySelector('.nearby-drop-send');
+const commentBox = viewer.querySelector('.nearby-drop-comment-box');
+const setaEsquerda = viewer.querySelector('.nearby-drop-arrow-left');
+const setaDireita = viewer.querySelector('.nearby-drop-arrow-right');
+
+function atualizarEstadoEnviarNex() {
+  const texto = (inputComentario?.value || '').trim();
+  if (!botaoEnviar) return;
+
+  botaoEnviar.disabled = !texto;
+  botaoEnviar.classList.toggle('is-active', !!texto);
+}
+
+// ============================================
+// MODO COMENTÁRIO (foco total)
+// ============================================
+
+function entrarModoComentarioNex() {
+  if (!commentBox) return;
+
+  commentBox.classList.add('comentario-focado');
+
+  if (setaEsquerda) setaEsquerda.style.display = 'none';
+  if (setaDireita) setaDireita.style.display = 'none';
+
+  viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
+    btn.style.display = 'none';
+  });
+}
+
+function sairModoComentarioNex() {
+  if (!commentBox) return;
+
+  commentBox.classList.remove('comentario-focado');
+
+  if (setaEsquerda) setaEsquerda.style.display = '';
+  if (setaDireita) setaDireita.style.display = '';
+
+  viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
+    btn.style.display = '';
+  });
+}
+
+if (inputComentario) {
+  atualizarEstadoEnviarNex();
+  inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
+
+  // ⚠️ FOCO — entra no modo comentário
+  inputComentario.addEventListener('focus', () => {
+    entrarModoComentarioNex();
+  });
+
+  // ⚠️ BLUR — só sai se o campo estiver VAZIO
+  inputComentario.addEventListener('blur', () => {
+    const temTexto = (inputComentario.value || '').trim().length > 0;
+    if (!temTexto) {
+      sairModoComentarioNex();
+    }
+  });
+}
+
+// ⚠️ CLIQUE FORA DO CAMPO (dentro do viewer)
+viewer.addEventListener('click', (e) => {
+  if (e.target.closest('.nearby-drop-comment-box')) return;
+
+  const temTexto = (inputComentario?.value || '').trim().length > 0;
+  if (!temTexto) {
+    sairModoComentarioNex();
+  }
+});
+  
 // ============================================
 // BOTÃO "VER MAIS" / "VER MENOS" DA LEGENDA
 // ============================================
@@ -891,15 +989,21 @@ if (
   renderChat(chaveConversa);
 }
 
-    if (inputComentario) {
+        if (inputComentario) {
   inputComentario.value = 'Você enviou um comentário.';
   atualizarEstadoEnviarNex();
+
+  // ⚠️ Sai do modo comentário imediatamente após enviar
+  sairModoComentarioNex();
+
+  // ⚠️ Tira o foco do input (fecha o teclado)
+  inputComentario.blur();
 
   setTimeout(() => {
     inputComentario.value = '';
     atualizarEstadoEnviarNex();
   }, 1200);
-}
+        }
 
 // ⚠️ FEEDBACK: só toca (sem vibração) ao comentar
 if (typeof window.feedbackNex?.comentou === 'function') {
@@ -931,9 +1035,34 @@ function renderizar() {
   const perfil = base[perfilAtualId];
   if (!perfil) return;
 
+  // ⚠️ Reseta modo comentário ao trocar de drop/perfil
+  const commentBoxAtual = viewer.querySelector('.nearby-drop-comment-box');
+
+if (commentBoxAtual && commentBoxAtual.classList.contains('comentario-focado')) {
+  const inputAtual = viewer.querySelector('.nearby-drop-comment-input');
+  if (inputAtual) inputAtual.value = '';
+
+  commentBoxAtual.classList.remove('comentario-focado');
+
+  viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
+    btn.style.display = '';
+  });
+
+  const setaL = viewer.querySelector('.nearby-drop-arrow-left');
+  const setaR = viewer.querySelector('.nearby-drop-arrow-right');
+  if (setaL) setaL.style.display = '';
+  if (setaR) setaR.style.display = '';
+}
+
+// ⚠️ Sai do modo expandido ao trocar de drop/perfil
+if (viewer.classList.contains('modo-expandido')) {
+  viewer.classList.remove('modo-expandido');
+  const btnExp = viewer.querySelector('#nearbyDropExpandir');
+  if (btnExp) btnExp.textContent = '⤢';
+}
+
       const drops = obterDropsDoPerfil(perfil);
       const drop = drops[dropIndexAtual] || drops[0];
-
       const avatar = viewer.querySelector('#nearbyDropAvatar');
       const nome = viewer.querySelector('#nearbyDropNome');
       const distancia = viewer.querySelector('#nearbyDropDistancia');
@@ -1218,21 +1347,25 @@ if (media) {
     }
 
     // ============================================
-    // EVENTOS DE FECHAR
-    // ============================================
+// EVENTOS DE FECHAR
+// ============================================
 
-    viewer.querySelector('.nearby-drop-close').onclick = () => {
-      viewer.remove();
-      document.body.style.overflow = '';
-    };
+viewer.querySelector('.nearby-drop-close').onclick = () => {
+  if (inputComentario) inputComentario.value = '';
+  viewer.classList.remove('modo-expandido');
+  viewer.remove();
+  document.body.style.overflow = '';
+};
 
-    viewer.addEventListener('click', (e) => {
-      if (e.target === viewer) {
-        viewer.remove();
-        document.body.style.overflow = '';
-      }
-    });
-
+viewer.addEventListener('click', (e) => {
+  if (e.target === viewer) {
+    if (inputComentario) inputComentario.value = '';
+    viewer.classList.remove('modo-expandido');
+    viewer.remove();
+    document.body.style.overflow = '';
+  }
+});
+  
     // ============================================
 // NAVEGAÇÃO ENTRE DROPS (setas laterais)
 // ============================================

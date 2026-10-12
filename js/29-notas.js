@@ -489,9 +489,10 @@ function editarTextoNotasNex(el) {
   };
 
   // Sobe pro topo do papel
-  el.style.transition = 'left 0.25s ease, top 0.25s ease, transform 0.25s ease';
-  el.style.left = '50%';
-  el.style.top = '60px';
+  // Sobe pro topo do papel (com respiro da barra)
+el.style.transition = 'left 0.25s ease, top 0.25s ease, transform 0.25s ease';
+el.style.left = '50%';
+el.style.top = '90px';
 
   el.classList.add('nota-editando-topo');
   el.dataset.editando = '1';
@@ -805,10 +806,18 @@ function ajustarTamanhoAaNex(acao) {
   const atual = parseFloat(body.style.fontSize) || 28;
   let novo = atual;
 
-  if (acao === 'mais') novo = Math.min(72, atual + 2);
+  // ⚠️ Teto de 50px (limite visual aprovado)
+  if (acao === 'mais') novo = Math.min(50, atual + 2);
   if (acao === 'menos') novo = Math.max(12, atual - 2);
 
   body.style.setProperty('font-size', novo + 'px', 'important');
+
+  // ⚠️ Garante que o limite visual (font × scale ≤ 50) está sendo respeitado
+  if (typeof window.aplicarLimiteVisualTextoNex === 'function') {
+    const el = notasElementoSelecionado;
+    if (el) window.aplicarLimiteVisualTextoNex(el);
+  }
+
   sincronizarPainelAaNex();
 }
 

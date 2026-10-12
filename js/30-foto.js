@@ -482,8 +482,8 @@ function editarTextoFotoNex(el) {
   };
 
   el.style.transition = 'left 0.25s ease, top 0.25s ease, transform 0.25s ease';
-  el.style.left = '50%';
-  el.style.top = '60px';
+el.style.left = '50%';
+el.style.top = '90px';
 
   el.classList.add('foto-editando-topo');
   el.dataset.editando = '1';
@@ -777,17 +777,25 @@ function finalizarEdicaoTextoFotoNex() {
   }
 
   function ajustarTamanhoAaFotoNex(acao) {
-    const body = fotoBodySelecionado();
-    if (!body) return;
+  const body = fotoBodySelecionado();
+  if (!body) return;
 
-    const atual = parseFloat(body.style.fontSize) || 28;
-    let novo = atual;
+  const atual = parseFloat(body.style.fontSize) || 28;
+  let novo = atual;
 
-    if (acao === 'mais') novo = Math.min(72, atual + 2);
-    if (acao === 'menos') novo = Math.max(12, atual - 2);
+  // ⚠️ Teto de 50px (limite visual aprovado)
+  if (acao === 'mais') novo = Math.min(50, atual + 2);
+  if (acao === 'menos') novo = Math.max(12, atual - 2);
 
-    body.style.setProperty('font-size', novo + 'px', 'important');
-    sincronizarPainelAaFotoNex();
+  body.style.setProperty('font-size', novo + 'px', 'important');
+
+  // ⚠️ Garante que o limite visual (font × scale ≤ 50) está sendo respeitado
+  if (typeof window.aplicarLimiteVisualTextoNex === 'function') {
+    const el = fotoElementoSelecionado;
+    if (el) window.aplicarLimiteVisualTextoNex(el);
+  }
+
+  sincronizarPainelAaFotoNex();
   }
 
   function aplicarEstiloAaFotoNex(estilo) {
