@@ -95,7 +95,6 @@
       <div class="onb-viewer-balao-nex">
         <div class="onb-viewer-icones-nex">
           <span class="onb-viewer-icone-nex onb-viewer-icone-horizontal-nex">👈🏻</span>
-          <span class="onb-viewer-icone-nex onb-viewer-icone-mao-nex">👆</span>
           <span class="onb-viewer-icone-nex onb-viewer-icone-horizontal-nex">👉🏻</span>
         </div>
 
@@ -113,7 +112,6 @@
       fecharOverlayNex(overlay, 'mydrops');
     });
 
-    // Fecha ao clicar fora do balão
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         overlay.querySelector('#onbViewerOkNex').click();
@@ -135,7 +133,6 @@
       <div class="onb-viewer-balao-nex">
         <div class="onb-viewer-icones-nex">
           <span class="onb-viewer-icone-nex onb-viewer-icone-vertical-nex">👆🏻</span>
-          <span class="onb-viewer-icone-nex onb-viewer-icone-mao-nex">👆</span>
           <span class="onb-viewer-icone-nex onb-viewer-icone-vertical-nex">👇🏻</span>
         </div>
 
@@ -156,7 +153,7 @@
       // ⚠️ Depois de fechar, abre o balão 2 (horizontal)
       setTimeout(() => {
         mostrarOnboardingNearbyBalao2Nex();
-      }, 350);
+      }, 250);
     });
 
     overlay.addEventListener('click', (e) => {
@@ -173,14 +170,12 @@
   // ============================================
 
   function mostrarOnboardingNearbyBalao2Nex() {
-    // ⚠️ Só marca como visto no FINAL do segundo balão
     if (overlayAtualNex) return false;
 
     const overlay = criarOverlayNex(`
       <div class="onb-viewer-balao-nex">
         <div class="onb-viewer-icones-nex">
           <span class="onb-viewer-icone-nex onb-viewer-icone-horizontal-nex">👈🏻</span>
-          <span class="onb-viewer-icone-nex onb-viewer-icone-mao-nex">👆</span>
           <span class="onb-viewer-icone-nex onb-viewer-icone-horizontal-nex">👉🏻</span>
         </div>
 
@@ -195,7 +190,6 @@
     `);
 
     overlay.querySelector('#onbViewerOkNex').addEventListener('click', () => {
-      // ⚠️ Aqui SIM marca como visto (fim dos 2 balões)
       fecharOverlayNex(overlay, 'nearby');
     });
 

@@ -1081,13 +1081,21 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
   `;
 
   document.body.appendChild(viewer);
-  document.body.style.overflow = 'hidden';
+document.body.style.overflow = 'hidden';
 
-    // ============================================
-  // FECHAR
+// ============================================
+// ONBOARDING — aparece IMEDIATAMENTE
+// ============================================
+
+if (typeof window.mostrarOnboardingMinhasPublicacoesNex === 'function') {
+  window.mostrarOnboardingMinhasPublicacoesNex();
+}
+
   // ============================================
+// FECHAR
+// ============================================
 
-  const fechar = () => {
+const fechar = () => {
     viewer.remove();
     document.body.style.overflow = '';
   };
@@ -1539,14 +1547,6 @@ if (btnExpandir) {
     e.stopPropagation();
     toggleModoExpandidoNex();
   });
-}
-
-// ============================================
-// ONBOARDING — primeira vez abrindo
-// ============================================
-
-if (typeof window.mostrarOnboardingMinhasPublicacoesNex === 'function') {
-  window.mostrarOnboardingMinhasPublicacoesNex();
 }
 
 // ============================================

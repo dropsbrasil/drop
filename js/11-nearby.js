@@ -608,12 +608,20 @@ const TEMPO_MAX_SWIPE = 800;
   </div>
 `;
 
-    document.body.appendChild(viewer);
+      document.body.appendChild(viewer);
+
+// ============================================
+// ONBOARDING — aparece IMEDIATAMENTE
+// ============================================
+
+if (typeof window.mostrarOnboardingNearbyNex === 'function') {
+  window.mostrarOnboardingNearbyNex();
+}
 
 // ============================================
 // BOTÃO VISITAR PERFIL
 // ============================================
-  const btnVisitarPerfil = viewer.querySelector('.nearby-drop-profile-btn');
+ const btnVisitarPerfil = viewer.querySelector('.nearby-drop-profile-btn');
 
   if (tipo === 'perfil') {
     if (btnVisitarPerfil) btnVisitarPerfil.style.display = 'none';
@@ -1482,20 +1490,10 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
 }
       }, { passive: true });
 
-  // ============================================
-  // ONBOARDING — primeira vez abrindo
-  // ============================================
-
-  if (typeof window.mostrarOnboardingNearbyNex === 'function') {
-    window.mostrarOnboardingNearbyNex();
-  }
-
-  // ⚠️ Renderiza primeira vez
+   // ⚠️ Renderiza primeira vez
   //    (o agendamento da dica flutuante já acontece dentro do renderizar)
   renderizar();
 }
-  
-  
   
 
 // ============================================
