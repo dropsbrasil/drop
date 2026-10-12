@@ -608,13 +608,16 @@
 ============================================ */
 #fotoCapsulaMarcaNex {
   position: absolute;
-  top: 16px;
+  bottom: 16px;
   left: 16px;
+  right: 16px;
+  top: auto;
   z-index: 500;
   display: none;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 5px 14px 5px 5px;
+  padding: 4px 12px 4px 4px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(10px);
@@ -629,10 +632,11 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   pointer-events: none;
   white-space: nowrap;
-  max-width: calc(100% - 32px);
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
+
 
 #fotoCapsulaMarcaNex.visivel {
   display: inline-flex;

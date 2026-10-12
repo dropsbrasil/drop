@@ -181,10 +181,15 @@
   left: 50%;
   top: 50%;
   width: max-content;
-  max-width: calc(100vw - 28px);
+  max-width: 100%;
   z-index: 3;
   user-select: none;
   touch-action: none;
+
+  /* ⚠️ Contém o texto dentro do pai */
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .video-editor-text-mydrops-nex,

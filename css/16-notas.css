@@ -11,13 +11,16 @@
 
 .editor-alca-nex {
   position: absolute;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.92);
   border: 2px solid #ffffff;
   color: #fff;
-  font-size: 15px;
+  font-size: 18px !important;
+  line-height: 1 !important;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -34,6 +37,8 @@
   pointer-events: auto;
   padding: 0;
   transition: transform 0.12s ease, background 0.15s ease;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .editor-alca-nex:active {
@@ -42,13 +47,13 @@
 }
 
 .editor-alca-rotacionar-nex {
-  top: -42px;
-  left: -42px;
+  top: -50px;
+  left: -50px;
 }
 
 .editor-alca-redimensionar-nex {
-  bottom: -42px;
-  right: -42px;
+  bottom: -50px;
+  right: -50px;
 }
 
 /* Esconde alças quando o elemento não está selecionado */
@@ -160,6 +165,51 @@
   line-height: 1.35 !important;
   letter-spacing: 0.2px !important;
   padding: 8px !important;
+
+  /* ⚠️ Contém o texto dentro do papel */
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  box-sizing: border-box !important;
+}
+
+/* ⚠️ ROLAGEM INTERNA SÓ DURANTE A EDIÇÃO
+   Altura máxima baseada na viewport (vh), porque o pai
+   não tem altura definida pra usar %.
+   Fora da edição, o texto fica livre (sem limite). */
+#notasEditorNex .video-editor-text-body-mydrops-nex[contenteditable="true"] {
+  max-height: 45vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ⚠️ Scrollbar discreta (só aparece se passar de 70%) */
+#notasEditorNex .video-editor-text-body-mydrops-nex[contenteditable="true"]::-webkit-scrollbar {
+  width: 4px;
+}
+
+#notasEditorNex .video-editor-text-body-mydrops-nex[contenteditable="true"]::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.35);
+  border-radius: 999px;
+}
+
+/* ⚠️ Força herança de fonte em TODOS os filhos (linhas, spans, etc) */
+#notasEditorNex .video-editor-text-body-mydrops-nex *,
+#notasEditorNex .video-editor-text-body-mydrops-nex br + *,
+#notasEditorNex .video-editor-text-body-mydrops-nex div,
+#notasEditorNex .video-editor-text-body-mydrops-nex span,
+#notasEditorNex .video-editor-text-body-mydrops-nex p {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  font-style: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
 }
 
 /* Só aplica transparente quando NÃO tiver tema */
@@ -685,13 +735,16 @@
 
 #notasCapsulaMarcaNex {
   position: absolute;
-  top: 16px;
+  bottom: 16px;
   left: 16px;
+  right: 16px;
+  top: auto;
   z-index: 500;
   display: none;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 5px 14px 5px 5px;
+  padding: 4px 12px 4px 4px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(10px);
@@ -706,9 +759,9 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   pointer-events: none;
   white-space: nowrap;
-  max-width: calc(100% - 32px);
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 #notasCapsulaMarcaNex.visivel {
