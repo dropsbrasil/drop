@@ -313,12 +313,16 @@
   background-color: #1a1a24 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 24px !important;
-  padding: 16px !important;
+  padding: 0 !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
   display: none !important;
   flex-direction: column !important;
-  gap: 14px !important;
+  gap: 0 !important;
   box-sizing: border-box !important;
+
+  /* ⚠️ Altura máxima e overflow */
+  max-height: 45vh !important;
+  overflow: hidden !important;
 }
 
 #fotoPainelAaNex.aberto {
@@ -337,6 +341,15 @@
   align-items: center !important;
   justify-content: space-between !important;
   gap: 12px !important;
+
+  /* ⚠️ Cabeçalho fixo */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  padding: 16px 16px 12px !important;
+  background: rgba(26, 26, 36, 0.98) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
 }
 
 #fotoPainelAaNex .foto-painel-titulo {
@@ -366,6 +379,7 @@
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
+  padding: 0 16px !important;
 }
 
 #fotoPainelAaNex .foto-painel-label {
@@ -496,6 +510,47 @@
 }
 
 /* ============================================
+   BOTÕES DE ALINHAMENTO — FOTO
+   ============================================ */
+
+#fotoPainelAaNex .foto-alinhamento-linha {
+  display: flex !important;
+  gap: 8px !important;
+}
+
+#fotoPainelAaNex .foto-alinhamento-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  -webkit-tap-highlight-color: transparent !important;
+  padding: 0 !important;
+  transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease !important;
+}
+
+#fotoPainelAaNex .foto-alinhamento-btn:active {
+  transform: scale(0.94) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+#fotoPainelAaNex .foto-alinhamento-btn.ativo {
+  background: rgba(37, 99, 235, 0.4) !important;
+  border-color: rgba(96, 165, 250, 0.7) !important;
+}
+
+#fotoPainelAaNex .foto-alinhamento-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+  display: block !important;
+}
+
+/* ============================================
    RODAPÉ — LEGENDA CÁPSULA CLARA + PUBLICAR
 ============================================ */
 
@@ -606,18 +661,21 @@
 /* ============================================
    CÁPSULA DE MARCA (só no PNG salvo)
 ============================================ */
+
 #fotoCapsulaMarcaNex {
   position: absolute;
   bottom: 16px;
   left: 16px;
-  right: 16px;
   top: auto;
+  right: auto;
+  width: auto;
+  max-width: calc(100% - 32px);
   z-index: 500;
   display: none;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
-  padding: 4px 12px 4px 4px;
+  padding: 4px 10px 4px 4px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(10px);
@@ -837,7 +895,57 @@ body.foto-aberto .tabbar {
 }
 
 #fotoCapsulaMarcaNex {
-  padding: 6px 16px 6px 6px !important;
-  gap: 8px !important;
+  padding: 4px 10px 4px 4px !important;
+  gap: 6px !important;
   align-items: center !important;
+}
+
+/* ============================================
+   CONTEÚDO ROLÁVEL DO PAINEL Aa — FOTO
+   ============================================ */
+
+#fotoPainelAaNex .foto-painel-conteudo {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-top: 14px;
+}
+
+#fotoPainelAaNex .foto-painel-conteudo .foto-painel-secao:first-of-type {
+  padding-top: 0 !important;
+}
+
+#fotoPainelAaNex .foto-painel-conteudo .foto-painel-secao:last-of-type {
+  padding-bottom: 16px !important;
+}
+
+/* ⚠️ Scrollbar visível */
+#fotoPainelAaNex .foto-painel-conteudo::-webkit-scrollbar {
+  width: 6px;
+}
+
+#fotoPainelAaNex .foto-painel-conteudo::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+#fotoPainelAaNex .foto-painel-conteudo::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+#fotoPainelAaNex .foto-painel-conteudo::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Firefox */
+#fotoPainelAaNex .foto-painel-conteudo {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }

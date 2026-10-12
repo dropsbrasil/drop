@@ -441,13 +441,17 @@
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
-  padding: 16px;
+  padding: 0;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
   display: none;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
   box-sizing: border-box;
   animation: notasPainelSubir 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ⚠️ Altura máxima de 45vh */
+  max-height: 45vh;
+  overflow: hidden;
 }
 
 #notasPainelAaNex.aberto {
@@ -464,6 +468,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+
+  /* ⚠️ Cabeçalho fixo no topo */
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 16px 16px 12px;
+  background: rgba(20, 20, 30, 0.98);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .notas-painel-titulo {
@@ -493,6 +508,17 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 0 16px;
+}
+
+/* ⚠️ Primeira seção tem padding-top extra (por causa do cabeçalho sticky) */
+.notas-painel-secao:first-of-type {
+  padding-top: 14px;
+}
+
+/* ⚠️ Última seção tem padding-bottom pra não colar no fundo */
+.notas-painel-secao:last-of-type {
+  padding-bottom: 16px;
 }
 
 .notas-painel-label {
@@ -626,6 +652,47 @@
 }
 
 /* ============================================
+   BOTÕES DE ALINHAMENTO
+   ============================================ */
+
+.notas-alinhamento-linha {
+  display: flex;
+  gap: 8px;
+}
+
+.notas-alinhamento-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+}
+
+.notas-alinhamento-btn:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.notas-alinhamento-btn.ativo {
+  background: rgba(37, 99, 235, 0.4);
+  border-color: rgba(96, 165, 250, 0.7);
+}
+
+.notas-alinhamento-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* ============================================
    RODAPÉ — LEGENDA CÁPSULA + PUBLICAR
 ============================================ */
 
@@ -732,19 +799,20 @@
 /* ============================================
    CÁPSULA DE MARCA (só no PNG salvo)
 ============================================ */
-
 #notasCapsulaMarcaNex {
   position: absolute;
   bottom: 16px;
   left: 16px;
-  right: 16px;
   top: auto;
+  right: auto;
+  width: auto;
+  max-width: calc(100% - 32px);
   z-index: 500;
   display: none;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
-  padding: 4px 12px 4px 4px;
+  padding: 4px 10px 4px 4px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(10px);
@@ -763,6 +831,7 @@
   text-overflow: ellipsis;
   box-sizing: border-box;
 }
+
 
 #notasCapsulaMarcaNex.visivel {
   display: inline-flex;
@@ -984,12 +1053,12 @@ body.notas-aberto .tabbar {
 #notasPainelAaNex {
   display: none !important;
   flex-direction: column !important;
-  gap: 14px !important;
+  gap: 0 !important;
   background: #1a1a24 !important;
   background-color: #1a1a24 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 24px !important;
-  padding: 16px !important;
+  padding: 0 !important;
   position: fixed !important;
   left: 12px !important;
   right: 12px !important;
@@ -997,6 +1066,10 @@ body.notas-aberto .tabbar {
   z-index: 2147483647 !important;
   box-sizing: border-box !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
+
+  /* ⚠️ Altura máxima e overflow */
+  max-height: 45vh !important;
+  overflow: hidden !important;
 }
 
 #notasPainelAaNex.aberto {
@@ -1012,11 +1085,29 @@ body.notas-aberto .tabbar {
   flex-direction: row !important;
   align-items: center !important;
   justify-content: space-between !important;
+
+  /* ⚠️ Cabeçalho fixo */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2 !important;
+  padding: 16px 16px 12px !important;
+  background: rgba(20, 20, 30, 0.98) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
 }
 
 #notasPainelAaNex .notas-painel-secao {
   flex-direction: column !important;
   gap: 6px !important;
+  padding: 0 16px !important;
+}
+
+#notasPainelAaNex .notas-painel-secao:first-of-type {
+  padding-top: 14px !important;
+}
+
+#notasPainelAaNex .notas-painel-secao:last-of-type {
+  padding-bottom: 16px !important;
 }
 
 #notasPainelAaNex .notas-painel-label {
@@ -1150,7 +1241,84 @@ body.notas-aberto .tabbar {
 }
 
 #notasCapsulaMarcaNex {
-  padding: 6px 16px 6px 6px !important;
-  gap: 8px !important;
+  padding: 4px 10px 4px 4px !important;
+  gap: 6px !important;
   align-items: center !important;
+}
+
+/* ============================================
+   SCROLLBAR DO PAINEL Aa (visível)
+   ============================================ */
+
+#notasPainelAaNex::-webkit-scrollbar {
+  width: 6px;
+}
+
+#notasPainelAaNex::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  margin: 16px 0;
+}
+
+#notasPainelAaNex::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+#notasPainelAaNex::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Firefox */
+#notasPainelAaNex {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+/* ============================================
+   CONTEÚDO ROLÁVEL DO PAINEL Aa
+   ============================================ */
+
+#notasPainelAaNex .notas-painel-conteudo {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+
+  /* Espaço pro cabeçalho fixo */
+  padding-top: 14px;
+}
+
+/* ⚠️ Primeira seção não precisa de padding-top extra */
+#notasPainelAaNex .notas-painel-conteudo .notas-painel-secao:first-of-type {
+  padding-top: 0 !important;
+}
+
+/* ⚠️ Scrollbar visível */
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar {
+  width: 6px;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Firefox */
+#notasPainelAaNex .notas-painel-conteudo {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
