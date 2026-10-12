@@ -42,8 +42,8 @@
 <section id="mydrops" class="screen active">
   <div class="app-topbar mydrops-topbar">
     <div class="app-topbar-text">
-      <h1>MyDrops</h1>
-      <p>Seu mundo começa aqui</p>
+     <h1>Meu Perfil</h1>
+     <p>Seu mundo começa aqui</p>
     </div>
 
     <button type="button" class="btn-menu-global" onclick="abrirPainelControleNex()">
@@ -110,7 +110,7 @@
 
     <div class="mydrops-tabs">
       <button type="button" class="mydrops-tab active" data-tab="drops">Drops</button>
-      <button type="button" class="mydrops-tab" data-tab="conectados">Conectados</button>
+      <button type="button" class="mydrops-tab" data-tab="conectados">Amigos</button>
     </div>
 
     <div class="mydrops-tab-panel active" data-panel="drops">
@@ -147,7 +147,7 @@
   <div class="app-topbar">
     <div class="app-topbar-text">
       <h1>Nearby</h1>
-      <p>Explore ao seu redor</p>
+      <p>Seu feed para explorar ao seu redor</p>
     </div>
 
     <button type="button" class="btn-menu-global" onclick="abrirPainelControleNex()">
@@ -156,7 +156,7 @@
   </div>
 
   <div class="nearby-feed-title">
-    <span>Publicações dos conectados</span>
+    <span>Publicações dos seus amigos</span>
     <b>• Mais recentes</b>
   </div>
 
@@ -184,7 +184,7 @@
     <div class="app-topbar">
       <div class="app-topbar-text">
         <h1>NEX</h1>
-        <p>Seu novo jeito de se conectar</p>
+        <p>Seu novo jeito de Conversar</p>
       </div>
 
       <button type="button" class="btn-menu-global" onclick="abrirPainelControleNex()">
@@ -195,7 +195,7 @@
             <div class="nex-tabs">
   <button type="button" class="nex-tab active-nex-tab" data-tab="naolidas" onclick="abrirNexTab('naolidas')">Não lidas</button>
   <button type="button" class="nex-tab" data-tab="geral" onclick="abrirNexTab('geral')">Geral</button>
-  <button type="button" class="nex-tab" data-tab="conectados" onclick="abrirNexTab('conectados')">Conectados</button>
+  <button type="button" class="nex-tab" data-tab="conectados" onclick="abrirNexTab('conectados')">Amigos</button>
     </div>
 
     <div id="nex-naolidas" class="nex-page active-nex-page"></div>
@@ -389,7 +389,7 @@
 
   <div class="perfil-acoes">
     <button type="button" class="btn-conectar-perfil" id="btnConectarPerfilNex">
-      ➕ Conectar
+      + Adicionar aos amigos
     </button>
 
     <button type="button" class="btn-nex-perfil" id="btnAbrirChatPerfilNex" onclick="abrirChatDiretoPerfilNex()">
@@ -409,7 +409,7 @@
      TABBAR
 ============================================ -->
 <nav class="tabbar">
-  <button type="button" class="tab tab-mydrops active-tab" onclick="abrirTela('mydrops', 0)">My Drops</button>
+  <button type="button" class="tab tab-mydrops active-tab" onclick="abrirTela('mydrops', 0)">Meu Perfil</button>
   <button type="button" class="tab tab-nearby" onclick="abrirTela('nearby', 1)">Nearby</button>
 <button type="button" class="tab tab-nex" onclick="abrirTela('nex', 2)">NEX</button>
 </nav>
