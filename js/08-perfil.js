@@ -399,8 +399,8 @@ function fecharMuralEmBrevePerfilNex() {
       (item) => normalizarIdPerfilNex(item.id) === id
     );
 
-    btn.textContent = conectado ? 'Desconectar' : '➕ Conectar';
-    btn.classList.toggle('is-connected', conectado);
+    btn.textContent = conectado ? 'Remover dos amigos' : '+ Adicionar aos amigos';
+btn.classList.toggle('is-connected', conectado);
   }
 
   // ============================================
