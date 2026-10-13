@@ -1579,16 +1579,34 @@ function capturarFotoMyDropsNex() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   }
 
-  const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+    const dataURL = canvas.toDataURL('image/jpeg', 1.0);
 
   pararStreamFotoMyDropsNex();
 
   const overlay = document.getElementById('cameraFotoMyDropsOverlayNex');
   if (overlay) overlay.style.display = 'none';
 
+  // ============================================
+  // ⚠️ Abre o editor NOVO (30-foto.js) — câmera igual à galeria
+  // ============================================
+  // Prioridade:
+  //   1. window.abrirFotoNex   → função nativa do 30-foto.js
+  //   2. window.abrirEditorFotoMyDropsNex → fallback global
+  //   3. abrirEditorFotoMyDropsNex → fallback local (não deve chegar aqui)
+
+  if (typeof window.abrirFotoNex === 'function') {
+    window.abrirFotoNex(dataURL);
+    return;
+  }
+
+  if (typeof window.abrirEditorFotoMyDropsNex === 'function') {
+    window.abrirEditorFotoMyDropsNex(dataURL);
+    return;
+  }
+
   abrirEditorFotoMyDropsNex(dataURL);
 }
-
+  
     // ============================================
   // EDITOR DE VÍDEO (gravado)
   // ============================================
