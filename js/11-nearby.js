@@ -608,7 +608,34 @@ const TEMPO_MAX_SWIPE = 800;
   </div>
 `;
 
-      document.body.appendChild(viewer);
+            document.body.appendChild(viewer);
+
+// ============================================
+// EXPOE ESTADO PRO SCROLL CONTÍNUO (38-*.js)
+// ============================================
+
+window.__nearbyScrollStateNex = {
+  viewerRef: viewer,
+  ids,
+  base,
+  obterDropsDoPerfil,
+  getPerfilAtualId: () => perfilAtualId,
+  getDropIndexAtual: () => dropIndexAtual,
+
+  trocarPerfil: (novoIdx, direcao) => {
+    if (novoIdx < 0 || novoIdx >= ids.length) return;
+
+    perfilAtualId = ids[novoIdx];
+    dropIndexAtual = 0;
+    direcaoAnimacaoNex = direcao;
+
+    // ⚠️ Pula a animação de mídia antiga — a troca já foi animada
+    //    pelo 38-nearby-scroll-continuo.js
+    primeiraRenderizacaoNex = true;
+
+    renderizar();
+  }
+};
 
 // ============================================
 // ONBOARDING — aparece IMEDIATAMENTE
@@ -1509,11 +1536,13 @@ viewer.addEventListener('click', (e) => {
       }, { passive: true });
 
       viewer.addEventListener('touchend', (e) => {
-        if (!swipeAtivo) return;
-        swipeAtivo = false;
+  if (!swipeAtivo) return;
+  swipeAtivo = false;
 
-        if (!e.changedTouches || e.changedTouches.length === 0) return;
+  // ⚠️ Se o scroll contínuo (38-*.js) assumiu, ignora
+  if (window.__nearbyScrollVerticalAtivo) return;
 
+  if (!e.changedTouches || e.changedTouches.length === 0) return;
         const dx = e.changedTouches[0].clientX - swipeStartX;
         const dy = e.changedTouches[0].clientY - swipeStartY;
         const dt = Date.now() - swipeStartTime;
