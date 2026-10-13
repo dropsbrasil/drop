@@ -4,9 +4,11 @@
    (Minhas Publicações e Nearby)
 
    Regras:
-   - Aparece só na PRIMEIRA vez que o usuário abre cada viewer
-   - Salvo no localStorage por usuário
-   - Ao clicar em "Entendi", não aparece mais
+   - Cada balão aparece só UMA VEZ para o usuário
+   - Só marca como visto quando o usuário clica em "Entendi"
+   - Se o viewer for fechado antes do balão aparecer, ou enquanto
+     o balão está aberto, ele é removido automaticamente SEM marcar
+     como visto (na próxima vez, aparece de novo)
    - Nearby mostra 2 balões em sequência:
        Balão 1 → vertical (mudar de perfil)
        Balão 2 → horizontal (navegar entre publicações)
@@ -50,6 +52,7 @@
   // ============================================
 
   let overlayAtualNex = null;
+  let observerViewerNex = null;
 
   // ============================================
   // CRIAR / FECHAR OVERLAY
@@ -61,7 +64,6 @@
     overlay.innerHTML = html;
     document.body.appendChild(overlay);
 
-    // Força reflow pra animar a entrada
     void overlay.offsetWidth;
     overlay.classList.add('visivel');
 
@@ -80,7 +82,48 @@
       if (overlayAtualNex === overlay) overlayAtualNex = null;
     }, 300);
 
+    // ⚠️ Só marca como visto se o usuário clicou em Entendi
     if (tipo) marcarComoVistoNex(tipo);
+  }
+
+  // Remove o overlay na hora, sem animação, sem marcar como visto
+  function removerOverlayNex(overlay) {
+    if (!overlay) return;
+
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    if (overlayAtualNex === overlay) overlayAtualNex = null;
+  }
+
+  // ============================================
+  // MONITORAR SAÍDA DO VIEWER
+  // ============================================
+  // Se o viewer for removido do DOM (por qualquer motivo), o balão é
+  // removido imediatamente — sem marcar como visto.
+  //
+  // Os viewers são filhos diretos do <body>, então o observer precisa
+  // só olhar pro body com childList (sem subtree). É leve.
+
+  function monitorarSaidaDoViewerNex(overlay, seletorViewer) {
+    pararMonitoramentoNex();
+
+    observerViewerNex = new MutationObserver(() => {
+      const viewerAindaExiste = document.querySelector(seletorViewer);
+
+      if (!viewerAindaExiste) {
+        // ⚠️ SEM marcar como visto — o usuário não clicou em Entendi
+        removerOverlayNex(overlay);
+        pararMonitoramentoNex();
+      }
+    });
+
+    observerViewerNex.observe(document.body, { childList: true });
+  }
+
+  function pararMonitoramentoNex() {
+    if (observerViewerNex) {
+      observerViewerNex.disconnect();
+      observerViewerNex = null;
+    }
   }
 
   // ============================================
@@ -88,6 +131,8 @@
   // ============================================
 
   function mostrarOnboardingMinhasPublicacoesNex() {
+    // ⚠️ Só mostra se o viewer de Minhas Publicações estiver aberto
+    if (!document.querySelector('.mydrops-publication-viewer')) return false;
     if (jaViuNex('mydrops')) return false;
     if (overlayAtualNex) return false;
 
@@ -108,8 +153,12 @@
       </div>
     `);
 
+    monitorarSaidaDoViewerNex(overlay, '.mydrops-publication-viewer');
+
     overlay.querySelector('#onbViewerOkNex').addEventListener('click', () => {
+      // ⚠️ Marca como visto (o usuário clicou em Entendi)
       fecharOverlayNex(overlay, 'mydrops');
+      pararMonitoramentoNex();
     });
 
     overlay.addEventListener('click', (e) => {
@@ -126,6 +175,8 @@
   // ============================================
 
   function mostrarOnboardingNearbyNex() {
+    // ⚠️ Só mostra se o viewer do Nearby estiver aberto
+    if (!document.querySelector('.nearby-drop-viewer')) return false;
     if (jaViuNex('nearby')) return false;
     if (overlayAtualNex) return false;
 
@@ -146,11 +197,14 @@
       </div>
     `);
 
+    monitorarSaidaDoViewerNex(overlay, '.nearby-drop-viewer');
+
     overlay.querySelector('#onbViewerOkNex').addEventListener('click', () => {
       // ⚠️ Fecha o balão 1 SEM marcar como visto
       fecharOverlayNex(overlay, null);
+      pararMonitoramentoNex();
 
-      // ⚠️ Depois de fechar, abre o balão 2 (horizontal)
+      // ⚠️ Abre o balão 2 — a função verifica se o viewer ainda tá aberto
       setTimeout(() => {
         mostrarOnboardingNearbyBalao2Nex();
       }, 250);
@@ -170,6 +224,8 @@
   // ============================================
 
   function mostrarOnboardingNearbyBalao2Nex() {
+    // ⚠️ Só mostra se o viewer ainda tá aberto
+    if (!document.querySelector('.nearby-drop-viewer')) return false;
     if (overlayAtualNex) return false;
 
     const overlay = criarOverlayNex(`
@@ -189,8 +245,12 @@
       </div>
     `);
 
+    monitorarSaidaDoViewerNex(overlay, '.nearby-drop-viewer');
+
     overlay.querySelector('#onbViewerOkNex').addEventListener('click', () => {
+      // ⚠️ Aqui SIM marca como visto (fim dos 2 balões)
       fecharOverlayNex(overlay, 'nearby');
+      pararMonitoramentoNex();
     });
 
     overlay.addEventListener('click', (e) => {
