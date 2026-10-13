@@ -874,13 +874,94 @@ if (typeof window.feedbackNex?.reagiu === 'function') {
   document.body.style.overflow = 'hidden';
 
   // ============================================
-  // ENVIAR COMENTÁRIO
-  // ============================================
+// GERAR FRAME DE VÍDEO (thumbnail como imagem)
+// ============================================
+// Pega o 1º frame "bonito" do vídeo e devolve como dataURL.
+// Se falhar (CORS, formato, etc), devolve string vazia.
 
-  async function enviarComentarioNearbyNex() {
-    const texto = (inputComentario?.value || '').trim();
-    if (!texto) return;
+function gerarFrameVideoNearbyNex(urlVideo) {
+  return new Promise((resolve) => {
+    if (!urlVideo) {
+      resolve('');
+      return;
+    }
 
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    video.src = urlVideo;
+
+    let resolvido = false;
+
+    const finalizar = (resultado) => {
+      if (resolvido) return;
+      resolvido = true;
+
+      try {
+        video.removeAttribute('src');
+        video.load();
+      } catch (e) {}
+
+      resolve(resultado || '');
+    };
+
+    const timeout = setTimeout(() => finalizar(''), 6000);
+
+    video.addEventListener('error', () => {
+      clearTimeout(timeout);
+      finalizar('');
+    });
+
+    video.addEventListener('loadeddata', () => {
+      // ⚠️ Pula pro meio do vídeo pra pegar um frame mais interessante
+      try {
+        const alvo = Math.min(0.5, (video.duration || 1) / 2);
+        video.currentTime = alvo;
+      } catch (e) {
+        tentarCapturar();
+      }
+    });
+
+    video.addEventListener('seeked', () => {
+      tentarCapturar();
+    });
+
+    function tentarCapturar() {
+      try {
+        const largura = video.videoWidth || 720;
+        const altura = video.videoHeight || 1280;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = largura;
+        canvas.height = altura;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, largura, altura);
+
+        const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+
+        clearTimeout(timeout);
+        finalizar(dataURL);
+      } catch (err) {
+        // CORS ou canvas tainted — devolve vazio
+        console.warn('Falha ao gerar frame do vídeo:', err);
+        clearTimeout(timeout);
+        finalizar('');
+      }
+    }
+  });
+}
+
+// ============================================
+// ENVIAR COMENTÁRIO
+// ============================================
+
+async function enviarComentarioNearbyNex() {
+  const texto = (inputComentario?.value || '').trim();
+  if (!texto) return;
+  
     const perfil = base[perfilAtualId];
     const drops = obterDropsDoPerfil(perfil);
     const drop = drops[dropIndexAtual];
@@ -888,26 +969,47 @@ if (typeof window.feedbackNex?.reagiu === 'function') {
     if (!perfil || !drop) return;
 
     const nomeContato = perfil.nome || 'Perfil Nearby';
-    const chaveConversa = nomeContato;
+const chaveConversa = nomeContato;
 
-    const mensagemNearby = {
-      id: gerarIdMensagemNex(),
-      timestamp: Date.now(),
-      side: 'right',
-      nome: 'Eu',
-      avatar: 'EU',
-      ...obterDataHoraNex(),
-      status: 'enviado',
-      text: texto,
-      anexo: {
-        type: drop.type === 'video' ? 'video' : 'imagem',
-        url: drop.url || drop.imagem || '',
-        origem: 'nearby',
-        perfilNome: nomeContato,
-        perfilId: perfil.id || '',
-        dropIndex: dropIndexAtual
-      }
-    };
+// ============================================
+// ⚠️ Detecta o tipo do drop
+// ============================================
+const tipoDrop =
+  drop.type === 'video' || drop.tipo === 'video' ? 'video' : 'imagem';
+
+let urlAnexo = drop.url || drop.imagem || '';
+
+// ============================================
+// ⚠️ Se for VÍDEO, gera um frame (imagem) como prévia
+// ============================================
+if (tipoDrop === 'video' && urlAnexo) {
+  const frame = await gerarFrameVideoNearbyNex(urlAnexo);
+
+  if (frame) {
+    urlAnexo = frame;
+  }
+}
+
+// Sempre envia como imagem (o botão "Ver Drop" abre o original)
+const mensagemNearby = {
+  id: gerarIdMensagemNex(),
+  timestamp: Date.now(),
+  side: 'right',
+  nome: 'Eu',
+  avatar: 'EU',
+  ...obterDataHoraNex(),
+  status: 'enviado',
+  text: texto,
+  anexo: {
+    type: 'imagem',
+    tipoOriginal: tipoDrop,
+    url: urlAnexo,
+    origem: 'nearby',
+    perfilNome: nomeContato,
+    perfilId: perfil.id || '',
+    dropIndex: dropIndexAtual
+  }
+};
 
 // ⚠️ Envia pro Supabase (pra outra pessoa receber)
 const usernameDestino =
@@ -943,18 +1045,19 @@ if (
 ) {
   try {
     msgSupabase = await window.enviarMensagemSupabase({
-      conversa_id: convId,
-      tipo: 'imagem',
-      texto: texto,
-      media_url: mensagemNearby.anexo?.url || null,
-      media_meta: {
-        origem: 'nearby',
-        perfilNome: nomeContato,
-        perfilId: perfil.id || '',
-        dropIndex: dropIndexAtual
-      },
-      resposta_a_id: null
-    });
+  conversa_id: convId,
+  tipo: 'imagem',
+  texto: texto,
+  media_url: mensagemNearby.anexo?.url || null,
+  media_meta: {
+    origem: 'nearby',
+    tipoOriginal: tipoDrop,
+    perfilNome: nomeContato,
+    perfilId: perfil.id || '',
+    dropIndex: dropIndexAtual
+  },
+  resposta_a_id: null
+});
 
     if (msgSupabase && msgSupabase.id) {
       mensagemNearby._supabaseId = msgSupabase.id;

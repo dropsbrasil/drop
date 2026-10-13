@@ -179,43 +179,52 @@ const inicialRemetente = String(nomeRemetente || '?').charAt(0).toUpperCase();
       }
 
       // ----- COMENTÁRIO DO NEARBY -----
-      if (msg.anexo.type === 'nearby-comment') {
-        const souEu = msg.side === 'right';
-        const textoSelo = souEu
-          ? 'Você comentou esse Drop'
-          : 'Comentário sobre esse Drop';
+if (msg.anexo.type === 'nearby-comment') {
+  const souEu = msg.side === 'right';
+  const textoSelo = souEu
+    ? 'Você comentou esse Drop'
+    : 'Comentário sobre esse Drop';
 
-        const perfilId = escapeHTML(msg.anexo.perfilId || '');
-        const perfilNome = escapeHTML(msg.anexo.perfilNome || '');
-        const dropIndex = Number(msg.anexo.dropIndex || 0);
+  const perfilId = escapeHTML(msg.anexo.perfilId || '');
+  const perfilNome = escapeHTML(msg.anexo.perfilNome || '');
+  const dropIndex = Number(msg.anexo.dropIndex || 0);
+  const urlMidia = String(msg.anexo.url || '');
 
-        html += `
-          <div class="msg-nearby-comment">
-            <div class="msg-nearby-comment-head">
-              <span class="msg-nearby-comment-icone">💬</span>
-              <span class="msg-nearby-comment-texto">
-                ${escapeHTML(textoSelo)}
-              </span>
-            </div>
+  // ⚠️ Só mostra a imagem se tiver URL válida
+  // (proteção: se algo falhou antes, não aparece quebrado)
+  const previaHTML = urlMidia
+    ? `
+      <div class="msg-anexo-card">
+        <img
+          class="msg-midia-thumb"
+          src="${escapeHTML(urlMidia)}"
+          alt="Drop">
+      </div>
+    `
+    : '';
 
-            <div class="msg-anexo-card">
-              <img
-                class="msg-midia-thumb"
-                src="${escapeHTML(msg.anexo.url)}"
-                alt="Drop">
-            </div>
+  html += `
+    <div class="msg-nearby-comment">
+      <div class="msg-nearby-comment-head">
+        <span class="msg-nearby-comment-icone">💬</span>
+        <span class="msg-nearby-comment-texto">
+          ${escapeHTML(textoSelo)}
+        </span>
+      </div>
 
-            <button
-              type="button"
-              class="msg-nearby-comment-btn"
-              data-perfil-id="${perfilId}"
-              data-perfil-nome="${perfilNome}"
-              data-drop-index="${dropIndex}">
-              👁️ Ver Drop
-            </button>
-          </div>
-        `;
-      }
+      ${previaHTML}
+
+      <button
+        type="button"
+        class="msg-nearby-comment-btn"
+        data-perfil-id="${perfilId}"
+        data-perfil-nome="${perfilNome}"
+        data-drop-index="${dropIndex}">
+        👁️ Ver Drop
+      </button>
+    </div>
+  `;
+}
           // ----- IMAGEM -----
     if (msg.anexo.type === 'imagem' || msg.anexo.type === 'image') {
       const ehDropDePerfil = !!msg.anexo.perfilId;
