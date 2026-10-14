@@ -178,22 +178,49 @@
   // ============================================
 
   function iniciarDrag(e) {
-    if (animando) return;
-    if (!e.touches || e.touches.length !== 1) return;
+  if (animando) return;
+  if (!e.touches || e.touches.length !== 1) return;
 
-    const estado = obterEstado();
-    if (!estado) return;
+  const estado = obterEstado();
+  if (!estado) return;
 
-    viewer = estado.viewerRef;
-    shell = viewer.querySelector('.nearby-pub-shell');
-    if (!shell) return;
+  viewer = estado.viewerRef;
+  shell = viewer.querySelector('.nearby-pub-shell');
+  if (!shell) return;
 
-    swipeAtivo = true;
-    direcao = null;
-    deltaY = 0;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }
+  swipeAtivo = true;
+  direcao = null;
+  deltaY = 0;
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+}
+
+// ============================================
+// GUARDA: só age se o viewer do Nearby estiver visível
+// ============================================
+// Se por algum motivo o viewer saiu da tela (modal aberto,
+// outra tela em cima), ignora o swipe e RESETA o estado.
+
+function viewerNearbyVisivel() {
+  const v = document.querySelector('.nearby-drop-viewer');
+  if (!v) return false;
+
+  // Se algum modal ou tela estiver por cima, considera invisível
+  const modalAberto = document.querySelector(
+    '.modal-msg-nex[style*="display: flex"], ' +
+    '.modal-fundo-box, ' +
+    '.mural-overlay-nex[style*="display: flex"], ' +
+    '.onb-viewer-overlay-nex.visivel, ' +
+    '#modalDuracaoPublicacaoMyDropsNex:not(.hidden), ' +
+    '.mydrops-publication-viewer, ' +
+    '.chatNex.active, ' +
+    '#chatNex.active'
+  );
+
+  if (modalAberto) return false;
+
+  return true;
+}
 
   // ============================================
   // MOVIMENTO
@@ -389,46 +416,60 @@
   // ============================================
 
   function registrar() {
-    // ⚠️ Usa capture: true pra rodar ANTES do 11-nearby.js
-    document.addEventListener(
-      'touchstart',
-      (e) => {
-        if (!e.target.closest('.nearby-drop-viewer')) return;
-        iniciarDrag(e);
-      },
-      { passive: true, capture: true }
-    );
+  // ⚠️ Usa capture: true pra rodar ANTES do 11-nearby.js
+  document.addEventListener(
+    'touchstart',
+    (e) => {
+      // ⚠️ GUARDA: só age se o viewer do Nearby estiver realmente visível
+      if (!viewerNearbyVisivel()) return;
+      if (!e.target.closest('.nearby-drop-viewer')) return;
+      iniciarDrag(e);
+    },
+    { passive: true, capture: true }
+  );
 
-    document.addEventListener(
-      'touchmove',
-      (e) => {
-        if (!swipeAtivo) return;
-        moverDrag(e);
-      },
-      { passive: false, capture: true }
-    );
+  document.addEventListener(
+    'touchmove',
+    (e) => {
+      // ⚠️ GUARDA: se o viewer saiu da tela, reseta o estado
+      if (!viewerNearbyVisivel()) {
+        if (swipeAtivo) {
+          swipeAtivo = false;
+          direcao = null;
+          limparPreviews();
+          resetarShell();
+          window.__nearbyScrollVerticalAtivo = false;
+        }
+        return;
+      }
 
-    document.addEventListener(
-      'touchend',
-      () => {
-        if (!swipeAtivo) return;
-        soltarDrag();
-      },
-      { passive: true, capture: true }
-    );
+      if (!swipeAtivo) return;
+      moverDrag(e);
+    },
+    { passive: false, capture: true }
+  );
 
-    document.addEventListener(
-      'touchcancel',
-      () => {
-        if (!swipeAtivo) return;
-        swipeAtivo = false;
-        direcao = null;
-        limparPreviews();
-        resetarShell();
-        window.__nearbyScrollVerticalAtivo = false;
-      },
-      { passive: true, capture: true }
-    );
+  document.addEventListener(
+    'touchend',
+    () => {
+      if (!swipeAtivo) return;
+      soltarDrag();
+    },
+    { passive: true, capture: true }
+  );
+
+  document.addEventListener(
+    'touchcancel',
+    () => {
+      if (!swipeAtivo) return;
+      swipeAtivo = false;
+      direcao = null;
+      limparPreviews();
+      resetarShell();
+      window.__nearbyScrollVerticalAtivo = false;
+    },
+    { passive: true, capture: true }
+  );
   }
 
   // ============================================
