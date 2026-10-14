@@ -581,13 +581,28 @@ const TEMPO_MAX_SWIPE = 800;
   <!-- BOTÃO EXPANDIR (canto superior esquerdo da mídia) -->
   <button type="button" class="nearby-drop-expandir" id="nearbyDropExpandir" aria-label="Expandir mídia">⤢</button>
 </div>
-    <!-- RODAPÉ — COMMENT -->
+        <!-- RODAPÉ — COMMENT + COMPARTILHAR -->
     <div class="nearby-pub-rodape">
       <div class="nearby-drop-comment-box">
   <textarea class="nearby-drop-comment-input" placeholder="Comentar..." rows="1"></textarea>
   <button class="nearby-drop-reaction" type="button">❤️</button>
   <button class="nearby-drop-reaction" type="button">💔</button>
-  <button class="nearby-drop-send" type="button">⌯⌲</button>
+  <button class="nearby-drop-send" type="button" id="nearbyBtnAcaoRodapeNex" aria-label="Compartilhar ou enviar">
+  <svg class="nearby-icone-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="17 1 21 5 17 9"/>
+    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <polyline points="7 23 3 19 7 15"/>
+    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+  </svg>
+  <svg class="nearby-icone-share-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polyline points="17 1 21 5 17 9"/>
+    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <polyline points="7 23 3 19 7 15"/>
+    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+    <path d="M9.5 13.5l2 2 3-3"/>
+  </svg>
+  <span class="nearby-icone-send" aria-hidden="true">⌯⌲</span>
+</button>
 </div>
     </div>
 
@@ -727,8 +742,18 @@ function atualizarEstadoEnviarNex() {
   const texto = (inputComentario?.value || '').trim();
   if (!botaoEnviar) return;
 
-  botaoEnviar.disabled = !texto;
+  const inputFocado = document.activeElement === inputComentario;
+  const mostrarEnviar = !!texto || inputFocado;
+
+  botaoEnviar.disabled = false;
   botaoEnviar.classList.toggle('is-active', !!texto);
+
+  // ⚠️ Troca o ícone do botão (compartilhar ↔ enviar)
+  // Mostra aviãozinho se: tem texto OU input tá focado
+  const commentBoxAtual = viewer.querySelector('.nearby-drop-comment-box');
+  if (commentBoxAtual) {
+    commentBoxAtual.classList.toggle('input-com-texto', mostrarEnviar);
+  }
 }
 
 // ============================================
@@ -765,9 +790,10 @@ if (inputComentario) {
   atualizarEstadoEnviarNex();
   inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
 
-  // ⚠️ FOCO — entra no modo comentário
+  // ⚠️ FOCO — entra no modo comentário + troca ícone pra enviar
   inputComentario.addEventListener('focus', () => {
     entrarModoComentarioNex();
+    atualizarEstadoEnviarNex();
   });
 
   // ⚠️ BLUR — só sai se o campo estiver VAZIO
@@ -776,6 +802,7 @@ if (inputComentario) {
     if (!temTexto) {
       sairModoComentarioNex();
     }
+    atualizarEstadoEnviarNex();
   });
 }
 
@@ -1158,9 +1185,104 @@ registrarInteracaoNex(
 );
   }
 
-  if (botaoEnviar) {
-    botaoEnviar.addEventListener('click', enviarComentarioNearbyNex);
+// ============================================
+// BOTÃO DE AÇÃO (COMPARTILHAR ou ENVIAR)
+// ============================================
+// Se o input tem texto → envia comentário
+// Se o input tá vazio → compartilha o drop
+
+if (botaoEnviar) {
+  botaoEnviar.addEventListener('click', () => {
+    const temTexto = (inputComentario?.value || '').trim().length > 0;
+
+    if (temTexto) {
+      enviarComentarioNearbyNex();
+    } else {
+      compartilharDropNearbyNex();
+    }
+  });
+}
+
+// ============================================
+// COMPARTILHAR DROP
+// ============================================
+
+async function compartilharDropNearbyNex() {
+  const perfil = base[perfilAtualId];
+  const drops = obterDropsDoPerfil(perfil);
+  const drop = drops[dropIndexAtual];
+
+  if (!perfil || !drop) return;
+
+  const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
+  const urlCalc = drop.url || drop.imagem || '';
+
+  // ⚠️ Não pode compartilhar o próprio drop
+  const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
+  const autorLimpo = String(perfilIdCalc).toLowerCase().trim();
+
+  if (autorLimpo && autorLimpo === meuUser) {
+    window.mostrarToastNex?.(
+      'Você não pode compartilhar seu próprio drop.',
+      'info'
+    );
+    return;
   }
+
+  // Pega o ID da publicação no Supabase
+  const chaveDrop = window.chaveDropPerfilNex
+    ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
+    : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
+
+  const publicacaoId =
+    window.__dropsMapaIdsPublicacao &&
+    window.__dropsMapaIdsPublicacao[chaveDrop];
+
+  if (!publicacaoId) {
+    window.mostrarToastNex?.(
+      'Drop muito antigo. Não é possível compartilhar.',
+      'info'
+    );
+    return;
+  }
+
+  if (typeof window.compartilharPublicacaoSupabase !== 'function') {
+    window.mostrarToastNex?.('Sistema indisponível.', 'erro');
+    return;
+  }
+
+  const btn = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
+  if (btn) btn.style.pointerEvents = 'none';
+
+  try {
+    const resultado = await window.compartilharPublicacaoSupabase(publicacaoId);
+
+    if (resultado?.ok) {
+      window.mostrarToastNex?.('Drop compartilhado!', 'sucesso');
+
+      if (btn) btn.classList.add('ja-compartilhado');
+
+      if (typeof window.feedbackNex?.comentou === 'function') {
+        window.feedbackNex.comentou();
+      }
+    } else if (resultado?.erro === 'ja_compartilhado') {
+      if (btn) btn.classList.add('ja-compartilhado');
+      window.mostrarToastNex?.('Você já compartilhou esse drop.', 'info');
+    } else if (resultado?.erro === 'proprio_drop') {
+      window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
+    } else {
+      window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
+    }
+  } catch (err) {
+    console.warn('Erro ao compartilhar:', err);
+    window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
+  } finally {
+    if (btn) btn.style.pointerEvents = '';
+  }
+}
+
+window.compartilharDropNearbyNex = compartilharDropNearbyNex;
+  
      // ============================================
 // RENDERIZAR O VIEWER
 // ============================================
@@ -1421,6 +1543,29 @@ if (
       if (views) views.textContent = String(total || 0);
     })
     .catch((err) => console.warn('Erro ao buscar views:', err));
+}
+
+// ============================================
+// ⚠️ VERIFICA SE JÁ COMPARTILHOU ESSE DROP
+// ============================================
+
+const btnRodapeNex = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
+
+if (btnRodapeNex) {
+  btnRodapeNex.classList.remove('ja-compartilhado');
+
+  if (
+    publicacaoIdAtual &&
+    typeof window.jaCompartilhouSupabase === 'function'
+  ) {
+    window.jaCompartilhouSupabase(publicacaoIdAtual)
+      .then((ja) => {
+        if (btnRodapeNex) {
+          btnRodapeNex.classList.toggle('ja-compartilhado', !!ja);
+        }
+      })
+      .catch(() => {});
+  }
 }
 
       // ============================================
@@ -1751,9 +1896,8 @@ async function renderizarPublicacoesNearbyNex() {
   // ============================================
   // BUSCA EXPANSIVA POR RAIO (100 → 200 → 500 → 1000 → país)
   // ============================================
-  const TOTAL_MINIMO = 50;
-  const raios = [100, 200, 500, 1000, 99999];
-
+  const TOTAL_MINIMO = 20;
+const raios = [100, 200, 500, 1000, 99999];
   let perfisEncontrados = [];
   let raioAtual = 100;
 
@@ -2013,9 +2157,23 @@ async function renderizarPublicacoesNearbyNex() {
     }
 
     if (dropPrincipal.mediaUrl) {
-      card.style.backgroundImage = `url('${dropPrincipal.mediaUrl}')`;
-      card.style.backgroundSize = 'cover';
-      card.style.backgroundPosition = 'center';
+  const imgFundo = document.createElement('img');
+  imgFundo.src = dropPrincipal.mediaUrl;
+  imgFundo.alt = '';
+  imgFundo.loading = 'lazy';
+  imgFundo.decoding = 'async';
+  imgFundo.style.position = 'absolute';
+  imgFundo.style.inset = '0';
+  imgFundo.style.width = '100%';
+  imgFundo.style.height = '100%';
+  imgFundo.style.objectFit = 'cover';
+  imgFundo.style.zIndex = '0';
+  imgFundo.style.pointerEvents = 'none';
+
+  card.style.position = 'relative';
+  card.style.overflow = 'hidden';
+
+  card.appendChild(imgFundo);
     }
 
     const avatar = document.createElement('div');

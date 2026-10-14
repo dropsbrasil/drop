@@ -1606,7 +1606,6 @@ function capturarFotoMyDropsNex() {
 
   abrirEditorFotoMyDropsNex(dataURL);
 }
-  
     // ============================================
   // EDITOR DE VÍDEO (gravado)
   // ============================================

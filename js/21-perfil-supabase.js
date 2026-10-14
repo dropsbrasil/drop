@@ -167,25 +167,29 @@ async function uploadImagemSupabase(bucket, dataUrl) {
     const nomeArquivo = `${user.id}/${Date.now()}.${extensao}`;
 
     // Faz upload (upsert = substitui se já existir)
-    const { error: uploadError } = await window.supabaseClient.storage
-      .from(bucket)
-      .upload(nomeArquivo, blob, {
-        contentType: blob.type,
-        upsert: true
-      });
+const { error: uploadError } = await window.supabaseClient.storage
+  .from(bucket)
+  .upload(nomeArquivo, blob, {
+    contentType: blob.type,
+    upsert: true,
+    cacheControl: '31536000'
+  });
 
-    if (uploadError) {
-      console.error('Erro no upload:', uploadError);
-      return null;
-    }
+if (uploadError) {
+  console.error('Erro no upload:', uploadError);
+  return null;
+}
 
-    // Pega a URL pública
-    const { data: urlData } = window.supabaseClient.storage
-      .from(bucket)
-      .getPublicUrl(nomeArquivo);
+const configTransform = bucket === 'avatars'
+  ? { width: 200, height: 200, resize: 'cover', quality: 75 }
+  : { width: 800, quality: 75 };
 
-    console.log('☁️ Upload OK:', urlData.publicUrl);
-    return urlData.publicUrl;
+const { data: urlData } = window.supabaseClient.storage
+  .from(bucket)
+  .getPublicUrl(nomeArquivo, { transform: configTransform });
+
+console.log('☁️ Upload OK:', urlData.publicUrl);
+return urlData.publicUrl;
   } catch (erro) {
     console.error('Erro no upload da imagem:', erro);
     return null;

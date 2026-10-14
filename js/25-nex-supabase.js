@@ -1544,13 +1544,13 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
     }
 
     const { data: uploadData, error: uploadError } =
-      await window.supabaseClient.storage
-        .from('nex')
-        .upload(nomeArquivo, blob, {
-          contentType: contentType,
-          upsert: false,
-          cacheControl: '3600'
-        });
+  await window.supabaseClient.storage
+    .from('nex')
+    .upload(nomeArquivo, blob, {
+      contentType: contentType,
+      upsert: false,
+      cacheControl: '31536000'
+    });
 
     if (uploadError) {
       console.error('❌ Erro no upload do NEX:', {

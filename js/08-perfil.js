@@ -238,17 +238,17 @@ if (socialContainer) {
           });
 
           if (drop.type === 'video') {
-            card.innerHTML = `
-              <div class="perfil-drop-media-indicator">🎥 vídeo</div>
-              <video src="${drop.url}" muted loop playsinline autoplay></video>
-              <div class="perfil-drop-meta">preview</div>
-            `;
-          } else {
-            card.innerHTML = `
-              <div class="perfil-drop-media-indicator">📸 foto</div>
-              <img src="${drop.url}" alt="">
-              <div class="perfil-drop-meta">preview</div>
-            `;
+  card.innerHTML = `
+    <div class="perfil-drop-media-indicator">🎥 vídeo</div>
+    <video src="${drop.url}" muted loop playsinline preload="none"></video>
+    <div class="perfil-drop-meta">preview</div>
+  `;
+} else {
+  card.innerHTML = `
+    <div class="perfil-drop-media-indicator">📸 foto</div>
+    <img src="${drop.url}" loading="lazy" decoding="async" alt="">
+    <div class="perfil-drop-meta">preview</div>
+  `;
           }
 
           grid.appendChild(card);

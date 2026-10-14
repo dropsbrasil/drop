@@ -41,23 +41,28 @@
       const nomeArquivo = `${user.id}/${Date.now()}.${extensao}`;
 
       const { error: uploadError } = await window.supabaseClient.storage
-        .from('drops')
-        .upload(nomeArquivo, blob, {
-          contentType: blob.type,
-          upsert: true
-        });
+  .from('drops')
+  .upload(nomeArquivo, blob, {
+    contentType: blob.type,
+    upsert: true,
+    cacheControl: '31536000'
+  });
 
-      if (uploadError) {
-        console.error('Erro no upload do drop:', uploadError);
-        return null;
-      }
+if (uploadError) {
+  console.error('Erro no upload do drop:', uploadError);
+  return null;
+}
 
-      const { data: urlData } = window.supabaseClient.storage
-        .from('drops')
-        .getPublicUrl(nomeArquivo);
+const configTransform = blob.type.includes('video')
+  ? undefined
+  : { width: 800, quality: 75 };
 
-      console.log('☁️ Drop enviado:', urlData.publicUrl);
-      return urlData.publicUrl;
+const { data: urlData } = window.supabaseClient.storage
+  .from('drops')
+  .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
+
+console.log('☁️ Drop enviado:', urlData.publicUrl);
+return urlData.publicUrl;
     } catch (erro) {
       console.error('Erro no upload do drop:', erro);
       return null;
@@ -340,8 +345,129 @@ async function buscarPerfisComDropsProximosSupabase(
 }
 
 // ============================================
+// COMPARTILHAR PUBLICAÇÃO
+// ============================================
+// Cria uma nova publicação apontando pra original.
+// Regras:
+//   - 1 compartilhamento por usuário por publicação
+//   - Não pode compartilhar próprio drop
+//   - Mesma URL do Storage (sem duplicar)
+//   - Mesma validade (expira_em) do original
+// ============================================
+
+async function compartilharPublicacaoSupabase(publicacaoOriginalId) {
+  if (!window.supabaseClient || !publicacaoOriginalId) {
+    return { erro: 'sem_dados' };
+  }
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return { erro: 'sem_usuario' };
+
+    // 1) Já compartilhou?
+    const { data: existente } = await window.supabaseClient
+      .from('compartilhamentos')
+      .select('id')
+      .eq('publicacao_original_id', publicacaoOriginalId)
+      .eq('usuario_id', user.id)
+      .maybeSingle();
+
+    if (existente) return { erro: 'ja_compartilhado' };
+
+    // 2) Busca a original
+    const { data: original, error: erroOriginal } = await window.supabaseClient
+      .from('publicacoes')
+      .select('*')
+      .eq('id', publicacaoOriginalId)
+      .maybeSingle();
+
+    if (erroOriginal || !original) return { erro: 'original_nao_encontrado' };
+
+    // 3) Não pode ser o próprio drop
+    if (original.autor_id === user.id) return { erro: 'proprio_drop' };
+
+    // 4) Autor original
+    const { data: autorOriginal } = await window.supabaseClient
+      .from('profiles')
+      .select('username, nome, avatar_url')
+      .eq('id', original.autor_id)
+      .maybeSingle();
+
+    const usernameAtual = localStorage.getItem('drops_username') || '';
+
+    // 5) Cria a nova publicação (compartilhada)
+    const { data: nova, error: erroInsert } = await window.supabaseClient
+      .from('publicacoes')
+      .insert({
+        autor_id: user.id,
+        autor_username: usernameAtual,
+        tipo: original.tipo,
+        media_url: original.media_url,
+        legenda: original.legenda || '',
+        loop: original.loop === true,
+        duracao: original.duracao || '24h',
+        expira_em: original.expira_em,
+        selos: null,
+        compartilhado_de_id: original.id,
+        compartilhado_de_username: autorOriginal?.username || '',
+        compartilhado_de_nome: autorOriginal?.nome || '',
+        compartilhado_de_avatar: autorOriginal?.avatar_url || ''
+      })
+      .select()
+      .single();
+
+    if (erroInsert || !nova) {
+      console.warn('Erro ao criar compartilhamento:', erroInsert);
+      return { erro: 'falha_insert' };
+    }
+
+    // 6) Registra na tabela de compartilhamentos
+    const { error: erroReg } = await window.supabaseClient
+      .from('compartilhamentos')
+      .insert({
+        publicacao_original_id: original.id,
+        publicacao_compartilhada_id: nova.id,
+        usuario_id: user.id
+      });
+
+    if (erroReg) {
+      // Rollback
+      await window.supabaseClient.from('publicacoes').delete().eq('id', nova.id);
+      return { erro: 'falha_registro' };
+    }
+
+    console.log('🔁 Drop compartilhado com sucesso:', nova.id);
+    return { ok: true, publicacao: nova };
+  } catch (err) {
+    console.warn('Erro ao compartilhar (catch):', err);
+    return { erro: 'erro_desconhecido' };
+  }
+}
+
+async function jaCompartilhouSupabase(publicacaoOriginalId) {
+  if (!window.supabaseClient || !publicacaoOriginalId) return false;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return false;
+
+    const { data } = await window.supabaseClient
+      .from('compartilhamentos')
+      .select('id')
+      .eq('publicacao_original_id', publicacaoOriginalId)
+      .eq('usuario_id', user.id)
+      .maybeSingle();
+
+    return !!data;
+  } catch (err) {
+    return false;
+  }
+}
+
+// ============================================
 // EXPÕE GLOBALMENTE
 // ============================================
+
 window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
 window.buscarPerfisComDropsProximosSupabase =
   buscarPerfisComDropsProximosSupabase;
@@ -351,7 +477,9 @@ window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;
 window.buscarDropsDoUsuarioSupabase = buscarDropsDoUsuarioSupabase;
 window.buscarTodosOsDropsComAutor = buscarTodosOsDropsComAutor;
 window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
-
+window.compartilharPublicacaoSupabase = compartilharPublicacaoSupabase;
+window.jaCompartilhouSupabase = jaCompartilhouSupabase;
+  
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
     console.log('☁️ 22-publicacoes-supabase.js pronto');

@@ -645,24 +645,25 @@ function criarCardPublicacaoMyDropsNex(pub) {
   const media = document.createElement('div');
   media.className = 'mydrops-publication-media';
 
-  if (pub.midiaTipo === 'video') {
-    const video = document.createElement('video');
-    video.src = pub.mediaUrl;
-    video.loop = !!pub.loop;
-    video.muted = !!pub.loop;
-    video.autoplay = !!pub.loop;
-    video.playsInline = true;
-    video.preload = 'metadata';
-    video.controls = true;
-    video.style.display = 'block';
+if (pub.midiaTipo === 'video') {
+  const video = document.createElement('video');
+  video.src = pub.mediaUrl;
+  video.loop = !!pub.loop;
+  video.muted = !!pub.loop;
+  video.playsInline = true;
+  video.preload = 'none';
+  video.controls = true;
+  video.style.display = 'block';
 
-    media.appendChild(video);
-  } else {
-    const img = document.createElement('img');
-    img.src = pub.mediaUrl;
-    img.alt = 'Publicação My Drops';
-    media.appendChild(img);
-  }
+  media.appendChild(video);
+} else {
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.src = pub.mediaUrl;
+  img.alt = 'Publicação My Drops';
+  media.appendChild(img);
+}
 
 // ⚠️ CORREÇÃO: legenda removida do card.
 // O card mostra apenas mídia + overlay (data/hora/origem/duração).
