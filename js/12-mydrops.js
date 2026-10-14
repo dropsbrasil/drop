@@ -425,8 +425,31 @@ function limparCamposLegendaMyDrops() {
 // ============================================
 
 async function concluirPublicacaoComDuracaoMyDropsNex() {
-  if (!publicacaoAtualMyDropsNex?.tipo) return;
+  // ⚠️ iOS: se por algum motivo publicacaoAtualMyDropsNex virou null,
+  //    tenta recuperar do estado do modal (fallback)
+  if (!publicacaoAtualMyDropsNex?.tipo) {
+    const modal = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
+    const modalAberto = modal && !modal.classList.contains('hidden');
 
+    if (modalAberto) {
+      // Descobre o tipo pelo editor que está aberto
+      const notasAberto =
+        document.getElementById('notasEditorNex')?.classList.contains('aberto');
+      const fotoAberto =
+        document.getElementById('fotoEditorNex')?.classList.contains('aberto');
+      const videoAberto =
+        document.getElementById('videoEditorNex')?.classList.contains('aberto');
+
+      publicacaoAtualMyDropsNex = {
+        tipo: notasAberto ? 'notas' : fotoAberto ? 'foto' : videoAberto ? 'video' : 'foto'
+      };
+
+      console.log('🔧 iOS fallback: recuperado tipo', publicacaoAtualMyDropsNex.tipo);
+    } else {
+      return;
+    }
+  }
+  
   const duracao = calcularDuracaoPublicacaoMyDropsNex();
   if (!duracao) return;
 
@@ -1815,14 +1838,36 @@ renderizarViewer();
     }
 
     const btnConcluirDuracao = document.getElementById(
-      'concluirDuracaoPublicacaoMyDropsNex'
-    );
-    if (btnConcluirDuracao) {
-      btnConcluirDuracao.addEventListener(
-        'click',
-        concluirPublicacaoComDuracaoMyDropsNex
-      );
+  'concluirDuracaoPublicacaoMyDropsNex'
+);
+if (btnConcluirDuracao) {
+  // ⚠️ iOS Safari dispara 'blur' DEPOIS do 'click',
+  //    o que pode zerar publicacaoAtualMyDropsNex antes do handler rodar.
+  //    'pointerup' dispara ANTES do blur, resolvendo o bug.
+  let concluindo = false;
+
+  const handlerConcluir = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
+    if (concluindo) return;
+    concluindo = true;
+
+    try {
+      concluirPublicacaoComDuracaoMyDropsNex();
+    } finally {
+      setTimeout(() => { concluindo = false; }, 500);
+    }
+  };
+
+  btnConcluirDuracao.addEventListener('pointerup', handlerConcluir);
+
+  // Fallback pra navegadores sem suporte a pointerup
+  if (!('onpointerup' in window)) {
+    btnConcluirDuracao.addEventListener('click', handlerConcluir);
+  }
+}
 
     // Input de dias personalizado
     const inputDuracao = document.getElementById('inputDuracaoDiasMyDropsNex');
