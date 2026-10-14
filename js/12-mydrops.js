@@ -34,7 +34,7 @@ async function sincronizarPublicacoesSupabase() {
 
     if (!Array.isArray(pubsSupabase)) return;
 
-    // Converte o formato do Supabase para o formato local
+        // Converte o formato do Supabase para o formato local
     const pubsConvertidas = pubsSupabase.map((p) => ({
   id: p.id,
   idSupabase: p.id,
@@ -48,6 +48,13 @@ async function sincronizarPublicacoesSupabase() {
   expiraEm: p.expira_em,
   duracao: p.duracao,
   selos: p.selos || null,
+
+  // ⚠️ FASE 2 — dados do autor original (drop compartilhado)
+  compartilhado_de_id: p.compartilhado_de_id || null,
+  compartilhado_de_username: p.compartilhado_de_username || '',
+  compartilhado_de_nome: p.compartilhado_de_nome || '',
+  compartilhado_de_avatar: p.compartilhado_de_avatar || '',
+
   visualizacoes: [],
   reacoes: { heart: [], broken: [] }
 }));
@@ -719,41 +726,121 @@ if (pub.midiaTipo === 'video') {
   capsulaReacao.dataset.pubId = pub.idSupabase || pub.id || '';
   media.appendChild(capsulaReacao);
 
-  // ⚠️ Busca reações do Supabase (async)
-  (async () => {
-    const pubId = pub.idSupabase || pub.id;
-    if (!pubId) return;
+// ⚠️ Busca reações + compartilhamentos do Supabase (async)
+(async () => {
+  const pubId = pub.idSupabase || pub.id;
+  if (!pubId) return;
 
-    if (typeof window.buscarReacoesSupabase !== 'function') return;
+  // ============================================
+  // 1. REAÇÕES ❤️ / 💔
+  // ============================================
 
+  let totalHeart = 0;
+  let totalBroken = 0;
+
+  if (typeof window.buscarReacoesSupabase === 'function') {
     try {
       const dados = await window.buscarReacoesSupabase(pubId);
-      if (!dados) return;
-
-      const totalHeart = dados.heart || 0;
-      const totalBroken = dados.broken || 0;
-      const total = totalHeart + totalBroken;
-
-      if (total === 0) return;
-
-      // ⚠️ Escolhe o emoji: prioridade ❤️
-      let emoji = '❤️';
-      let count = totalHeart;
-
-      if (totalHeart === 0 && totalBroken > 0) {
-        emoji = '💔';
-        count = totalBroken;
+      if (dados) {
+        totalHeart = dados.heart || 0;
+        totalBroken = dados.broken || 0;
       }
-
-      capsulaReacao.innerHTML = `
-        <span class="mydrops-pub-reacao-emoji">${emoji}</span>
-        <span class="mydrops-pub-reacao-count">${count}</span>
-      `;
-      capsulaReacao.style.display = 'flex';
     } catch (err) {
       console.warn('Erro ao buscar reações do drop:', err);
     }
-  })();
+  }
+
+  // ============================================
+  // 2. COMPARTILHAMENTOS 🔁
+  // ============================================
+
+  let totalShare = 0;
+
+  if (typeof window.contarCompartilhamentosSupabase === 'function') {
+    try {
+      totalShare = Number(await window.contarCompartilhamentosSupabase(pubId)) || 0;
+    } catch (err) {
+      console.warn('Erro ao contar compartilhamentos:', err);
+    }
+  }
+
+  // ============================================
+  // 3. MONTA A CÁPSULA
+  // ============================================
+
+  const temReacao = (totalHeart + totalBroken) > 0;
+  const temShare = totalShare > 0;
+
+  if (!temReacao && !temShare) {
+    capsulaReacao.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+
+  // Emoji de reação (prioridade ❤️)
+  if (temReacao) {
+    let emoji = '❤️';
+    let count = totalHeart;
+
+    if (totalHeart === 0 && totalBroken > 0) {
+      emoji = '💔';
+      count = totalBroken;
+    }
+
+    html += `
+      <span class="mydrops-pub-reacao-emoji">${emoji}</span>
+      <span class="mydrops-pub-reacao-count">${count}</span>
+    `;
+  }
+
+  // Contador de compartilhamento
+  if (temShare) {
+    html += `
+      <span class="mydrops-pub-share-icone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="17 1 21 5 17 9"/>
+          <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <polyline points="7 23 3 19 7 15"/>
+          <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+      </span>
+      <span class="mydrops-pub-share-count">${totalShare}</span>
+    `;
+  }
+
+  capsulaReacao.innerHTML = html;
+  capsulaReacao.style.display = 'flex';
+})();
+
+  // ============================================
+  // FASE 2 — CÁPSULA DE AUTOR (drop compartilhado)
+  // ============================================
+
+  if (pub.compartilhado_de_id) {
+    const capsulaAutor = document.createElement('div');
+    capsulaAutor.className = 'mydrops-publication-capsula-autor';
+
+    const avatarHTML = pub.compartilhado_de_avatar
+      ? `<img src="${escapeHTML(pub.compartilhado_de_avatar)}" alt="">`
+      : escapeHTML(
+          (pub.compartilhado_de_nome || '?').charAt(0).toUpperCase()
+        );
+
+    capsulaAutor.innerHTML = `
+      <div class="mydrops-publication-capsula-autor-avatar">
+        ${avatarHTML}
+      </div>
+      <svg class="mydrops-publication-capsula-autor-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+    `;
+
+    card.appendChild(capsulaAutor);
+  }
 
   // ============================================
   // MONTAGEM FINAL
@@ -1043,12 +1130,28 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
   <div class="mydrops-pub-selos" id="mydropsPubSelos"></div>
 </div>
 
-      <!-- PALCO + PAPEL -->
+            <!-- PALCO + PAPEL -->
 <div class="mydrops-pub-palco">
   <div class="mydrops-pub-papel" id="mydropsPubMedia"></div>
 
-  <!-- BOTÃO EXPANDIR (canto superior esquerdo da mídia) -->
-  <button type="button" class="mydrops-pub-expandir" id="mydropsPubExpandir" aria-label="Expandir mídia">⤢</button>
+  <!-- BARRA TOPO: expandir + cápsula de autor (se for compartilhado) -->
+  <div class="mydrops-pub-barra-topo">
+    <button type="button" class="mydrops-pub-expandir" id="mydropsPubExpandir" aria-label="Expandir mídia">⤢</button>
+
+    <div class="mydrops-pub-capsula-autor" id="mydropsPubCapsulaAutor" style="display:none;">
+      <div class="mydrops-pub-capsula-autor-avatar"></div>
+      <div class="mydrops-pub-capsula-autor-texto">
+        <span class="mydrops-pub-capsula-autor-nome"></span>
+        <span class="mydrops-pub-capsula-autor-user"></span>
+      </div>
+      <svg class="mydrops-pub-capsula-autor-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+    </div>
+  </div>
 </div>
 
       <!-- RODAPÉ — CÁPSULA -->
@@ -1062,21 +1165,30 @@ const antigo = document.querySelector('.mydrops-publication-viewer');
 </div>
 
       <!-- STATS + LIXEIRA -->
-      <div class="mydrops-pub-stats-row">
-        <div class="mydrops-pub-stats-lista">
-          <button type="button" class="mydrops-pub-stat-btn" data-list="views">
-            👁 <span id="mydropsPubViews">0</span>
-          </button>
-          <button type="button" class="mydrops-pub-stat-btn" data-list="heart">
-            ❤️ <span id="mydropsPubHeart">0</span>
-          </button>
-          <button type="button" class="mydrops-pub-stat-btn" data-list="broken">
-            💔 <span id="mydropsPubBroken">0</span>
-          </button>
-        </div>
+<div class="mydrops-pub-stats-row">
+  <div class="mydrops-pub-stats-lista">
+    <button type="button" class="mydrops-pub-stat-btn" data-list="views">
+      👁 <span id="mydropsPubViews">0</span>
+    </button>
+    <button type="button" class="mydrops-pub-stat-btn" data-list="heart">
+      ❤️ <span id="mydropsPubHeart">0</span>
+    </button>
+    <button type="button" class="mydrops-pub-stat-btn" data-list="broken">
+      💔 <span id="mydropsPubBroken">0</span>
+    </button>
+    <button type="button" class="mydrops-pub-stat-btn" data-list="share" id="mydropsPubShareBtn" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:14px;height:14px;vertical-align:middle;">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      <span id="mydropsPubShare">0</span>
+    </button>
+  </div>
 
-        <button type="button" class="mydrops-pub-trash-btn" aria-label="Excluir publicação">🗑️</button>
-      </div>
+  <button type="button" class="mydrops-pub-trash-btn" aria-label="Excluir publicação">🗑️</button>
+</div>
 
     </div>
   `;
@@ -1192,10 +1304,54 @@ const fechar = () => {
       }
     }
 
-    // ============================================
-    // CÁPSULA DE LEGENDA
-    // ============================================
+// ============================================
+// FASE 2 — CÁPSULA DE AUTOR (drop compartilhado)
+// ============================================
 
+const capsulaAutor = viewer.querySelector('#mydropsPubCapsulaAutor');
+
+if (capsulaAutor) {
+  const temCompartilhamento = !!pub.compartilhado_de_id;
+
+  if (!temCompartilhamento) {
+    capsulaAutor.style.display = 'none';
+  } else {
+    capsulaAutor.style.display = 'inline-flex';
+
+    const avatarEl = capsulaAutor.querySelector('.mydrops-pub-capsula-autor-avatar');
+    const nomeEl = capsulaAutor.querySelector('.mydrops-pub-capsula-autor-nome');
+    const userEl = capsulaAutor.querySelector('.mydrops-pub-capsula-autor-user');
+
+    // Avatar
+    if (avatarEl) {
+      if (pub.compartilhado_de_avatar) {
+        avatarEl.innerHTML = `<img src="${escapeHTML(pub.compartilhado_de_avatar)}" alt="">`;
+      } else {
+        avatarEl.textContent = (pub.compartilhado_de_nome || '?')
+          .charAt(0)
+          .toUpperCase();
+      }
+    }
+
+    // Nome
+    if (nomeEl) {
+      nomeEl.textContent = pub.compartilhado_de_nome || '';
+    }
+
+    // @username
+    if (userEl) {
+      const userLimpo = String(pub.compartilhado_de_username || '')
+        .replace(/^@/, '')
+        .trim();
+      userEl.textContent = userLimpo ? '@' + userLimpo : '';
+    }
+  }
+}
+
+// ============================================
+// CÁPSULA DE LEGENDA
+// ============================================
+    
     const temLegenda =
       pub.legenda &&
       typeof pub.legenda === 'string' &&
@@ -1253,20 +1409,53 @@ const fechar = () => {
 
     const publicacaoIdSupabase = pub.idSupabase || pub.id;
 
-    if (
-      publicacaoIdSupabase &&
-      typeof window.buscarReacoesSupabase === 'function'
-    ) {
-      window
-        .buscarReacoesSupabase(publicacaoIdSupabase)
-        .then((dados) => {
-          if (!dados) return;
+if (
+  publicacaoIdSupabase &&
+  typeof window.buscarReacoesSupabase === 'function'
+) {
+  window
+    .buscarReacoesSupabase(publicacaoIdSupabase)
+    .then((dados) => {
+      if (!dados) return;
 
-          if (heartEl) heartEl.textContent = String(dados.heart || 0);
-          if (brokenEl) brokenEl.textContent = String(dados.broken || 0);
-        })
-        .catch((err) => console.warn('Erro ao buscar reações MyDrops:', err));
-    }
+      if (heartEl) heartEl.textContent = String(dados.heart || 0);
+      if (brokenEl) brokenEl.textContent = String(dados.broken || 0);
+    })
+    .catch((err) => console.warn('Erro ao buscar reações MyDrops:', err));
+}
+
+// ============================================
+// FASE 3 — CONTADOR DE COMPARTILHAMENTOS 🔁
+// ============================================
+
+const shareBtn = viewer.querySelector('#mydropsPubShareBtn');
+const shareEl = viewer.querySelector('#mydropsPubShare');
+
+if (shareBtn && shareEl) {
+  // Esconde por padrão
+  shareBtn.style.display = 'none';
+
+  if (
+    publicacaoIdSupabase &&
+    typeof window.contarCompartilhamentosSupabase === 'function'
+  ) {
+    window
+      .contarCompartilhamentosSupabase(publicacaoIdSupabase)
+      .then((total) => {
+        const num = Number(total) || 0;
+
+        if (num > 0) {
+          shareEl.textContent = String(num);
+          shareBtn.style.display = 'inline-flex';
+        } else {
+          shareBtn.style.display = 'none';
+        }
+      })
+      .catch((err) =>
+        console.warn('Erro ao contar compartilhamentos:', err)
+      );
+  }
+}
 
     if (
       publicacaoIdSupabase &&

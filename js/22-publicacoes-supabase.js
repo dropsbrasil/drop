@@ -473,6 +473,33 @@ async function jaCompartilhouSupabase(publicacaoOriginalId) {
 }
 
 // ============================================
+// FASE 3 — CONTAR COMPARTILHAMENTOS
+// ============================================
+// Retorna o total de compartilhamentos de uma publicação.
+// Como cada usuário só compartilha 1x, o total = pessoas únicas.
+
+async function contarCompartilhamentosSupabase(publicacaoId) {
+  if (!window.supabaseClient || !publicacaoId) return 0;
+
+  try {
+    const { count, error } = await window.supabaseClient
+      .from('compartilhamentos')
+      .select('id', { count: 'exact', head: true })
+      .eq('publicacao_original_id', publicacaoId);
+
+    if (error) {
+      console.warn('Erro ao contar compartilhamentos:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (err) {
+    console.warn('Erro ao contar compartilhamentos:', err);
+    return 0;
+  }
+}
+
+// ============================================
 // EXPÕE GLOBALMENTE
 // ============================================
 
@@ -487,6 +514,7 @@ window.buscarTodosOsDropsComAutor = buscarTodosOsDropsComAutor;
 window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
 window.compartilharPublicacaoSupabase = compartilharPublicacaoSupabase;
 window.jaCompartilhouSupabase = jaCompartilhouSupabase;
+window.contarCompartilhamentosSupabase = contarCompartilhamentosSupabase;
   
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
