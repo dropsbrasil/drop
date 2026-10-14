@@ -805,6 +805,89 @@
 }
 
 /* ============================================
+   ÍCONES DO BOTÃO SWAP (COMPARTILHAR ↔ ENVIAR)
+============================================ */
+
+.nearby-drop-viewer .nearby-drop-send {
+  position: relative;
+}
+
+.nearby-drop-viewer .nearby-drop-send svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  pointer-events: none;
+}
+
+.nearby-drop-viewer .nearby-drop-send .nearby-icone-share {
+  display: block;
+}
+
+.nearby-drop-viewer .nearby-drop-send .nearby-icone-share-check {
+  display: none;
+}
+
+.nearby-drop-viewer .nearby-drop-send .nearby-icone-send {
+  display: none;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+/* Quando input tem texto → mostra enviar */
+.nearby-drop-viewer
+  .nearby-drop-comment-box.input-com-texto
+  .nearby-drop-send
+  .nearby-icone-share,
+.nearby-drop-viewer
+  .nearby-drop-comment-box.input-com-texto
+  .nearby-drop-send
+  .nearby-icone-share-check {
+  display: none;
+}
+
+.nearby-drop-viewer
+  .nearby-drop-comment-box.input-com-texto
+  .nearby-drop-send
+  .nearby-icone-send {
+  display: block;
+}
+
+/* Quando já compartilhou → mostra check */
+.nearby-drop-viewer
+  .nearby-drop-send.ja-compartilhado
+  .nearby-icone-share {
+  display: none;
+}
+
+.nearby-drop-viewer
+  .nearby-drop-send.ja-compartilhado
+  .nearby-icone-share-check {
+  display: block;
+}
+
+/* Botão desabilitado (já compartilhado) — mas volta ativo se input tiver texto */
+.nearby-drop-viewer .nearby-drop-send.ja-compartilhado {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.nearby-drop-viewer
+  .nearby-drop-comment-box.input-com-texto
+  .nearby-drop-send.ja-compartilhado {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* Cor ativa (azul) quando tem texto OU quando já compartilhou */
+.nearby-drop-viewer .nearby-drop-send.is-active {
+  background: linear-gradient(135deg, #74b9ff, #4d96ff);
+  box-shadow: 0 8px 18px rgba(77, 150, 255, 0.28);
+}
+
+
+/* ============================================
    STATS + VISITAR PERFIL
 ============================================ */
 
