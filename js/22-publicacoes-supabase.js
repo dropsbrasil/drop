@@ -417,8 +417,12 @@ async function compartilharPublicacaoSupabase(publicacaoOriginalId) {
       .single();
 
     if (erroInsert || !nova) {
-      console.warn('Erro ao criar compartilhamento:', erroInsert);
-      return { erro: 'falha_insert' };
+  console.warn('Erro ao criar compartilhamento:', erroInsert);
+  return {
+    erro: 'falha_insert',
+    detalhe: erroInsert?.message || 'sem detalhe',
+    codigo: erroInsert?.code || 'sem codigo'
+  };
     }
 
     // 6) Registra na tabela de compartilhamentos
@@ -431,9 +435,13 @@ async function compartilharPublicacaoSupabase(publicacaoOriginalId) {
       });
 
     if (erroReg) {
-      // Rollback
-      await window.supabaseClient.from('publicacoes').delete().eq('id', nova.id);
-      return { erro: 'falha_registro' };
+  // Rollback
+  await window.supabaseClient.from('publicacoes').delete().eq('id', nova.id);
+  return {
+    erro: 'falha_registro',
+    detalhe: erroReg.message || 'sem detalhe',
+    codigo: erroReg.code || 'sem codigo'
+  };
     }
 
     console.log('🔁 Drop compartilhado com sucesso:', nova.id);

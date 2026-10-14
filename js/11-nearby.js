@@ -1271,9 +1271,17 @@ async function compartilharDropNearbyNex() {
 } else if (resultado?.erro === 'proprio_drop') {
   window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
 } else if (resultado?.erro === 'falha_insert') {
-  window.mostrarToastNex?.('Erro 1: falha ao criar publicação.', 'erro', 5000);
+  window.mostrarToastNex?.(
+    'E1: ' + (resultado?.codigo || '?') + ' - ' + (resultado?.detalhe || 'falha ao criar publicação.'),
+    'erro',
+    8000
+  );
 } else if (resultado?.erro === 'falha_registro') {
-  window.mostrarToastNex?.('Erro 2: falha ao registrar compartilhamento.', 'erro', 5000);
+  window.mostrarToastNex?.(
+    'E2: ' + (resultado?.codigo || '?') + ' - ' + (resultado?.detalhe || 'falha ao registrar.'),
+    'erro',
+    8000
+  );
 } else if (resultado?.erro === 'original_nao_encontrado') {
   window.mostrarToastNex?.('Erro 3: drop original não encontrado.', 'erro', 5000);
 } else if (resultado?.erro === 'sem_usuario') {
