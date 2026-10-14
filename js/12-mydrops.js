@@ -313,11 +313,15 @@ async function sincronizarPublicacoesSupabase() {
 
   if (!stage) return '';
 
-  const canvas = await html2canvas(stage, {
-    backgroundColor: bg,
-    useCORS: true,
-    scale: Math.min(2, window.devicePixelRatio || 1)
-  });
+  // ⚠️ iOS: reduz o scale pra evitar estouro de memória
+const ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const escalaMaxima = ehIOS ? 1 : 2;
+
+const canvas = await html2canvas(stage, {
+  backgroundColor: bg,
+  useCORS: true,
+  scale: Math.min(escalaMaxima, window.devicePixelRatio || 1)
+});
 
   return canvas.toDataURL('image/png', 1);
   }
