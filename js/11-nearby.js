@@ -1258,20 +1258,28 @@ async function compartilharDropNearbyNex() {
     const resultado = await window.compartilharPublicacaoSupabase(publicacaoId);
 
     if (resultado?.ok) {
-      window.mostrarToastNex?.('Drop compartilhado!', 'sucesso');
+  window.mostrarToastNex?.('Drop compartilhado!', 'sucesso');
 
-      if (btn) btn.classList.add('ja-compartilhado');
+  if (btn) btn.classList.add('ja-compartilhado');
 
-      if (typeof window.feedbackNex?.comentou === 'function') {
-        window.feedbackNex.comentou();
-      }
-    } else if (resultado?.erro === 'ja_compartilhado') {
-      if (btn) btn.classList.add('ja-compartilhado');
-      window.mostrarToastNex?.('Você já compartilhou esse drop.', 'info');
-    } else if (resultado?.erro === 'proprio_drop') {
-      window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
-    } else {
-      window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
+  if (typeof window.feedbackNex?.comentou === 'function') {
+    window.feedbackNex.comentou();
+  }
+} else if (resultado?.erro === 'ja_compartilhado') {
+  if (btn) btn.classList.add('ja-compartilhado');
+  window.mostrarToastNex?.('Você já compartilhou esse drop.', 'info');
+} else if (resultado?.erro === 'proprio_drop') {
+  window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
+} else if (resultado?.erro === 'falha_insert') {
+  window.mostrarToastNex?.('Erro 1: falha ao criar publicação.', 'erro', 5000);
+} else if (resultado?.erro === 'falha_registro') {
+  window.mostrarToastNex?.('Erro 2: falha ao registrar compartilhamento.', 'erro', 5000);
+} else if (resultado?.erro === 'original_nao_encontrado') {
+  window.mostrarToastNex?.('Erro 3: drop original não encontrado.', 'erro', 5000);
+} else if (resultado?.erro === 'sem_usuario') {
+  window.mostrarToastNex?.('Erro 4: usuário não autenticado.', 'erro', 5000);
+} else {
+  window.mostrarToastNex?.('Erro 5: ' + (resultado?.erro || 'desconhecido'), 'erro', 5000);
     }
   } catch (err) {
     console.warn('Erro ao compartilhar:', err);
