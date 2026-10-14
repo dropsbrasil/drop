@@ -789,15 +789,17 @@
 }
 
 .nearby-drop-viewer .nearby-drop-send {
-  background: #2d8cff;
-  box-shadow: 0 8px 20px rgba(45, 140, 255, 0.4);
+  background: #2563eb;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
   font-size: 16px;
   font-weight: 800;
+  opacity: 1;
+  filter: none;
 }
 
 .nearby-drop-viewer .nearby-drop-send.is-active {
-  background: linear-gradient(135deg, #74b9ff, #4d96ff);
-  box-shadow: 0 8px 18px rgba(77, 150, 255, 0.28);
+  background: #2563eb;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
 }
 
 .nearby-drop-viewer .nearby-drop-send:disabled {
@@ -873,32 +875,33 @@
   background: #9aa4b2;
   box-shadow: none;
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* Check AZUL dentro do ícone (mesma cor do azul do app) */
 .nearby-drop-viewer
   .nearby-drop-send.ja-compartilhado
   .nearby-check-azul {
-  stroke: #2d8cff;
+  stroke: #2563eb;
   stroke-width: 2.5;
   }
 
 .nearby-drop-viewer
   .nearby-drop-comment-box.input-com-texto
   .nearby-drop-send.ja-compartilhado {
-  background: #2d8cff;
-  box-shadow: 0 8px 20px rgba(45, 140, 255, 0.4);
+  background: #2563eb;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
   pointer-events: auto;
   opacity: 1;
   }
 
 /* Cor ativa (azul) quando tem texto OU quando já compartilhou */
 .nearby-drop-viewer .nearby-drop-send.is-active {
-  background: #2d8cff;
-  box-shadow: 0 8px 20px rgba(45, 140, 255, 0.4);
+  background: #2563eb;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  opacity: 1;
+  filter: none;
 }
-
 
 /* ============================================
    STATS + VISITAR PERFIL

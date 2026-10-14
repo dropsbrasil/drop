@@ -527,6 +527,35 @@
   line-height: 1;
 }
 
+/* ============================================
+   FASE 3 — CONTADOR DE COMPARTILHAMENTO 🔁
+   (dentro da cápsula de reação do card)
+============================================ */
+
+.mydrops-pub-reacao-capsula .mydrops-pub-share-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.mydrops-pub-reacao-capsula .mydrops-pub-share-icone svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  opacity: 0.9;
+}
+
+.mydrops-pub-reacao-capsula .mydrops-pub-share-count {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  margin-left: 2px;
+}
+
 @keyframes fadeInCapsula {
   from {
     opacity: 0;
