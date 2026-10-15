@@ -675,7 +675,6 @@ function limparCamposLegendaMyDrops() {
 // ============================================
 
 async function concluirPublicacaoComDuracaoMyDropsNex() {
-  alert('1 - Botão Concluir clicado');
 
   // ⚠️ iOS: se por algum motivo publicacaoAtualMyDropsNex virou null,
   if (!publicacaoAtualMyDropsNex?.tipo) {
@@ -701,15 +700,8 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     }
   }
   
-  alert('2 - Vai calcular duração');
-
-const duracao = calcularDuracaoPublicacaoMyDropsNex();
-if (!duracao) {
-  alert('2b - Duração retornou NULL');
-  return;
-}
-
-alert('3 - Duração OK, tipo=' + publicacaoAtualMyDropsNex.tipo);
+  const duracao = calcularDuracaoPublicacaoMyDropsNex();
+if (!duracao) return;
 
 const origem = publicacaoAtualMyDropsNex.tipo;
   const videoCamera = obterVideoAtualNaCameraMyDropsNex();
@@ -812,14 +804,10 @@ if (notasVisivel) {
     // IMAGEM
     // ============================================
 
-alert('4 - Vai capturar o editor (html2canvas)');
-
 const mediaUrl = await capturarEditorComoImagemMyDropsNex();
 
-alert('5 - Captura terminou. Tamanho=' + (mediaUrl ? mediaUrl.length : 0));
-
 if (!mediaUrl) {
-  alert('5b - Imagem vazia, abortou');
+  alert('Não foi possível salvar a publicação.');
   return;
 }
     
