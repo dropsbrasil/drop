@@ -713,8 +713,12 @@ document.addEventListener(
   true
 );
 
-// ============================================
+  // ============================================
 // BLOQUEIA CLIQUES FORA DO MODAL QUANDO ABERTO
+// ⚠️ CORREÇÃO iOS: no WebKit, e.target às vezes chega como
+//    nó de texto ou filho interno do botão — e o m.contains()
+//    falha. Isso matava cliques legítimos no botão "Concluir".
+//    Agora sobe a árvore manualmente até achar o modal.
 // ============================================
 
 document.addEventListener(
@@ -732,7 +736,19 @@ document.addEventListener(
 
     const clicouDentroDeAlgum = modaisAbertos.some((id) => {
       const m = document.getElementById(id);
-      return m && m.contains(e.target);
+      if (!m) return false;
+
+      // Tentativa 1: contains direto
+      if (m.contains(e.target)) return true;
+
+      // Tentativa 2: sobe a árvore manualmente
+      let atual = e.target;
+      while (atual && atual !== document.body) {
+        if (atual === m) return true;
+        atual = atual.parentNode;
+      }
+
+      return false;
     });
 
     if (!clicouDentroDeAlgum) {
