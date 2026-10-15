@@ -223,7 +223,7 @@ async function buscarDropsDoUsuarioSupabase(usuarioId) {
         if (!p.expira_em) return true;
         return new Date(p.expira_em).getTime() > agora;
       })
-      .map((p) => ({
+            .map((p) => ({
   id: p.id,
   type: p.tipo === 'video' ? 'video' : 'image',
   url: p.media_url,
@@ -231,7 +231,13 @@ async function buscarDropsDoUsuarioSupabase(usuarioId) {
   criadoEm: new Date(p.criado_em).getTime(),
   expiraEm: p.expira_em,
   duracao: p.duracao,
-  selos: p.selos || null
+  selos: p.selos || null,
+
+  // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
+  compartilhado_de_id: p.compartilhado_de_id || null,
+  compartilhado_de_username: p.compartilhado_de_username || '',
+  compartilhado_de_nome: p.compartilhado_de_nome || '',
+  compartilhado_de_avatar: p.compartilhado_de_avatar || ''
 }));
   } catch (erro) {
     console.error('Erro ao buscar drops do usuário:', erro);

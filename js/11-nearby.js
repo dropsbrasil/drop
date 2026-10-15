@@ -578,8 +578,24 @@ const TEMPO_MAX_SWIPE = 800;
     <button type="button" class="nearby-pub-legenda-ver-mais" id="nearbyDropVerMais">Ver mais</button>
   </div>
 
-  <!-- BOTÃO EXPANDIR (canto superior esquerdo da mídia) -->
-  <button type="button" class="nearby-drop-expandir" id="nearbyDropExpandir" aria-label="Expandir mídia">⤢</button>
+    <!-- BARRA TOPO: expandir + cápsula de autor (drop compartilhado) -->
+  <div class="nearby-pub-barra-topo">
+    <button type="button" class="nearby-drop-expandir" id="nearbyDropExpandir" aria-label="Expandir mídia">⤢</button>
+
+    <div class="nearby-pub-capsula-autor" id="nearbyPubCapsulaAutor" style="display:none;">
+      <div class="nearby-pub-capsula-autor-avatar"></div>
+      <div class="nearby-pub-capsula-autor-texto">
+        <span class="nearby-pub-capsula-autor-nome"></span>
+        <span class="nearby-pub-capsula-autor-user"></span>
+      </div>
+      <svg class="nearby-pub-capsula-autor-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+    </div>
+  </div>
 </div>
         <!-- RODAPÉ — COMMENT + COMPARTILHAR -->
     <div class="nearby-pub-rodape">
@@ -1391,6 +1407,52 @@ if (nome) nome.textContent = perfil.nome || 'Perfil';
 if (views) views.textContent = drop.views || 0;
 
 // ============================================
+// ⚠️ AJUSTE 1 — CÁPSULA DE AUTOR (drop compartilhado)
+// ============================================
+// Se o drop é uma republicação, mostra a cápsula com o
+// autor original ao lado do botão expandir.
+
+const capsulaAutorNearby = viewer.querySelector('#nearbyPubCapsulaAutor');
+
+if (capsulaAutorNearby) {
+  const temCompartilhamento = !!drop.compartilhado_de_id;
+
+  if (!temCompartilhamento) {
+    capsulaAutorNearby.style.display = 'none';
+  } else {
+    capsulaAutorNearby.style.display = 'inline-flex';
+
+    const avatarEl = capsulaAutorNearby.querySelector('.nearby-pub-capsula-autor-avatar');
+    const nomeEl = capsulaAutorNearby.querySelector('.nearby-pub-capsula-autor-nome');
+    const userEl = capsulaAutorNearby.querySelector('.nearby-pub-capsula-autor-user');
+
+    // Avatar
+    if (avatarEl) {
+      if (drop.compartilhado_de_avatar) {
+        avatarEl.innerHTML = `<img src="${escapeHTML(drop.compartilhado_de_avatar)}" alt="">`;
+      } else {
+        avatarEl.textContent = (drop.compartilhado_de_nome || '?')
+          .charAt(0)
+          .toUpperCase();
+      }
+    }
+
+    // Nome
+    if (nomeEl) {
+      nomeEl.textContent = drop.compartilhado_de_nome || '';
+    }
+
+    // @username
+    if (userEl) {
+      const userLimpo = String(drop.compartilhado_de_username || '')
+        .replace(/^@/, '')
+        .trim();
+      userEl.textContent = userLimpo ? '@' + userLimpo : '';
+    }
+  }
+}
+  
+// ============================================
 // LEGENDA DO DROP (cápsula sobre a mídia)
 // ============================================
 const legendaEl = viewer.querySelector('#nearbyDropLegenda');
@@ -1978,24 +2040,30 @@ const raios = [100, 200, 500, 1000, 99999];
       : [];
 
     dropsDoPerfil.forEach((drop) => {
-      drops.push({
-        id: drop.id,
-        mediaUrl: drop.mediaUrl,
-        tipo: drop.tipo === 'video' ? 'video' : 'image',
-        legenda: drop.legenda || '',
-        expiraEm: drop.expiraEm || null,
-        criadoEm: drop.criadoEm ? new Date(drop.criadoEm).getTime() : null,
-        selos: drop.selos || null,
+  drops.push({
+    id: drop.id,
+    mediaUrl: drop.mediaUrl,
+    tipo: drop.tipo === 'video' ? 'video' : 'image',
+    legenda: drop.legenda || '',
+    expiraEm: drop.expiraEm || null,
+    criadoEm: drop.criadoEm ? new Date(drop.criadoEm).getTime() : null,
+    selos: drop.selos || null,
 
-        autorUsername: perfil.username,
-        autorNome: perfil.nome,
-        autorAvatar: perfil.avatar_url || null,
-        autorUltimaAtividade: perfil.ultima_atividade || null,
-        autorLat: perfil.lat,
-        autorLng: perfil.lng,
-        distanciaMetros: perfil.distancia_metros
-      });
-    });
+    // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
+    compartilhado_de_id: drop.compartilhado_de_id || null,
+    compartilhado_de_username: drop.compartilhado_de_username || '',
+    compartilhado_de_nome: drop.compartilhado_de_nome || '',
+    compartilhado_de_avatar: drop.compartilhado_de_avatar || '',
+
+    autorUsername: perfil.username,
+    autorNome: perfil.nome,
+    autorAvatar: perfil.avatar_url || null,
+    autorUltimaAtividade: perfil.ultima_atividade || null,
+    autorLat: perfil.lat,
+    autorLng: perfil.lng,
+    distanciaMetros: perfil.distancia_metros
+  });
+});
   });
 
   // ============================================
@@ -2363,7 +2431,7 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
 
     window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
 
-                return {
+                                return {
   url: d.mediaUrl,
   type: d.tipo === 'video' ? 'video' : 'image',
   autorId: d.autorUsername,
@@ -2372,7 +2440,13 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
   publicacaoIdSupabase: d.id,
   expiraEm: d.expiraEm || null,
   selos: d.selos || null,
-  legenda: d.legenda || ''
+  legenda: d.legenda || '',
+
+  // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
+  compartilhado_de_id: d.compartilhado_de_id || null,
+  compartilhado_de_username: d.compartilhado_de_username || '',
+  compartilhado_de_nome: d.compartilhado_de_nome || '',
+  compartilhado_de_avatar: d.compartilhado_de_avatar || ''
 };
   })
   };

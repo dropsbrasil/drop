@@ -220,42 +220,72 @@ if (socialContainer) {
           </div>
         `;
       } else {
-        perfil.drops.forEach((drop, dropIndex) => {
-          const card = document.createElement('div');
-          card.className = 'perfil-drop-card';
-          card.style.cursor = 'pointer';
-          card.setAttribute('role', 'button');
-          card.setAttribute('tabindex', '0');
+  perfil.drops.forEach((drop, dropIndex) => {
+    const card = document.createElement('div');
+    card.className = 'perfil-drop-card';
+    card.style.cursor = 'pointer';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
 
-          const abrirDrop = () => abrirDropsPerfilVisitadoNex(id, dropIndex);
+    const abrirDrop = () => abrirDropsPerfilVisitadoNex(id, dropIndex);
 
-          card.addEventListener('click', abrirDrop);
-          card.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              abrirDrop();
-            }
-          });
-
-          if (drop.type === 'video') {
-  card.innerHTML = `
-    <div class="perfil-drop-media-indicator">🎥 vídeo</div>
-    <video src="${drop.url}" muted loop playsinline preload="none"></video>
-    <div class="perfil-drop-meta">preview</div>
-  `;
-} else {
-  card.innerHTML = `
-    <div class="perfil-drop-media-indicator">📸 foto</div>
-    <img src="${drop.url}" loading="lazy" decoding="async" alt="">
-    <div class="perfil-drop-meta">preview</div>
-  `;
-          }
-
-          grid.appendChild(card);
-        });
+    card.addEventListener('click', abrirDrop);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        abrirDrop();
       }
+    });
+
+    if (drop.type === 'video') {
+      card.innerHTML = `
+        <div class="perfil-drop-media-indicator">🎥 vídeo</div>
+        <video src="${drop.url}" muted loop playsinline autoplay></video>
+        <div class="perfil-drop-meta">preview</div>
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="perfil-drop-media-indicator">📸 foto</div>
+        <img src="${drop.url}" alt="">
+        <div class="perfil-drop-meta">preview</div>
+      `;
     }
 
+    // ============================================
+    // ⚠️ AJUSTE 1 — CÁPSULA DE AUTOR (drop compartilhado)
+    // ============================================
+    // Se o drop é uma republicação, mostra a cápsula com o
+    // autor original no canto superior esquerdo do card.
+
+    if (drop.compartilhado_de_id) {
+      const capsulaAutor = document.createElement('div');
+      capsulaAutor.className = 'mydrops-publication-capsula-autor';
+
+      const avatarHTML = drop.compartilhado_de_avatar
+        ? `<img src="${escapeHTML(drop.compartilhado_de_avatar)}" alt="">`
+        : escapeHTML(
+            (drop.compartilhado_de_nome || '?').charAt(0).toUpperCase()
+          );
+
+      capsulaAutor.innerHTML = `
+        <div class="mydrops-publication-capsula-autor-avatar">
+          ${avatarHTML}
+        </div>
+        <svg class="mydrops-publication-capsula-autor-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="17 1 21 5 17 9"/>
+          <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <polyline points="7 23 3 19 7 15"/>
+          <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+      `;
+
+      card.appendChild(capsulaAutor);
+    }
+
+    grid.appendChild(card);
+  });
+      }
+    }
     // ============================================
     // MOSTRA A TELA E ATUALIZA BOTÕES
     // ============================================
@@ -367,23 +397,37 @@ function fecharMuralEmBrevePerfilNex() {
       return;
     }
 
-    const base = {
-      [id]: {
-        ...perfil,
-        id
-      }
-    };
+    // ============================================
+// ⚠️ AJUSTE 1 — Garante que os drops carreguem os dados
+//    de compartilhamento pro viewer do Nearby montar a cápsula.
+// ============================================
 
-    if (typeof abrirViewerPublicacaoNex === 'function') {
-      abrirViewerPublicacaoNex(
-        base[id],
-        'perfil',
-        id,
-        dropIndexInicial,
-        base
-      );
-    }
+const dropsComCompartilhamento = (perfil.drops || []).map((drop) => ({
+  ...drop,
+  compartilhado_de_id: drop.compartilhado_de_id || null,
+  compartilhado_de_username: drop.compartilhado_de_username || '',
+  compartilhado_de_nome: drop.compartilhado_de_nome || '',
+  compartilhado_de_avatar: drop.compartilhado_de_avatar || ''
+}));
+
+const base = {
+  [id]: {
+    ...perfil,
+    drops: dropsComCompartilhamento,
+    id
   }
+};
+
+if (typeof abrirViewerPublicacaoNex === 'function') {
+  abrirViewerPublicacaoNex(
+    base[id],
+    'perfil',
+    id,
+    dropIndexInicial,
+    base
+  );
+}
+    
 
   // ============================================
   // ATUALIZAR BOTÃO CONECTAR/DESCONECTAR
