@@ -1837,36 +1837,50 @@ renderizarViewer();
       );
     }
 
-    const btnConcluirDuracao = document.getElementById(
+        const btnConcluirDuracao = document.getElementById(
   'concluirDuracaoPublicacaoMyDropsNex'
 );
 if (btnConcluirDuracao) {
-  // ⚠️ iOS Safari dispara 'blur' DEPOIS do 'click',
-  //    o que pode zerar publicacaoAtualMyDropsNex antes do handler rodar.
-  //    'pointerup' dispara ANTES do blur, resolvendo o bug.
   let concluindo = false;
+  let ultimoDisparo = 0;
 
   const handlerConcluir = (e) => {
-    if (e) {
-      e.preventDefault();
+    // ⚠️ NÃO chamar preventDefault — WebKit usa isso pra cancelar o click
+    if (e && typeof e.stopPropagation === 'function') {
       e.stopPropagation();
     }
+
+    // ⚠️ Debounce: se qualquer um dos 3 eventos disparou nos últimos 400ms, ignora
+    const agora = Date.now();
+    if (agora - ultimoDisparo < 400) return;
     if (concluindo) return;
+
+    ultimoDisparo = agora;
     concluindo = true;
 
     try {
       concluirPublicacaoComDuracaoMyDropsNex();
+    } catch (err) {
+      console.error('❌ Erro ao concluir publicação:', err);
+      if (typeof window.mostrarToastNex === 'function') {
+        window.mostrarToastNex(
+          'Erro: ' + (err.message || 'desconhecido'),
+          'erro',
+          6000
+        );
+      }
     } finally {
-      setTimeout(() => { concluindo = false; }, 500);
+      setTimeout(() => { concluindo = false; }, 600);
     }
   };
 
+  // ⚠️ Registra os 3 eventos — o debounce garante que só 1 executa
+  // touchend  → funciona quando iOS cancela o pointerup
+  // pointerup → funciona no Android e navegadores modernos
+  // click     → fallback universal do WebKit
+  btnConcluirDuracao.addEventListener('touchend', handlerConcluir);
   btnConcluirDuracao.addEventListener('pointerup', handlerConcluir);
-
-  // Fallback pra navegadores sem suporte a pointerup
-  if (!('onpointerup' in window)) {
-    btnConcluirDuracao.addEventListener('click', handlerConcluir);
-  }
+  btnConcluirDuracao.addEventListener('click', handlerConcluir);
 }
 
     // Input de dias personalizado
