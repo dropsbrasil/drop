@@ -425,8 +425,9 @@ function limparCamposLegendaMyDrops() {
 // ============================================
 
 async function concluirPublicacaoComDuracaoMyDropsNex() {
+  alert('1 - Botão Concluir clicado');
+
   // ⚠️ iOS: se por algum motivo publicacaoAtualMyDropsNex virou null,
-  //    tenta recuperar do estado do modal (fallback)
   if (!publicacaoAtualMyDropsNex?.tipo) {
     const modal = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
     const modalAberto = modal && !modal.classList.contains('hidden');
@@ -450,10 +451,17 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     }
   }
   
-  const duracao = calcularDuracaoPublicacaoMyDropsNex();
-  if (!duracao) return;
+  alert('2 - Vai calcular duração');
 
-  const origem = publicacaoAtualMyDropsNex.tipo;
+const duracao = calcularDuracaoPublicacaoMyDropsNex();
+if (!duracao) {
+  alert('2b - Duração retornou NULL');
+  return;
+}
+
+alert('3 - Duração OK, tipo=' + publicacaoAtualMyDropsNex.tipo);
+
+const origem = publicacaoAtualMyDropsNex.tipo;
   const videoCamera = obterVideoAtualNaCameraMyDropsNex();
   const videoDrops = obterVideoAtualNoDropsMyDropsNex();
 
@@ -554,13 +562,17 @@ if (notasVisivel) {
     // IMAGEM
     // ============================================
 
-    const mediaUrl = await capturarEditorComoImagemMyDropsNex();
+alert('4 - Vai capturar o editor (html2canvas)');
 
-    if (!mediaUrl) {
-      alert('Não foi possível salvar a publicação.');
-      return;
-    }
+const mediaUrl = await capturarEditorComoImagemMyDropsNex();
 
+alert('5 - Captura terminou. Tamanho=' + (mediaUrl ? mediaUrl.length : 0));
+
+if (!mediaUrl) {
+  alert('5b - Imagem vazia, abortou');
+  return;
+}
+    
     publicacao = {
   id: gerarIdPublicacaoMyDropsNex(),
   autorId: Drops.usernameAtual,
