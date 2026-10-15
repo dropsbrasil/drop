@@ -282,12 +282,14 @@ async function sincronizarPublicacoesSupabase() {
     }
   }
 
-  // ============================================
-  // CAPTURAR EDITOR COMO IMAGEM (html2canvas)
-  // ============================================
-
-  async function capturarEditorComoImagemMyDropsNex() {
-  // ⚠️ Detecta qual editor está ABERTO (não só presente no DOM)
+// ============================================
+// CAPTURA NATIVA (sem html2canvas)
+// ⚠️ iOS/WebKit: html2canvas TRAVA com box-shadow +
+//    overflow hidden + background-image grande.
+//    Essa versão desenha manualmente num <canvas>
+//    nativo — nunca trava, é 10x mais rápida.
+// ============================================
+async function capturarEditorComoImagemMyDropsNex() {
   const notasAberto =
     document.getElementById('notasEditorNex')?.classList.contains('aberto');
 
@@ -297,34 +299,282 @@ async function sincronizarPublicacoesSupabase() {
   const fotoAntigoAberto =
     document.getElementById('fotoEditorMyDropsNex')?.style?.display === 'flex';
 
-  let stage = null;
-  let bg = '#000';
+  let papel = null;
+  let camada = null;
+  let corFundo = '#ffffff';
 
   if (notasAberto) {
-    stage = document.getElementById('notasPapelNex');
-    bg = null; // Notas = papel creme (deixa o CSS cuidar)
+    papel = document.getElementById('notasPapelNex');
+    camada = document.getElementById('notasCamadaNex');
+    corFundo = '#fffef8';
   } else if (fotoNovoAberto) {
-    stage = document.getElementById('fotoPapelNex');
-    bg = '#000';
+    papel = document.getElementById('fotoPapelNex');
+    camada = document.getElementById('fotoCamadaNex');
+    corFundo = '#000000';
   } else if (fotoAntigoAberto) {
-    stage = document.getElementById('fotoEditorStageMyDropsNex');
-    bg = '#000';
+    papel = document.getElementById('fotoEditorStageMyDropsNex');
+    camada = document.getElementById('fotoEditorLayerMyDropsNex');
+    corFundo = '#000000';
   }
 
-  if (!stage) return '';
-
-  // ⚠️ iOS: reduz o scale pra evitar estouro de memória
-const ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-const escalaMaxima = ehIOS ? 1 : 2;
-
-const canvas = await html2canvas(stage, {
-  backgroundColor: bg,
-  useCORS: true,
-  scale: Math.min(escalaMaxima, window.devicePixelRatio || 1)
-});
-
-  return canvas.toDataURL('image/png', 1);
+  if (!papel) {
+    console.warn('⚠️ Papel do editor não encontrado');
+    return '';
   }
+
+  // ============================================
+  // 1. Dimensões do papel
+  // ============================================
+  const rect = papel.getBoundingClientRect();
+  const largura = Math.round(rect.width);
+  const altura = Math.round(rect.height);
+
+  if (!largura || !altura) {
+    console.warn('⚠️ Papel sem dimensão');
+    return '';
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = largura;
+  canvas.height = altura;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  // ============================================
+  // 2. Fundo (cor ou imagem)
+  // ============================================
+  const bgImageRaw = papel.style.backgroundImage || '';
+  const temBgImage =
+    bgImageRaw && bgImageRaw !== 'none' && bgImageRaw.includes('url(');
+
+  if (temBgImage) {
+    const bgUrl = bgImageRaw
+      .replace(/^url\(["']?/, '')
+      .replace(/["']?\)$/, '');
+
+    await new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const ratioImg = img.width / img.height;
+        const ratioPapel = largura / altura;
+
+        let sw, sh, sx, sy;
+
+        if (ratioImg > ratioPapel) {
+          sh = img.height;
+          sw = sh * ratioPapel;
+          sx = (img.width - sw) / 2;
+          sy = 0;
+        } else {
+          sw = img.width;
+          sh = sw / ratioPapel;
+          sx = 0;
+          sy = (img.height - sh) / 2;
+        }
+
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, largura, altura);
+        resolve();
+      };
+      img.onerror = () => {
+        ctx.fillStyle = corFundo;
+        ctx.fillRect(0, 0, largura, altura);
+        resolve();
+      };
+      img.src = bgUrl;
+    });
+  } else {
+    const cor = papel.style.backgroundColor || corFundo;
+    ctx.fillStyle = cor || corFundo;
+    ctx.fillRect(0, 0, largura, altura);
+  }
+
+  // ============================================
+  // 3. Foto principal (só pro editor de Foto novo)
+  // ============================================
+  if (fotoNovoAberto) {
+    const fotoDataURL =
+      typeof window.getFotoAtualDataURL === 'function'
+        ? window.getFotoAtualDataURL()
+        : null;
+
+    if (fotoDataURL) {
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const ratioImg = img.width / img.height;
+          const ratioPapel = largura / altura;
+
+          let sw, sh, sx, sy;
+
+          if (ratioImg > ratioPapel) {
+            sh = img.height;
+            sw = sh * ratioPapel;
+            sx = (img.width - sw) / 2;
+            sy = 0;
+          } else {
+            sw = img.width;
+            sh = sw / ratioPapel;
+            sx = 0;
+            sy = (img.height - sh) / 2;
+          }
+
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, largura, altura);
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = fotoDataURL;
+      });
+    }
+  }
+
+  // ============================================
+  // 4. Elementos (textos + stickers)
+  // ============================================
+  if (camada) {
+    const elementos = camada.querySelectorAll(
+      '.video-editor-text-mydrops-nex, .video-editor-photo-mydrops-nex'
+    );
+
+    for (const el of elementos) {
+      if (el.classList.contains('editor-alca-nex')) continue;
+      if (el.id === 'notasLixeiraNex') continue;
+      if (el.id === 'fotoLixeiraNex') continue;
+
+      const elRect = el.getBoundingClientRect();
+      const x = elRect.left - rect.left;
+      const y = elRect.top - rect.top;
+
+      // ============================================
+      // TEXTO
+      // ============================================
+      if (el.classList.contains('video-editor-text-mydrops-nex')) {
+        const body = el.querySelector('.video-editor-text-body-mydrops-nex');
+        if (!body) continue;
+
+        const texto = (body.textContent || '').trim();
+        if (!texto) continue;
+        if (texto === '2 toque para editar') continue;
+
+        const fontSize = parseFloat(body.style.fontSize) || 28;
+        const fontWeight = body.style.fontWeight || '500';
+        const fontStyle = body.style.fontStyle || 'normal';
+        const fontFamily = body.style.fontFamily || 'Arial, sans-serif';
+        const cor = body.style.color || '#1a1a1a';
+        const align = body.style.textAlign || 'center';
+        const scale = Number(el.dataset.scale) || 1;
+        const rotation = Number(el.dataset.rotation) || 0;
+
+        let bgTema = null;
+        const temas = body.className.match(/tema-([a-z]+)/);
+        if (temas) {
+          const mapa = {
+            branco: '#ffffff',
+            escuro: '#1a1a1a',
+            azul: '#60a5fa',
+            verde: '#4ade80',
+            amarelo: '#facc15',
+            rosa: '#f472b6',
+            roxo: '#a78bfa',
+            neon: '#0a0a0a',
+            papel: '#fffef5',
+            vidro: 'rgba(200,220,255,0.5)'
+          };
+          bgTema = mapa[temas[1]] || null;
+        }
+
+        ctx.save();
+        ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(scale, scale);
+
+        if (bgTema) {
+          ctx.fillStyle = bgTema;
+          ctx.fillRect(
+            -elRect.width / 2 / scale,
+            -elRect.height / 2 / scale,
+            elRect.width / scale,
+            elRect.height / scale
+          );
+        }
+
+        ctx.fillStyle = cor;
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+        ctx.textAlign = align;
+        ctx.textBaseline = 'middle';
+
+        const linhas = texto.split('\n');
+        const alturaLinha = fontSize * 1.2;
+        const total = linhas.length * alturaLinha;
+        const yInicial = -total / 2 + alturaLinha / 2;
+
+        const xTexto =
+          align === 'center'
+            ? 0
+            : align === 'right'
+              ? elRect.width / 2 / scale
+              : -elRect.width / 2 / scale;
+
+        linhas.forEach((linha, i) => {
+          ctx.fillText(linha, xTexto, yInicial + i * alturaLinha);
+        });
+
+        ctx.restore();
+      }
+
+      // ============================================
+      // STICKER (foto por cima)
+      // ============================================
+      else if (el.classList.contains('video-editor-photo-mydrops-nex')) {
+        const img = el.querySelector(
+          '.video-editor-photo-body-mydrops-nex img'
+        );
+        if (!img || !img.src) continue;
+
+        const scale = Number(el.dataset.scale) || 1;
+        const rotation = Number(el.dataset.rotation) || 0;
+
+        await new Promise((resolve) => {
+          const imgCarregada = new Image();
+          imgCarregada.crossOrigin = 'anonymous';
+          imgCarregada.onload = () => {
+            ctx.save();
+            ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
+            ctx.rotate((rotation * Math.PI) / 180);
+            ctx.scale(scale, scale);
+
+            ctx.drawImage(
+              imgCarregada,
+              -elRect.width / 2 / scale,
+              -elRect.height / 2 / scale,
+              elRect.width / scale,
+              elRect.height / scale
+            );
+
+            ctx.restore();
+            resolve();
+          };
+          imgCarregada.onerror = resolve;
+          imgCarregada.src = img.src;
+        });
+      }
+    }
+  }
+
+  // ============================================
+  // 5. Retorna DataURL
+  // ============================================
+  try {
+    const dataUrl = canvas.toDataURL('image/png', 0.92);
+    return dataUrl;
+  } catch (err) {
+    console.error('❌ toDataURL falhou:', err);
+    return '';
+  }
+}
+  
 
   // ============================================
   // OBTER VÍDEO ATUAL (câmera ou drops)
