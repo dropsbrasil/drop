@@ -1541,6 +1541,14 @@ const publicacaoIdAtual =
   window.__dropsMapaIdsPublicacao &&
   window.__dropsMapaIdsPublicacao[chaveDropAtual];
 
+// ⚠️ Marca como visto (apareceu na tela = visto)
+if (
+  publicacaoIdAtual &&
+  window.dropsVistosNex?.marcarVisto
+) {
+  window.dropsVistosNex.marcarVisto(publicacaoIdAtual);
+}
+  
 if (
   publicacaoIdAtual &&
   typeof window.buscarReacoesSupabase === 'function' &&
