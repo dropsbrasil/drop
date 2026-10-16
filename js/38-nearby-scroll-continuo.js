@@ -418,35 +418,85 @@ preview.appendChild(statsRow);
   }
 
   // ============================================
-  // PREPARAR / LIMPAR
-  // ============================================
+// HELPERS — PERFIL TEM DROPS NÃO VISTOS?
+// ============================================
 
-  function prepararPreviews() {
-    const estado = obterEstado();
-    if (!estado || !viewer) return;
+function perfilTemNaoVisto(perfilId) {
+  const estado = obterEstado();
+  if (!estado) return false;
 
-    const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+  const perfil = estado.base[perfilId];
+  if (!perfil) return false;
 
-    // Próximo perfil
-    if (idxAtual < estado.ids.length - 1) {
-      const idProx = estado.ids[idxAtual + 1];
-      const perfilProx = estado.base[idProx];
-      if (perfilProx) {
-        previewProx = criarPreviewPerfilNex(perfilProx, 'prox');
-        if (previewProx) viewer.appendChild(previewProx);
-      }
-    }
+  const drops = window.obterDropsDoPerfil?.(perfil) || [];
+  if (!drops.length) return false;
 
-    // Perfil anterior
-    if (idxAtual > 0) {
-      const idAnt = estado.ids[idxAtual - 1];
-      const perfilAnt = estado.base[idAnt];
-      if (perfilAnt) {
-        previewAnt = criarPreviewPerfilNex(perfilAnt, 'ant');
-        if (previewAnt) viewer.appendChild(previewAnt);
-      }
+  const vistos = window.dropsVistosNex;
+  if (!vistos) return true; // sem sistema de visto, considera todos como não vistos
+
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i];
+    const chaveLocal = window.chaveDropPerfilNex
+      ? window.chaveDropPerfilNex(perfilId, i, d.url || d.imagem || '')
+      : `${perfilId}::${i}::${d.url || d.imagem || ''}`;
+
+    const pubId =
+      window.__dropsMapaIdsPublicacao &&
+      window.__dropsMapaIdsPublicacao[chaveLocal];
+
+    if (!pubId) return true; // sem id, considera como não visto
+    if (!vistos.foiVisto(pubId)) return true; // achou um não visto
+  }
+
+  return false; // todos vistos
+}
+
+// Próximo perfil (não visto) depois do idx atual
+function proximoPerfilComNaoVisto(estado, idxAtual) {
+  for (let i = idxAtual + 1; i < estado.ids.length; i++) {
+    if (perfilTemNaoVisto(estado.ids[i])) return i;
+  }
+  return -1;
+}
+
+// Perfil (não visto) antes do idx atual
+function anteriorPerfilComNaoVisto(estado, idxAtual) {
+  for (let i = idxAtual - 1; i >= 0; i--) {
+    if (perfilTemNaoVisto(estado.ids[i])) return i;
+  }
+  return -1;
+}
+
+// ============================================
+// PREPARAR / LIMPAR
+// ============================================
+
+function prepararPreviews() {
+  const estado = obterEstado();
+  if (!estado || !viewer) return;
+
+  const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+
+  // Próximo perfil COM não visto
+  const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
+  if (idxProx >= 0) {
+    const perfilProx = estado.base[estado.ids[idxProx]];
+    if (perfilProx) {
+      previewProx = criarPreviewPerfilNex(perfilProx, 'prox');
+      if (previewProx) viewer.appendChild(previewProx);
     }
   }
+
+  // Perfil anterior COM não visto
+  const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
+  if (idxAnt >= 0) {
+    const perfilAnt = estado.base[estado.ids[idxAnt]];
+    if (perfilAnt) {
+      previewAnt = criarPreviewPerfilNex(perfilAnt, 'ant');
+      if (previewAnt) viewer.appendChild(previewAnt);
+    }
+  }
+}
 
   function limparPreviews() {
     if (previewProx?.parentNode) previewProx.parentNode.removeChild(previewProx);
@@ -590,8 +640,8 @@ function aplicarMovimentoVertical(e, dy) {
   if (!estado) return;
 
     const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
-    const podeProx = idxAtual < estado.ids.length - 1;
-    const podeAnt = idxAtual > 0;
+const podeProx = proximoPerfilComNaoVisto(estado, idxAtual) >= 0;
+const podeAnt = anteriorPerfilComNaoVisto(estado, idxAtual) >= 0;
 
     // ⚠️ Resistência progressiva: quanto mais puxa, mais "pesado" fica.
 //    Fórmula: yFinal = dy * (fatorBase / (1 + excesso/altura))
@@ -652,14 +702,16 @@ if (dy < 0 && !podeProx) {
     const limiar = altura * ENCAIXE_PCT;
 
     const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
+const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
 
-    if (deltaY < -limiar && idxAtual < estado.ids.length - 1) {
-      encaixarNoProximo(estado, idxAtual + 1);
-    } else if (deltaY > limiar && idxAtual > 0) {
-      encaixarNoAnterior(estado, idxAtual - 1);
-    } else {
-      voltarAoInicio();
-    }
+if (deltaY < -limiar && idxProx >= 0) {
+  encaixarNoProximo(estado, idxProx);
+} else if (deltaY > limiar && idxAnt >= 0) {
+  encaixarNoAnterior(estado, idxAnt);
+} else {
+  voltarAoInicio();
+   }
   }
 
   // ============================================
