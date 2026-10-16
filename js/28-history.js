@@ -351,7 +351,14 @@
   // POPSTATE — botão voltar
   // ============================================
   window.addEventListener('popstate', () => {
-    const aberto = detectarAberto();
+  // ⚠️ BLOQUEIO: durante a transição viewer → perfil, o popstate
+  //    pode disparar antes do perfilVisitadoNex ficar ativo.
+  //    Sem esse guard, o history joga o usuário de volta pro feed.
+  if (window.__dropsBloquearPopstate) {
+    return;
+  }
+
+  const aberto = detectarAberto();
 
     // Está na raiz → pergunta se quer sair
     if (aberto.tipo === 'tela-mydrops' || aberto.tipo === 'raiz') {

@@ -9,12 +9,12 @@
   'use strict';
 
   // ============================================
-// PERFIS VISITADOS (dados reais do Supabase)
-// ============================================
-// Os dados agora são buscados em tempo real pelo
-// @username da pessoa visitada.
+  // PERFIS VISITADOS (dados reais do Supabase)
+  // ============================================
+  // Os dados agora são buscados em tempo real pelo
+  // @username da pessoa visitada.
 
-const perfisVisitadosNex = {}; // mantido vazio para compatibilidade
+  const perfisVisitadosNex = {}; // mantido vazio para compatibilidade
 
   // ============================================
   // BLOQUEADOS (em memória, depois vira backend)
@@ -27,167 +27,162 @@ const perfisVisitadosNex = {}; // mantido vazio para compatibilidade
   // ABRIR PERFIL VISITADO
   // ============================================
 
-async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
-Drops.estado.telaOrigemPerfilVisitado =
-  document.querySelector('.screen.active')?.id || 'nex';
+  async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
+    Drops.estado.telaOrigemPerfilVisitado =
+      document.querySelector('.screen.active')?.id || 'nex';
 
-const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
+    const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
 
-if (typeof window.dropsEmpilharEstado === 'function') {
-  window.dropsEmpilharEstado('perfil', { id, nome: perfilNome });
-}
+    Drops.estado.perfilBloquearAtual = id;
+    Drops.estado.perfilAberto = perfilNome;
 
-Drops.estado.perfilBloquearAtual = id;
-Drops.estado.perfilAberto = perfilNome;
+    if (perfisBloqueadosNex.has(id)) {
+      return;
+    }
 
-if (perfisBloqueadosNex.has(id)) {
-  return;
-}
+    // ⚠️ CORREÇÃO: Restaura scroll do body
+    document.body.style.overflow = '';
+    document.body.classList.remove('viewer-aberto');
 
-// ⚠️ CORREÇÃO: Restaura scroll do body
-document.body.style.overflow = '';
-document.body.classList.remove('viewer-aberto');
+    // Registra visita (hoje: stub; amanhã: backend)
+    if (typeof window.registrarVisitaPerfil === 'function') {
+      window.registrarVisitaPerfil(id, Drops.usernameAtual);
+    }
 
-// Registra visita (hoje: stub; amanhã: backend)
-if (typeof window.registrarVisitaPerfil === 'function') {
-  window.registrarVisitaPerfil(id, Drops.usernameAtual);
-}
+    // ============================================
+    // BUSCA DADOS REAIS NO SUPABASE
+    // ============================================
+    let perfilReal = null;
 
-// ============================================
-// BUSCA DADOS REAIS NO SUPABASE
-// ============================================
-let perfilReal = null;
+    try {
+      if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+        perfilReal = await window.buscarPerfilPublicoSupabase(id);
+      }
+    } catch (e) {
+      console.warn('Erro ao buscar perfil público:', e);
+    }
 
-try {
-  if (typeof window.buscarPerfilPublicoSupabase === 'function') {
-    perfilReal = await window.buscarPerfilPublicoSupabase(id);
-  }
-} catch (e) {
-  console.warn('Erro ao buscar perfil público:', e);
-}
+    // Dados padrão (usados se o perfil não existir no Supabase)
+    const perfilBase = {
+      nome: perfilReal?.nome || perfilNome || 'Perfil',
+      capa: perfilReal?.capa_url || 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
+      avatar: perfilReal?.avatar_url || null,
+      bio: perfilReal?.bio || 'Sem bio disponível no momento.',
+      visitas: '0',
+      reacoes: '0',
+      adeptos: '0',
+      social: {
+        instagram: perfilReal?.social_instagram || '',
+        tiktok: perfilReal?.social_tiktok || '',
+        whatsapp: perfilReal?.social_whatsapp || ''
+      },
+      drops: []
+    };
 
+    // ============================================
+    // BUSCA DROPS REAIS DESSE USUÁRIO
+    // ============================================
+    if (perfilReal && typeof window.buscarDropsDoUsuarioSupabase === 'function') {
+      try {
+        const drops = await window.buscarDropsDoUsuarioSupabase(perfilReal.id);
+        perfilBase.drops = drops;
+      } catch (e) {
+        console.warn('Erro ao buscar drops do perfil:', e);
+      }
+    }
 
-// Dados padrão (usados se o perfil não existir no Supabase)
-const perfilBase = {
-  nome: perfilReal?.nome || perfilNome || 'Perfil',
-  capa: perfilReal?.capa_url || 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
-  avatar: perfilReal?.avatar_url || null,
-  bio: perfilReal?.bio || 'Sem bio disponível no momento.',
-  visitas: '0',
-  reacoes: '0',
-  adeptos: '0',
-  social: {
-    instagram: perfilReal?.social_instagram || '',
-    tiktok: perfilReal?.social_tiktok || '',
-    whatsapp: perfilReal?.social_whatsapp || ''
-  },
-  drops: []
-};
+    const perfil = {
+      ...perfilBase,
+      drops: [...(perfilBase.drops || [])]
+    };
 
-// ============================================
-// BUSCA DROPS REAIS DESSE USUÁRIO
-// ============================================
-if (perfilReal && typeof window.buscarDropsDoUsuarioSupabase === 'function') {
-  try {
-    const drops = await window.buscarDropsDoUsuarioSupabase(perfilReal.id);
-    perfilBase.drops = drops;
-  } catch (e) {
-    console.warn('Erro ao buscar drops do perfil:', e);
-  }
-}
-
-const perfil = {
-  ...perfilBase,
-  drops: [...(perfilBase.drops || [])]
-};
-
-// ⚠️ Salva no mapa pra usar quando clicar num drop
-perfisVisitadosNex[id] = { ...perfil, id };
+    // ⚠️ Salva no mapa pra usar quando clicar num drop
+    perfisVisitadosNex[id] = { ...perfil, id };
 
     // ============================================
     // PREENCHE CAMPOS VISUAIS
     // ============================================
 
     const capaEl = document.getElementById('perfilCapaNex');
-if (capaEl) {
-  capaEl.style.backgroundImage = `url('${perfil.capa}')`;
-  capaEl.style.cursor = 'pointer';
+    if (capaEl) {
+      capaEl.style.backgroundImage = `url('${perfil.capa}')`;
+      capaEl.style.cursor = 'pointer';
 
-  capaEl.onclick = () => {
-    if (typeof window.abrirFotoPerfilNex === 'function') {
-      window.abrirFotoPerfilNex(perfil.capa, perfil.nome, 'capa');
+      capaEl.onclick = () => {
+        if (typeof window.abrirFotoPerfilNex === 'function') {
+          window.abrirFotoPerfilNex(perfil.capa, perfil.nome, 'capa');
+        }
+      };
     }
-  };
-}
 
-const avatarEl = document.getElementById('perfilAvatarNex');
-if (avatarEl) {
-  const avatarValido =
-    perfil.avatar &&
-    typeof perfil.avatar === 'string' &&
-    (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
+    const avatarEl = document.getElementById('perfilAvatarNex');
+    if (avatarEl) {
+      const avatarValido =
+        perfil.avatar &&
+        typeof perfil.avatar === 'string' &&
+        (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
 
-  if (avatarValido) {
-    avatarEl.style.backgroundImage = 'none';
-    avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-  } else {
-    avatarEl.innerHTML = '';
-    avatarEl.style.backgroundImage = 'none';
-    avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
-  }
+      if (avatarValido) {
+        avatarEl.style.backgroundImage = 'none';
+        avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+      } else {
+        avatarEl.innerHTML = '';
+        avatarEl.style.backgroundImage = 'none';
+        avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
+      }
 
-  // ⚠️ Clique no avatar → abre em tela cheia
-  avatarEl.style.cursor = 'pointer';
-  avatarEl.onclick = () => {
-    if (typeof window.abrirFotoPerfilNex === 'function') {
-      window.abrirFotoPerfilNex(avatarValido ? perfil.avatar : null, perfil.nome, 'avatar');
+      // ⚠️ Clique no avatar → abre em tela cheia
+      avatarEl.style.cursor = 'pointer';
+      avatarEl.onclick = () => {
+        if (typeof window.abrirFotoPerfilNex === 'function') {
+          window.abrirFotoPerfilNex(avatarValido ? perfil.avatar : null, perfil.nome, 'avatar');
+        }
+      };
     }
-  };
-}
 
     const nomeEl = document.getElementById('perfilNomeNex');
     if (nomeEl) nomeEl.textContent = perfil.nome;
 
-  // ============================================
-// BOTÕES SOCIAIS — esconde os vazios
-// ============================================
-const socialBtns = document.querySelectorAll('.perfil-social button');
-const socialConfig = [
-  { tipo: 'instagram', valor: perfil.social?.instagram || '' },
-  { tipo: 'tiktok', valor: perfil.social?.tiktok || '' },
-  { tipo: 'whatsapp', valor: perfil.social?.whatsapp || '' }
-];
+    // ============================================
+    // BOTÕES SOCIAIS — esconde os vazios
+    // ============================================
+    const socialBtns = document.querySelectorAll('.perfil-social button');
+    const socialConfig = [
+      { tipo: 'instagram', valor: perfil.social?.instagram || '' },
+      { tipo: 'tiktok', valor: perfil.social?.tiktok || '' },
+      { tipo: 'whatsapp', valor: perfil.social?.whatsapp || '' }
+    ];
 
-let algumSocialPreenchido = false;
+    let algumSocialPreenchido = false;
 
-socialBtns.forEach((btn, i) => {
-  const cfg = socialConfig[i];
-  if (!cfg) return;
+    socialBtns.forEach((btn, i) => {
+      const cfg = socialConfig[i];
+      if (!cfg) return;
 
-  const temValor = String(cfg.valor || '').trim() !== '';
+      const temValor = String(cfg.valor || '').trim() !== '';
 
-  if (temValor) {
-    btn.style.display = '';
-    algumSocialPreenchido = true;
+      if (temValor) {
+        btn.style.display = '';
+        algumSocialPreenchido = true;
 
-    // ⚠️ Adiciona o clique pra abrir o link
-    btn.onclick = (e) => {
-      e.preventDefault();
-      const link = window.montarLinkSocialNex
-        ? window.montarLinkSocialNex(cfg.tipo, cfg.valor)
-        : '';
-      if (link) window.open(link, '_blank');
-    };
-  } else {
-    btn.style.display = 'none';
-    btn.onclick = null;
-  }
-});
+        // ⚠️ Adiciona o clique pra abrir o link
+        btn.onclick = (e) => {
+          e.preventDefault();
+          const link = window.montarLinkSocialNex
+            ? window.montarLinkSocialNex(cfg.tipo, cfg.valor)
+            : '';
+          if (link) window.open(link, '_blank');
+        };
+      } else {
+        btn.style.display = 'none';
+        btn.onclick = null;
+      }
+    });
 
-const socialContainer = document.querySelector('.perfil-social');
-if (socialContainer) {
-  socialContainer.style.display = algumSocialPreenchido ? '' : 'none';
-}
+    const socialContainer = document.querySelector('.perfil-social');
+    if (socialContainer) {
+      socialContainer.style.display = algumSocialPreenchido ? '' : 'none';
+    }
 
     const perfilUsernameEl = document.getElementById('perfilUsernameNex');
     if (perfilUsernameEl) {
@@ -197,109 +192,118 @@ if (socialContainer) {
 
     const bioEl = document.getElementById('perfilBioNex');
     if (bioEl) bioEl.textContent = perfil.bio;
+    
+  // ============================================
+  // RENDERIZA GRID DE DROPS
+  // ============================================
 
-    // ============================================
-    // RENDERIZA GRID DE DROPS
-    // ============================================
+  const grid = document.getElementById('perfilDropsGridNex');
+  if (grid) {
+    grid.innerHTML = '';
 
-    const grid = document.getElementById('perfilDropsGridNex');
-    if (grid) {
-      grid.innerHTML = '';
-
-      if (!perfil.drops || perfil.drops.length === 0) {
-        grid.innerHTML = `
-          <div style="
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 40px 20px;
-            color: #94a3b8;
-            font-size: 14px;
-            font-weight: 600;
-          ">
-            Nenhuma publicação ainda.
-          </div>
-        `;
-      } else {
-  perfil.drops.forEach((drop, dropIndex) => {
-    const card = document.createElement('div');
-    card.className = 'perfil-drop-card';
-    card.style.cursor = 'pointer';
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-
-    const abrirDrop = () => abrirDropsPerfilVisitadoNex(id, dropIndex);
-
-    card.addEventListener('click', abrirDrop);
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        abrirDrop();
-      }
-    });
-
-    if (drop.type === 'video') {
-      card.innerHTML = `
-        <div class="perfil-drop-media-indicator">🎥 vídeo</div>
-        <video src="${drop.url}" muted loop playsinline autoplay></video>
-        <div class="perfil-drop-meta">preview</div>
+    if (!perfil.drops || perfil.drops.length === 0) {
+      grid.innerHTML = `
+        <div style="
+          grid-column: 1 / -1;
+          text-align: center;
+          padding: 40px 20px;
+          color: #94a3b8;
+          font-size: 14px;
+          font-weight: 600;
+        ">
+          Nenhuma publicação ainda.
+        </div>
       `;
     } else {
-      card.innerHTML = `
-        <div class="perfil-drop-media-indicator">📸 foto</div>
-        <img src="${drop.url}" alt="">
-        <div class="perfil-drop-meta">preview</div>
-      `;
+      perfil.drops.forEach((drop, dropIndex) => {
+        const card = document.createElement('div');
+        card.className = 'perfil-drop-card';
+        card.style.cursor = 'pointer';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+
+        const abrirDrop = () => abrirDropsPerfilVisitadoNex(id, dropIndex);
+
+        card.addEventListener('click', abrirDrop);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            abrirDrop();
+          }
+        });
+
+        if (drop.type === 'video') {
+          card.innerHTML = `
+            <div class="perfil-drop-media-indicator">🎥 vídeo</div>
+            <video src="${drop.url}" muted loop playsinline autoplay></video>
+            <div class="perfil-drop-meta">preview</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="perfil-drop-media-indicator">📸 foto</div>
+            <img src="${drop.url}" alt="">
+            <div class="perfil-drop-meta">preview</div>
+          `;
+        }
+
+        // ============================================
+        // ⚠️ AJUSTE 1 — CÁPSULA DE AUTOR (drop compartilhado)
+        // ============================================
+        // Se o drop é uma republicação, mostra a cápsula com o
+        // autor original no canto superior esquerdo do card.
+
+        if (drop.compartilhado_de_id) {
+          const capsulaAutor = document.createElement('div');
+          capsulaAutor.className = 'mydrops-publication-capsula-autor';
+
+          const avatarHTML = drop.compartilhado_de_avatar
+            ? `<img src="${escapeHTML(drop.compartilhado_de_avatar)}" alt="">`
+            : escapeHTML(
+                (drop.compartilhado_de_nome || '?').charAt(0).toUpperCase()
+              );
+
+          capsulaAutor.innerHTML = `
+            <div class="mydrops-publication-capsula-autor-avatar">
+              ${avatarHTML}
+            </div>
+            <svg class="mydrops-publication-capsula-autor-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="17 1 21 5 17 9"/>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+              <polyline points="7 23 3 19 7 15"/>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+            </svg>
+          `;
+
+          card.appendChild(capsulaAutor);
+        }
+
+        grid.appendChild(card);
+      });
     }
+  }
 
-    // ============================================
-    // ⚠️ AJUSTE 1 — CÁPSULA DE AUTOR (drop compartilhado)
-    // ============================================
-    // Se o drop é uma republicação, mostra a cápsula com o
-    // autor original no canto superior esquerdo do card.
+  // ============================================
+  // MOSTRA A TELA E ATUALIZA BOTÕES
+  // ============================================
 
-    if (drop.compartilhado_de_id) {
-      const capsulaAutor = document.createElement('div');
-      capsulaAutor.className = 'mydrops-publication-capsula-autor';
+  if (typeof mostrarTela === 'function') {
+    mostrarTela('perfilVisitadoNex');
+  }
 
-      const avatarHTML = drop.compartilhado_de_avatar
-        ? `<img src="${escapeHTML(drop.compartilhado_de_avatar)}" alt="">`
-        : escapeHTML(
-            (drop.compartilhado_de_nome || '?').charAt(0).toUpperCase()
-          );
+  // ⚠️ CORREÇÃO: empilha o estado DEPOIS do mostrarTela.
+  //    Assim, se um popstate disparar durante a transição
+  //    viewer → perfil, o 28-history.js já encontra
+  //    perfilVisitadoNex ativa e não joga de volta pro feed.
+  if (typeof window.dropsEmpilharEstado === 'function') {
+    window.dropsEmpilharEstado('perfil', { id, nome: perfilNome });
+  }
 
-      capsulaAutor.innerHTML = `
-        <div class="mydrops-publication-capsula-autor-avatar">
-          ${avatarHTML}
-        </div>
-        <svg class="mydrops-publication-capsula-autor-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="17 1 21 5 17 9"/>
-          <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-          <polyline points="7 23 3 19 7 15"/>
-          <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-        </svg>
-      `;
-
-      card.appendChild(capsulaAutor);
-    }
-
-    grid.appendChild(card);
-  });
-      }
-    }
-    // ============================================
-    // MOSTRA A TELA E ATUALIZA BOTÕES
-    // ============================================
-
-    if (typeof mostrarTela === 'function') {
-      mostrarTela('perfilVisitadoNex');
-    }
-
-      atualizarBotaoConectarPerfilNex();
+  atualizarBotaoConectarPerfilNex();
   atualizarSeloAdeptoPerfilNex(id);
 
-// Renderiza o mural do perfil visitado
-renderizarMuralNoPerfilVisitadoNex(id);
-  }
+  // Renderiza o mural do perfil visitado
+  renderizarMuralNoPerfilVisitadoNex(id);
+}
 
 // ============================================
 // MURAL NO PERFIL VISITADO
@@ -327,33 +331,32 @@ async function renderizarMuralNoPerfilVisitadoNex(perfilId) {
     console.warn('Erro ao buscar mural do perfil:', err);
   }
 
-
   // ⚠️ Conta quantas PESSOAS diferentes contribuíram
-const pessoasUnicas = new Set();
+  const pessoasUnicas = new Set();
 
-if (Array.isArray(contribuicoes)) {
-  contribuicoes.forEach((contrib) => {
-    const autor = String(
-      contrib.autor_username || contrib.autor_id || ''
-    )
-      .replace(/^@/, '')
-      .toLowerCase()
-      .trim();
+  if (Array.isArray(contribuicoes)) {
+    contribuicoes.forEach((contrib) => {
+      const autor = String(
+        contrib.autor_username || contrib.autor_id || ''
+      )
+        .replace(/^@/, '')
+        .toLowerCase()
+        .trim();
 
-    if (autor) pessoasUnicas.add(autor);
-  });
+      if (autor) pessoasUnicas.add(autor);
+    });
+  }
+
+  const total = pessoasUnicas.size;
+
+  // ⚠️ Atualiza a cápsula nova
+  const capsula = document.getElementById('muralCapsulaVisitadoNex');
+  if (capsula) {
+    const numeroEl = capsula.querySelector('.mural-capsula-numero');
+    if (numeroEl) numeroEl.textContent = String(total);
+  }
 }
 
-const total = pessoasUnicas.size;
-
-// ⚠️ Atualiza a cápsula nova
-const capsula = document.getElementById('muralCapsulaVisitadoNex');
-if (capsula) {
-  const numeroEl = capsula.querySelector('.mural-capsula-numero');
-  if (numeroEl) numeroEl.textContent = String(total);
-}
-}
-  
 // ============================================
 // MODAL "MURAL EM BREVE"
 // ============================================
@@ -367,23 +370,23 @@ function fecharMuralEmBrevePerfilNex() {
   const modal = document.getElementById('perfilMuralEmBreveNex');
   if (modal) modal.style.display = 'none';
 }
-  
-  // ============================================
-  // VOLTAR DO PERFIL
-  // ============================================
 
-  function voltarPerfilVisitadoNex() {
-    const destino = Drops.estado.telaOrigemPerfilVisitado || 'nex';
+// ============================================
+// VOLTAR DO PERFIL
+// ============================================
 
-    if (typeof mostrarTela === 'function') {
-      mostrarTela(destino);
-    }
+function voltarPerfilVisitadoNex() {
+  const destino = Drops.estado.telaOrigemPerfilVisitado || 'nex';
 
-    if (destino === 'nex' && typeof mostrarNexTab === 'function') {
-      mostrarNexTab('naolidas');
-    }
+  if (typeof mostrarTela === 'function') {
+    mostrarTela(destino);
   }
 
+  if (destino === 'nex' && typeof mostrarNexTab === 'function') {
+    mostrarNexTab('naolidas');
+  }
+} 
+  
   // ============================================
   // ABRIR DROPS DO PERFIL VISITADO
   // ============================================
@@ -398,36 +401,36 @@ function fecharMuralEmBrevePerfilNex() {
     }
 
     // ============================================
-// ⚠️ AJUSTE 1 — Garante que os drops carreguem os dados
-//    de compartilhamento pro viewer do Nearby montar a cápsula.
-// ============================================
+    // ⚠️ AJUSTE 1 — Garante que os drops carreguem os dados
+    //    de compartilhamento pro viewer do Nearby montar a cápsula.
+    // ============================================
 
-const dropsComCompartilhamento = (perfil.drops || []).map((drop) => ({
-  ...drop,
-  compartilhado_de_id: drop.compartilhado_de_id || null,
-  compartilhado_de_username: drop.compartilhado_de_username || '',
-  compartilhado_de_nome: drop.compartilhado_de_nome || '',
-  compartilhado_de_avatar: drop.compartilhado_de_avatar || ''
-}));
+    const dropsComCompartilhamento = (perfil.drops || []).map((drop) => ({
+      ...drop,
+      compartilhado_de_id: drop.compartilhado_de_id || null,
+      compartilhado_de_username: drop.compartilhado_de_username || '',
+      compartilhado_de_nome: drop.compartilhado_de_nome || '',
+      compartilhado_de_avatar: drop.compartilhado_de_avatar || ''
+    }));
 
-const base = {
-  [id]: {
-    ...perfil,
-    drops: dropsComCompartilhamento,
-    id
+    const base = {
+      [id]: {
+        ...perfil,
+        drops: dropsComCompartilhamento,
+        id
+      }
+    };
+
+    if (typeof abrirViewerPublicacaoNex === 'function') {
+      abrirViewerPublicacaoNex(
+        base[id],
+        'perfil',
+        id,
+        dropIndexInicial,
+        base
+      );
+    }
   }
-};
-
-if (typeof abrirViewerPublicacaoNex === 'function') {
-  abrirViewerPublicacaoNex(
-    base[id],
-    'perfil',
-    id,
-    dropIndexInicial,
-    base
-  );
-}
-    
 
   // ============================================
   // ATUALIZAR BOTÃO CONECTAR/DESCONECTAR
@@ -444,7 +447,7 @@ if (typeof abrirViewerPublicacaoNex === 'function') {
     );
 
     btn.textContent = conectado ? 'Remover dos amigos' : '+ Adicionar aos amigos';
-btn.classList.toggle('is-connected', conectado);
+    btn.classList.toggle('is-connected', conectado);
   }
 
   // ============================================
@@ -452,62 +455,61 @@ btn.classList.toggle('is-connected', conectado);
   // ============================================
 
   async function alternarConexaoPerfilNex() {
-  const id = normalizarIdPerfilNex(Drops.estado.perfilBloquearAtual);
-  if (!id) return;
+    const id = normalizarIdPerfilNex(Drops.estado.perfilBloquearAtual);
+    if (!id) return;
 
-  const perfil = perfisVisitadosNex[id] || {
-    nome: Drops.estado.perfilAberto || id,
-    avatar: (Drops.estado.perfilAberto || id).charAt(0).toUpperCase()
-  };
+    const perfil = perfisVisitadosNex[id] || {
+      nome: Drops.estado.perfilAberto || id,
+      avatar: (Drops.estado.perfilAberto || id).charAt(0).toUpperCase()
+    };
 
-  let lista = lerConectadosMyDropsNex();
-  const jaExiste = lista.some((item) => item.id === id);
+    let lista = lerConectadosMyDropsNex();
+    const jaExiste = lista.some((item) => item.id === id);
 
-  if (jaExiste) {
-    // ⚠️ Desconectar — remove do Supabase primeiro
-    if (window.ConectadosAdapterNex?.removerConectadoSupabase) {
-      await window.ConectadosAdapterNex.removerConectadoSupabase(id);
+    if (jaExiste) {
+      // ⚠️ Desconectar — remove do Supabase primeiro
+      if (window.ConectadosAdapterNex?.removerConectadoSupabase) {
+        await window.ConectadosAdapterNex.removerConectadoSupabase(id);
+      }
+
+      const perfilRemovido = lista.find(
+        (item) => normalizarIdPerfilNex(item.id) === id
+      );
+
+      if (typeof registrarDesconexaoMyDropsNex === 'function') {
+        registrarDesconexaoMyDropsNex(perfilRemovido || perfil);
+      }
+
+      lista = lista.filter((item) => normalizarIdPerfilNex(item.id) !== id);
+    } else {
+      // ⚠️ Conectar — salva no Supabase primeiro
+      if (window.ConectadosAdapterNex?.adicionarConectadoSupabase) {
+        await window.ConectadosAdapterNex.adicionarConectadoSupabase(id);
+      }
+
+      lista.unshift({
+        id,
+        nome: perfil.nome || id,
+        avatar: perfil.avatar || (perfil.nome || id).charAt(0).toUpperCase()
+      });
     }
 
-    const perfilRemovido = lista.find(
-      (item) => normalizarIdPerfilNex(item.id) === id
-    );
+    salvarConectadosMyDropsNex(lista);
+    atualizarBotaoConectarPerfilNex();
 
-    if (typeof registrarDesconexaoMyDropsNex === 'function') {
-      registrarDesconexaoMyDropsNex(perfilRemovido || perfil);
+    if (typeof renderizarConectadosMyDropsNex === 'function') {
+      renderizarConectadosMyDropsNex();
     }
 
-    lista = lista.filter((item) => normalizarIdPerfilNex(item.id) !== id);
-  } else {
-    // ⚠️ Conectar — salva no Supabase primeiro
-    if (window.ConectadosAdapterNex?.adicionarConectadoSupabase) {
-      await window.ConectadosAdapterNex.adicionarConectadoSupabase(id);
+    if (typeof renderizarPublicacoesNearbyNex === 'function') {
+      renderizarPublicacoesNearbyNex();
     }
 
-    lista.unshift({
-      id,
-      nome: perfil.nome || id,
-      avatar:
-        perfil.avatar || (perfil.nome || id).charAt(0).toUpperCase()
-    });
+    if (typeof sincronizarConversasComConectadosMyDropsNex === 'function') {
+      sincronizarConversasComConectadosMyDropsNex();
+    }
   }
 
-  salvarConectadosMyDropsNex(lista);
-  atualizarBotaoConectarPerfilNex();
-
-  if (typeof renderizarConectadosMyDropsNex === 'function') {
-    renderizarConectadosMyDropsNex();
-  }
-
-  if (typeof renderizarPublicacoesNearbyNex === 'function') {
-    renderizarPublicacoesNearbyNex();
-  }
-
-  if (typeof sincronizarConversasComConectadosMyDropsNex === 'function') {
-    sincronizarConversasComConectadosMyDropsNex();
-  }
-  }
-  
   // ============================================
   // SELO DE ADEPTO
   // ============================================
@@ -539,108 +541,108 @@ btn.classList.toggle('is-connected', conectado);
     }
   }
 
-// ============================================
-// ABRIR CHAT DIRETO COM PERFIL
-// ============================================
+  // ============================================
+  // ABRIR CHAT DIRETO COM PERFIL
+  // ============================================
 
-function abrirChatDiretoPerfilNex() {
-  const nomeEl = document.getElementById('perfilNomeNex');
-  const userEl = document.getElementById('perfilUsernameNex');
+  function abrirChatDiretoPerfilNex() {
+    const nomeEl = document.getElementById('perfilNomeNex');
+    const userEl = document.getElementById('perfilUsernameNex');
 
-  const perfilAberto = (nomeEl?.textContent || '').trim();
-  const perfilUsername = String(userEl?.textContent || '')
-    .replace(/^@/, '')
-    .trim()
-    .toLowerCase();
+    const perfilAberto = (nomeEl?.textContent || '').trim();
+    const perfilUsername = String(userEl?.textContent || '')
+      .replace(/^@/, '')
+      .trim()
+      .toLowerCase();
 
-  if (!perfilAberto || !perfilUsername) {
-    alert('Perfil sem dados. Volte e tente novamente.');
-    return;
+    if (!perfilAberto || !perfilUsername) {
+      alert('Perfil sem dados. Volte e tente novamente.');
+      return;
+    }
+
+    // ⚠️ Atualiza os caches
+    Drops.estado.perfilAberto = perfilAberto;
+    Drops.estado.perfilBloquearAtual = perfilUsername;
+    Drops.estado.conversaAtual = perfilUsername;
+
+    window.__convUsernamesNex = window.__convUsernamesNex || {};
+    window.__convUsernamesNex[perfilAberto] = perfilUsername;
+    window.__convUsernamesNex[perfilUsername] = perfilUsername;
+
+    window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
+    window.__convNomesExibidosNex[perfilUsername] = perfilAberto;
+
+    if (!window.conversas[perfilUsername]) {
+      window.conversas[perfilUsername] = [];
+    }
+
+    // ⚠️ ESCONDE telas, MOSTRA chat manualmente
+    document.querySelectorAll('.screen').forEach((t) => {
+      t.style.display = 'none';
+      t.classList.remove('active');
+    });
+
+    const chat = document.getElementById('chatNex');
+    if (chat) {
+      chat.style.display = 'block';
+      chat.classList.add('active');
+    }
+
+    document.body.classList.add('chat-aberto');
+
+    // ⚠️ PREENCHE O TOPO DO CHAT direto
+    const chatName = document.getElementById('chatName');
+    const chatBio = document.getElementById('chatBio');
+    const chatAvatar = document.getElementById('chatAvatar');
+    const chatStatus = document.getElementById('chatStatus');
+
+    if (chatName) chatName.innerText = perfilAberto;
+    if (chatBio) chatBio.innerText = 'Carregando...';
+    if (chatStatus) chatStatus.innerText = 'offline';
+
+    if (chatAvatar) {
+      chatAvatar.innerText = perfilAberto.charAt(0).toUpperCase();
+    }
+
+    // ⚠️ Carrega conversa do Supabase
+    if (typeof window.carregarConversaSupabase === 'function') {
+      window.carregarConversaSupabase(perfilUsername)
+        .then(() => {
+          if (typeof window.renderChat === 'function') {
+            window.renderChat(perfilUsername);
+          }
+
+          // ⚠️ Busca nome real e avatar do Supabase
+          if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+            window.buscarPerfilPublicoSupabase(perfilUsername)
+              .then((perfil) => {
+                if (!perfil) return;
+
+                const nomeReal = perfil.nome || perfilAberto;
+                const bioReal = perfil.bio || 'Sem bio ainda.';
+
+                if (chatName) chatName.innerText = nomeReal;
+                if (chatBio) chatBio.innerText = bioReal;
+
+                if (perfil.avatar_url && chatAvatar) {
+                  chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
+                }
+
+                // ⚠️ Atualiza status online
+                const ultima = perfil.ultima_atividade;
+                if (ultima && chatStatus) {
+                  const online = Date.now() - new Date(ultima).getTime() < 30000;
+                  chatStatus.innerText = online ? 'online' : 'offline';
+                }
+              })
+              .catch((e) => console.warn('Erro ao buscar perfil:', e));
+          }
+        })
+        .catch((e) => console.warn('Erro ao carregar conversa:', e));
+    }
   }
 
-  // ⚠️ Atualiza os caches
-  Drops.estado.perfilAberto = perfilAberto;
-  Drops.estado.perfilBloquearAtual = perfilUsername;
-  Drops.estado.conversaAtual = perfilUsername;
-
-  window.__convUsernamesNex = window.__convUsernamesNex || {};
-  window.__convUsernamesNex[perfilAberto] = perfilUsername;
-  window.__convUsernamesNex[perfilUsername] = perfilUsername;
-
-  window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
-  window.__convNomesExibidosNex[perfilUsername] = perfilAberto;
-
-  if (!window.conversas[perfilUsername]) {
-    window.conversas[perfilUsername] = [];
-  }
-
-  // ⚠️ ESCONDE telas, MOSTRA chat manualmente
-  document.querySelectorAll('.screen').forEach((t) => {
-    t.style.display = 'none';
-    t.classList.remove('active');
-  });
-
-  const chat = document.getElementById('chatNex');
-  if (chat) {
-    chat.style.display = 'block';
-    chat.classList.add('active');
-  }
-
-  document.body.classList.add('chat-aberto');
-
-  // ⚠️ PREENCHE O TOPO DO CHAT direto
-  const chatName = document.getElementById('chatName');
-  const chatBio = document.getElementById('chatBio');
-  const chatAvatar = document.getElementById('chatAvatar');
-  const chatStatus = document.getElementById('chatStatus');
-
-  if (chatName) chatName.innerText = perfilAberto;
-  if (chatBio) chatBio.innerText = 'Carregando...';
-  if (chatStatus) chatStatus.innerText = 'offline';
-
-  if (chatAvatar) {
-    chatAvatar.innerText = perfilAberto.charAt(0).toUpperCase();
-  }
-
-  // ⚠️ Carrega conversa do Supabase
-  if (typeof window.carregarConversaSupabase === 'function') {
-    window.carregarConversaSupabase(perfilUsername)
-      .then(() => {
-        if (typeof window.renderChat === 'function') {
-          window.renderChat(perfilUsername);
-        }
-
-        // ⚠️ Busca nome real e avatar do Supabase
-        if (typeof window.buscarPerfilPublicoSupabase === 'function') {
-          window.buscarPerfilPublicoSupabase(perfilUsername)
-            .then((perfil) => {
-              if (!perfil) return;
-
-              const nomeReal = perfil.nome || perfilAberto;
-              const bioReal = perfil.bio || 'Sem bio ainda.';
-
-              if (chatName) chatName.innerText = nomeReal;
-              if (chatBio) chatBio.innerText = bioReal;
-
-              if (perfil.avatar_url && chatAvatar) {
-                chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-              }
-
-              // ⚠️ Atualiza status online
-              const ultima = perfil.ultima_atividade;
-              if (ultima && chatStatus) {
-                const online = Date.now() - new Date(ultima).getTime() < 30000;
-                chatStatus.innerText = online ? 'online' : 'offline';
-              }
-            })
-            .catch((e) => console.warn('Erro ao buscar perfil:', e));
-        }
-      })
-      .catch((e) => console.warn('Erro ao carregar conversa:', e));
-  }
-}
-
-window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;
+  window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;
 
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -649,7 +651,7 @@ window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;
   window.abrirPerfilVisitadoNex = abrirPerfilVisitadoNex;
   window.renderizarMuralNoPerfilVisitadoNex = renderizarMuralNoPerfilVisitadoNex;
   window.abrirMuralEmBrevePerfilNex = abrirMuralEmBrevePerfilNex;
-window.fecharMuralEmBrevePerfilNex = fecharMuralEmBrevePerfilNex;
+  window.fecharMuralEmBrevePerfilNex = fecharMuralEmBrevePerfilNex;
   window.voltarPerfilVisitadoNex = voltarPerfilVisitadoNex;
   window.abrirDropsPerfilVisitadoNex = abrirDropsPerfilVisitadoNex;
   window.atualizarBotaoConectarPerfilNex = atualizarBotaoConectarPerfilNex;
@@ -662,35 +664,35 @@ window.fecharMuralEmBrevePerfilNex = fecharMuralEmBrevePerfilNex;
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-  // ⚠️ Carrega bloqueados do Supabase ao abrir o app
-  if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
-    setTimeout(async () => {
-      await window.BloqueadosAdapterNex.carregarBloqueadosSupabase();
-    }, 1200);
-  }
+    // ⚠️ Carrega bloqueados do Supabase ao abrir o app
+    if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
+      setTimeout(async () => {
+        await window.BloqueadosAdapterNex.carregarBloqueadosSupabase();
+      }, 1200);
+    }
 
-  // Botão Conectar
-  const btnConectarPerfil = document.getElementById('btnConectarPerfilNex');
-  if (btnConectarPerfil) {
-    btnConectarPerfil.addEventListener('click', alternarConexaoPerfilNex);
-  }
+    // Botão Conectar
+    const btnConectarPerfil = document.getElementById('btnConectarPerfilNex');
+    if (btnConectarPerfil) {
+      btnConectarPerfil.addEventListener('click', alternarConexaoPerfilNex);
+    }
 
-// Botão Abrir Chat — usa onclick inline no HTML
-    
-  // Modal "Mural em breve" — botão OK
-  const btnOkMural = document.getElementById('perfilMuralEmBreveOkNex');
-  if (btnOkMural) {
-    btnOkMural.addEventListener('click', fecharMuralEmBrevePerfilNex);
-  }
+    // Botão Abrir Chat — usa onclick inline no HTML
 
-  // Fecha modal ao clicar fora
-  const modalMural = document.getElementById('perfilMuralEmBreveNex');
-  if (modalMural) {
-    modalMural.addEventListener('click', (e) => {
-      if (e.target === modalMural) fecharMuralEmBrevePerfilNex();
-    });
-  }
-});
+    // Modal "Mural em breve" — botão OK
+    const btnOkMural = document.getElementById('perfilMuralEmBreveOkNex');
+    if (btnOkMural) {
+      btnOkMural.addEventListener('click', fecharMuralEmBrevePerfilNex);
+    }
+
+    // Fecha modal ao clicar fora
+    const modalMural = document.getElementById('perfilMuralEmBreveNex');
+    if (modalMural) {
+      modalMural.addEventListener('click', (e) => {
+        if (e.target === modalMural) fecharMuralEmBrevePerfilNex();
+      });
+    }
+  });
 
   // ============================================
   // DEBUG

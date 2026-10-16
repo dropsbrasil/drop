@@ -628,8 +628,9 @@ const TEMPO_MAX_SWIPE = 800;
         <div class="nearby-drop-views">
           👁 <span id="nearbyDropViews">0</span>
         </div>
-        <div class="nearby-drop-reactions" id="nearbyDropReactions"></div>
-      </div>
+          <div class="nearby-drop-reactions" id="nearbyDropReactions"></div>
+  <span class="nearby-drop-share-capsula" id="nearbyDropShareCapsula" style="display:none;"></span>
+</div>
 
       <button class="nearby-drop-profile-btn" type="button">
         👣 Visitar perfil
@@ -684,24 +685,32 @@ if (typeof window.mostrarOnboardingNearbyNex === 'function') {
   if (tipo === 'perfil') {
     if (btnVisitarPerfil) btnVisitarPerfil.style.display = 'none';
   } else if (btnVisitarPerfil) {
-  btnVisitarPerfil.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+btnVisitarPerfil.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-    const perfil = base[perfilAtualId];
-    if (!perfil) return;
+  const perfil = base[perfilAtualId];
+  if (!perfil) return;
 
-    // ⚠️ CORREÇÃO: Fecha o viewer ANTES de abrir o perfil
-    viewer.remove();
-    document.body.style.overflow = '';
-    document.body.classList.remove('viewer-aberto');
+  // ⚠️ CORREÇÃO: bloqueia popstate durante a transição viewer → perfil.
+  //    Senão o 28-history.js vê a tela do Nearby ainda ativa
+  //    e joga o usuário de volta pro feed antes do perfil abrir.
+  window.__dropsBloquearPopstate = true;
 
-    // ⚠️ CORREÇÃO: Chama a função (ela mesma fecha outros viewers e mostra a tela)
-    abrirPerfilVisitadoNex(
-      perfil.id || perfilAtualId || perfil.nome || '',
-      perfil.nome || 'Perfil'
-    );
-  });
+  abrirPerfilVisitadoNex(
+  perfil.id || perfilAtualId || perfil.nome || '',
+  perfil.nome || 'Perfil'
+);
+
+viewer.remove();
+document.body.style.overflow = '';
+document.body.classList.remove('viewer-aberto');
+
+  // ⚠️ Libera o bloqueio depois que a transição terminar
+  setTimeout(() => {
+    window.__dropsBloquearPopstate = false;
+  }, 800);
+});
   }
 
 // ============================================
@@ -1273,14 +1282,20 @@ async function compartilharDropNearbyNex() {
   try {
     const resultado = await window.compartilharPublicacaoSupabase(publicacaoId);
 
-    if (resultado?.ok) {
+        if (resultado?.ok) {
   window.mostrarToastNex?.('Drop compartilhado!', 'sucesso');
 
   if (btn) btn.classList.add('ja-compartilhado');
 
+  // ⚠️ Revela a cápsula imediatamente após compartilhar
+  if (publicacaoId) {
+    atualizarCapsulaShareNearbyNex(publicacaoId);
+  }
+
   if (typeof window.feedbackNex?.comentou === 'function') {
     window.feedbackNex.comentou();
   }
+  
 } else if (resultado?.erro === 'ja_compartilhado') {
   if (btn) btn.classList.add('ja-compartilhado');
   window.mostrarToastNex?.('Você já compartilhou esse drop.', 'info');
@@ -1646,6 +1661,19 @@ if (btnRodapeNex) {
   }
 }
 
+// ============================================
+// ⚠️ CÁPSULA DE COMPARTILHAMENTO
+// ============================================
+// Só aparece se VOCÊ já compartilhou esse drop.
+// Mostra o total de pessoas que compartilharam.
+
+if (publicacaoIdAtual) {
+  atualizarCapsulaShareNearbyNex(publicacaoIdAtual);
+} else {
+  const capsulaEl = viewer.querySelector('#nearbyDropShareCapsula');
+  if (capsulaEl) capsulaEl.style.display = 'none';
+}
+  
       // ============================================
 // MÍDIA (imagem ou vídeo) — COM ANIMAÇÃO
 // ============================================
@@ -1850,6 +1878,54 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
   renderizar();
 }
   
+// ============================================
+// ATUALIZA CÁPSULA DE COMPARTILHAMENTO
+// ============================================
+// Busca se o usuário já compartilhou + total de pessoas.
+// Mostra a cápsula só quando ele já compartilhou.
+
+async function atualizarCapsulaShareNearbyNex(publicacaoId) {
+  const capsulaEl = document.querySelector('#nearbyDropShareCapsula');
+  if (!capsulaEl) return;
+
+  if (!publicacaoId) {
+    capsulaEl.style.display = 'none';
+    return;
+  }
+
+  if (typeof window.jaCompartilhouSupabase !== 'function') {
+    capsulaEl.style.display = 'none';
+    return;
+  }
+
+  try {
+    const ja = await window.jaCompartilhouSupabase(publicacaoId);
+
+    if (!ja) {
+      capsulaEl.style.display = 'none';
+      return;
+    }
+
+    let total = 0;
+
+    if (typeof window.contarCompartilhamentosSupabase === 'function') {
+      total = Number(await window.contarCompartilhamentosSupabase(publicacaoId)) || 0;
+    }
+
+    capsulaEl.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      <span>${total}</span>
+    `;
+    capsulaEl.style.display = 'inline-flex';
+  } catch (err) {
+    capsulaEl.style.display = 'none';
+  }
+}
 
 // ============================================
 // MARCA BOTÕES DE REAÇÃO COM ESTADO ATIVO
