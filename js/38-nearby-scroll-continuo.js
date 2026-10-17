@@ -902,7 +902,15 @@ window.__limparCacheNaoVistoNex = limparCacheNaoVisto;
 
 document.addEventListener('DOMContentLoaded', registrar);
   
-  console.log('🌀 38-nearby-scroll-continuo.js carregado');
+    console.log('🌀 38-nearby-scroll-continuo.js carregado');
+
+  // ⚠️ DEBUG VISUAL — mostra se o script carregou
+  setTimeout(() => {
+    if (typeof window.mostrarToastNex === 'function') {
+      window.mostrarToastNex('38-*.js carregou OK', 'sucesso', 3000);
+    }
+  }, 3000);
 
 })();
+
 
