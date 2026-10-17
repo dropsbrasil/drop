@@ -38,11 +38,15 @@ const CURVA_ENCAIXE = 'cubic-bezier(0.34, 1.15, 0.64, 1)';
   let previewAnt = null;
 
   let swipeAtivo = false;
-  let direcao = null;
-  let startX = 0;
-  let startY = 0;
-  let deltaY = 0;
-  let animando = false;
+let direcao = null;
+let startX = 0;
+let startY = 0;
+let deltaY = 0;
+let animando = false;
+
+// ⚠️ Cache de índices — evita recalcular no touchmove
+let _idxProxCache = -1;
+let _idxAntCache = -1;
 
   // ============================================
   // HELPERS
@@ -122,20 +126,27 @@ if (drop.expiraEm) {
   // WRAPPER — mesmo layout do shell real
   // ============================================
   const preview = document.createElement('div');
-  preview.className = 'nearby-scroll-preview-nex';
-  preview.style.position = 'absolute';
-  preview.style.inset = '0';
-  preview.style.zIndex = '1';
-  preview.style.background = '#050b18';
-  preview.style.overflow = 'hidden';
-  preview.style.willChange = 'transform';
-  preview.style.pointerEvents = 'none';
-  preview.style.boxSizing = 'border-box';
-  preview.style.display = 'flex';
-  preview.style.flexDirection = 'column';
-  preview.style.padding = '12px';
-  preview.style.gap = '8px';
+preview.className = 'nearby-scroll-preview-nex';
+preview.style.position = 'absolute';
+preview.style.inset = '0';
+preview.style.zIndex = '1';
+preview.style.background = '#050b18';
+preview.style.overflow = 'hidden';
+preview.style.willChange = 'transform';
+preview.style.pointerEvents = 'none';
+preview.style.boxSizing = 'border-box';
+preview.style.display = 'flex';
+preview.style.flexDirection = 'column';
+preview.style.padding = '12px';
+preview.style.gap = '8px';
 
+// ⚠️ CORREÇÃO CHROME MOBILE:
+//    'paint' evita que o Chrome recalcule o layout interno
+//    do preview a cada frame durante o drag.
+preview.style.contain = 'paint';
+preview.style.transform = 'translateZ(0)';
+preview.style.backfaceVisibility = 'hidden';
+preview.style.webkitBackfaceVisibility = 'hidden';
   // ============================================
   // TOPBAR
   // ============================================
@@ -505,9 +516,19 @@ function prepararPreviews() {
 
   const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
 
-  // Próximo perfil COM não visto
-  const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
-  if (idxProx >= 0) {
+  // ⚠️ CORREÇÃO DE FLUIDEZ:
+  //    Não recria se já existe (evita 2x criação).
+  //    Se o cache de índices já bateu, usa ele.
+  const idxProx = _idxProxCache >= 0
+    ? _idxProxCache
+    : proximoPerfilComNaoVisto(estado, idxAtual);
+
+  const idxAnt = _idxAntCache >= 0
+    ? _idxAntCache
+    : anteriorPerfilComNaoVisto(estado, idxAtual);
+
+  // Próximo
+  if (idxProx >= 0 && !previewProx) {
     const perfilProx = estado.base[estado.ids[idxProx]];
     if (perfilProx) {
       previewProx = criarPreviewPerfilNex(perfilProx, 'prox');
@@ -515,9 +536,8 @@ function prepararPreviews() {
     }
   }
 
-  // Perfil anterior COM não visto
-  const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
-  if (idxAnt >= 0) {
+  // Anterior
+  if (idxAnt >= 0 && !previewAnt) {
     const perfilAnt = estado.base[estado.ids[idxAnt]];
     if (perfilAnt) {
       previewAnt = criarPreviewPerfilNex(perfilAnt, 'ant');
@@ -544,46 +564,59 @@ function prepararPreviews() {
   // ============================================
 
   function iniciarDrag(e) {
-  if (animando) return;
-  if (!e.touches || e.touches.length !== 1) return;
+if (animando) return;
+if (!e.touches || e.touches.length !== 1) return;
 
-  // ⚠️ Ignora toques em botões/controles
-  const alvo = e.target;
-  if (
-    alvo.closest('.nearby-drop-close') ||
-    alvo.closest('.nearby-drop-comment-box') ||
-    alvo.closest('.nearby-drop-profile-btn') ||
-    alvo.closest('.nearby-pub-stats-row') ||
-    alvo.closest('.nearby-drop-expandir') ||
-    alvo.closest('.nearby-pub-capsula-autor') ||
-    alvo.closest('input') ||
-    alvo.closest('textarea') ||
-    alvo.closest('button')
-  ) {
-    return;
-  }
+// ⚠️ Ignora toques em botões/controles
+const alvo = e.target;
+if (
+  alvo.closest('.nearby-drop-close') ||
+  alvo.closest('.nearby-drop-comment-box') ||
+  alvo.closest('.nearby-drop-profile-btn') ||
+  alvo.closest('.nearby-pub-stats-row') ||
+  alvo.closest('.nearby-drop-expandir') ||
+  alvo.closest('.nearby-pub-capsula-autor') ||
+  alvo.closest('input') ||
+  alvo.closest('textarea') ||
+  alvo.closest('button')
+) {
+  return;
+}
 
-  const estado = obterEstado();
-  if (!estado) return;
+const estado = obterEstado();
+if (!estado) return;
 
-  viewer = estado.viewerRef;
-  shell = viewer.querySelector('.nearby-pub-shell');
-  if (!shell) return;
+viewer = estado.viewerRef;
+shell = viewer.querySelector('.nearby-pub-shell');
+if (!shell) return;
 
   swipeAtivo = true;
-  direcao = null;
-  deltaY = 0;
-  startX = e.touches[0].clientX;
-  startY = e.touches[0].clientY;
+direcao = null;
+deltaY = 0;
+startX = e.touches[0].clientX;
+startY = e.touches[0].clientY;
 
-  // ⚠️ CORREÇÃO CHROME MOBILE:
-  //    Trava o scroll do body JÁ no touchstart. Sem isso, o Chrome
-  //    inicia o gesto como scroll nativo e o touchmove com
-  //    preventDefault é ignorado.
-  document.body.style.overflow = 'hidden';
-  document.body.style.touchAction = 'none';
+// ⚠️ Trava o scroll do body JÁ no touchstart.
+//    'pan-x' (em vez de 'none') preserva a inércia nativa
+//    do Chrome e evita a sensação de "peso morto".
+document.body.style.overflow = 'hidden';
+document.body.style.touchAction = 'pan-x';
+
+// ⚠️ CORREÇÃO DE FLUIDEZ:
+//    Pré-cria os previews AGORA (fora do touchmove).
+//    Sem isso, o Chrome trava ~200ms no primeiro move
+//    porque cria ~50 nós DOM de uma vez.
+if (!previewProx || !previewAnt) {
+  // Agenda pra próxima frame livre (não bloqueia o touchstart)
+  setTimeout(prepararPreviews, 0);
+}
+
+// ⚠️ Cacheia os índices (evita recalcular 60x/s no touchmove)
+const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+_idxProxCache = proximoPerfilComNaoVisto(estado, idxAtual);
+_idxAntCache = anteriorPerfilComNaoVisto(estado, idxAtual);
   }
-
+  
 // ============================================
 // GUARDA: só age se o viewer do Nearby estiver visível
 // ============================================
@@ -634,17 +667,18 @@ function moverDrag(e) {
     if (absX < 4 && absY < 4) return;
 
     // ⚠️ Vertical tem prioridade (1.2 em vez de 1.3)
-    if (absY >= absX * 1.2) {
-      direcao = 'vertical';
-    } else if (absX >= absY * 1.2) {
-      direcao = 'horizontal';
-      swipeAtivo = false;
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-      return;
-    } else {
-      return; // diagonal — aguarda próximo move
-    }
+if (absY >= absX * 1.2) {
+  direcao = 'vertical';
+  // (body continua travado com pan-x — só limpa no soltar)
+} else if (absX >= absY * 1.2) {
+  direcao = 'horizontal';
+  swipeAtivo = false;
+  document.body.style.overflow = '';
+  document.body.style.touchAction = '';
+  return;
+} else {
+  return; // diagonal — aguarda próximo move
+}
 
     // Reancora no ponto atual (evita "pulo" de 4px)
     startX = e.touches[0].clientX;
@@ -671,36 +705,46 @@ function moverDrag(e) {
   aplicarMovimentoVertical(e, dy);
 }
 
-// ⚠️ Extraído pra função própria — assim fica reutilizável
+
+  // ⚠️ Extraído pra função própria — assim fica reutilizável
 //    tanto quando detecta direção nova quanto quando já tá travado
 function aplicarMovimentoVertical(e, dy) {
   const altura = alturaTela();
-  const estado = obterEstado();
-  if (!estado) return;
 
-    const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
-const podeProx = proximoPerfilComNaoVisto(estado, idxAtual) >= 0;
-const podeAnt = anteriorPerfilComNaoVisto(estado, idxAtual) >= 0;
+  // ⚠️ CORREÇÃO DE FLUIDEZ:
+  //    Usa os índices cacheados no iniciarDrag (evita iterar
+  //    todos os drops de todos os perfis a cada frame).
+  //    Se o cache falhou por algum motivo, refaz 1x só.
+  let podeProx = _idxProxCache >= 0;
+  let podeAnt  = _idxAntCache  >= 0;
 
-    // ⚠️ Resistência progressiva: quanto mais puxa, mais "pesado" fica.
-//    Fórmula: yFinal = dy * (fatorBase / (1 + excesso/altura))
-//    No começo da puxada resiste pouco; no fim, quase não anda.
-let yFinal = dy;
-if (dy < 0 && !podeProx) {
-  // ⚠️ Sem próximo = sem rolagem. Bounce pequeno só.
-  yFinal = dy * 0.12;
-} else if (dy > 0 && !podeAnt) {
-  yFinal = dy * 0.12;
-}
+  if (_idxProxCache === -1 && _idxAntCache === -1) {
+    const estado = obterEstado();
+    if (estado) {
+      const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+      _idxProxCache = proximoPerfilComNaoVisto(estado, idxAtual);
+      _idxAntCache  = anteriorPerfilComNaoVisto(estado, idxAtual);
+      podeProx = _idxProxCache >= 0;
+      podeAnt  = _idxAntCache  >= 0;
+    }
+  }
 
-    // Limita o arrasto a uma tela (com resistência além)
-    if (yFinal < -altura) yFinal = -altura + (yFinal + altura) * 0.3;
-    if (yFinal > altura) yFinal = altura + (yFinal - altura) * 0.3;
+  // ⚠️ Resistência progressiva (quanto mais puxa, mais "pesado" fica)
+  let yFinal = dy;
+  if (dy < 0 && !podeProx) {
+    yFinal = dy * 0.12;
+  } else if (dy > 0 && !podeAnt) {
+    yFinal = dy * 0.12;
+  }
 
-    deltaY = dy;
+  // Limita o arrasto a uma tela (com resistência além)
+  if (yFinal < -altura) yFinal = -altura + (yFinal + altura) * 0.3;
+  if (yFinal > altura) yFinal = altura + (yFinal - altura) * 0.3;
 
-    // Transladar o shell atual
-    shell.style.transform = `translateY(${yFinal}px)`;
+  deltaY = dy;
+
+  // Transladar o shell atual
+  shell.style.transform = `translateY(${yFinal}px)`;
 
   // Transladar o preview (se tiver)
   if (yFinal < 0 && previewProx) {
@@ -710,7 +754,7 @@ if (dy < 0 && !podeProx) {
     previewAnt.style.transform = `translateY(${-altura + yFinal}px)`;
   }
 }
-
+  
 // ============================================
 // FIM DO DRAG
 // ============================================
@@ -719,12 +763,13 @@ function soltarDrag() {
   if (!swipeAtivo) return;
   swipeAtivo = false;
 
-  // ⚠️ CORREÇÃO CHROME MOBILE:
-  //    Sempre limpa o body, independente do que aconteceu.
-  //    Sem isso, o body fica travado pra sempre se algum erro
-  //    acontecer no meio do gesto.
+  // ⚠️ Sempre limpa o body, independente do que aconteceu.
   document.body.style.overflow = '';
   document.body.style.touchAction = '';
+
+  // ⚠️ Limpa o cache de índices
+  _idxProxCache = -1;
+  _idxAntCache = -1;
 
   if (direcao !== 'vertical') {
     window.__nearbyScrollVerticalAtivo = false;
@@ -820,19 +865,25 @@ function soltarDrag() {
   // ============================================
 
   function voltarAoInicio() {
-    animando = true;
+  animando = true;
 
-    shell.style.transition = `transform ${DURACAO_ANIM_MS}ms ${CURVA_BOUNCE}`;
-    shell.style.transform = 'translateY(0)';
+  // ⚠️ CORREÇÃO DE FLUIDEZ:
+  //    No "voltar" (cancelou o gesto), overshoot fica parecendo
+  //    tremedeira. Usa curva sem overshoot (ease-out clássico).
+  //    O overshoot fica reservado pro "encaixe" (parece natural lá).
+  const curva = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
 
-    if (previewProx) {
-      previewProx.style.transition = `transform ${DURACAO_ANIM_MS}ms ${CURVA_BOUNCE}`;
-      previewProx.style.transform = `translateY(${alturaTela()}px)`;
-    }
-    if (previewAnt) {
-      previewAnt.style.transition = `transform ${DURACAO_ANIM_MS}ms ${CURVA_BOUNCE}`;
-      previewAnt.style.transform = `translateY(-${alturaTela()}px)`;
-    }
+  shell.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
+  shell.style.transform = 'translateY(0)';
+
+  if (previewProx) {
+    previewProx.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
+    previewProx.style.transform = `translateY(${alturaTela()}px)`;
+  }
+  if (previewAnt) {
+    previewAnt.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
+    previewAnt.style.transform = `translateY(-${alturaTela()}px)`;
+  }
 
     setTimeout(() => {
       resetarShell();
@@ -909,6 +960,11 @@ function soltarDrag() {
     // ⚠️ CORREÇÃO: também limpa o body no cancel
     document.body.style.overflow = '';
     document.body.style.touchAction = '';
+
+    // ⚠️ Limpa o cache de índices (evita valores obsoletos
+    //    se o próximo gesto começar com estado diferente)
+    _idxProxCache = -1;
+    _idxAntCache = -1;
   },
   { passive: true, capture: true }
 );
@@ -927,13 +983,6 @@ window.__limparCacheNaoVistoNex = limparCacheNaoVisto;
 document.addEventListener('DOMContentLoaded', registrar);
   
     console.log('🌀 38-nearby-scroll-continuo.js carregado');
-
-  // ⚠️ DEBUG VISUAL — mostra se o script carregou
-  setTimeout(() => {
-    if (typeof window.mostrarToastNex === 'function') {
-      window.mostrarToastNex('38-*.js carregou OK', 'sucesso', 3000);
-    }
-  }, 3000);
 
 })();
 
