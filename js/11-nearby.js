@@ -590,6 +590,51 @@ const LIMITE_SWIPE = 35;
 const TEMPO_MAX_SWIPE = 1500;
 const TEMPO_GESTO_RAPIDO = 200;
 const LIMITE_SWIPE_RAPIDO = 25;
+
+// ============================================
+// FASE 2 (fluidez) — PRÉ-CARREGAR MÍDIAS ADJACENTES
+// ============================================
+
+const _midiasPreCarregadasNex = new Set();
+
+function preCarregarDropsAdjacentesNex() {
+  const perfil = base[perfilAtualId];
+  if (!perfil) return;
+
+  const drops = obterDropsDoPerfil(perfil);
+
+  const alvos = [];
+  if (dropIndexAtual > 0) alvos.push(drops[dropIndexAtual - 1]);
+  if (dropIndexAtual < drops.length - 1) alvos.push(drops[dropIndexAtual + 1]);
+
+  alvos.forEach((drop) => {
+    if (!drop) return;
+
+    const url = String(drop.url || drop.imagem || '');
+    if (!url) return;
+    if (_midiasPreCarregadasNex.has(url)) return;
+
+    const tipo = String(drop.type || drop.tipo || '').toLowerCase();
+    const ehVideo =
+      tipo.includes('video') ||
+      /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+
+    _midiasPreCarregadasNex.add(url);
+
+    if (ehVideo) {
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.muted = true;
+      v.playsInline = true;
+      v.src = url;
+    } else {
+      const img = new Image();
+      img.decoding = 'async';
+      img.loading = 'eager';
+      img.src = url;
+    }
+  });
+}
   
   // ============================================
   // REMOVE VIEWER ANTIGO
