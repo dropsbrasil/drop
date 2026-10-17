@@ -1349,41 +1349,47 @@ async function iniciarGravacaoMyDropsNex() {
     };
 
     mediaRecorderMyDropsNex.onstop = () => {
-      if (timerCameraMyDropsNex) {
-        clearInterval(timerCameraMyDropsNex);
-        timerCameraMyDropsNex = null;
-      }
+  if (timerCameraMyDropsNex) {
+    clearInterval(timerCameraMyDropsNex);
+    timerCameraMyDropsNex = null;
+  }
 
-      gravandoCameraMyDropsNex = false;
-      atualizarUICameraMyDropsNex();
+  gravandoCameraMyDropsNex = false;
+  atualizarUICameraMyDropsNex();
 
-      if (acaoAoPararGravacaoMyDropsNex !== 'editor') {
-        acaoAoPararGravacaoMyDropsNex = 'editor';
-        chunksCameraMyDropsNex = [];
-        return;
-      }
+  if (acaoAoPararGravacaoMyDropsNex !== 'editor') {
+    acaoAoPararGravacaoMyDropsNex = 'editor';
+    chunksCameraMyDropsNex = [];
+    return;
+  }
 
-      const blob = new Blob(chunksCameraMyDropsNex, {
-        type: mediaRecorderMyDropsNex?.mimeType || 'video/webm'
-      });
+  const blob = new Blob(chunksCameraMyDropsNex, {
+    type: mediaRecorderMyDropsNex?.mimeType || 'video/webm'
+  });
 
-      if (window.urlVideoGravadoMyDropsNex) {
-        URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
-      }
+  if (window.urlVideoGravadoMyDropsNex) {
+    URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
+  }
 
-      window.videoGravadoMyDropsNex = blob;
-      window.urlVideoGravadoMyDropsNex = URL.createObjectURL(blob);
+  window.videoGravadoMyDropsNex = blob;
+  window.urlVideoGravadoMyDropsNex = URL.createObjectURL(blob);
 
-      chunksCameraMyDropsNex = [];
+  chunksCameraMyDropsNex = [];
 
-      pararStreamCameraMyDropsNex();
+  pararStreamCameraMyDropsNex();
 
-      const overlay = document.getElementById('cameraMyDropsOverlayNex');
-      if (overlay) overlay.style.display = 'none';
+  const overlay = document.getElementById('cameraMyDropsOverlayNex');
+  if (overlay) overlay.style.display = 'none';
 
-      abrirEditorVideoMyDropsNex();
-    };
-
+  // ⚠️ CORREÇÃO: chama o NOVO editor (31-video.js) via window,
+  //    que foi sobrescrito lá. Sem isso, abre o editor antigo
+  //    (referência local dentro deste arquivo).
+  if (typeof window.abrirEditorVideoMyDropsNex === 'function') {
+    window.abrirEditorVideoMyDropsNex();
+  } else {
+    abrirEditorVideoMyDropsNex();
+  }
+};
     mediaRecorderMyDropsNex.start();
 
     timerCameraMyDropsNex = setInterval(() => {
@@ -1663,17 +1669,24 @@ function capturarFotoMyDropsNex() {
   }
 
   function excluirVideoMyDropsNex() {
-    if (window.urlVideoGravadoMyDropsNex) {
-      URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
-    }
-
-    window.videoGravadoMyDropsNex = null;
-    window.urlVideoGravadoMyDropsNex = null;
-
-    limparCamadasTextoMyDropsNex();
-    fecharEditorVideoMyDropsNex();
+  if (window.urlVideoGravadoMyDropsNex) {
+    URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
   }
 
+  window.videoGravadoMyDropsNex = null;
+  window.urlVideoGravadoMyDropsNex = null;
+
+  limparCamadasTextoMyDropsNex();
+
+  // ⚠️ CORREÇÃO: chama o NOVO editor (31-video.js) via window.
+  //    Sem isso, essa função fecha o editor ANTIGO (que nunca
+  //    mais abre) e deixa o NOVO aberto — trava a tela.
+  if (typeof window.fecharEditorVideoMyDropsNex === 'function') {
+    window.fecharEditorVideoMyDropsNex();
+  } else {
+    fecharEditorVideoMyDropsNex();
+  }
+  }
   // ============================================
   // LOOP DO VÍDEO NO EDITOR
   // ============================================
