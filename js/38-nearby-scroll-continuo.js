@@ -610,6 +610,13 @@ deltaY = 0;
 startX = e.touches[0].clientX;
 startY = e.touches[0].clientY;
 
+// ⚠️ CORREÇÃO DEFINITIVA:
+//    Sempre reseta o flag vertical no início do gesto.
+//    Se um gesto anterior falhou (touchcancel, etc.), esse flag
+//    pode ter ficado travado em true e bloqueado o swipe horizontal
+//    do 11-nearby.js pra sempre.
+window.__nearbyScrollVerticalAtivo = false;
+
 // ⚠️ Trava o scroll do body JÁ no touchstart.
 //    'pan-x' (em vez de 'none') preserva a inércia nativa
 //    do Chrome e evita a sensação de "peso morto".
@@ -687,8 +694,14 @@ if (absY >= absX * 1.2) {
 } else if (absX >= absY * 1.2) {
   direcao = 'horizontal';
   swipeAtivo = false;
+
+  // ⚠️ CORREÇÃO DEFINITIVA:
+  //    No horizontal, o 38-*.js ABDICA do gesto. Precisa limpar
+  //    TUDO pra o 11-nearby.js pegar o touchend normalmente.
+  window.__nearbyScrollVerticalAtivo = false;
   document.body.style.overflow = '';
   document.body.style.touchAction = '';
+
   return;
 } else {
   return; // diagonal — aguarda próximo move
@@ -1009,28 +1022,30 @@ function mostrarBalaoLimiteNex(direcao) {
     { passive: true, capture: true }
   );
 
-  document.addEventListener(
+document.addEventListener(
   'touchcancel',
   () => {
-    if (!swipeAtivo) return;
+    // ⚠️ CORREÇÃO DEFINITIVA:
+    //    Não usa early-return aqui. Mesmo que swipeAtivo seja
+    //    false, precisamos limpar o flag vertical e o body.
+    //    Isso cobre o caso onde o Chrome dispara touchcancel
+    //    depois de já termos detectado horizontal (caso raro,
+    //    mas possível em vídeos).
     swipeAtivo = false;
     direcao = null;
     limparPreviews();
     resetarShell();
     window.__nearbyScrollVerticalAtivo = false;
 
-    // ⚠️ CORREÇÃO: também limpa o body no cancel
     document.body.style.overflow = '';
     document.body.style.touchAction = '';
 
-    // ⚠️ Limpa o cache de índices (evita valores obsoletos
-    //    se o próximo gesto começar com estado diferente)
     _idxProxCache = -1;
     _idxAntCache = -1;
   },
   { passive: true, capture: true }
-);
-  }
+ );
+}
 
   // ============================================
 // EXPOE LIMPEZA GLOBAL
@@ -1047,4 +1062,3 @@ document.addEventListener('DOMContentLoaded', registrar);
     console.log('🌀 38-nearby-scroll-continuo.js carregado');
 
 })();
-
