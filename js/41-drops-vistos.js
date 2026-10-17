@@ -122,24 +122,22 @@
     limparCacheVistos
   };
 
-// ============================================
-// CARREGA CACHE AO ABRIR O APP
-// ============================================
+  // ============================================
+  // CARREGA CACHE AO ABRIR O APP
+  // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(async () => {
-    try {
-      // ⚠️ FORÇA recarga do Supabase toda vez que o app abre
-      //    (sem isso, banco limpo = cache velho = prox=N eterno)
-      await buscarVistos(true);
-      console.log(
-        `👁️ Drops vistos carregados: ${cacheVistos?.size || 0}`
-      );
-    } catch (err) {
-      console.warn('Erro ao carregar drops vistos no boot:', err);
-    }
-  }, 2500);
-});
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(async () => {
+      try {
+        await buscarVistos(true);
+        console.log(
+          `👁️ Drops vistos carregados: ${cacheVistos?.size || 0}`
+        );
+      } catch (err) {
+        console.warn('Erro ao carregar drops vistos no boot:', err);
+      }
+    }, 2500);
+  });
 
   console.log('👁️ 41-drops-vistos.js carregado');
 
