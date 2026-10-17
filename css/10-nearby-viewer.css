@@ -669,6 +669,12 @@
 
 .nearby-drop-viewer .nearby-pub-midia-item video {
   background: #000;
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     Sem isso, o vídeo captura o gesto horizontal e o swipe
+     do app nunca dispara. 'pan-x' libera o horizontal pro
+     navegador e deixa o JS controlar o vertical. */
+  touch-action: pan-x;
 }
 
 /* ============================================
@@ -1609,4 +1615,97 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+}
+
+/* ============================================
+   BALÃO DE LIMITE — "Você já viu tudo por aqui"
+   Aparece quando tenta rolar além do último
+   (ou antes do primeiro) perfil.
+============================================ */
+
+.nearby-limite-balao-nex {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  z-index: 2147483647;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px 18px 20px;
+  max-width: calc(100vw - 40px);
+  box-sizing: border-box;
+
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(96, 165, 250, 0.15) inset;
+
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  opacity: 0;
+  pointer-events: none;
+
+  transition:
+    opacity 0.3s ease,
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nearby-limite-balao-nex.visivel {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.nearby-limite-balao-icone {
+  font-size: 34px;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(96, 165, 250, 0.5));
+}
+
+.nearby-limite-balao-texto {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #cbd5e1;
+  text-align: left;
+}
+
+.nearby-limite-balao-texto strong {
+  display: block;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 3px;
+  letter-spacing: -0.2px;
+}
+
+/* ============================================
+   OVERLAY INVISÍVEL DE SWIPE NO VÍDEO
+   Permite que o swipe horizontal funcione
+   mesmo tocando no vídeo.
+============================================ */
+
+.video-overlay-swipe-nex {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  /* NÃO define touch-action aqui: o touch-action vem do
+     .nearby-pub-midia-item > video (pan-x). */
+}
+
+/* ⚠️ No modo expandido (tela cheia), o overlay DESAPARECE
+   pra o usuário conseguir usar os controles nativos do vídeo
+   (barra de progresso, fullscreen, volume). */
+.nearby-drop-viewer.modo-expandido .video-overlay-swipe-nex {
+  display: none !important;
+  pointer-events: none !important;
 }
