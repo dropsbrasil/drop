@@ -995,7 +995,6 @@ body.chat-aberto {
 /* ============================================
    TOAST GLOBAL (FEEDBACK DE AÇÕES)
 ============================================ */
-
 #toastGlobalNex {
   position: fixed;
   top: 24px;
@@ -1020,6 +1019,15 @@ body.chat-aberto {
   transition:
     transform .32s cubic-bezier(.22, 1, .36, 1),
     opacity .28s ease;
+
+  /* ⚠️ CORREÇÃO: cria um stacking context isolado.
+     Mesmo se outro elemento tiver o mesmo z-index (como o
+     viewer do Nearby), o toast fica por cima porque:
+     1. É movido pro final do body via JS (correção 1)
+     2. isolation: isolate garante o contexto próprio
+     3. z-index máximo (2147483647 = int32 max) */
+  isolation: isolate;
+  will-change: transform, opacity;
 }
 
 #toastGlobalNex.visivel {
