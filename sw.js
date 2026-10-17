@@ -2,7 +2,7 @@
    SW.JS — Service Worker do Drops
 ============================================ */
 
-const CACHE_NAME = 'drops-v30';
+const CACHE_NAME = 'drops-v31';
 
 const ARQUIVOS_BASE = [
   './',
