@@ -384,12 +384,42 @@ function animarMidiaNex(container, url, tipo, direcao) {
   video.style.touchAction = 'pan-x';
 
   novo.appendChild(video);
+
+  // ⚠️ OVERLAY INVISÍVEL PARA CAPTURAR SWIPES
+  //    O player nativo do Chrome bloqueia o gesto. Esse overlay
+  //    recebe o toque, deixa o swipe passar pro viewer, e no
+  //    clique simples dá play/pause.
+  const videoOverlay = document.createElement('div');
+  videoOverlay.className = 'video-overlay-swipe-nex';
+  videoOverlay.style.cssText = `
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: transparent;
+    pointer-events: auto;
+    cursor: pointer;
+  `;
+
+  videoOverlay.addEventListener('click', () => {
+    // Se o vídeo está pausado → play; se tocando → pause.
+    // (Não usa await/promise porque o Chrome mobile às vezes
+    // rejeita o play se não for iniciado por gesto do usuário,
+    // mas aqui É gesto do usuário, então funciona.)
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  });
+
+  novo.appendChild(videoOverlay);
+
 } else {
     const img = document.createElement('img');
     img.src = url;
     img.alt = '';
     novo.appendChild(img);
-  }
+ }
 
   // ============================================
   // DEFINE A DIREÇÃO DA ANIMAÇÃO
@@ -1730,16 +1760,37 @@ if (media) {
   //    do app nunca dispara.
   video.style.touchAction = 'pan-x';
 
-  // ⚠️ CORREÇÃO: variável correta neste escopo é 'novoInicial'
+    // ⚠️ CORREÇÃO: variável correta neste escopo é 'novoInicial'
   //    (não 'novo' — aquele é do animarMidiaNex).
   novoInicial.appendChild(video);
+
+  // ⚠️ OVERLAY INVISÍVEL PARA CAPTURAR SWIPES (faltou aqui!)
+  const videoOverlay = document.createElement('div');
+  videoOverlay.className = 'video-overlay-swipe-nex';
+  videoOverlay.style.cssText = `
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: transparent;
+    pointer-events: auto;
+    cursor: pointer;
+  `;
+
+  videoOverlay.addEventListener('click', () => {
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  });
+
+  novoInicial.appendChild(videoOverlay);
 } else {
       const img = document.createElement('img');
       img.src = url;
       img.alt = perfil.nome || '';
       novoInicial.appendChild(img);
         }
-    
     media.appendChild(novoInicial);
   } else {
     // Navegação → animação
