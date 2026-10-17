@@ -368,22 +368,40 @@ function animarMidiaNex(container, url, tipo, direcao) {
   const novo = document.createElement('div');
   novo.className = 'nearby-pub-midia-item';
 
- if (ehVideo) {
-  const video = document.createElement('video');
-  video.src = url;
-  video.controls = true;
-  video.setAttribute('controls', '');
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.preload = 'metadata';
+if (ehVideo) {
+ const video = document.createElement('video');
+ video.src = url;
+ video.controls = true;
+ video.setAttribute('controls', '');
+ // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+ //    Tira o autoplay nativo. O play() é dado depois, num
+ //    rAF — assim o Chrome não prioriza a decodificação de
+ //    vídeo em cima do gesto de toque.
+ video.autoplay = false;
+ video.muted = true;
+ video.playsInline = true;
+ video.preload = 'metadata';
 
-  // ⚠️ CORREÇÃO CHROME MOBILE:
-  //    Sem isso, o vídeo captura o gesto horizontal e o swipe
-  //    do app nunca dispara.
-  video.style.touchAction = 'pan-x';
+ // ⚠️ CORREÇÃO CHROME MOBILE:
+ //    Sem isso, o vídeo captura o gesto horizontal e o swipe
+ //    do app nunca dispara.
+ video.style.touchAction = 'pan-x';
 
-  novo.appendChild(video);
+ // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+ //    Dá play depois de 2 frames. Quando o vídeo começa a
+ //    decodificar, o gesto do usuário já terminou de ser
+ //    capturado no touchstart.
+ requestAnimationFrame(() => {
+   requestAnimationFrame(() => {
+     // Só dá play se o vídeo ainda estiver no DOM
+     // (o usuário pode ter feito swipe e o viewer já trocou)
+     if (video.isConnected && video.paused) {
+       video.play().catch(() => {});
+     }
+   });
+ });
+
+ novo.appendChild(video);
 
   // ⚠️ OVERLAY INVISÍVEL PARA CAPTURAR SWIPES
   //    O player nativo do Chrome bloqueia o gesto. Esse overlay
@@ -563,8 +581,15 @@ let swipeStartY = 0;
 let swipeStartTime = 0;
 let swipeAtivo = false;
 
-const LIMITE_SWIPE = 50;
-const TEMPO_MAX_SWIPE = 800;
+// ⚠️ CORREÇÃO (swipe lento demorava 2 tentativas):
+//    - LIMITE menor (35px): responde a gestos curtos
+//    - TEMPO maior (1500ms): não descarta gestures "pensados"
+//    - LIMITE_RAPIDO: se o gesto foi MUITO rápido (<200ms),
+//      aceita com menos distância ainda (25px)
+const LIMITE_SWIPE = 35;
+const TEMPO_MAX_SWIPE = 1500;
+const TEMPO_GESTO_RAPIDO = 200;
+const LIMITE_SWIPE_RAPIDO = 25;
   
   // ============================================
   // REMOVE VIEWER ANTIGO
@@ -1577,6 +1602,14 @@ const publicacaoIdAtual =
   window.__dropsMapaIdsPublicacao &&
   window.__dropsMapaIdsPublicacao[chaveDropAtual];
 
+// ⚠️ FASE 1 (fluidez): detecta se é troca HORIZONTAL entre drops
+// do mesmo perfil. Se for, os fetches de reações/views/share são
+// pulados — a UI local já mostra o estado instantâneo, e o
+// Supabase sincroniza na próxima troca vertical ou abertura.
+const ehTrocaHorizontal =
+  !primeiraRenderizacaoNex &&
+  (direcaoAnimacaoNex === 'left' || direcaoAnimacaoNex === 'right');
+
 // ⚠️ Marca como visto (apareceu na tela = visto)
 if (
   publicacaoIdAtual &&
@@ -1590,10 +1623,15 @@ if (
   }
 }
   
+// ⚠️ FASE 1 (fluidez): em troca horizontal, pula o fetch de
+// reações do Supabase. O contador local (do localStorage) já
+// aparece instantâneo. O Supabase sincroniza na próxima troca
+// vertical ou na reabertura do viewer.
 if (
   publicacaoIdAtual &&
   typeof window.buscarReacoesSupabase === 'function' &&
-  !dropsJaSincronizados.has(chaveDropAtual)
+  !dropsJaSincronizados.has(chaveDropAtual) &&
+  !ehTrocaHorizontal
 ) {
   dropsJaSincronizados.add(chaveDropAtual);
 
@@ -1696,9 +1734,14 @@ const btnRodapeNex = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
 if (btnRodapeNex) {
   btnRodapeNex.classList.remove('ja-compartilhado');
 
+  // ⚠️ FASE 1 (fluidez): em troca horizontal, pula o fetch.
+  // Se o usuário parar nesse drop, ele não verá o "check" de
+  // compartilhado imediatamente — mas ao trocar de perfil (vertical)
+  // ou reabrir o viewer, o estado é atualizado.
   if (
     publicacaoIdAtual &&
-    typeof window.jaCompartilhouSupabase === 'function'
+    typeof window.jaCompartilhouSupabase === 'function' &&
+    !ehTrocaHorizontal
   ) {
     window.jaCompartilhouSupabase(publicacaoIdAtual)
       .then((ja) => {
@@ -1716,13 +1759,15 @@ if (btnRodapeNex) {
 // Só aparece se VOCÊ já compartilhou esse drop.
 // Mostra o total de pessoas que compartilharam.
 
-if (publicacaoIdAtual) {
+// ⚠️ FASE 1 (fluidez): em troca horizontal, esconde a cápsula
+// imediatamente (sem fetch). Ela é recalculada no próximo render
+// completo (troca vertical ou abertura).
+if (publicacaoIdAtual && !ehTrocaHorizontal) {
   atualizarCapsulaShareNearbyNex(publicacaoIdAtual);
 } else {
   const capsulaEl = viewer.querySelector('#nearbyDropShareCapsula');
   if (capsulaEl) capsulaEl.style.display = 'none';
-}
-  
+}  
       // ============================================
 // MÍDIA (imagem ou vídeo) — COM ANIMAÇÃO
 // ============================================
@@ -1745,24 +1790,35 @@ if (media) {
     const novoInicial = document.createElement('div');
     novoInicial.className = 'nearby-pub-midia-item';
 
-        if (ehVideo) {
-  const video = document.createElement('video');
-  video.src = url;
-  video.controls = true;
-  video.setAttribute('controls', '');
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.preload = 'metadata';
+              if (ehVideo) {
+const video = document.createElement('video');
+video.src = url;
+video.controls = true;
+video.setAttribute('controls', '');
+// ⚠️ CORREÇÃO (autoplay atrapalhava swipe): idem animarMidiaNex
+video.autoplay = false;
+video.muted = true;
+video.playsInline = true;
+video.preload = 'metadata';
 
-  // ⚠️ CORREÇÃO CHROME MOBILE:
-  //    Sem isso, o vídeo captura o gesto horizontal e o swipe
-  //    do app nunca dispara.
-  video.style.touchAction = 'pan-x';
+// ⚠️ CORREÇÃO CHROME MOBILE:
+//    Sem isso, o vídeo captura o gesto horizontal e o swipe
+//    do app nunca dispara.
+video.style.touchAction = 'pan-x';
 
-    // ⚠️ CORREÇÃO: variável correta neste escopo é 'novoInicial'
-  //    (não 'novo' — aquele é do animarMidiaNex).
-  novoInicial.appendChild(video);
+// ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+//    Play depois de 2 frames — não compete com o touchstart.
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    if (video.isConnected && video.paused) {
+      video.play().catch(() => {});
+    }
+  });
+});
+
+  // ⚠️ CORREÇÃO: variável correta neste escopo é 'novoInicial'
+//    (não 'novo' — aquele é do animarMidiaNex).
+novoInicial.appendChild(video);
 
   // ⚠️ OVERLAY INVISÍVEL PARA CAPTURAR SWIPES (faltou aqui!)
   const videoOverlay = document.createElement('div');
@@ -1841,7 +1897,8 @@ viewer.addEventListener('click', (e) => {
 //    junto das declarações do viewer, pra poderem
 //    ser usadas também no bloco de onboarding.
 
-      viewer.addEventListener('touchstart', (e) => {
+      
+        viewer.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
 
         const alvo = e.target;
@@ -1858,13 +1915,30 @@ viewer.addEventListener('click', (e) => {
   return;
         }
 
+        // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+        //    Se tem vídeo tocando, pausa AGORA. Isso libera a
+        //    thread de decodificação imediatamente — o Chrome
+        //    para de competir com o gesto de toque.
+        //    Se o gesto for só um toque (sem swipe), o vídeo é
+        //    retomado no touchend.
+        const videoAtual = viewer.querySelector('#nearbyDropMedia video');
+        if (videoAtual && !videoAtual.paused) {
+          videoAtual.pause();
+          videoAtual.dataset.pausadoPeloSwipe = '1';
+        }
+
         swipeAtivo = true;
         swipeStartX = e.touches[0].clientX;
         swipeStartY = e.touches[0].clientY;
         swipeStartTime = Date.now();
+
+        // ⚠️ FASE 2 (fluidez): pré-carrega a mídia dos drops adjacentes
+        // no touchstart — assim quando o swipe acontecer, a imagem
+        // ou vídeo já está no cache do navegador e entra instantâneo.
+        preCarregarDropsAdjacentesNex();
       }, { passive: true });
 
-          viewer.addEventListener('touchend', (e) => {
+                viewer.addEventListener('touchend', (e) => {
 if (!swipeAtivo) return;
 swipeAtivo = false;
 
@@ -1872,7 +1946,17 @@ swipeAtivo = false;
 //    Bloqueia ANTES de qualquer cálculo. O 38-*.js seta o flag
 //    no início do touchmove vertical — se o flag não veio, mas
 //    existe um preview do 38-*.js no DOM, também ignora.
-if (window.__nearbyScrollVerticalAtivo) return;
+if (window.__nearbyScrollVerticalAtivo) {
+  // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+  //    Se o vídeo foi pausado no touchstart mas o gesto foi
+  //    vertical (não horizontal), retoma o vídeo.
+  const videoAtual = viewer.querySelector('#nearbyDropMedia video');
+  if (videoAtual && videoAtual.dataset.pausadoPeloSwipe === '1') {
+    delete videoAtual.dataset.pausadoPeloSwipe;
+    videoAtual.play().catch(() => {});
+  }
+  return;
+}
 if (document.querySelector('.nearby-scroll-preview-nex')) return;
 
 if (!e.changedTouches || e.changedTouches.length === 0) return;
@@ -1880,13 +1964,35 @@ if (!e.changedTouches || e.changedTouches.length === 0) return;
       const dy = e.changedTouches[0].clientY - swipeStartY;
       const dt = Date.now() - swipeStartTime;
 
-      if (dt > TEMPO_MAX_SWIPE) return;
+      if (dt > TEMPO_MAX_SWIPE) {
+        // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+        //    Gesto longo demais = não foi swipe. Retoma o vídeo.
+        const videoAtual = viewer.querySelector('#nearbyDropMedia video');
+        if (videoAtual && videoAtual.dataset.pausadoPeloSwipe === '1') {
+          delete videoAtual.dataset.pausadoPeloSwipe;
+          videoAtual.play().catch(() => {});
+        }
+        return;
+      }
 
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
+        // ⚠️ CORREÇÃO (swipe demorava 2 tentativas):
+        //    Se o gesto foi muito rápido, aceita uma distância
+        //    menor. Antes, um flick rápido de 30px era descartado
+        //    e o usuário precisava repetir o gesto.
+        const limiteHorizontal =
+          dt < TEMPO_GESTO_RAPIDO ? LIMITE_SWIPE_RAPIDO : LIMITE_SWIPE;
+
                 // Horizontal dominante
-if (absX > LIMITE_SWIPE && absX > absY * 1.3) {
+if (absX > limiteHorizontal && absX > absY * 1.3) {
+  // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+  //    Swipe confirmado — o vídeo atual NÃO é retomado (o
+  //    renderizar() vai destruí-lo e criar o próximo).
+  const videoAtual = viewer.querySelector('#nearbyDropMedia video');
+  if (videoAtual) delete videoAtual.dataset.pausadoPeloSwipe;
+
   if (dx < 0) {
     // arrastou para a ESQUERDA → próximo drop
     const perfil = base[perfilAtualId];
@@ -1917,6 +2023,14 @@ if (absX > LIMITE_SWIPE && absX > absY * 1.3) {
     }
   }
   return;
+}
+
+// ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
+//    Chegou até aqui = não foi swipe horizontal. Retoma o vídeo.
+const videoAtual = viewer.querySelector('#nearbyDropMedia video');
+if (videoAtual && videoAtual.dataset.pausadoPeloSwipe === '1') {
+  delete videoAtual.dataset.pausadoPeloSwipe;
+  videoAtual.play().catch(() => {});
 }
 
 // Vertical dominante
