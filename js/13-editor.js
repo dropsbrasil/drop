@@ -1492,17 +1492,28 @@ function criarOverlayFotoMyDropsNex() {
   if (document.getElementById('cameraFotoMyDropsOverlayNex')) return;
 
   const overlay = document.createElement('div');
-  overlay.id = 'cameraFotoMyDropsOverlayNex';
+overlay.id = 'cameraFotoMyDropsOverlayNex';
 
-  overlay.innerHTML = `
-    <video id="cameraFotoMyDropsPreviewNex" autoplay playsinline muted></video>
+overlay.innerHTML = `
+  <video id="cameraFotoMyDropsPreviewNex" autoplay playsinline muted></video>
 
-    <button type="button" id="cameraFotoMyDropsSwitchNex">🔄</button>
+  <button
+    type="button"
+    id="cameraFotoMyDropsSwitchNex"
+    aria-label="Virar câmera">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+      <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="m18 22-3-3 3-3"/>
+      <path d="m6 2 3 3-3 3"/>
+    </svg>
+  </button>
 
-    <button type="button" id="cameraFotoMyDropsCaptureNex"></button>
+  <button type="button" id="cameraFotoMyDropsCaptureNex"></button>
 
-    <button type="button" id="cameraFotoMyDropsCloseNex">Sair ➜</button>
-  `;
+  <button type="button" id="cameraFotoMyDropsCloseNex">Sair ➜</button>
+`;
 
   document.body.appendChild(overlay);
 
@@ -2036,8 +2047,44 @@ function capturarFotoMyDropsNex() {
       }
     });
 
-    document.getElementById('cameraMyDropsSwitchNex')?.addEventListener('click', alternarCameraMyDropsNex);
+const switchVideoBtn = document.getElementById('cameraMyDropsSwitchNex');
+if (switchVideoBtn) {
+  // ⚠️ Substitui o emoji 🔄 por SVG (câmera com setas de troca)
+  switchVideoBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+      <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="m18 22-3-3 3-3"/>
+      <path d="m6 2 3 3-3 3"/>
+    </svg>
+  `;
+  switchVideoBtn.setAttribute('aria-label', 'Virar câmera');
+  switchVideoBtn.addEventListener('click', alternarCameraMyDropsNex);
 
+  // ⚠️ FALLBACK: se por algum motivo o botão for recriado
+  //    (re-render do HTML, etc.), reaplica o SVG automaticamente.
+  if (!switchVideoBtn.__svgObserver) {
+    switchVideoBtn.__svgObserver = new MutationObserver(() => {
+      if (!switchVideoBtn.querySelector('svg')) {
+        switchVideoBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+            <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+            <circle cx="12" cy="12" r="3"/>
+            <path d="m18 22-3-3 3-3"/>
+            <path d="m6 2 3 3-3 3"/>
+          </svg>
+        `;
+      }
+    });
+    switchVideoBtn.__svgObserver.observe(switchVideoBtn, {
+      childList: true,
+      subtree: true
+    });
+  }
+}
+    
     // Botão sair no editor de vídeo
     document.getElementById('videoEditorSairMyDropsNex')?.addEventListener('click', () => {
       if (window.urlVideoGravadoMyDropsNex) {

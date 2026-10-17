@@ -207,25 +207,29 @@
   let toastTimerNex = null;
 
   function mostrarToastNex(mensagem, tipo = 'sucesso', duracaoMs = 2600) {
-    const texto = String(mensagem || '').trim();
-    if (!texto) return;
+  const texto = String(mensagem || '').trim();
+  if (!texto) return;
 
-    const tipoLimpo = ['sucesso', 'erro', 'info'].includes(tipo)
-      ? tipo
-      : 'sucesso';
+  const tipoLimpo = ['sucesso', 'erro', 'info'].includes(tipo)
+    ? tipo
+    : 'sucesso';
 
-    const icone =
-      tipoLimpo === 'sucesso' ? '✅' :
-      tipoLimpo === 'erro' ? '⚠️' :
-      'ℹ️';
+  const icone =
+    tipoLimpo === 'sucesso' ? '✅' :
+    tipoLimpo === 'erro' ? '⚠️' :
+    'ℹ️';
 
-    let toast = document.getElementById('toastGlobalNex');
+  let toast = document.getElementById('toastGlobalNex');
 
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'toastGlobalNex';
-      document.body.appendChild(toast);
-    }
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toastGlobalNex';
+  }
+
+  // ⚠️ CORREÇÃO: move o toast para o FINAL do body SEMPRE.
+  //    Sem isso, se o toast foi criado antes do viewer do Nearby,
+  //    ele fica atrás (mesmo z-index, mas o viewer veio depois).
+  document.body.appendChild(toast);
 
     toast.className = tipoLimpo;
     toast.innerHTML = `
