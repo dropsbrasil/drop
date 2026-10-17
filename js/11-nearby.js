@@ -1953,10 +1953,20 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
     }
   }
 }
-      }, { passive: true });
-  // ⚠️ Renderiza primeira vez
-  //    (o agendamento da dica flutuante já acontece dentro do renderizar)
-  renderizar();
+          }, { passive: true });
+
+    // ⚠️ CORREÇÃO: trata touchcancel
+    //    O Chrome mobile pode disparar touchcancel em vários
+    //    cenários (mudança de touch-action, gesto de sistema, etc.).
+    //    Sem esse listener, swipeAtivo fica travado em true e o
+    //    próximo touchend processa um gesto fantasma.
+    viewer.addEventListener('touchcancel', () => {
+      swipeAtivo = false;
+    }, { passive: true });
+
+// ⚠️ Renderiza primeira vez
+//    (o agendamento da dica flutuante já acontece dentro do renderizar)
+renderizar();
 
   // ⚠️ CORREÇÃO CHROME MOBILE:
   //    Garante que o body não fique travado se o viewer anterior

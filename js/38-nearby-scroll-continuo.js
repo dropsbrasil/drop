@@ -617,12 +617,14 @@ startY = e.touches[0].clientY;
 //    do 11-nearby.js pra sempre.
 window.__nearbyScrollVerticalAtivo = false;
 
-// ⚠️ Trava o scroll do body JÁ no touchstart.
-//    'pan-x' (em vez de 'none') preserva a inércia nativa
-//    do Chrome e evita a sensação de "peso morto".
+// ⚠️ CORREÇÃO CRÍTICA (swipe horizontal quebrado):
+//    NÃO mexer em document.body.style.touchAction aqui.
+//    Alterar 'touch-action' DURANTE o gesto faz o Chrome mobile
+//    disparar touchcancel e matar o touchend do 11-nearby.js,
+//    que é quem processa o swipe horizontal.
+//    O overflow: hidden já trava o scroll do body.
 document.body.style.overflow = 'hidden';
-document.body.style.touchAction = 'pan-x';
-
+    
 // ⚠️ CORREÇÃO DE FLUIDEZ:
 //    Pré-cria os previews AGORA (fora do touchmove).
 //    Sem isso, o Chrome trava ~200ms no primeiro move
@@ -687,26 +689,32 @@ function moverDrag(e) {
     // ⚠️ Threshold menor (4px) — o Chrome mobile perde os primeiros px
     if (absX < 4 && absY < 4) return;
 
-    // ⚠️ Vertical tem prioridade (1.2 em vez de 1.3)
+        // ⚠️ Vertical tem prioridade (1.2 em vez de 1.3)
 if (absY >= absX * 1.2) {
   direcao = 'vertical';
-  // (body continua travado com pan-x — só limpa no soltar)
+  // (body continua travado com overflow: hidden — só limpa no soltar)
 } else if (absX >= absY * 1.2) {
   direcao = 'horizontal';
   swipeAtivo = false;
 
-  // ⚠️ CORREÇÃO DEFINITIVA:
-  //    No horizontal, o 38-*.js ABDICA do gesto. Precisa limpar
-  //    TUDO pra o 11-nearby.js pegar o touchend normalmente.
+  // ⚠️ CORREÇÃO DEFINITIVA (swipe horizontal quebrado):
+  //    Quando o gesto é horizontal, o 38-*.js ABDICA total.
+  //    Precisa limpar TUDO que ele criou — previews, shell,
+  //    caches de índice — pra não sujar o próximo gesto.
+  //    E NÃO mexer em touchAction: isso cancela o gesto no Chrome
+  //    e mata o touchend do 11-nearby.js.
   window.__nearbyScrollVerticalAtivo = false;
   document.body.style.overflow = '';
-  document.body.style.touchAction = '';
+
+  limparPreviews();
+  resetarShell();
+  _idxProxCache = -1;
+  _idxAntCache = -1;
 
   return;
 } else {
   return; // diagonal — aguarda próximo move
 }
-
     // Reancora no ponto atual (evita "pulo" de 4px)
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
@@ -791,8 +799,8 @@ function soltarDrag() {
   swipeAtivo = false;
 
   // ⚠️ Sempre limpa o body, independente do que aconteceu.
+  //    (touchAction NÃO é mexido aqui — ver correção no iniciarDrag)
   document.body.style.overflow = '';
-  document.body.style.touchAction = '';
 
   // ⚠️ Limpa o cache de índices
   _idxProxCache = -1;
@@ -804,7 +812,6 @@ function soltarDrag() {
     resetarShell();
     return;
   }
-
   const estado = obterEstado();
   if (!estado) {
     limparPreviews();
@@ -1038,7 +1045,6 @@ document.addEventListener(
     window.__nearbyScrollVerticalAtivo = false;
 
     document.body.style.overflow = '';
-    document.body.style.touchAction = '';
 
     _idxProxCache = -1;
     _idxAntCache = -1;
@@ -1046,7 +1052,6 @@ document.addEventListener(
   { passive: true, capture: true }
  );
 }
-
   // ============================================
 // EXPOE LIMPEZA GLOBAL
 // ============================================
