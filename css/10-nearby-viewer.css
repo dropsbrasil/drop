@@ -1,6 +1,13 @@
 /* ============================================
    10-NEARBY-VIEWER.CSS
    Viewer de publicação (drops do Nearby e Conectados)
+
+   ⚠️ CORREÇÕES CHROME MOBILE APLICADAS:
+   - touch-action: pan-x (preserva inércia horizontal)
+   - will-change: transform no shell (evita reflow)
+   - contain: layout style no palco (evita clip-path recalc)
+   - contain: paint no papel e mídia (evita repaint)
+   - backface-visibility: hidden (promove a layer)
 ============================================ */
 
 .nearby-drop-viewer {
@@ -10,8 +17,13 @@
   overflow: hidden;
   background: #050b18;
   box-sizing: border-box;
-  touch-action: none;
-  overscroll-behavior: none;
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     'pan-x' preserva o momentum horizontal nativo do Chrome
+     (quando o gesto é cancelado pelo JS) e libera o vertical
+     pro JS controlar. 'none' mataria toda a inércia. */
+  touch-action: pan-x;
+  overscroll-behavior: contain;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -71,7 +83,6 @@
     inset 0 1px 0 rgba(255,255,255,.12);
   border-radius: 0 0 14px 14px;
 }
-
 
 .nearby-drop-user {
   display: flex;
@@ -253,6 +264,7 @@
   opacity: .28;
   pointer-events: none;
 }
+
 /* ============================================
    RODAPÉ DO VIEWER
 ============================================ */
@@ -424,6 +436,7 @@
   opacity: .65;
   cursor: not-allowed;
 }
+
 /* ============================================
    VIEWER DO NEARBY — LAYOUT NOVO
    (palco + papel + topbar + rodapé + stats)
@@ -444,6 +457,18 @@
   padding: 12px;
   gap: 8px;
   box-sizing: border-box;
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     Promove o shell a composite layer dedicada. Sem isso, o
+     Chrome recria o layer a cada frame durante o translateY
+     do drag → travamento visível. */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  /* ⚠️ Reforça o touch-action (herda do viewer, mas
+     garante caso o shell seja movido pra outro pai) */
+  touch-action: pan-x;
 }
 
 /* ============================================
@@ -584,6 +609,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     Evita que o Chrome recalcule o clip-path do papel a cada
+     frame durante o drag. O palco não precisa de overflow
+     controlado — o papel já faz isso. */
+  contain: layout style;
+  touch-action: pan-x;
 }
 
 .nearby-drop-viewer .nearby-pub-papel {
@@ -600,6 +632,12 @@
     0 20px 60px rgba(0, 0, 0, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     'paint' isola o pintor do papel do resto da árvore.
+     Sem isso, o Chrome recalcula o border-radius clip a
+     cada frame durante o drag do 38-*.js. */
+  contain: paint;
 }
 
 /* Item de mídia (com animação) */
@@ -611,6 +649,12 @@
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     Contém a imagem/vídeo no seu próprio layer pra não
+     forçar reflow do shell durante a animação do 38-*.js. */
+  contain: paint;
+  transform: translateZ(0);
 }
 
 .nearby-drop-viewer .nearby-pub-midia-item img,
@@ -671,6 +715,7 @@
   opacity: 0.28;
   pointer-events: none;
 }
+
 /* ============================================
    RODAPÉ — SETAS + COMMENT BOX
 ============================================ */
@@ -681,6 +726,13 @@
   align-items: center;
   gap: 8px;
   min-height: 0;
+
+  /* ⚠️ CORREÇÃO CHROME MOBILE:
+     O rodapé NÃO deve bloquear o scroll vertical — só os
+     botões internos (via touch-action: manipulation).
+     Sem isso, o Chrome trata o toque no rodapé como
+     "interativo" e bloqueia o pan. */
+  touch-action: pan-x;
 }
 
 /* Setas horizontais (trocam drop) */
@@ -884,7 +936,7 @@
   .nearby-check-azul {
   stroke: #2563eb;
   stroke-width: 2.5;
-  }
+}
 
 .nearby-drop-viewer
   .nearby-drop-comment-box.input-com-texto
@@ -893,7 +945,7 @@
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
   pointer-events: auto;
   opacity: 1;
-  }
+}
 
 /* Cor ativa (azul) quando tem texto OU quando já compartilhou */
 .nearby-drop-viewer .nearby-drop-send.is-active {
@@ -1137,4 +1189,424 @@
   opacity: 0.85;
   color: #ffffff;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+/* ============================================
+   BOTÃO EXPANDIR (canto superior esquerdo da mídia)
+   Efeito vidro escuro + borda branca fina
+============================================ */
+
+.nearby-drop-expandir {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Vidro escuro translúcido */
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+
+  /* Borda branca fina */
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 900;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.nearby-drop-expandir:active {
+  transform: scale(0.92);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.nearby-drop-expandir:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* ============================================
+   CÁPSULA DE LEGENDA NO NEARBY
+   Efeito Vidro Embaçado + Texto Preto
+   Aparece sobreposta na mídia (parte inferior)
+============================================ */
+
+.nearby-pub-palco {
+  position: relative;
+}
+
+/* Cápsula (estado normal) — mais fina e transparente */
+.nearby-pub-legenda {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 15;
+
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+
+  padding: 8px 12px;
+
+  /* Vidro embaçado — mais transparente */
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 14px;
+
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+/* Texto da legenda (estado normal = 2 linhas) */
+.nearby-pub-legenda-texto {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  padding: 0;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  transition: all 0.25s ease;
+  word-break: break-word;
+}
+
+/* Estado expandido = 5 linhas visíveis + scroll interno */
+.nearby-pub-legenda-texto.expandido {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  max-height: calc(13px * 1.4 * 5);
+  padding-right: 6px;
+
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Scrollbar discreta no estado expandido */
+.nearby-pub-legenda-texto.expandido::-webkit-scrollbar {
+  width: 4px;
+}
+
+.nearby-pub-legenda-texto.expandido::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.4);
+  border-radius: 999px;
+}
+
+/* Botão "Ver mais" / "Ver menos" */
+.nearby-pub-legenda-ver-mais {
+  display: none;
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  align-self: flex-start;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nearby-pub-legenda-ver-mais.visivel {
+  display: block;
+}
+
+.nearby-pub-legenda-ver-mais:active {
+  opacity: 0.6;
+}
+
+/* ============================================
+   MODO COMENTÁRIO — FOCO TOTAL
+   ============================================ */
+
+/* Transição suave do rodapé ao entrar/sair do modo */
+.nearby-pub-rodape {
+  transition: all 0.2s ease;
+}
+
+/* ⚠️ Quando o modo comentário está ativo, o campo ocupa tudo */
+.nearby-drop-comment-box.comentario-focado {
+  flex: 1;
+  width: 100%;
+}
+
+/* ⚠️ Campo expandido em 3 linhas com scroll interno */
+.nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input {
+  flex: 1;
+  min-height: 3.6em;
+  max-height: 3.6em;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  resize: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ⚠️ Botão enviar fica maior e alinhado embaixo */
+.nearby-drop-comment-box.comentario-focado .nearby-drop-send {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+/* ⚠️ Scrollbar discreta no campo em modo foco */
+.nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input::-webkit-scrollbar {
+  width: 4px;
+}
+
+.nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.35);
+  border-radius: 999px;
+}
+
+/* ============================================
+   AJUSTES FINOS — CAMPO DE COMENTÁRIO
+   ============================================ */
+
+/* ⚠️ Garante que o rodapé não quebre em telas pequenas */
+.nearby-pub-rodape {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ⚠️ Alinha o botão enviar com o campo em modo normal */
+.nearby-drop-comment-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  transition: all 0.2s ease;
+}
+
+/* ⚠️ Campo normal (1 linha) */
+.nearby-drop-comment-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  max-height: 42px;
+  padding: 10px 14px;
+  border: none;
+  outline: none;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.3;
+  resize: none;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.nearby-drop-comment-input::placeholder {
+  color: #94a3b8;
+}
+
+/* ⚠️ Botões de reação (❤️ 💔) */
+.nearby-drop-reaction {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nearby-drop-reaction:active {
+  transform: scale(0.92);
+}
+
+.nearby-drop-reaction.ativo {
+  background: rgba(37, 99, 235, 0.35);
+}
+
+/* ⚠️ Botão enviar */
+.nearby-drop-send {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0.5;
+}
+
+.nearby-drop-send.is-active {
+  opacity: 1;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+}
+
+.nearby-drop-send:active {
+  transform: scale(0.92);
+}
+
+/* ⚠️ Setas laterais (← →) */
+.nearby-drop-arrow {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nearby-drop-arrow:active {
+  transform: scale(0.92);
+}
+
+.nearby-drop-arrow:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ============================================
+   MODO EXPANDIDO — TELA CHEIA (FOCO TOTAL)
+   ============================================ */
+
+/* ⚠️ Esconde topbar, rodapé e stats quando expandido */
+.nearby-drop-viewer.modo-expandido .nearby-pub-topbar,
+.nearby-drop-viewer.modo-expandido .nearby-pub-rodape,
+.nearby-drop-viewer.modo-expandido .nearby-pub-stats-row {
+  display: none !important;
+}
+
+/* ⚠️ Esconde a cápsula de legenda quando expandido */
+.nearby-drop-viewer.modo-expandido .nearby-pub-legenda {
+  display: none !important;
+}
+
+/* ⚠️ Esconde as setas de navegação vertical */
+.nearby-drop-viewer.modo-expandido .nearby-drop-nav {
+  display: none !important;
+}
+
+/* ⚠️ O palco ocupa a tela toda */
+.nearby-drop-viewer.modo-expandido .nearby-pub-palco {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+}
+
+/* ⚠️ O papel (mídia) ocupa a tela toda */
+.nearby-drop-viewer.modo-expandido .nearby-pub-papel {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+/* ⚠️ A mídia se ajusta (contain) para caber na tela */
+.nearby-drop-viewer.modo-expandido .nearby-pub-papel img,
+.nearby-drop-viewer.modo-expandido .nearby-pub-papel video,
+.nearby-drop-viewer.modo-expandido .nearby-pub-midia-item,
+.nearby-drop-viewer.modo-expandido .nearby-pub-midia-item img,
+.nearby-drop-viewer.modo-expandido .nearby-pub-midia-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  border-radius: 0;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ⚠️ O botão expandir fica por cima de tudo */
+.nearby-drop-viewer.modo-expandido .nearby-drop-expandir {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 100000;
+}
+
+/* ⚠️ O shell perde o limite de altura quando expandido */
+.nearby-drop-viewer.modo-expandido .nearby-pub-shell {
+  max-height: none;
+  height: 100%;
+  border-radius: 0;
+}
+
+/* ============================================
+   PREVIEW DO SCROLL CONTÍNUO (38-*.js)
+   Promove a layer própria durante o drag
+============================================ */
+
+.nearby-scroll-preview-nex {
+  contain: paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
