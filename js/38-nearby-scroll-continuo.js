@@ -563,8 +563,18 @@ const estado = obterEstado();
 if (!estado) return;
 
   viewer = estado.viewerRef;
-  shell = viewer.querySelector('.nearby-pub-shell');
-  if (!shell) return;
+shell = viewer.querySelector('.nearby-pub-shell');
+if (!shell) {
+  if (typeof window.mostrarToastNex === 'function') {
+    window.mostrarToastNex('SEM SHELL', 'erro', 3000);
+  }
+  return;
+}
+
+// ⚠️ DEBUG
+if (typeof window.mostrarToastNex === 'function') {
+  window.mostrarToastNex('iniciarDrag OK', 'sucesso', 1500);
+}
 
   swipeAtivo = true;
   direcao = null;
@@ -627,26 +637,42 @@ const seletores = [
   }
 
   if (!direcao) {
-  direcao = detectarDirecao(dx, dy);
+direcao = detectarDirecao(dx, dy);
 
-  if (direcao === 'vertical') {
-    // ⚠️ REANCORA no ponto atual. Sem isso, os primeiros 8px
-    //    de detecção somem e o shell "pula" pra posição errada.
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
+if (direcao === 'vertical') {
+  // ⚠️ REANCORA no ponto atual. Sem isso, os primeiros 8px
+  //    de detecção somem e o shell "pula" pra posição errada.
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
 
-    // ⚠️ Avisa o 11-nearby.js pra ignorar o swipe dele
-    window.__nearbyScrollVerticalAtivo = true;
-    prepararPreviews();
-    if (shell) shell.style.transition = 'none';
-  } else if (direcao === 'horizontal') {
-    // Libera pro 11-nearby.js tratar
-    swipeAtivo = false;
-    return;
-  } else {
-    return;
+  // ⚠️ Avisa o 11-nearby.js pra ignorar o swipe dele
+  window.__nearbyScrollVerticalAtivo = true;
+
+  // ⚠️ DEBUG
+  if (typeof window.mostrarToastNex === 'function') {
+    window.mostrarToastNex('Entrou no drag vertical', 'info', 2000);
   }
-    }
+
+  prepararPreviews();
+
+  // ⚠️ DEBUG — confirma se criou previews
+  if (typeof window.mostrarToastNex === 'function') {
+    window.mostrarToastNex(
+      'Previews: prox=' + (previewProx ? 'S' : 'N') +
+      ' ant=' + (previewAnt ? 'S' : 'N'),
+      'info', 3000
+    );
+  }
+
+  if (shell) shell.style.transition = 'none';
+} else if (direcao === 'horizontal') {
+  // Libera pro 11-nearby.js tratar
+  swipeAtivo = false;
+  return;
+} else {
+  return;
+}
+  }
 
       if (direcao !== 'vertical') return;
 
@@ -671,13 +697,10 @@ const podeAnt = anteriorPerfilComNaoVisto(estado, idxAtual) >= 0;
 //    No começo da puxada resiste pouco; no fim, quase não anda.
 let yFinal = dy;
 if (dy < 0 && !podeProx) {
-  const excesso = Math.abs(dy);
-  const fatorDinamico = FATOR_RESISTENCIA / (1 + excesso / altura);
-  yFinal = dy * fatorDinamico;
+  // ⚠️ Sem próximo = sem rolagem. Bounce pequeno só.
+  yFinal = dy * 0.12;
 } else if (dy > 0 && !podeAnt) {
-  const excesso = Math.abs(dy);
-  const fatorDinamico = FATOR_RESISTENCIA / (1 + excesso / altura);
-  yFinal = dy * fatorDinamico;
+  yFinal = dy * 0.12;
 }
 
     // Limita o arrasto a uma tela (com resistência além)
@@ -912,5 +935,4 @@ document.addEventListener('DOMContentLoaded', registrar);
   }, 3000);
 
 })();
-
 
