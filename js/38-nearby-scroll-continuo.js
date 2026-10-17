@@ -969,7 +969,7 @@ function mostrarBalaoLimiteNex(direcao) {
     { passive: true, capture: true }
   );
 
-  document.addEventListener(
+    document.addEventListener(
   'touchmove',
   (e) => {
     // ⚠️ GUARDA: se o viewer saiu da tela, reseta o estado
@@ -986,11 +986,15 @@ function mostrarBalaoLimiteNex(direcao) {
 
     if (!swipeAtivo) return;
 
-    // ⚠️ Bloqueia o scroll nativo JÁ na primeira chamada,
-    //    antes de detectar a direção. Senão os primeiros ~8px
-    //    "pulam" porque o navegador move a página antes do JS assumir.
-    if (e.cancelable) e.preventDefault();
-
+    // ⚠️ CORREÇÃO CRÍTICA:
+    //    NÃO damos preventDefault aqui. O preventDefault só deve
+    //    rodar dentro do moverDrag, DEPOIS que a direção for
+    //    confirmada como VERTICAL.
+    //
+    //    Se dermos preventDefault no horizontal, o Chrome cancela
+    //    o gesto e dispara touchcancel em vez de touchend — o
+    //    swipe horizontal do 11-nearby.js nunca dispara, e o
+    //    vídeo fica "travado".
     moverDrag(e);
   },
   { passive: false, capture: true }
