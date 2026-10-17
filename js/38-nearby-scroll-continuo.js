@@ -44,7 +44,7 @@ let startY = 0;
 let deltaY = 0;
 let animando = false;
 
-// ⚠️ Cache de índices — evita recalcular no touchmove
+  // ⚠️ Cache de índices — evita recalcular no touchmove (60x/s)
 let _idxProxCache = -1;
 let _idxAntCache = -1;
 
@@ -490,19 +490,33 @@ function perfilTemNaoVisto(perfilId) {
   return false;
 }
   
-// Próximo perfil (não visto) depois do idx atual
+// Próximo perfil: prioriza não-visto, mas se todos já foram vistos,
+// usa o adjacente (índice + 1) pra navegação continuar funcionando.
 function proximoPerfilComNaoVisto(estado, idxAtual) {
+  // Tenta primeiro um não-visto
   for (let i = idxAtual + 1; i < estado.ids.length; i++) {
     if (perfilTemNaoVisto(estado.ids[i])) return i;
   }
+
+  // ⚠️ CORREÇÃO: se não achou não-visto, retorna o próximo adjacente.
+  //    Sem isso, o scroll vertical morre quando todos os perfis
+  //    vizinhos já foram vistos (o usuário vê "não tem mais perfil").
+  if (idxAtual < estado.ids.length - 1) return idxAtual + 1;
+
   return -1;
 }
 
-// Perfil (não visto) antes do idx atual
+// Perfil anterior: prioriza não-visto, mas se todos já foram vistos,
+// usa o adjacente (índice - 1) pra navegação continuar funcionando.
 function anteriorPerfilComNaoVisto(estado, idxAtual) {
+  // Tenta primeiro um não-visto
   for (let i = idxAtual - 1; i >= 0; i--) {
     if (perfilTemNaoVisto(estado.ids[i])) return i;
   }
+
+  // ⚠️ CORREÇÃO: se não achou não-visto, retorna o anterior adjacente.
+  if (idxAtual > 0) return idxAtual - 1;
+
   return -1;
 }
 
@@ -787,19 +801,44 @@ function soltarDrag() {
   }
 
   const altura = alturaTela();
-  const limiar = altura * ENCAIXE_PCT;
+const limiar = altura * ENCAIXE_PCT;
 
-  const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
-  const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
-  const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
+const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
+const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
 
-  if (deltaY < -limiar && idxProx >= 0) {
-    encaixarNoProximo(estado, idxProx);
-  } else if (deltaY > limiar && idxAnt >= 0) {
-    encaixarNoAnterior(estado, idxAnt);
-  } else {
-    voltarAoInicio();
-  }
+// ============================================
+// TENTOU PASSAR DO ÚLTIMO PERFIL?
+// ============================================
+// ⚠️ idxProx === -1 só acontece quando já está no ÚLTIMO perfil.
+//    Mostra o balão "Você já viu tudo" + bounce de volta.
+if (deltaY < -limiar && idxProx === -1) {
+  mostrarBalaoLimiteNex('final');
+  voltarAoInicio();
+  return;
+}
+
+// ============================================
+// TENTOU PASSAR DO PRIMEIRO PERFIL?
+// ============================================
+// ⚠️ idxAnt === -1 só acontece quando já está no PRIMEIRO perfil.
+if (deltaY > limiar && idxAnt === -1) {
+  mostrarBalaoLimiteNex('inicio');
+  voltarAoInicio();
+  return;
+}
+
+// ============================================
+// NAVEGAÇÃO NORMAL
+// ============================================
+
+if (deltaY < -limiar && idxProx >= 0) {
+  encaixarNoProximo(estado, idxProx);
+} else if (deltaY > limiar && idxAnt >= 0) {
+  encaixarNoAnterior(estado, idxAnt);
+} else {
+  voltarAoInicio();
+}
 }
 
   // ============================================
@@ -865,34 +904,53 @@ function soltarDrag() {
   // ============================================
 
   function voltarAoInicio() {
-  animando = true;
+animando = true;
 
-  // ⚠️ CORREÇÃO DE FLUIDEZ:
-  //    No "voltar" (cancelou o gesto), overshoot fica parecendo
-  //    tremedeira. Usa curva sem overshoot (ease-out clássico).
-  //    O overshoot fica reservado pro "encaixe" (parece natural lá).
-  const curva = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+// ⚠️ CORREÇÃO DE FLUIDEZ:
+//    No "voltar" (cancelou o gesto), overshoot fica parecendo
+//    tremedeira. Usa curva sem overshoot (ease-out clássico).
+//    O overshoot fica reservado pro "encaixe" (parece natural lá).
+const curva = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
 
-  shell.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
-  shell.style.transform = 'translateY(0)';
+shell.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
+shell.style.transform = 'translateY(0)';
 
-  if (previewProx) {
-    previewProx.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
-    previewProx.style.transform = `translateY(${alturaTela()}px)`;
-  }
-  if (previewAnt) {
-    previewAnt.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
-    previewAnt.style.transform = `translateY(-${alturaTela()}px)`;
-  }
+if (previewProx) {
+  previewProx.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
+  previewProx.style.transform = `translateY(${alturaTela()}px)`;
+}
+if (previewAnt) {
+  previewAnt.style.transition = `transform ${DURACAO_ANIM_MS}ms ${curva}`;
+  previewAnt.style.transform = `translateY(-${alturaTela()}px)`;
+}
 
-    setTimeout(() => {
-      resetarShell();
-      limparPreviews();
+  setTimeout(() => {
+    resetarShell();
+    limparPreviews();
 
-      animando = false;
-      window.__nearbyScrollVerticalAtivo = false;
-    }, DURACAO_ANIM_MS);
-  }
+    animando = false;
+    window.__nearbyScrollVerticalAtivo = false;
+  }, DURACAO_ANIM_MS);
+}
+
+// ============================================
+// BALÃO DE LIMITE — "Você já viu tudo por aqui"
+// ============================================
+// direcao: 'final' (tentou passar do último)
+//        | 'inicio' (tentou passar do primeiro)
+
+function mostrarBalaoLimiteNex(direcao) {
+  // ⚠️ Usa o toast padrão do app (mesmo visual do resto do sistema)
+  if (typeof window.mostrarToastNex !== 'function') return;
+
+  const ehFinal = direcao === 'final';
+
+  const mensagem = ehFinal
+    ? '🎉 Você já viu tudo por aqui'
+    : '🏁 Você já está no início';
+
+  window.mostrarToastNex(mensagem, 'info', 2200);
+}
 
   // ============================================
   // REGISTRAR LISTENERS

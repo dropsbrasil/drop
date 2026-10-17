@@ -368,17 +368,23 @@ function animarMidiaNex(container, url, tipo, direcao) {
   const novo = document.createElement('div');
   novo.className = 'nearby-pub-midia-item';
 
-  if (ehVideo) {
-    const video = document.createElement('video');
-    video.src = url;
-    video.controls = true;
-    video.setAttribute('controls', '');
-    video.autoplay = true;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'metadata';
-    novo.appendChild(video);
-  } else {
+ if (ehVideo) {
+  const video = document.createElement('video');
+  video.src = url;
+  video.controls = true;
+  video.setAttribute('controls', '');
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'metadata';
+
+  // ⚠️ CORREÇÃO CHROME MOBILE:
+  //    Sem isso, o vídeo captura o gesto horizontal e o swipe
+  //    do app nunca dispara.
+  video.style.touchAction = 'pan-x';
+
+  novo.appendChild(video);
+} else {
     const img = document.createElement('img');
     img.src = url;
     img.alt = '';
@@ -1709,23 +1715,31 @@ if (media) {
     const novoInicial = document.createElement('div');
     novoInicial.className = 'nearby-pub-midia-item';
 
-    if (ehVideo) {
-      const video = document.createElement('video');
-      video.src = url;
-      video.controls = true;
-      video.setAttribute('controls', '');
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.preload = 'metadata';
-      novoInicial.appendChild(video);
-    } else {
+        if (ehVideo) {
+  const video = document.createElement('video');
+  video.src = url;
+  video.controls = true;
+  video.setAttribute('controls', '');
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'metadata';
+
+  // ⚠️ CORREÇÃO CHROME MOBILE:
+  //    Sem isso, o vídeo captura o gesto horizontal e o swipe
+  //    do app nunca dispara.
+  video.style.touchAction = 'pan-x';
+
+  // ⚠️ CORREÇÃO: variável correta neste escopo é 'novoInicial'
+  //    (não 'novo' — aquele é do animarMidiaNex).
+  novoInicial.appendChild(video);
+} else {
       const img = document.createElement('img');
       img.src = url;
       img.alt = perfil.nome || '';
       novoInicial.appendChild(img);
-    }
-
+        }
+    
     media.appendChild(novoInicial);
   } else {
     // Navegação → animação
@@ -2311,13 +2325,13 @@ const raios = [100, 200, 500, 1000, 99999];
     card.appendChild(nome);
     card.appendChild(dist);
 
-    // Clique abre o drop
-    card.addEventListener('click', () => {
-      abrirDropRealNearbyNex(dropPrincipal, drops);
-    });
-
-    stories.appendChild(card);
+      // Clique abre o drop — MODO CONECTADOS
+  card.addEventListener('click', () => {
+    abrirDropRealNearbyNex(dropPrincipal, drops, 'conectados');
   });
+
+  stories.appendChild(card);
+});
 
   // ============================================
   // RENDERIZA NÃO-CONECTADOS (no grid)
@@ -2379,11 +2393,11 @@ const raios = [100, 200, 500, 1000, 99999];
     const dist = document.createElement('span');
     dist.textContent = obterDistanciaDropNex(dropPrincipal) || '—';
 
-    card.append(avatar, nome, dist);
+        card.append(avatar, nome, dist);
     grid.appendChild(card);
 
     card.addEventListener('click', () => {
-      abrirDropRealNearbyNex(dropPrincipal, drops);
+      abrirDropRealNearbyNex(dropPrincipal, drops, 'nearby');
     });
   });
 }
@@ -2492,10 +2506,50 @@ const raios = [100, 200, 500, 1000, 99999];
 // ============================================
 // ABRIR DROP REAL (novo sistema)
 // ============================================
-function abrirDropRealNearbyNex(dropClicado, listaDeDrops) {
+// tipoOrigem:
+//   'conectados' → navega verticalmente SÓ entre perfis conectados
+//   'nearby'     → navega verticalmente SÓ entre perfis NÃO-conectados
+//   null/omisso  → navega entre todos (comportamento antigo, usado pelo chat)
+function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
   if (!dropClicado) return;
 
-  const lista = Array.isArray(listaDeDrops) ? listaDeDrops : [];
+  let lista = Array.isArray(listaDeDrops) ? listaDeDrops : [];
+
+  // ============================================
+  // FILTRA A LISTA POR TIPO (conectados vs nearby)
+  // ============================================
+  if (tipoOrigem === 'conectados' || tipoOrigem === 'nearby') {
+    const conectados = typeof lerConectadosMyDropsNex === 'function'
+      ? lerConectadosMyDropsNex()
+      : [];
+
+    const idsConectados = new Set(
+      conectados.map((c) =>
+        String(c.id || '')
+          .replace(/^@/, '')
+          .toLowerCase()
+          .trim()
+      )
+    );
+
+    lista = lista.filter((d) => {
+      const autor = String(d.autorUsername || '')
+        .replace(/^@/, '')
+        .toLowerCase()
+        .trim();
+
+      const ehConectado = idsConectados.has(autor);
+
+      return tipoOrigem === 'conectados'
+        ? ehConectado
+        : !ehConectado;
+    });
+
+    // Se o filtro esvaziou, mantém o drop clicado só ele
+    if (!lista.length) {
+      lista = [dropClicado];
+    }
+  }
 
   // ============================================
   // AGRUPA DROPS POR AUTOR
