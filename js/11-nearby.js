@@ -1547,6 +1547,11 @@ if (
   window.dropsVistosNex?.marcarVisto
 ) {
   window.dropsVistosNex.marcarVisto(publicacaoIdAtual);
+
+  // ⚠️ Limpa o cache de "não visto" — senão o 38-*.js usa dado velho
+  if (window.__limparCacheNaoVistoNex) {
+    window.__limparCacheNaoVistoNex();
+  }
 }
   
 if (

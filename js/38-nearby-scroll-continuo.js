@@ -421,12 +421,26 @@ preview.appendChild(statsRow);
 // HELPERS — PERFIL TEM DROPS NÃO VISTOS?
 // ============================================
 
+const cacheNaoVisto = new Map(); // perfilId → true/false
+
+function limparCacheNaoVisto() {
+  cacheNaoVisto.clear();
+}
+
 function perfilTemNaoVisto(perfilId) {
+  if (cacheNaoVisto.has(perfilId)) return cacheNaoVisto.get(perfilId);
+
   const estado = obterEstado();
-  if (!estado) return false;
+  if (!estado) {
+    cacheNaoVisto.set(perfilId, false);
+    return false;
+  }
 
   const perfil = estado.base[perfilId];
-  if (!perfil) return false;
+  if (!perfil) {
+    cacheNaoVisto.set(perfilId, false);
+    return false;
+  }
 
   const drops = window.obterDropsDoPerfil?.(perfil) || [];
   if (!drops.length) return false;
@@ -436,21 +450,30 @@ function perfilTemNaoVisto(perfilId) {
 
   for (let i = 0; i < drops.length; i++) {
     const d = drops[i];
+    const urlDrop = d.url || d.imagem || d.mediaUrl || '';
+
     const chaveLocal = window.chaveDropPerfilNex
-      ? window.chaveDropPerfilNex(perfilId, i, d.url || d.imagem || '')
-      : `${perfilId}::${i}::${d.url || d.imagem || ''}`;
+      ? window.chaveDropPerfilNex(perfilId, i, urlDrop)
+      : `${perfilId}::${i}::${urlDrop}`;
 
     const pubId =
       window.__dropsMapaIdsPublicacao &&
       window.__dropsMapaIdsPublicacao[chaveLocal];
 
-    if (!pubId) return true; // sem id, considera como não visto
-    if (!vistos.foiVisto(pubId)) return true; // achou um não visto
+        if (!pubId) {
+      cacheNaoVisto.set(perfilId, true);
+      return true;
+    }
+    if (!vistos.foiVisto(pubId)) {
+      cacheNaoVisto.set(perfilId, true);
+      return true;
+    }
   }
 
-  return false; // todos vistos
+  cacheNaoVisto.set(perfilId, false);
+  return false;
 }
-
+  
 // Próximo perfil (não visto) depois do idx atual
 function proximoPerfilComNaoVisto(estado, idxAtual) {
   for (let i = idxAtual + 1; i < estado.ids.length; i++) {
@@ -868,11 +891,17 @@ if (deltaY < -limiar && idxProx >= 0) {
   }
 
   // ============================================
-  // INICIALIZAÇÃO
-  // ============================================
+// EXPOE LIMPEZA GLOBAL
+// ============================================
 
-  document.addEventListener('DOMContentLoaded', registrar);
+window.__limparCacheNaoVistoNex = limparCacheNaoVisto;
 
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
+
+document.addEventListener('DOMContentLoaded', registrar);
+  
   console.log('🌀 38-nearby-scroll-continuo.js carregado');
 
 })();
