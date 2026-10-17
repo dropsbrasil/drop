@@ -49,11 +49,16 @@ const CURVA_ENCAIXE = 'cubic-bezier(0.34, 1.15, 0.64, 1)';
   // ============================================
 
   function alturaTela() {
-  // ⚠️ Usa a altura REAL do shell (100dvh) — window.innerHeight
-  //    pode ser diferente no mobile, causando desalinhamento entre
-  //    o shell e o preview (some o rodapé durante o arrasto).
-  if (shell && shell.offsetHeight) return shell.offsetHeight;
-  return window.innerHeight || 800;
+// ⚠️ Usa a altura REAL do shell (100dvh). Se o shell ainda não
+//    estiver renderizado (offsetHeight = 0), cai pro visualViewport
+//    (que é o mesmo que 100dvh no Chrome mobile).
+if (shell && shell.offsetHeight > 0) return shell.offsetHeight;
+
+if (window.visualViewport && window.visualViewport.height > 0) {
+  return window.visualViewport.height;
+}
+
+return window.innerHeight || 800;
   }
   
   function obterEstado() {
@@ -539,79 +544,69 @@ function prepararPreviews() {
   // ============================================
 
   function iniciarDrag(e) {
-if (animando) return;
-if (!e.touches || e.touches.length !== 1) return;
+  if (animando) return;
+  if (!e.touches || e.touches.length !== 1) return;
 
-// ⚠️ Ignora toques em botões/controles — senão o "soltar" do drag
-//    vira um clique fantasma (ex: botão expandir)
-const alvo = e.target;
-if (
-  alvo.closest('.nearby-drop-close') ||
-  alvo.closest('.nearby-drop-comment-box') ||
-  alvo.closest('.nearby-drop-profile-btn') ||
-  alvo.closest('.nearby-pub-stats-row') ||
-  alvo.closest('.nearby-drop-expandir') ||
-  alvo.closest('.nearby-pub-capsula-autor') ||
-  alvo.closest('input') ||
-  alvo.closest('textarea') ||
-  alvo.closest('button')
-) {
-  return;
-}
+  // ⚠️ Ignora toques em botões/controles
+  const alvo = e.target;
+  if (
+    alvo.closest('.nearby-drop-close') ||
+    alvo.closest('.nearby-drop-comment-box') ||
+    alvo.closest('.nearby-drop-profile-btn') ||
+    alvo.closest('.nearby-pub-stats-row') ||
+    alvo.closest('.nearby-drop-expandir') ||
+    alvo.closest('.nearby-pub-capsula-autor') ||
+    alvo.closest('input') ||
+    alvo.closest('textarea') ||
+    alvo.closest('button')
+  ) {
+    return;
+  }
 
-const estado = obterEstado();
-if (!estado) return;
+  const estado = obterEstado();
+  if (!estado) return;
 
   viewer = estado.viewerRef;
-shell = viewer.querySelector('.nearby-pub-shell');
-if (!shell) {
-  if (typeof window.mostrarToastNex === 'function') {
-    window.mostrarToastNex('SEM SHELL', 'erro', 3000);
-  }
-  return;
-}
-
-// ⚠️ DEBUG
-if (typeof window.mostrarToastNex === 'function') {
-  window.mostrarToastNex('iniciarDrag OK', 'sucesso', 1500);
-}
+  shell = viewer.querySelector('.nearby-pub-shell');
+  if (!shell) return;
 
   swipeAtivo = true;
   direcao = null;
   deltaY = 0;
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
-}
+
+  // ⚠️ CORREÇÃO CHROME MOBILE:
+  //    Trava o scroll do body JÁ no touchstart. Sem isso, o Chrome
+  //    inicia o gesto como scroll nativo e o touchmove com
+  //    preventDefault é ignorado.
+  document.body.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+  }
 
 // ============================================
 // GUARDA: só age se o viewer do Nearby estiver visível
 // ============================================
-// Se por algum motivo o viewer saiu da tela (modal aberto,
-// outra tela em cima), ignora o swipe e RESETA o estado.
+// Se algum modal estiver por cima, ignora o swipe.
+//
+// ⚠️ O overlay do onboarding NÃO bloqueia — ele fica por cima
+//    do viewer por alguns segundos, mas o usuário PRECISA
+//    conseguir arrastar durante ele.
 
 function viewerNearbyVisivel() {
   const v = document.querySelector('.nearby-drop-viewer');
-  if (!v) {
-    // Sem viewer no DOM = não é problema, é só outra tela.
-    // Não mostra toast.
-    return false;
-  }
+  if (!v) return false;
 
-  // Se algum modal ou tela estiver por cima, considera invisível
-const seletores = [
-  '.modal-msg-nex[style*="display: flex"]',
-  '.mural-overlay-nex[style*="display: flex"]',
-  '.onb-viewer-overlay-nex.visivel',
-  '#modalDuracaoPublicacaoMyDropsNex:not(.hidden)',
-  '.mydrops-publication-viewer',
-  '.chatNex.active',
-  '#chatNex.active'
-];
+  const seletores = [
+    '.modal-msg-nex[style*="display: flex"]',
+    '.mural-overlay-nex[style*="display: flex"]',
+    '#modalDuracaoPublicacaoMyDropsNex:not(.hidden)',
+    '.mydrops-publication-viewer',
+    '#chatNex.active'
+  ];
 
-    for (const sel of seletores) {
-    if (document.querySelector(sel)) {
-      return false;
-    }
+  for (const sel of seletores) {
+    if (document.querySelector(sel)) return false;
   }
 
   return true;
@@ -621,62 +616,57 @@ const seletores = [
   // MOVIMENTO
   // ============================================
 
-  function moverDrag(e) {
+function moverDrag(e) {
   if (!swipeAtivo || animando) return;
   if (!e.touches || e.touches.length !== 1) return;
 
   const dx = e.touches[0].clientX - startX;
   const dy = e.touches[0].clientY - startY;
 
-  // ⚠️ Se já tá em vertical, trava. Não deixa "virar" pro lado
-  //    no meio do gesto (dá briga com o 11-nearby.js)
-  if (direcao === 'vertical') {
-    if (e.cancelable) e.preventDefault();
-    aplicarMovimentoVertical(e, dy);
-    return;
-  }
-
+  // ============================================
+  // AINDA NÃO DEFINIU DIREÇÃO
+  // ============================================
   if (!direcao) {
-direcao = detectarDirecao(dx, dy);
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
 
-if (direcao === 'vertical') {
-  // ⚠️ REANCORA no ponto atual. Sem isso, os primeiros 8px
-  //    de detecção somem e o shell "pula" pra posição errada.
-  startX = e.touches[0].clientX;
-  startY = e.touches[0].clientY;
+    // ⚠️ Threshold menor (4px) — o Chrome mobile perde os primeiros px
+    if (absX < 4 && absY < 4) return;
 
-  // ⚠️ Avisa o 11-nearby.js pra ignorar o swipe dele
-  window.__nearbyScrollVerticalAtivo = true;
+    // ⚠️ Vertical tem prioridade (1.2 em vez de 1.3)
+    if (absY >= absX * 1.2) {
+      direcao = 'vertical';
+    } else if (absX >= absY * 1.2) {
+      direcao = 'horizontal';
+      swipeAtivo = false;
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+      return;
+    } else {
+      return; // diagonal — aguarda próximo move
+    }
 
-  // ⚠️ DEBUG
-  if (typeof window.mostrarToastNex === 'function') {
-    window.mostrarToastNex('Entrou no drag vertical', 'info', 2000);
+    // Reancora no ponto atual (evita "pulo" de 4px)
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+
+    // ⚠️ Avisa o 11-nearby.js ANTES de qualquer coisa
+    window.__nearbyScrollVerticalAtivo = true;
+
+    prepararPreviews();
+
+    if (shell) shell.style.transition = 'none';
   }
 
-  prepararPreviews();
+  if (direcao !== 'vertical') return;
 
-  // ⚠️ DEBUG — confirma se criou previews
-  if (typeof window.mostrarToastNex === 'function') {
-    window.mostrarToastNex(
-      'Previews: prox=' + (previewProx ? 'S' : 'N') +
-      ' ant=' + (previewAnt ? 'S' : 'N'),
-      'info', 3000
-    );
-  }
-
-  if (shell) shell.style.transition = 'none';
-} else if (direcao === 'horizontal') {
-  // Libera pro 11-nearby.js tratar
-  swipeAtivo = false;
-  return;
-} else {
-  return;
-}
-  }
-
-      if (direcao !== 'vertical') return;
-
-  if (e.cancelable) e.preventDefault();
+  // ⚠️ CORREÇÃO CHROME MOBILE:
+  //    preventDefault SEMPRE no vertical, sem checar 'cancelable'
+  //    (o Chrome às vezes marca como não-cancelable mesmo podendo
+  //    ser prevenido — o try/catch protege).
+  try {
+    if (e.cancelable) e.preventDefault();
+  } catch (_) {}
 
   aplicarMovimentoVertical(e, dy);
 }
@@ -725,40 +715,47 @@ if (dy < 0 && !podeProx) {
 // FIM DO DRAG
 // ============================================
   
-  function soltarDrag() {
-    if (!swipeAtivo) return;
-    swipeAtivo = false;
+function soltarDrag() {
+  if (!swipeAtivo) return;
+  swipeAtivo = false;
 
-    if (direcao !== 'vertical') {
-      window.__nearbyScrollVerticalAtivo = false;
-      limparPreviews();
-      resetarShell();
-      return;
-    }
+  // ⚠️ CORREÇÃO CHROME MOBILE:
+  //    Sempre limpa o body, independente do que aconteceu.
+  //    Sem isso, o body fica travado pra sempre se algum erro
+  //    acontecer no meio do gesto.
+  document.body.style.overflow = '';
+  document.body.style.touchAction = '';
 
-    const estado = obterEstado();
-    if (!estado) {
-      limparPreviews();
-      resetarShell();
-      window.__nearbyScrollVerticalAtivo = false;
-      return;
-    }
-
-    const altura = alturaTela();
-    const limiar = altura * ENCAIXE_PCT;
-
-    const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
-const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
-const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
-
-if (deltaY < -limiar && idxProx >= 0) {
-  encaixarNoProximo(estado, idxProx);
-} else if (deltaY > limiar && idxAnt >= 0) {
-  encaixarNoAnterior(estado, idxAnt);
-} else {
-  voltarAoInicio();
-   }
+  if (direcao !== 'vertical') {
+    window.__nearbyScrollVerticalAtivo = false;
+    limparPreviews();
+    resetarShell();
+    return;
   }
+
+  const estado = obterEstado();
+  if (!estado) {
+    limparPreviews();
+    resetarShell();
+    window.__nearbyScrollVerticalAtivo = false;
+    return;
+  }
+
+  const altura = alturaTela();
+  const limiar = altura * ENCAIXE_PCT;
+
+  const idxAtual = estado.ids.indexOf(estado.getPerfilAtualId());
+  const idxProx = proximoPerfilComNaoVisto(estado, idxAtual);
+  const idxAnt = anteriorPerfilComNaoVisto(estado, idxAtual);
+
+  if (deltaY < -limiar && idxProx >= 0) {
+    encaixarNoProximo(estado, idxProx);
+  } else if (deltaY > limiar && idxAnt >= 0) {
+    encaixarNoAnterior(estado, idxAnt);
+  } else {
+    voltarAoInicio();
+  }
+}
 
   // ============================================
   // ENCAIXAR NO PRÓXIMO
@@ -900,17 +897,21 @@ if (deltaY < -limiar && idxProx >= 0) {
   );
 
   document.addEventListener(
-    'touchcancel',
-    () => {
-      if (!swipeAtivo) return;
-      swipeAtivo = false;
-      direcao = null;
-      limparPreviews();
-      resetarShell();
-      window.__nearbyScrollVerticalAtivo = false;
-    },
-    { passive: true, capture: true }
-  );
+  'touchcancel',
+  () => {
+    if (!swipeAtivo) return;
+    swipeAtivo = false;
+    direcao = null;
+    limparPreviews();
+    resetarShell();
+    window.__nearbyScrollVerticalAtivo = false;
+
+    // ⚠️ CORREÇÃO: também limpa o body no cancel
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+  },
+  { passive: true, capture: true }
+);
   }
 
   // ============================================

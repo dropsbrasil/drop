@@ -1799,19 +1799,23 @@ viewer.addEventListener('click', (e) => {
         swipeStartTime = Date.now();
       }, { passive: true });
 
-      viewer.addEventListener('touchend', (e) => {
-  if (!swipeAtivo) return;
-  swipeAtivo = false;
+          viewer.addEventListener('touchend', (e) => {
+if (!swipeAtivo) return;
+swipeAtivo = false;
 
-  // ⚠️ Se o scroll contínuo (38-*.js) assumiu, ignora
-  if (window.__nearbyScrollVerticalAtivo) return;
+// ⚠️ CORREÇÃO CHROME MOBILE:
+//    Bloqueia ANTES de qualquer cálculo. O 38-*.js seta o flag
+//    no início do touchmove vertical — se o flag não veio, mas
+//    existe um preview do 38-*.js no DOM, também ignora.
+if (window.__nearbyScrollVerticalAtivo) return;
+if (document.querySelector('.nearby-scroll-preview-nex')) return;
 
-  if (!e.changedTouches || e.changedTouches.length === 0) return;
-        const dx = e.changedTouches[0].clientX - swipeStartX;
-        const dy = e.changedTouches[0].clientY - swipeStartY;
-        const dt = Date.now() - swipeStartTime;
+if (!e.changedTouches || e.changedTouches.length === 0) return;
+      const dx = e.changedTouches[0].clientX - swipeStartX;
+      const dy = e.changedTouches[0].clientY - swipeStartY;
+      const dt = Date.now() - swipeStartTime;
 
-        if (dt > TEMPO_MAX_SWIPE) return;
+      if (dt > TEMPO_MAX_SWIPE) return;
 
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
@@ -1885,10 +1889,16 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
   }
 }
       }, { passive: true });
-
-   // ⚠️ Renderiza primeira vez
+  // ⚠️ Renderiza primeira vez
   //    (o agendamento da dica flutuante já acontece dentro do renderizar)
   renderizar();
+
+  // ⚠️ CORREÇÃO CHROME MOBILE:
+  //    Garante que o body não fique travado se o viewer anterior
+  //    deixou o overflow em 'hidden' por algum erro.
+  //    (O 38-*.js limpa isso ao final do gesto, mas por segurança...)
+  document.body.style.overflow = 'hidden'; // viewer SEMPRE trava
+  document.body.style.touchAction = '';
 }
   
 // ============================================
