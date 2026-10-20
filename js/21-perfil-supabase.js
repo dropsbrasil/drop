@@ -289,31 +289,38 @@ function iniciarHeartbeatNex() {
   // Envia 1x imediatamente
   enviarHeartbeatNex();
 
-  // ⚠️ Atualiza a cada 15 segundos (rápido)
-  heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 15 * 1000);
+  // ⚠️ Atualiza a cada 60 segundos (economia de cota e bateria)
+  heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 60 * 1000);
 
-  // Atualiza também quando volta pro app
+  // ⚠️ Pausa quando o app vai para segundo plano e retoma ao voltar
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
+    if (document.hidden) {
+      // App minimizado: para o loop para não gastar bateria
+      clearInterval(heartbeatIntervaloNex);
+      heartbeatIntervaloNex = null;
+    } else {
+      // App voltou ao foco: envia sinal imediato e reinicia o loop
       enviarHeartbeatNex();
+      if (!heartbeatIntervaloNex) {
+        heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 60 * 1000);
+      }
     }
   });
 
-  // ⚠️ Atualiza também quando o usuário interage (clique, digitação)
+  // ⚠️ Atualiza também quando o usuário interage
   let ultimoEnvioInteracao = 0;
   const handlerInteracao = () => {
     const agora = Date.now();
-    // Evita spammar: só reenvia se passou mais de 10s
-    if (agora - ultimoEnvioInteracao < 10000) return;
+    if (agora - ultimoEnvioInteracao < 60000) return; // 60s de cooldown
     ultimoEnvioInteracao = agora;
-    enviarHeartbeatNex();
+    if (!document.hidden) enviarHeartbeatNex();
   };
 
-  ['click', 'keydown', 'touchstart', 'scroll'].forEach((evt) => {
+  ['click', 'keydown', 'touchstart'].forEach((evt) => {
     document.addEventListener(evt, handlerInteracao, { passive: true });
   });
 
-  console.log('💓 Heartbeat iniciado (15s)');
+  console.log('💓 Heartbeat iniciado (60s, com pausa em background)');
 }
 
 // ============================================

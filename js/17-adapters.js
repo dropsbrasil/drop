@@ -258,12 +258,13 @@ salvarBio(texto) {
       const listaLocal = this.lerConectados();
       if (!listaLocal.length) return;
 
-      for (const item of listaLocal) {
-        const username = String(item.id || '').replace(/^@/, '').trim().toLowerCase();
-        if (!username) continue;
+      const promessas = listaLocal.map((item) => {
+  const username = String(item.id || '').replace(/^@/, '').trim().toLowerCase();
+  if (!username) return Promise.resolve();
+  return this.adicionarConectadoSupabase(username);
+});
 
-        await this.adicionarConectadoSupabase(username);
-      }
+await Promise.all(promessas);
 
       console.log('☁️ Conectados sincronizados com Supabase');
     } catch (err) {

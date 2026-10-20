@@ -1574,9 +1574,14 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
       return null;
     }
 
-    const { data: urlData } = window.supabaseClient.storage
-      .from('nex')
-      .getPublicUrl(nomeArquivo);
+    let configTransform = undefined;
+if (extensao === 'jpg' || extensao === 'jpeg' || extensao === 'png' || extensao === 'webp') {
+  configTransform = { width: 400, quality: 70 };
+}
+
+const { data: urlData } = window.supabaseClient.storage
+  .from('nex')
+  .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
 
     console.log('☁️ Upload NEX OK:', urlData.publicUrl);
     return urlData.publicUrl;

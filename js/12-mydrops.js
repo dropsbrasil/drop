@@ -935,12 +935,19 @@ if (pub.midiaTipo === 'video') {
   video.loop = !!pub.loop;
   video.muted = !!pub.loop;
   video.playsInline = true;
+  
+  // ⚠️ Só baixa o vídeo se o usuário interagir
   video.preload = 'none';
-  video.controls = true;
+  
+  // ⚠️ Não dá play automático no card (economia de dados)
+  video.autoplay = false; 
+  
+  // ⚠️ Mostra o botão nativo de play
+  video.controls = true; 
+  
   video.style.display = 'block';
-
   media.appendChild(video);
-} else {
+}else {
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.decoding = 'async';

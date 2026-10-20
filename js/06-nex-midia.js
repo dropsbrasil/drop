@@ -249,9 +249,10 @@ if (msg.anexo.type === 'nearby-comment') {
 
             <div class="msg-anexo-card">
               <img
-                class="msg-midia-thumb"
-                src="${escapeHTML(msg.anexo.url)}"
-                alt="Mídia">
+  class="msg-midia-thumb"
+  loading="lazy"
+  src="${escapeHTML(msg.anexo.url)}"
+  alt="Mídia">
             </div>
 
             <button
@@ -330,12 +331,13 @@ if (msg.anexo.type === 'nearby-comment') {
         html += `
           <div class="msg-anexo-card" data-midia-msg-id="${msgIdSafe}" data-midia-index="0">
             <div class="msg-video-thumb">
-              <video
-                src="${urlSafe}"
-                controls
-                playsinline>
-              </video>
-            </div>
+  <video
+    src="${urlSafe}"
+    preload="none"
+    controls
+    playsinline>
+  </video>
+</div>
             <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0"></div>
           </div>
         `;
