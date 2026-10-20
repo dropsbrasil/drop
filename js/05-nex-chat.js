@@ -1264,14 +1264,18 @@ if (typeof window.montarAnexosHTMLNex === 'function') {
         }
 
         <div class="msg-content">
-          ${
-            msg.text
-              ? `<div class="msg-text">${escapeHTML(msg.text)}</div>`
-              : ''
-          }
+  ${
+    msg.text
+      ? `<div class="msg-text">${escapeHTML(msg.text)}</div>`
+      : ''
+  }
 
-          ${anexosHTML}
-        </div>
+  ${
+    anexosHTML
+      ? `<div class="msg-media-wrapper ${msg._supabaseId ? 'media-cacheada' : ''}" data-media-url="${escapeHTML(msg.anexo?.url || msg.audio || '')}">${anexosHTML}</div>`
+      : ''
+  }
+</div>
 
         ${
           qtdCitacoes > 0

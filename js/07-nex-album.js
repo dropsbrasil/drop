@@ -47,13 +47,23 @@
       <div class="viewer-bg" id="viewerBgNex"></div>
 
       <div class="viewer-topbar">
-        <div class="viewer-top-left">
-          <div class="viewer-title">Mídias compartilhadas no NEX</div>
-          ${mostrarContador ? `<div class="viewer-counter" id="viewerCounterNex"></div>` : ''}
-        </div>
+  <button class="viewer-close" type="button" aria-label="Fechar">✕</button>
+</div>
 
-        <button class="viewer-close" type="button" aria-label="Voltar">➥</button>
-      </div>
+<div class="viewer-media" id="viewerMediaNex"></div>
+
+<div class="viewer-reaction-badge" id="viewerReactionBadgeNex" style="display:none;">
+  <span id="viewerReactionEmojiNex"></span>
+  <span id="viewerReactionCountNex"></span>
+</div>
+
+<button type="button" class="viewer-save-btn" id="viewerSaveBtnNex" style="display: none;">
+  💾 Salvar na Galeria
+</button>
+
+<div class="toast-expira-nex" id="toastExpiraNex">
+  ⏳ Esta mídia expira em 24h. Salve na galeria se quiser guardar.
+</div>
 
       ${
         mostrarContador
@@ -63,49 +73,41 @@
       `
           : ''
       }
+      
+     ${
+  mostrarComentario
+    ? `
+  <div class="viewer-comment-box">
+    <textarea
+      class="viewer-comment-input"
+      id="viewerCommentInputNex"
+      placeholder="Escreva um comentário..."></textarea>
 
-      <div class="viewer-card">
-        <div class="viewer-media" id="viewerMediaNex"></div>
+    <button
+      type="button"
+      class="viewer-reaction viewer-reaction-heart"
+      data-reacao="heart"
+      aria-label="Reagir com coração">❤️</button>
 
-        <div class="viewer-reaction-badge" id="viewerReactionBadgeNex" style="display:none;">
-          <span id="viewerReactionEmojiNex"></span>
-          <span id="viewerReactionCountNex"></span>
-        </div>
+    <button
+      type="button"
+      class="viewer-reaction viewer-reaction-broken"
+      data-reacao="broken"
+      aria-label="Reagir com coração partido">💔</button>
 
-        ${
-          mostrarComentario
-            ? `
-          <div class="viewer-comment-box">
-            <textarea
-              class="viewer-comment-input"
-              id="viewerCommentInputNex"
-              placeholder="Escreva um comentário..."></textarea>
-
-            <button
-              type="button"
-              class="viewer-reaction viewer-reaction-heart"
-              data-reacao="heart"
-              aria-label="Reagir com coração">❤️</button>
-
-            <button
-              type="button"
-              class="viewer-reaction viewer-reaction-broken"
-              data-reacao="broken"
-              aria-label="Reagir com coração partido">💔</button>
-
-            <button
-              type="button"
-              class="viewer-comment-send"
-              id="viewerCommentSendNex"
-              disabled>
-              ᯓ➤
-            </button>
-          </div>
-        `
-            : ''
-        }
-      </div>
+    <button
+      type="button"
+      class="viewer-comment-send"
+      id="viewerCommentSendNex"
+      disabled>
+      ᯓ➤
+    </button>
+  </div>
+`
+    : ''
+     } 
     `;
+    
 
     document.body.appendChild(viewer);
 
@@ -114,10 +116,54 @@ if (typeof window.dropsEmpilharEstado === 'function') {
 }
 
     // Botão fechar
-    viewer.querySelector('.viewer-close').onclick = () => {
-      viewer.remove();
-      viewerContextoNex = null;
-    };
+viewer.querySelector('.viewer-close').onclick = () => {
+  viewer.remove();
+  viewerContextoNex = null;
+};
+
+// ⚠️ LÓGICA DO BOTÃO SALVAR E TOAST
+const btnSalvar = viewer.querySelector('#viewerSaveBtnNex');
+const toastExpira = viewer.querySelector('#toastExpiraNex');
+
+const midiaAtual = midiasViewerAtualNex[midiaViewerIndexNex];
+
+if (midiaAtual && midiaAtual.url && btnSalvar && toastExpira) {
+  
+  // Mostra o Toast
+  toastExpira.classList.add('visivel');
+  
+  // Esconde o Toast e mostra o botão depois de 3s
+  setTimeout(() => {
+    toastExpira.classList.remove('visivel');
+    
+    setTimeout(() => {
+      btnSalvar.style.display = 'flex'; // Mostra o botão
+    }, 300);
+
+  }, 3000);
+
+  // Ação de salvar na galeria
+  btnSalvar.onclick = (e) => {
+    e.stopPropagation();
+
+    // Cria o link para download
+    const a = document.createElement('a');
+    a.href = midiaAtual.url;
+    a.download = `Drop_midia_${Date.now()}.${midiaAtual.type === 'video' ? 'mp4' : 'jpg'}`;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // Muda o botão para feedback
+    btnSalvar.innerHTML = '✅ Salvo!';
+    btnSalvar.style.background = 'rgba(34, 197, 94, 0.2)';
+    btnSalvar.style.color = '#4ade80';
+    btnSalvar.style.border = '1px solid rgba(74, 222, 128, 0.5)';
+
+    window.mostrarToastNex?.('Mídia salva na galeria!', 'sucesso');
+  };
+}
 
     // Setas
     const leftBtn = viewer.querySelector('.viewer-arrow-left');
