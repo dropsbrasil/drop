@@ -1500,3 +1500,167 @@
 .doc-sobre-ok-nex:active {
   transform: scale(0.97);
 }
+/* ============================================
+   MODAL DE DURAÇÃO — CAMPO DE HORAS
+============================================ */
+
+.modal-duracao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.modal-duracao-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-duracao-opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: 0.2s;
+}
+
+.modal-duracao-opcao input {
+  accent-color: #2563eb;
+  width: 18px;
+  height: 18px;
+}
+
+.modal-duracao-opcao span {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.modal-duracao-personalizado {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-duracao-personalizado label {
+  font-size: 14px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.duracao-input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 4px 14px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.duracao-input-horas {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 10px 0;
+  transition: color 0.2s ease;
+}
+
+.duracao-input-erro-icone {
+  display: none;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.duracao-input-sufixo {
+  color: #64748b;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.modal-footer-duracao {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-duracao-cancelar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.btn-duracao-concluir {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #475569;
+  border: none;
+  color: #94a3b8;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  cursor: not-allowed;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.btn-duracao-concluir:not(:disabled) {
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+}
+/* ============================================
+   DESFOQUE DE FUNDO NO MODAL DE DURAÇÃO (UNIVERSAL)
+============================================ */
+
+#modalDuracaoPublicacaoMyDropsNex {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  padding: 20px;
+  isolation: isolate;
+}
+
+/* Garante que o modal apareça mesmo se o editor tiver z-index alto */
+#modalDuracaoPublicacaoMyDropsNex.hidden {
+  display: none !important;
+}
+
+/* Garante que o fundo não role enquanto o modal estiver aberto */
+body.modal-duracao-aberto {
+  overflow: hidden !important;
+}

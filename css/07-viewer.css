@@ -37,7 +37,7 @@
   z-index: 30;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end; /* Garante que o botão fique na direita */
   padding: 14px;
   box-sizing: border-box;
 }
@@ -359,4 +359,99 @@
 .nex-midia-viewer .viewer-comment-send:disabled {
   cursor: not-allowed;
   opacity: .55;
+}
+/* ============================================
+   BOTÃO SALVAR GALERIA (NOVO)
+   Cápsula verde que aparece após o Toast
+============================================ */
+
+.nex-midia-viewer .viewer-save-btn {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 50;
+
+  background: rgba(34, 197, 94, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  
+  padding: 14px 28px;
+  border-radius: 50px;
+  
+  font-size: 15px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: 0.3px;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+
+.nex-midia-viewer .viewer-save-btn.mostrar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ⚠️ Garante que o botão apareça quando o JS forçar display: flex */
+.nex-midia-viewer .viewer-save-btn[style*="display: flex"] {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.nex-midia-viewer .viewer-save-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+/* ============================================
+   TOAST DE EXPIRAÇÃO (NOVO)
+   Cápsula verde no topo
+============================================ */
+
+.nex-midia-viewer .toast-expira-nex {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  z-index: 100;
+
+  background: rgba(34, 197, 94, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  
+  padding: 12px 24px;
+  border-radius: 50px;
+  
+  font-size: 13px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: center;
+  line-height: 1.4;
+  white-space: nowrap;
+  
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+
+.nex-midia-viewer .toast-expira-nex.visivel {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
