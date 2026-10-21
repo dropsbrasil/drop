@@ -140,11 +140,17 @@ async function sincronizarPublicacoesSupabase() {
     );
     if (radio24) radio24.checked = true;
 
-    if (input) input.value = '';
+  if (input) input.value = '';
 
-    atualizarCampoDuracaoPersonalizadaMyDropsNex();
+  atualizarCampoDuracaoPersonalizadaMyDropsNex();
 
-    modal.classList.remove('hidden');
+  modal.classList.remove('hidden');
+document.body.classList.add('modal-duracao-aberto');
+  
+  // ⚠️ Ativa a validação ao abrir o modal
+  setTimeout(() => {
+    if (window.validarInputHorasNex) window.validarInputHorasNex();
+  }, 100);
   }
 
   function fecharModalDuracaoPublicacaoMyDropsNex() {
@@ -152,106 +158,89 @@ async function sincronizarPublicacoesSupabase() {
       'modalDuracaoPublicacaoMyDropsNex'
     );
     if (modal) modal.classList.add('hidden');
+document.body.classList.remove('modal-duracao-aberto');
     publicacaoAtualMyDropsNex = null;
   }
 
   function atualizarCampoDuracaoPersonalizadaMyDropsNex() {
-    const modal = document.getElementById(
-      'modalDuracaoPublicacaoMyDropsNex'
-    );
-    const wrap = document.getElementById('duracaoPersonalizadaWrapMyDropsNex');
-    const input = document.getElementById('inputDuracaoDiasMyDropsNex');
+  const modal = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
+  const wrap = document.getElementById('duracaoPersonalizadaWrapMyDropsNex');
+  const input = document.getElementById('inputDuracaoHorasMyDropsNex');
 
-    const selecionado = modal?.querySelector(
-      'input[name="duracaoPublicacaoMyDropsNex"]:checked'
-    )?.value;
+  const selecionado = modal?.querySelector(
+    'input[name="duracaoPublicacaoMyDropsNex"]:checked'
+  )?.value;
 
-    const mostrar = selecionado === 'custom';
+  const mostrar = selecionado === 'custom';
 
-    if (wrap) wrap.style.display = mostrar ? 'flex' : 'none';
+  if (wrap) wrap.style.display = mostrar ? 'flex' : 'none';
 
     if (input) {
-      if (mostrar) {
-        if (!input.value) input.value = '1';
-      } else {
-        input.value = '';
-      }
+    if (mostrar) {
+      if (!input.value) input.value = '24'; // Sugestão padrão
+    } else {
+      input.value = '';
     }
   }
 
+  // ⚠️ Roda a validação ao trocar para "Personalizado" ou "24h"
+  setTimeout(() => {
+    if (window.validarInputHorasNex) window.validarInputHorasNex();
+  }, 50);
+  }
+
   function calcularDuracaoPublicacaoMyDropsNex() {
-    const modal = document.getElementById(
-      'modalDuracaoPublicacaoMyDropsNex'
-    );
-    const input = document.getElementById('inputDuracaoDiasMyDropsNex');
+  const modal = document.getElementById(
+    'modalDuracaoPublicacaoMyDropsNex'
+  );
+  const input = document.getElementById('inputDuracaoHorasMyDropsNex');
 
-    const selecionado =
-      modal?.querySelector(
-        'input[name="duracaoPublicacaoMyDropsNex"]:checked'
-      )?.value || '24h';
+  const selecionado =
+    modal?.querySelector(
+      'input[name="duracaoPublicacaoMyDropsNex"]:checked'
+    )?.value || '24h';
 
-    const agora = Date.now();
+  const agora = Date.now();
 
-    if (selecionado === '12h') {
-      return {
-        modo: '12h',
-        horas: 12,
-        dias: null,
-        expiraEm: new Date(agora + 12 * 60 * 60 * 1000).toISOString()
-      };
-    }
-
-    if (selecionado === '24h') {
-      return {
-        modo: '24h',
-        horas: 24,
-        dias: null,
-        expiraEm: new Date(agora + 24 * 60 * 60 * 1000).toISOString()
-      };
-    }
-
-    if (selecionado === 'permanente') {
-      return {
-        modo: 'permanente',
-        horas: null,
-        dias: null,
-        expiraEm: null
-      };
-    }
-
-    const textoDias = (input?.value || '').trim();
-    const dias = Number(textoDias);
-
-    if (!textoDias) {
-      alert('Digite a quantidade de dias');
-      input?.focus();
-      return null;
-    }
-
-    if (!Number.isFinite(dias)) {
-      alert('Digite um número válido');
-      input?.focus();
-      return null;
-    }
-
-    if (dias < 1) {
-      alert('Mínimo: 1 dia');
-      input?.focus();
-      return null;
-    }
-
-    if (dias > 365) {
-      alert('Máximo: 365 dias');
-      input?.focus();
-      return null;
-    }
-
+  // --- Opção Padrão: 24 horas ---
+  if (selecionado === '24h') {
     return {
-      modo: 'personalizado',
-      horas: null,
-      dias,
-      expiraEm: new Date(agora + dias * 24 * 60 * 60 * 1000).toISOString()
+      modo: '24h',
+      horas: 24,
+      expiraEm: new Date(agora + 24 * 60 * 60 * 1000).toISOString()
     };
+  }
+
+  // --- Opção Personalizada (em horas) ---
+  const textoHoras = (input?.value || '').trim();
+  
+  // ⚠️ Garante que só aceita números inteiros (remove pontos, vírgulas, etc)
+  const horasLimpas = textoHoras.replace(/\D/g, '');
+  const horas = Number(horasLimpas);
+
+  if (!textoHoras) {
+    alert('Defina quantas horas este Drop vai durar.');
+    input?.focus();
+    return null;
+  }
+
+  if (!Number.isFinite(horas) || horas < 1) {
+    alert('Mínimo: 1 hora.');
+    input?.focus();
+    return null;
+  }
+
+  if (horas > 720) {
+    alert('Máximo: 720 horas (30 dias).');
+    input?.focus();
+    return null;
+  }
+
+  return {
+    modo: 'personalizado',
+    horas: horas,
+    expiraEm: new Date(agora + horas * 60 * 60 * 1000).toISOString()
+  };
   }
 
   // ============================================
@@ -290,6 +279,30 @@ async function sincronizarPublicacoesSupabase() {
 //    nativo — nunca trava, é 10x mais rápida.
 // ============================================
 async function capturarEditorComoImagemMyDropsNex() {
+  // ============================================
+  // ⚠️ 1. LIMPEZA UNIVERSAL FORÇADA
+  // ============================================
+  // Tira a seleção de todos os editores possíveis
+  if (typeof window.desselecionarTudoNotasNex === 'function') window.desselecionarTudoNotasNex();
+  if (typeof window.desselecionarTudoFotoNex === 'function') window.desselecionarTudoFotoNex();
+  if (typeof window.desselecionarTextoMyDropsNex === 'function') window.desselecionarTextoMyDropsNex();
+
+  // Remove na força qualquer alça ou lixeira que tenha sobrado
+  document.querySelectorAll('.editor-alca-nex, #notasLixeiraNex, #fotoLixeiraNex').forEach(el => el.remove());
+
+  // ============================================
+  // ⚠️ 2. ESPERA A TELA ATUALIZAR
+  // ============================================
+  // Espera 2 frames de animação para o navegador redesenhar a tela sem as alças
+  await new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+
+  // ============================================
+  // 3. IDENTIFICA QUAL EDITOR ESTÁ ABERTO
+  // ============================================
   const notasAberto =
     document.getElementById('notasEditorNex')?.classList.contains('aberto');
 
@@ -323,7 +336,7 @@ async function capturarEditorComoImagemMyDropsNex() {
   }
 
   // ============================================
-  // 1. Dimensões do papel
+  // 4. DIMENSÕES DO PAPEL
   // ============================================
   const rect = papel.getBoundingClientRect();
   const largura = Math.round(rect.width);
@@ -342,38 +355,25 @@ async function capturarEditorComoImagemMyDropsNex() {
   if (!ctx) return '';
 
   // ============================================
-  // 2. Fundo (cor ou imagem)
+  // 5. FUNDO (COR OU IMAGEM)
   // ============================================
   const bgImageRaw = papel.style.backgroundImage || '';
-  const temBgImage =
-    bgImageRaw && bgImageRaw !== 'none' && bgImageRaw.includes('url(');
+  const temBgImage = bgImageRaw && bgImageRaw !== 'none' && bgImageRaw.includes('url(');
 
   if (temBgImage) {
-    const bgUrl = bgImageRaw
-      .replace(/^url\(["']?/, '')
-      .replace(/["']?\)$/, '');
-
+    const bgUrl = bgImageRaw.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
     await new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         const ratioImg = img.width / img.height;
         const ratioPapel = largura / altura;
-
         let sw, sh, sx, sy;
-
         if (ratioImg > ratioPapel) {
-          sh = img.height;
-          sw = sh * ratioPapel;
-          sx = (img.width - sw) / 2;
-          sy = 0;
+          sh = img.height; sw = sh * ratioPapel; sx = (img.width - sw) / 2; sy = 0;
         } else {
-          sw = img.width;
-          sh = sw / ratioPapel;
-          sx = 0;
-          sy = (img.height - sh) / 2;
+          sw = img.width; sh = sw / ratioPapel; sx = 0; sy = (img.height - sh) / 2;
         }
-
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, largura, altura);
         resolve();
       };
@@ -391,14 +391,10 @@ async function capturarEditorComoImagemMyDropsNex() {
   }
 
   // ============================================
-  // 3. Foto principal (só pro editor de Foto novo)
+  // 6. FOTO PRINCIPAL (EDITOR DE FOTO NOVO)
   // ============================================
   if (fotoNovoAberto) {
-    const fotoDataURL =
-      typeof window.getFotoAtualDataURL === 'function'
-        ? window.getFotoAtualDataURL()
-        : null;
-
+    const fotoDataURL = typeof window.getFotoAtualDataURL === 'function' ? window.getFotoAtualDataURL() : null;
     if (fotoDataURL) {
       await new Promise((resolve) => {
         const img = new Image();
@@ -406,21 +402,12 @@ async function capturarEditorComoImagemMyDropsNex() {
         img.onload = () => {
           const ratioImg = img.width / img.height;
           const ratioPapel = largura / altura;
-
           let sw, sh, sx, sy;
-
           if (ratioImg > ratioPapel) {
-            sh = img.height;
-            sw = sh * ratioPapel;
-            sx = (img.width - sw) / 2;
-            sy = 0;
+            sh = img.height; sw = sh * ratioPapel; sx = (img.width - sw) / 2; sy = 0;
           } else {
-            sw = img.width;
-            sh = sw / ratioPapel;
-            sx = 0;
-            sy = (img.height - sh) / 2;
+            sw = img.width; sh = sw / ratioPapel; sx = 0; sy = (img.height - sh) / 2;
           }
-
           ctx.drawImage(img, sx, sy, sw, sh, 0, 0, largura, altura);
           resolve();
         };
@@ -431,12 +418,10 @@ async function capturarEditorComoImagemMyDropsNex() {
   }
 
   // ============================================
-  // 4. Elementos (textos + stickers)
+  // 7. ELEMENTOS (TEXTOS + STICKERS)
   // ============================================
   if (camada) {
-    const elementos = camada.querySelectorAll(
-      '.video-editor-text-mydrops-nex, .video-editor-photo-mydrops-nex'
-    );
+    const elementos = camada.querySelectorAll('.video-editor-text-mydrops-nex, .video-editor-photo-mydrops-nex');
 
     for (const el of elementos) {
       if (el.classList.contains('editor-alca-nex')) continue;
@@ -447,16 +432,11 @@ async function capturarEditorComoImagemMyDropsNex() {
       const x = elRect.left - rect.left;
       const y = elRect.top - rect.top;
 
-      // ============================================
-      // TEXTO
-      // ============================================
       if (el.classList.contains('video-editor-text-mydrops-nex')) {
         const body = el.querySelector('.video-editor-text-body-mydrops-nex');
         if (!body) continue;
-
         const texto = (body.textContent || '').trim();
-        if (!texto) continue;
-        if (texto === '2 toque para editar') continue;
+        if (!texto || texto === '2 toque para editar') continue;
 
         const fontSize = parseFloat(body.style.fontSize) || 28;
         const fontWeight = body.style.fontWeight || '500';
@@ -470,18 +450,7 @@ async function capturarEditorComoImagemMyDropsNex() {
         let bgTema = null;
         const temas = body.className.match(/tema-([a-z]+)/);
         if (temas) {
-          const mapa = {
-            branco: '#ffffff',
-            escuro: '#1a1a1a',
-            azul: '#60a5fa',
-            verde: '#4ade80',
-            amarelo: '#facc15',
-            rosa: '#f472b6',
-            roxo: '#a78bfa',
-            neon: '#0a0a0a',
-            papel: '#fffef5',
-            vidro: 'rgba(200,220,255,0.5)'
-          };
+          const mapa = { branco: '#ffffff', escuro: '#1a1a1a', azul: '#60a5fa', verde: '#4ade80', amarelo: '#facc15', rosa: '#f472b6', roxo: '#a78bfa', neon: '#0a0a0a', papel: '#fffef5', vidro: 'rgba(200,220,255,0.5)' };
           bgTema = mapa[temas[1]] || null;
         }
 
@@ -492,12 +461,7 @@ async function capturarEditorComoImagemMyDropsNex() {
 
         if (bgTema) {
           ctx.fillStyle = bgTema;
-          ctx.fillRect(
-            -elRect.width / 2 / scale,
-            -elRect.height / 2 / scale,
-            elRect.width / scale,
-            elRect.height / scale
-          );
+          ctx.fillRect(-elRect.width / 2 / scale, -elRect.height / 2 / scale, elRect.width / scale, elRect.height / scale);
         }
 
         ctx.fillStyle = cor;
@@ -509,30 +473,15 @@ async function capturarEditorComoImagemMyDropsNex() {
         const alturaLinha = fontSize * 1.2;
         const total = linhas.length * alturaLinha;
         const yInicial = -total / 2 + alturaLinha / 2;
-
-        const xTexto =
-          align === 'center'
-            ? 0
-            : align === 'right'
-              ? elRect.width / 2 / scale
-              : -elRect.width / 2 / scale;
+        const xTexto = align === 'center' ? 0 : align === 'right' ? elRect.width / 2 / scale : -elRect.width / 2 / scale;
 
         linhas.forEach((linha, i) => {
           ctx.fillText(linha, xTexto, yInicial + i * alturaLinha);
         });
-
         ctx.restore();
-      }
-
-      // ============================================
-      // STICKER (foto por cima)
-      // ============================================
-      else if (el.classList.contains('video-editor-photo-mydrops-nex')) {
-        const img = el.querySelector(
-          '.video-editor-photo-body-mydrops-nex img'
-        );
+      } else if (el.classList.contains('video-editor-photo-mydrops-nex')) {
+        const img = el.querySelector('.video-editor-photo-body-mydrops-nex img');
         if (!img || !img.src) continue;
-
         const scale = Number(el.dataset.scale) || 1;
         const rotation = Number(el.dataset.rotation) || 0;
 
@@ -544,15 +493,7 @@ async function capturarEditorComoImagemMyDropsNex() {
             ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
             ctx.rotate((rotation * Math.PI) / 180);
             ctx.scale(scale, scale);
-
-            ctx.drawImage(
-              imgCarregada,
-              -elRect.width / 2 / scale,
-              -elRect.height / 2 / scale,
-              elRect.width / scale,
-              elRect.height / scale
-            );
-
+            ctx.drawImage(imgCarregada, -elRect.width / 2 / scale, -elRect.height / 2 / scale, elRect.width / scale, elRect.height / scale);
             ctx.restore();
             resolve();
           };
@@ -564,7 +505,7 @@ async function capturarEditorComoImagemMyDropsNex() {
   }
 
   // ============================================
-  // 5. Retorna DataURL
+  // 8. RETORNA DATAURL
   // ============================================
   try {
     const dataUrl = canvas.toDataURL('image/png', 0.92);
@@ -574,7 +515,6 @@ async function capturarEditorComoImagemMyDropsNex() {
     return '';
   }
 }
-  
 
   // ============================================
   // OBTER VÍDEO ATUAL (câmera ou drops)
@@ -773,13 +713,34 @@ if (notasVisivel) {
   let publicacao = null;
 
   // ============================================
-  // VÍDEO
-  // ============================================
+// VÍDEO
+// ============================================
 
-  if (videoInfo?.src) {
-    const mediaUrl = await converterVideoParaDataURLMyDropsNex(
-      videoInfo.src
-    );
+if (videoInfo?.src) {
+  let mediaUrl = await converterVideoParaDataURLMyDropsNex(videoInfo.src);
+
+  // ⚠️ COMPRESSÃO DE VÍDEO PARA O FEED
+  if (window.FFmpeg && mediaUrl.startsWith('data:video')) {
+    try {
+      const { createFFmpeg, fetchFile } = window.FFmpeg;
+      const ffmpeg = createFFmpeg({ log: false });
+      await ffmpeg.load();
+      ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(mediaUrl));
+      await ffmpeg.run(
+  '-i', 'input.mp4',
+  '-vf', 'scale=-2:720',
+  '-b:v', '1000k',
+  '-c:a', 'aac',
+  '-b:a', '128k',
+  'output.mp4'
+      );
+      const data = ffmpeg.FS('readFile', 'output.mp4');
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      mediaUrl = await blobParaDataURLMyDropsNex(blob);
+    } catch (err) {
+      console.warn('Erro ao comprimir vídeo do feed:', err);
+    }
+  }
 
     if (!mediaUrl) {
       alert('Não foi possível salvar o vídeo.');
@@ -804,7 +765,20 @@ if (notasVisivel) {
     // IMAGEM
     // ============================================
 
-const mediaUrl = await capturarEditorComoImagemMyDropsNex();
+let mediaUrl = await capturarEditorComoImagemMyDropsNex();
+
+// ⚠️ COMPRESSÃO DE IMAGEM PARA O FEED
+if (mediaUrl && window.comprimirImagemNex) {
+  try {
+    const resposta = await fetch(mediaUrl);
+    const blob = await resposta.blob();
+    const arquivo = new File([blob], 'drop.jpg', { type: 'image/jpeg' });
+    const comprimido = await window.comprimirImagemNex(arquivo);
+    mediaUrl = await blobParaDataURLMyDropsNex(comprimido);
+  } catch (err) {
+    console.warn('Erro ao comprimir imagem do feed:', err);
+  }
+}
 
 if (!mediaUrl) {
   alert('Não foi possível salvar a publicação.');
@@ -827,10 +801,16 @@ if (!mediaUrl) {
   }
 
   // ============================================
-  // SALVA E LIMPA
-  // ============================================
+// SALVA E LIMPA
+// ============================================
 
-  mostrarModalPublicandoMyDrops();
+mostrarModalPublicandoMyDrops();
+
+// ⚠️ Atualiza o texto do modal se for vídeo
+if (origem === 'video' && window.FFmpeg) {
+  const subtitulo = document.querySelector('.mydrops-publishing-subtitle');
+  if (subtitulo) subtitulo.textContent = 'Comprimindo vídeo, aguarde...';
+}
 
 // Salva localmente (feedback rápido)
 publicacoesMyDropsNex.unshift(publicacao);
@@ -2153,6 +2133,96 @@ if (btnConcluirDuracao) {
   // DEBUG
   // ============================================
 
-  console.log('📝 12-mydrops.js carregado (via adapter)');
+  // ============================================
+// VALIDAÇÃO EM TEMPO REAL DO CAMPO DE HORAS
+// ============================================
+window.validarInputHorasNex = function () {
+  const input = document.getElementById('inputDuracaoHorasMyDropsNex');
+  const container = document.getElementById('duracaoInputContainerNex');
+  const iconeErro = document.getElementById('duracaoInputErroIconeNex');
+  const btnConcluir = document.getElementById('concluirDuracaoPublicacaoMyDropsNex');
+  const modal = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
 
+  if (!input || !container || !iconeErro || !btnConcluir || !modal) return;
+
+  const customRadio = modal.querySelector('input[name="duracaoPublicacaoMyDropsNex"][value="custom"]');
+  const isCustom = customRadio && customRadio.checked;
+
+  if (!isCustom) {
+    btnConcluir.disabled = false;
+    btnConcluir.style.background = '#2563eb';
+    btnConcluir.style.color = '#fff';
+    btnConcluir.style.cursor = 'pointer';
+    btnConcluir.style.boxShadow = '0 4px 12px rgba(37,99,235,0.3)';
+    input.style.color = '#111827';
+    container.style.border = '2px solid transparent';
+    container.style.background = '#fff';
+    iconeErro.style.display = 'none';
+    return;
+  }
+
+  const valor = input.value.trim();
+const apenasNumeros = valor.replace(/\D/g, '');
+const horas = Number(apenasNumeros);
+
+const temCaractereInvalido = /[^0-9]/.test(valor);
+const foraDoLimite = horas < 1 || horas > 720;
+const vazio = valor.length === 0;
+
+// ⚠️ Só mostra o ERRO VERMELHO se tiver algo digitado E for inválido
+const invalido = !vazio && (temCaractereInvalido || foraDoLimite);
+
+if (invalido) {
+  // 🔴 ERRO (só quando tem algo errado digitado)
+  input.style.color = '#ef4444';
+  container.style.border = '2px solid #ef4444';
+  container.style.background = 'rgba(239, 68, 68, 0.05)';
+  iconeErro.style.display = 'block';
+  btnConcluir.disabled = true;
+  btnConcluir.style.background = '#475569';
+  btnConcluir.style.color = '#94a3b8';
+  btnConcluir.style.cursor = 'not-allowed';
+  btnConcluir.style.boxShadow = 'none';
+} else if (vazio) {
+  // ⚪ VAZIO (fundo branco, sem erro, botão cinza)
+  input.style.color = '#111827';
+  container.style.border = '2px solid transparent';
+  container.style.background = '#fff';
+  iconeErro.style.display = 'none';
+  btnConcluir.disabled = true;
+  btnConcluir.style.background = '#475569';
+  btnConcluir.style.color = '#94a3b8';
+  btnConcluir.style.cursor = 'not-allowed';
+  btnConcluir.style.boxShadow = 'none';
+} else {
+  // 🟢 VÁLIDO
+  input.style.color = '#111827';
+  container.style.border = '2px solid transparent';
+  container.style.background = '#fff';
+  iconeErro.style.display = 'none';
+  btnConcluir.disabled = false;
+  btnConcluir.style.background = '#2563eb';
+  btnConcluir.style.color = '#fff';
+  btnConcluir.style.cursor = 'pointer';
+  btnConcluir.style.boxShadow = '0 4px 12px rgba(37,99,235,0.3)';
+}
+};
+
+// ⚠️ Escuta o input e as mudanças de opção para validar
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'inputDuracaoHorasMyDropsNex') {
+    if (window.validarInputHorasNex) window.validarInputHorasNex();
+  }
+});
+
+document.addEventListener('change', (e) => {
+  if (e.target.name === 'duracaoPublicacaoMyDropsNex') {
+    setTimeout(() => {
+      if (window.validarInputHorasNex) window.validarInputHorasNex();
+    }, 50);
+  }
+});
+
+console.log('📝 12-mydrops.js carregado (via adapter)');
+  
 })();

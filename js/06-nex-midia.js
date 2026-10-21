@@ -1613,27 +1613,28 @@ let albumDeleteModeNex = false;
   function initInputsNex() {
     // Câmera foto
     const inputCameraFotoNex = document.getElementById('inputCameraFotoNex');
-    if (inputCameraFotoNex) {
-      inputCameraFotoNex.addEventListener('change', () => {
-        const file = inputCameraFotoNex.files?.[0];
+if (inputCameraFotoNex) {
+  inputCameraFotoNex.addEventListener('change', async () => {
+    const file = inputCameraFotoNex.files?.[0];
         if (!file) return;
 
-        const url = URL.createObjectURL(file);
-        previewMidiaNex = { type: 'imagem', url, _file: file };
-        mostrarPreviaMidiaNex(previewMidiaNex);
+        const arquivoComprimido = await window.comprimirImagemNex?.(file) || file;
+const url = URL.createObjectURL(arquivoComprimido);
+previewMidiaNex = { type: 'imagem', url, _file: arquivoComprimido };
+mostrarPreviaMidiaNex(previewMidiaNex);
       });
     }
 
     // Câmera vídeo
     const inputCameraVideoNex = document.getElementById('inputCameraVideoNex');
-    if (inputCameraVideoNex) {
-      inputCameraVideoNex.addEventListener('change', () => {
+if (inputCameraVideoNex) {
+  inputCameraVideoNex.addEventListener('change', async () => {
         const file = inputCameraVideoNex.files?.[0];
         if (!file) return;
 
         const url = URL.createObjectURL(file);
-        previewMidiaNex = { type: 'video', url, _file: file };
-        mostrarPreviaMidiaNex(previewMidiaNex);
+previewMidiaNex = { type: 'video', url, _file: file };
+mostrarPreviaMidiaNex(previewMidiaNex);
       });
     }
 

@@ -1402,6 +1402,34 @@ return {
 async function uploadMidiaNexSupabase(arquivo, tipo) {
   if (!window.supabaseClient || !arquivo) return null;
 
+  // ⚠️ COMPRESSÃO NO UPLOAD
+  if (arquivo instanceof File || arquivo instanceof Blob) {
+    if (arquivo.type.startsWith('image/') && window.comprimirImagemNex) {
+      arquivo = await window.comprimirImagemNex(arquivo);
+    }
+    
+    // ⚠️ Para vídeo, se tiver o FFmpeg disponível, comprime; senão, envia original
+    if (arquivo.type.startsWith('video/') && window.FFmpeg) {
+      try {
+        const { createFFmpeg, fetchFile } = window.FFmpeg;
+        const ffmpeg = createFFmpeg({ log: false });
+        await ffmpeg.load();
+        ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(arquivo));
+        await ffmpeg.run(
+  '-i', 'input.mp4',
+  '-vf', 'scale=-2:720',
+  '-b:v', '1000k',
+  '-c:a', 'aac',
+  '-b:a', '128k',
+  'output.mp4'
+);
+        const data = ffmpeg.FS('readFile', 'output.mp4');
+        arquivo = new Blob([data.buffer], { type: 'video/mp4' });
+      } catch (err) {
+        console.warn('Erro ao comprimir vídeo com FFmpeg:', err);
+      }
+    }
+  }
   try {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return null;

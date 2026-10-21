@@ -273,10 +273,42 @@
   window.chaveUsuarioReacaoDropNex = chaveUsuarioReacaoDropNex;
   window.normalizarAlbumNex = normalizarAlbumNex;
 
-  // ============================================
-  // DEBUG
-  // ============================================
+// ============================================
+// COMPRESSÃO DE IMAGEM (ANTES DO UPLOAD)
+// ============================================
 
-  console.log('🧰 03-utils.js carregado');
+async function comprimirImagemNex(arquivo, opcoes = {}) {
+  if (!window.imageCompression) {
+    console.warn('⚠️ Biblioteca de compressão não carregada. Usando original.');
+    return arquivo;
+  }
 
+  if (!arquivo || !arquivo.type || !arquivo.type.startsWith('image/')) {
+    return arquivo;
+  }
+
+  const config = {
+    maxSizeMB: 0.3,
+    maxWidthOrHeight: 1080,
+    useWebWorker: true,
+    fileType: 'image/jpeg',
+    ...opcoes
+  };
+
+  try {
+    const comprimido = await window.imageCompression(arquivo, config);
+    return comprimido;
+  } catch (erro) {
+    console.warn('⚠️ Erro ao comprimir, usando original:', erro);
+    return arquivo;
+  }
+}
+
+window.comprimirImagemNex = comprimirImagemNex;
+
+// ============================================
+// DEBUG
+// ============================================
+
+console.log('🧰 03-utils.js carregado');
 })();
