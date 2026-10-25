@@ -28,56 +28,178 @@
   // ============================================
 
   async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
-    Drops.estado.telaOrigemPerfilVisitado =
-      document.querySelector('.screen.active')?.id || 'nex';
+  Drops.estado.telaOrigemPerfilVisitado =
+    document.querySelector('.screen.active')?.id || 'nex';
 
-    const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
+  const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
 
-    Drops.estado.perfilBloquearAtual = id;
-    Drops.estado.perfilAberto = perfilNome;
+  Drops.estado.perfilBloquearAtual = id;
+  Drops.estado.perfilAberto = perfilNome;
 
-    if (perfisBloqueadosNex.has(id)) {
-      return;
+  if (perfisBloqueadosNex.has(id)) {
+    return;
+  }
+
+  // ⚠️ CORREÇÃO: Restaura scroll do body
+  document.body.style.overflow = '';
+  document.body.classList.remove('viewer-aberto');
+
+// Registra visita (hoje: stub; amanhã: backend)
+if (typeof window.registrarVisitaPerfil === 'function') {
+  window.registrarVisitaPerfil(id, Drops.usernameAtual);
+}
+
+// ============================================
+// 1. ABRE A TELA IMEDIATAMENTE (Antes de buscar)
+// ============================================
+if (typeof mostrarTela === 'function') {
+  mostrarTela('perfilVisitadoNex');
+}
+
+// ⚠️ Salva a tela no histórico do app (para o botão voltar funcionar)
+if (typeof window.dropsEmpilharEstado === 'function') {
+  window.dropsEmpilharEstado('perfil', { id, nome: perfilNome });
+}
+
+// Configura os elementos para o estado de "Carregando" (Skeleton)
+// ⚠️ IMPORTANTE: variáveis renomeadas com sufixo "Skeleton"
+//    para não colidir com as declarações de dados reais
+//    mais abaixo no mesmo escopo da função.
+const capaSkeletonEl = document.getElementById('perfilCapaNex');
+if (capaSkeletonEl) capaSkeletonEl.classList.add('skeleton-box');
+
+const avatarSkeletonEl = document.getElementById('perfilAvatarNex');
+if (avatarSkeletonEl) {
+  avatarSkeletonEl.innerHTML = '';
+  avatarSkeletonEl.textContent = '?';
+  avatarSkeletonEl.classList.add('skeleton-box');
+}
+
+const nomeSkeletonEl = document.getElementById('perfilNomeNex');
+if (nomeSkeletonEl) nomeSkeletonEl.textContent = perfilNome || 'Carregando...';
+
+const userSkeletonEl = document.getElementById('perfilUsernameNex');
+if (userSkeletonEl) userSkeletonEl.textContent = '@carregando...';
+
+const bioSkeletonEl = document.getElementById('perfilBioNex');
+if (bioSkeletonEl) {
+  bioSkeletonEl.textContent = 'Carregando bio...';
+  bioSkeletonEl.classList.add('skeleton-box');
+}
+
+const gridSkeletonEl = document.getElementById('perfilDropsGridNex');
+if (gridSkeletonEl) {
+  gridSkeletonEl.innerHTML = `
+    <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #94a3b8; font-size: 14px; font-weight: 600;">
+      Carregando publicações...
+    </div>
+  `;
+}
+
+  // ============================================
+  // 2. CRIA O TIMEOUT DE 1 MINUTO
+  // ============================================
+  // Se o banco não responder em 60s, avisa o usuário
+  const timerFalha = setTimeout(() => {
+    if (typeof window.mostrarToastNex === 'function') {
+      window.mostrarToastNex('Falha de conexão. Verifique sua internet.', 'erro', 4000);
     }
+  }, 60000);
 
-    // ⚠️ CORREÇÃO: Restaura scroll do body
-    document.body.style.overflow = '';
-    document.body.classList.remove('viewer-aberto');
+  // ============================================
+  // 3. BUSCA DADOS REAIS NO SUPABASE
+  // ============================================
+  let perfilReal = null;
 
-    // Registra visita (hoje: stub; amanhã: backend)
-    if (typeof window.registrarVisitaPerfil === 'function') {
-      window.registrarVisitaPerfil(id, Drops.usernameAtual);
+  try {
+    if (typeof window.buscarPerfilPublicoSupabase === 'function') {
+      perfilReal = await window.buscarPerfilPublicoSupabase(id);
     }
+  } catch (e) {
+    console.warn('Erro ao buscar perfil público:', e);
+  }
 
+// ⚠️ Se a busca terminou (com sucesso ou erro), cancela o timer de falha
+clearTimeout(timerFalha);
+
+// ⚠️ Limpa o Skeleton (independente de ter dado certo ou errado)
+if (capaSkeletonEl) capaSkeletonEl.classList.remove('skeleton-box');
+if (avatarSkeletonEl) avatarSkeletonEl.classList.remove('skeleton-box');
+if (bioSkeletonEl) bioSkeletonEl.classList.remove('skeleton-box');
     // ============================================
-    // BUSCA DADOS REAIS NO SUPABASE
-    // ============================================
-    let perfilReal = null;
+// ⚠️ PROTEÇÃO: Se o Supabase falhou (rede/bloqueio)
+// ============================================
+if (!perfilReal) {
+  console.warn('⚠️ Perfil não carregado. Supabase indisponível.');
 
-    try {
-      if (typeof window.buscarPerfilPublicoSupabase === 'function') {
-        perfilReal = await window.buscarPerfilPublicoSupabase(id);
-      }
-    } catch (e) {
-      console.warn('Erro ao buscar perfil público:', e);
-    }
+  // Limpa tudo o que era do perfil anterior (evita a "Julia")
+  const capaEl = document.getElementById('perfilCapaNex');
+  if (capaEl) {
+    capaEl.style.backgroundImage = 'none';
+    capaEl.style.backgroundColor = '#0f172a';
+  }
 
-    // Dados padrão (usados se o perfil não existir no Supabase)
-    const perfilBase = {
-      nome: perfilReal?.nome || perfilNome || 'Perfil',
-      capa: perfilReal?.capa_url || 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200',
-      avatar: perfilReal?.avatar_url || null,
-      bio: perfilReal?.bio || 'Sem bio disponível no momento.',
-      visitas: '0',
-      reacoes: '0',
-      adeptos: '0',
-      social: {
-        instagram: perfilReal?.social_instagram || '',
-        tiktok: perfilReal?.social_tiktok || '',
-        whatsapp: perfilReal?.social_whatsapp || ''
-      },
-      drops: []
-    };
+  const avatarEl = document.getElementById('perfilAvatarNex');
+  if (avatarEl) {
+    avatarEl.innerHTML = '';
+    avatarEl.textContent = (perfilNome || '?').charAt(0).toUpperCase();
+  }
+
+  const nomeEl = document.getElementById('perfilNomeNex');
+  if (nomeEl) nomeEl.textContent = perfilNome || 'Perfil';
+
+  const userEl = document.getElementById('perfilUsernameNex');
+  if (userEl) userEl.textContent = '@' + (id || 'usuario');
+
+  const bioEl = document.getElementById('perfilBioNex');
+  if (bioEl) {
+    bioEl.textContent = 'Não foi possível carregar. Verifique sua conexão.';
+    bioEl.style.removeProperty('font-family');
+    bioEl.style.removeProperty('color');
+    bioEl.style.removeProperty('text-align');
+  }
+
+  const socialContainer = document.querySelector('.perfil-social');
+  if (socialContainer) socialContainer.style.display = 'none';
+
+  const grid = document.getElementById('perfilDropsGridNex');
+  if (grid) {
+    grid.innerHTML = `
+      <div style="
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 40px 20px;
+        color: #94a3b8;
+        font-size: 14px;
+        font-weight: 600;
+      ">
+        Não foi possível carregar as publicações.
+      </div>
+    `;
+  }
+
+  // Atualiza botões mesmo sem dados reais
+  atualizarBotaoConectarPerfilNex();
+
+  return; // ⚠️ ABORTA. Não monta perfil fake.
+}
+
+// Dados reais — usa apenas o que veio do banco
+const perfilBase = {
+  nome: perfilReal.nome || perfilNome || 'Perfil',
+  capa: perfilReal.capa_url || '', // Sem capa falsa
+  avatar: perfilReal.avatar_url || null,
+  bio: perfilReal.bio || 'Sem bio ainda.',
+  visitas: '0',
+  reacoes: '0',
+  adeptos: '0',
+  social: {
+    instagram: perfilReal.social_instagram || '',
+    tiktok: perfilReal.social_tiktok || '',
+    whatsapp: perfilReal.social_whatsapp || ''
+  },
+  drops: []
+};
 
     // ============================================
     // BUSCA DROPS REAIS DESSE USUÁRIO
@@ -123,9 +245,9 @@
         (perfil.avatar.startsWith('http') || perfil.avatar.startsWith('data:image'));
 
       if (avatarValido) {
-        avatarEl.style.backgroundImage = 'none';
-        avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-      } else {
+  avatarEl.style.backgroundImage = 'none';
+  avatarEl.innerHTML = `<img src="${perfil.avatar}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
+} else {
         avatarEl.innerHTML = '';
         avatarEl.style.backgroundImage = 'none';
         avatarEl.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
@@ -191,7 +313,27 @@
     }
 
     const bioEl = document.getElementById('perfilBioNex');
-    if (bioEl) bioEl.textContent = perfil.bio;
+if (bioEl) {
+  bioEl.textContent = perfil.bio;
+
+  // ⚠️ Aplica os estilos da bio salvos pelo dono do perfil
+  if (perfilReal) {
+    if (perfilReal.bio_fonte) {
+      bioEl.style.setProperty('font-family', perfilReal.bio_fonte, 'important');
+    }
+    if (perfilReal.bio_cor) {
+      bioEl.style.setProperty('color', perfilReal.bio_cor, 'important');
+    }
+    if (perfilReal.bio_alinhamento) {
+      bioEl.style.setProperty('text-align', perfilReal.bio_alinhamento, 'important');
+    }
+  } else {
+    // Se não tiver dados do Supabase, reseta pros padrões
+    bioEl.style.removeProperty('font-family');
+    bioEl.style.removeProperty('color');
+    bioEl.style.removeProperty('text-align');
+  }
+}
     
   // ============================================
   // RENDERIZA GRID DE DROPS
@@ -233,17 +375,30 @@
         });
 
         if (drop.type === 'video') {
-          card.innerHTML = `
-            <div class="perfil-drop-media-indicator">🎥 vídeo</div>
-            <video src="${drop.url}" muted loop playsinline autoplay></video>
-            <div class="perfil-drop-meta">preview</div>
-          `;
-        } else {
-          card.innerHTML = `
-            <div class="perfil-drop-media-indicator">📸 foto</div>
-            <img src="${drop.url}" alt="">
-            <div class="perfil-drop-meta">preview</div>
-          `;
+  card.innerHTML = `
+    <div class="perfil-drop-media-indicator" style="display: flex; align-items: center; gap: 4px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true">
+        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+      </svg>
+      vídeo
+    </div>
+    <video src="${drop.url}" muted loop playsinline autoplay></video>
+    <div class="perfil-drop-meta">preview</div>
+  `;
+} else {
+  card.innerHTML = `
+    <div class="perfil-drop-media-indicator" style="display: flex; align-items: center; gap: 4px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
+      </svg>
+      foto
+    </div>
+    <img src="${drop.url}" alt="">
+    <div class="perfil-drop-meta">preview</div>
+  `;
         }
 
         // ============================================
@@ -446,8 +601,28 @@ function voltarPerfilVisitadoNex() {
       (item) => normalizarIdPerfilNex(item.id) === id
     );
 
-    btn.textContent = conectado ? 'Remover dos amigos' : '+ Adicionar aos amigos';
-    btn.classList.toggle('is-connected', conectado);
+    if (conectado) {
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="8.5" cy="7" r="4"></circle>
+      <line x1="23" y1="11" x2="17" y2="11"></line>
+    </svg>
+    <span>Desconectar</span>
+  `;
+} else {
+  btn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="8.5" cy="7" r="4"></circle>
+      <line x1="20" y1="8" x2="20" y2="14"></line>
+      <line x1="23" y1="11" x2="17" y2="11"></line>
+    </svg>
+    <span>Adicionar amigo</span>
+  `;
+    }
+
+btn.classList.toggle('is-connected', conectado);
   }
 
   // ============================================
@@ -530,14 +705,24 @@ function voltarPerfilVisitadoNex() {
     const ehAdepto = adeptos.some((a) => a.id === idLimpo);
 
     if (ehAdepto) {
-      const h2 = document.getElementById('perfilNomeNex');
-      if (h2) {
-        const selo = document.createElement('span');
-        selo.className = 'selo-adepto-nex';
-        selo.textContent = '👑';
-        selo.title = 'Este usuário é seu adepto';
-        h2.appendChild(selo);
-      }
+  const h2 = document.getElementById('perfilNomeNex');
+  if (h2) {
+    const selo = document.createElement('span');
+    selo.className = 'selo-adepto-nex';
+    selo.title = 'Este usuário é seu adepto';
+    selo.style.display = 'inline-flex';
+    selo.style.alignItems = 'center';
+    selo.style.justifyContent = 'center';
+    
+    // ⚠️ Ícone SVG de Estrela no lugar do emoji
+    selo.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1a1a1a" width="14" height="14" aria-hidden="true">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+    `;
+    
+    h2.appendChild(selo);
+  }
     }
   }
 
@@ -546,100 +731,27 @@ function voltarPerfilVisitadoNex() {
   // ============================================
 
   function abrirChatDiretoPerfilNex() {
-    const nomeEl = document.getElementById('perfilNomeNex');
-    const userEl = document.getElementById('perfilUsernameNex');
+  // ⚠️ Pega direto do estado global (não do DOM, que pode estar desatualizado)
+  const perfilUsername = Drops.estado.perfilBloquearAtual;
+  const perfilAberto = Drops.estado.perfilAberto;
 
-    const perfilAberto = (nomeEl?.textContent || '').trim();
-    const perfilUsername = String(userEl?.textContent || '')
-      .replace(/^@/, '')
-      .trim()
-      .toLowerCase();
+  if (!perfilAberto || !perfilUsername) {
+    alert('Perfil sem dados. Volte e tente novamente.');
+    return;
+  }
 
-    if (!perfilAberto || !perfilUsername) {
-      alert('Perfil sem dados. Volte e tente novamente.');
-      return;
-    }
+  // ⚠️ Avisa o chat que veio do perfil para ele voltar pra cá
+  window.__chatVeioDoPerfil = true;
 
-    // ⚠️ Atualiza os caches
-    Drops.estado.perfilAberto = perfilAberto;
-    Drops.estado.perfilBloquearAtual = perfilUsername;
-    Drops.estado.conversaAtual = perfilUsername;
-
-    window.__convUsernamesNex = window.__convUsernamesNex || {};
-    window.__convUsernamesNex[perfilAberto] = perfilUsername;
-    window.__convUsernamesNex[perfilUsername] = perfilUsername;
-
-    window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
-    window.__convNomesExibidosNex[perfilUsername] = perfilAberto;
-
-    if (!window.conversas[perfilUsername]) {
-      window.conversas[perfilUsername] = [];
-    }
-
-    // ⚠️ ESCONDE telas, MOSTRA chat manualmente
-    document.querySelectorAll('.screen').forEach((t) => {
-      t.style.display = 'none';
-      t.classList.remove('active');
+  // ⚠️ PADRONIZAÇÃO: Usa a função oficial de abrir chat do 05-nex-chat.js
+  if (typeof window.abrirChatNex === 'function') {
+    window.abrirChatNex({
+      username: perfilUsername,
+      nome: perfilAberto
     });
-
-    const chat = document.getElementById('chatNex');
-    if (chat) {
-      chat.style.display = 'block';
-      chat.classList.add('active');
-    }
-
-    document.body.classList.add('chat-aberto');
-
-    // ⚠️ PREENCHE O TOPO DO CHAT direto
-    const chatName = document.getElementById('chatName');
-    const chatBio = document.getElementById('chatBio');
-    const chatAvatar = document.getElementById('chatAvatar');
-    const chatStatus = document.getElementById('chatStatus');
-
-    if (chatName) chatName.innerText = perfilAberto;
-    if (chatBio) chatBio.innerText = 'Carregando...';
-    if (chatStatus) chatStatus.innerText = 'offline';
-
-    if (chatAvatar) {
-      chatAvatar.innerText = perfilAberto.charAt(0).toUpperCase();
-    }
-
-    // ⚠️ Carrega conversa do Supabase
-    if (typeof window.carregarConversaSupabase === 'function') {
-      window.carregarConversaSupabase(perfilUsername)
-        .then(() => {
-          if (typeof window.renderChat === 'function') {
-            window.renderChat(perfilUsername);
-          }
-
-          // ⚠️ Busca nome real e avatar do Supabase
-          if (typeof window.buscarPerfilPublicoSupabase === 'function') {
-            window.buscarPerfilPublicoSupabase(perfilUsername)
-              .then((perfil) => {
-                if (!perfil) return;
-
-                const nomeReal = perfil.nome || perfilAberto;
-                const bioReal = perfil.bio || 'Sem bio ainda.';
-
-                if (chatName) chatName.innerText = nomeReal;
-                if (chatBio) chatBio.innerText = bioReal;
-
-                if (perfil.avatar_url && chatAvatar) {
-                  chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-                }
-
-                // ⚠️ Atualiza status online
-                const ultima = perfil.ultima_atividade;
-                if (ultima && chatStatus) {
-                  const online = Date.now() - new Date(ultima).getTime() < 30000;
-                  chatStatus.innerText = online ? 'online' : 'offline';
-                }
-              })
-              .catch((e) => console.warn('Erro ao buscar perfil:', e));
-          }
-        })
-        .catch((e) => console.warn('Erro ao carregar conversa:', e));
-    }
+  } else {
+    console.error('❌ abrirChatNex não está disponível.');
+  }
   }
 
   window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;

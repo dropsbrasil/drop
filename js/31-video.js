@@ -174,10 +174,21 @@
   }
 
   function atualizarBtnLoopVideoNex() {
-    const btn = document.getElementById('videoBtnLoopNex');
-    if (!btn) return;
+  const btn = document.getElementById('videoBtnLoopNex');
+  if (!btn) return;
 
-    btn.classList.toggle('ativo', videoLoopAtivo);
+  // Aplica a classe 'ativo' que estilizamos no CSS (fundo azul e borda)
+  btn.classList.toggle('ativo', videoLoopAtivo);
+  
+  // Garante que o ícone SVG (infinito) mude de cor junto
+  const svg = btn.querySelector('svg');
+  if (svg) {
+    if (videoLoopAtivo) {
+      svg.style.color = '#60a5fa'; // Azul claro quando ativo
+    } else {
+      svg.style.color = '#fff'; // Branco padrão
+    }
+  }
   }
 
     // ============================================

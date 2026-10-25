@@ -387,10 +387,15 @@ function garantirLixeiraNotasNex() {
 
   if (!btn) {
     btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'notasLixeiraNex';
-    btn.textContent = '🗑️';
-    btn.setAttribute('aria-label', 'Excluir');
+btn.type = 'button';
+btn.id = 'notasLixeiraNex';
+btn.setAttribute('aria-label', 'Excluir');
+btn.innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+  </svg>
+`;
 
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -1071,6 +1076,52 @@ function abrirFundoNotasNex() {
   if (typeof window.abrirModalFundoMyDropsNex === 'function') {
     window.abrirModalFundoMyDropsNex();
   }
+
+  // ⚠️ No editor de Notas, o "Fundo" serve apenas pra escolher COR.
+  // A opção "Galeria" é redundante aqui: o botão de Clipe no topo
+  // já adiciona foto como sticker sobre o papel. Esconde a Galeria
+  // e deixa só a paleta de Cores.
+  const btnGaleria = document.getElementById('fundoGaleriaBtn');
+  if (btnGaleria) btnGaleria.style.display = 'none';
+
+  const paleta = document.getElementById('fundoPaletaCores');
+  const galeriaPreview = document.getElementById('fundoGaleriaPreview');
+  if (paleta) paleta.style.display = 'block';
+  if (galeriaPreview) galeriaPreview.style.display = 'none';
+
+  // ⚠️ Restaura o botão "Galeria" ao fechar o modal — o modal é
+  // compartilhado com outros pontos do app, e se o usuário abrir
+  // o Fundo por outro caminho no futuro, o botão precisa estar lá.
+  // Também limpa o flag __notasModoFundoAtivo em QUALQUER forma
+  // de fechamento (aplicar, cancelar, X, clique fora). Sem isso,
+  // os interceptadores deste arquivo ficam vazados e disparam
+  // na próxima vez que o modal abrir por outro caminho.
+  const modal = document.getElementById('modalFundoMyDropsNex');
+  if (modal && !modal.__notasGaleriaObserver) {
+    const restaurar = () => {
+      const estaFechado =
+        modal.classList.contains('hidden') ||
+        modal.style.display === 'none';
+
+      if (estaFechado) {
+        const btn = document.getElementById('fundoGaleriaBtn');
+        if (btn) btn.style.display = '';
+
+        window.__notasModoFundoAtivo = false;
+        window.__notasFundoSelecionado = null;
+        window.__notasFundoTipo = null;
+
+        modal.__notasGaleriaObserver.disconnect();
+        delete modal.__notasGaleriaObserver;
+      }
+    };
+
+    modal.__notasGaleriaObserver = new MutationObserver(restaurar);
+    modal.__notasGaleriaObserver.observe(modal, {
+      attributes: true,
+      attributeFilter: ['class', 'style']
+    });
+  }
 }
 
 // ============================================
@@ -1485,21 +1536,7 @@ function iniciarObserverNotasNex() {
     window.__notasFundoTipo = 'cor';
   }, true);
 
-  // Observa a galeria
-  document.addEventListener('change', (e) => {
-    if (!window.__notasModoFundoAtivo) return;
-    if (e.target.id !== 'fundoGaleriaInput') return;
-
-    const arquivo = (e.target.files || [])[0];
-    if (!arquivo) return;
-
-    const leitor = new FileReader();
-    leitor.onload = function (evt) {
-      window.__notasFundoSelecionado = evt.target.result;
-      window.__notasFundoTipo = 'imagem';
-    };
-    leitor.readAsDataURL(arquivo);
-  }, true);
+  // ⚠️ REMOVIDO: Lógica de galeria (não existe mais fundo por imagem).
 
   // ============================================
   // APLICAR (fecha o modal + toast)
@@ -1525,22 +1562,21 @@ function iniciarObserverNotasNex() {
     }
 
     // Aplica no papel do Notas
-    const papel = notasPapel();
-    if (papel) {
-      if (fundoTipo === 'cor') {
-        papel.style.setProperty('background-color', fundoSelecionado, 'important');
-        papel.style.setProperty('background-image', 'none', 'important');
-        papel.style.backgroundSize = 'cover';
-        papel.style.backgroundPosition = 'center';
-        papel.style.backgroundRepeat = 'no-repeat';
-      } else if (fundoTipo === 'imagem') {
-        papel.style.setProperty('background-image', `url('${fundoSelecionado}')`, 'important');
-        papel.style.backgroundSize = 'cover';
-        papel.style.backgroundPosition = 'center';
-        papel.style.backgroundRepeat = 'no-repeat';
-        papel.style.setProperty('background-color', '#000', 'important');
-      }
-    }
+const papel = notasPapel();
+if (papel && fundoTipo === 'cor') {
+  // ⚠️ Verifica se é um degradê (gradient) ou uma cor sólida
+  if (fundoSelecionado.includes('gradient')) {
+    papel.style.setProperty('background-image', fundoSelecionado, 'important');
+    papel.style.setProperty('background-color', 'transparent', 'important');
+  } else {
+    papel.style.setProperty('background-color', fundoSelecionado, 'important');
+    papel.style.setProperty('background-image', 'none', 'important');
+  }
+  
+  papel.style.backgroundSize = 'cover';
+  papel.style.backgroundPosition = 'center';
+  papel.style.backgroundRepeat = 'no-repeat';
+}
 
     // Toast de confirmação
     window.mostrarToastNex?.('Fundo aplicado!', 'sucesso');

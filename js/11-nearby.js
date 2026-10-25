@@ -8,88 +8,27 @@
 (function () {
   'use strict';
 
-  // ============================================
+    // ============================================
 // MAPA: chave local → id uuid do Supabase
 // ============================================
 window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
 
-
   // ============================================
-  // DADOS DOS PERFIS NEARBY (fixos por enquanto)
+  // CACHE DO NEARBY (Economia de Cota)
   // ============================================
-  // Serão substituídos por consultas ao backend.
+  
+  let ultimaLatNearbyNex = null;
+  let ultimaLngNearbyNex = null;
+  let cachePerfisNearbyNex = null;
+  let cacheRaioNearbyNex = 5000;
+  let cacheTimeoutNex = null;
+  const DISTANCIA_MINIMA_METROS = 500;
 
-  const publicacoesNearbyNex = {
-    conectados: {
-      julia: {
-        nome: 'Julia',
-        distancia: '120 m',
-        imagem: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200'
-      },
-      lucas: {
-        nome: 'Lucas',
-        distancia: '350 m',
-        imagem: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200'
-      },
-      ana: {
-        nome: 'Ana',
-        distancia: '620 m',
-        imagem: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'
-      },
-      rafael: {
-        nome: 'Rafael',
-        distancia: '1.2 km',
-        imagem: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200'
-      }
-    },
-    nearby: {
-      julia: {
-        nome: 'Julia',
-        distancia: '120 m',
-        imagem: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200'
-      },
-      lucas: {
-        nome: 'Lucas',
-        distancia: '350 m',
-        imagem: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1200'
-      },
-      ana: {
-        nome: 'Ana',
-        distancia: '620 m',
-        imagem: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'
-      },
-      rafael: {
-        nome: 'Rafael',
-        distancia: '1.2 km',
-        imagem: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=1200'
-      },
-      camila: {
-        nome: 'Camila',
-        distancia: '1.8 km',
-        imagem: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200'
-      },
-      mateus: {
-        nome: 'Mateus',
-        distancia: '2.4 km',
-        imagem: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200'
-      },
-      beatriz: {
-        nome: 'Beatriz',
-        distancia: '3.1 km',
-        imagem: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?w=1200'
-      },
-      pedro: {
-        nome: 'Pedro',
-        distancia: '4.6 km',
-        imagem: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200'
-      },
-      larissa: {
-        nome: 'Larissa',
-        distancia: '5.2 km',
-        imagem: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200'
-      }
-    }
-  };
+// ⚠️ DADOS FAKES REMOVIDOS. O Nearby busca 100% no Supabase.
+const publicacoesNearbyNex = {
+  conectados: {},
+  nearby: {}
+};
 
   // ============================================
   // BUSCAR PERFIL POR ID OU NOME
@@ -122,12 +61,10 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
   }
 
   // ============================================
-  // ABRIR DROP COMENTADO (usado quando clica
-  // num drop recebido no chat)
+  // ABRIR DROP COMENTADO
   // ============================================
 
   async function abrirDropComentadoNex(perfilId, perfilNome, dropIndex = 0) {
-  // ⚠️ Tenta primeiro nos dados fixos
   const achado = buscarPerfilNearbyNex(perfilId, perfilNome);
 
   if (achado) {
@@ -140,7 +77,6 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
     return;
   }
 
-  // ⚠️ Não achou nos fixos → busca os drops REAIS do Supabase
   const usernameLimpo = String(perfilId || '')
     .replace(/^@/, '')
     .toLowerCase()
@@ -148,7 +84,6 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
 
   if (!usernameLimpo) return;
 
-  // Busca todos os drops com autor
   if (typeof window.buscarTodosOsDropsComAutor !== 'function') return;
 
   let drops = [];
@@ -160,7 +95,6 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
     return;
   }
 
-  // Filtra só os do autor
   const dropsDoAutor = drops.filter((d) => {
     const autor = String(d.autorUsername || '')
       .replace(/^@/, '')
@@ -174,19 +108,14 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
     return;
   }
 
-  // ⚠️ Chama a função que já monta a base e abre o viewer
   if (typeof window.abrirDropRealNearbyNex === 'function') {
-    // Pega o drop específico pelo índice
     const dropAlvo = dropsDoAutor[dropIndex] || dropsDoAutor[0];
-
-    // ⚠️ Passa a lista completa (pra navegação entre perfis)
     window.abrirDropRealNearbyNex(dropAlvo, drops);
   } else {
     window.mostrarToastNex?.('Viewer não disponível.', 'erro');
   }
   }
-
-  // ============================================
+    // ============================================
   // REAÇÕES EM DROPS (Mapas em memória)
   // ============================================
 
@@ -198,7 +127,6 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
   // ============================================
 
   function obterStatsReacaoDropNex(perfilId, dropIndex, url) {
-  // ⚠️ Se o sistema novo está disponível, delega pra ele
   if (
     typeof window.obterStatsReacaoNex === 'function' &&
     typeof window.chaveDropPerfilNex === 'function'
@@ -207,7 +135,6 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
     return window.obterStatsReacaoNex(chave);
   }
 
-  // Fallback: comportamento antigo (Map em memória)
   return (
     reacoesDropsNex.get(chaveReacaoDropNex(perfilId, dropIndex, url)) || {
       heart: 0,
@@ -217,7 +144,6 @@ window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
 }
 
 function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
-  // ⚠️ Se o sistema novo está disponível, delega pra ele
   if (
     typeof window.obterReacaoUsuarioNex === 'function' &&
     typeof window.chaveDropPerfilNex === 'function'
@@ -226,7 +152,6 @@ function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
     return window.obterReacaoUsuarioNex(chave, usuarioId);
   }
 
-  // Fallback: comportamento antigo (Map em memória)
   return (
     reacoesUsuarioDropNex.get(
       chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId)
@@ -237,9 +162,6 @@ function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
   // ============================================
   // REGISTRAR REAÇÃO EM UM DROP
   // ============================================
-  // Quando você reage (❤️ ou 💔) num drop:
-  // - Atualiza o contador
-  // - Registra a interação no sistema de adeptos
 
     function registrarReacaoDropNex(
   perfilId,
@@ -252,7 +174,6 @@ function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
     ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
     : chaveReacaoDropNex(perfilId, dropIndex, url);
 
-// ⚠️ FASE 5: salva no Supabase (backend) além do localStorage
 if (typeof window.alternarReacaoSupabase === 'function') {
   const publicacaoId =
     window.__dropsMapaIdsPublicacao &&
@@ -264,11 +185,10 @@ if (typeof window.alternarReacaoSupabase === 'function') {
       .catch((err) => console.warn('Erro Supabase reação:', err));
   }
 }
-  // ⚠️ Se o sistema de reações está disponível, usa ele
+
   if (typeof window.alternarReacaoNex === 'function') {
     const resultado = window.alternarReacaoNex(chaveDrop, usuarioId, emoji);
 
-    // Atualiza Map antigo pra manter compatibilidade com quem lê dele
     const keyUser = chaveUsuarioReacaoDropNex(
       perfilId,
       dropIndex,
@@ -281,7 +201,6 @@ if (typeof window.alternarReacaoSupabase === 'function') {
     });
     reacoesUsuarioDropNex.set(keyUser, resultado.reacaoAtual);
 
-    // Registra interação só quando ADICIONOU (não no toggle de remoção)
     if (resultado.reacaoAtual) {
       registrarInteracaoNex(
         perfilId,
@@ -293,7 +212,6 @@ if (typeof window.alternarReacaoSupabase === 'function') {
     return resultado;
   }
 
-  // Fallback: comportamento antigo em memória (caso 15-reacoes não carregue)
   const estatisticas = reacoesDropsNex.get(chaveDrop) || {
     heart: 0,
     broken: 0
@@ -350,6 +268,28 @@ function calcularTempoExpiracaoNex(expiraEm) {
 
   return `Expira em ${seg}s`;
 }
+
+// ============================================
+// CÁLCULO DE DISTÂNCIA (Haversine)
+// ============================================
+function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (g) => (g * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 // ============================================
 // ANIMAÇÃO DE MÍDIA (Tinder + Scroll)
 // ============================================
@@ -361,10 +301,6 @@ function animarMidiaNex(container, url, tipo, direcao) {
     tipo === 'video' ||
     /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
 
-  // ============================================
-  // CRIA O NOVO ELEMENTO DE MÍDIA
-  // ============================================
-
   const novo = document.createElement('div');
   novo.className = 'nearby-pub-midia-item';
 
@@ -373,28 +309,14 @@ if (ehVideo) {
  video.src = url;
  video.controls = true;
  video.setAttribute('controls', '');
- // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
- //    Tira o autoplay nativo. O play() é dado depois, num
- //    rAF — assim o Chrome não prioriza a decodificação de
- //    vídeo em cima do gesto de toque.
  video.autoplay = false;
  video.muted = true;
  video.playsInline = true;
  video.preload = 'metadata';
-
- // ⚠️ CORREÇÃO CHROME MOBILE:
- //    Sem isso, o vídeo captura o gesto horizontal e o swipe
- //    do app nunca dispara.
  video.style.touchAction = 'pan-x';
 
- // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
- //    Dá play depois de 2 frames. Quando o vídeo começa a
- //    decodificar, o gesto do usuário já terminou de ser
- //    capturado no touchstart.
  requestAnimationFrame(() => {
    requestAnimationFrame(() => {
-     // Só dá play se o vídeo ainda estiver no DOM
-     // (o usuário pode ter feito swipe e o viewer já trocou)
      if (video.isConnected && video.paused) {
        video.play().catch(() => {});
      }
@@ -403,10 +325,6 @@ if (ehVideo) {
 
  novo.appendChild(video);
 
-  // ⚠️ OVERLAY INVISÍVEL PARA CAPTURAR SWIPES
-  //    O player nativo do Chrome bloqueia o gesto. Esse overlay
-  //    recebe o toque, deixa o swipe passar pro viewer, e no
-  //    clique simples dá play/pause.
   const videoOverlay = document.createElement('div');
   videoOverlay.className = 'video-overlay-swipe-nex';
   videoOverlay.style.cssText = `
@@ -419,10 +337,6 @@ if (ehVideo) {
   `;
 
   videoOverlay.addEventListener('click', () => {
-    // Se o vídeo está pausado → play; se tocando → pause.
-    // (Não usa await/promise porque o Chrome mobile às vezes
-    // rejeita o play se não for iniciado por gesto do usuário,
-    // mas aqui É gesto do usuário, então funciona.)
     if (video.paused) {
       video.play().catch(() => {});
     } else {
@@ -439,50 +353,31 @@ if (ehVideo) {
     novo.appendChild(img);
  }
 
-  // ============================================
-  // DEFINE A DIREÇÃO DA ANIMAÇÃO
-  // ============================================
-
   let transformEntrada = 'translateX(100%)';
   let transformSaida = 'translateX(-100%)';
 
   if (direcao === 'left') {
-    // Próximo drop → entra pela direita, antigo sai pra esquerda
     transformEntrada = 'translateX(100%)';
     transformSaida = 'translateX(-100%)';
   } else if (direcao === 'right') {
-    // Drop anterior → entra pela esquerda, antigo sai pra direita
     transformEntrada = 'translateX(-100%)';
     transformSaida = 'translateX(100%)';
   } else if (direcao === 'down') {
-    // Próximo perfil → entra por baixo, antigo sobe
     transformEntrada = 'translateY(100%)';
     transformSaida = 'translateY(-100%)';
   } else if (direcao === 'up') {
-    // Perfil anterior → entra por cima, antigo desce
     transformEntrada = 'translateY(-100%)';
     transformSaida = 'translateY(100%)';
   }
 
-  // Aplica o estado inicial (fora da tela)
   novo.style.transform = transformEntrada;
   novo.style.opacity = '0';
 
-  // ============================================
-  // PEGA A MÍDIA ATUAL E PREPARA A SAÍDA
-  // ============================================
-
   const midiaAtual = container.querySelector('.nearby-pub-midia-item');
 
-  // Adiciona o novo antes de animar
   container.appendChild(novo);
 
-  // Força reflow pra garantir que a animação rode
   void novo.offsetWidth;
-
-  // ============================================
-  // ANIMA: NOVO ENTRA + ANTIGO SAI
-  // ============================================
 
   novo.style.transition =
   'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
@@ -520,8 +415,7 @@ if (midiaAtual) {
       }
     ];
   }
-
-  // ============================================
+    // ============================================
 // ABRIR VIEWER DE PUBLICAÇÃO (TELA CHEIA)
 // ============================================
 
@@ -534,16 +428,11 @@ function abrirViewerPublicacaoNex(
 ) {
   if (!post) return;
 
-  // ============================================
-  // DEFINE A BASE DE PERFIS
-  // ============================================
-
   let base;
 
   if (baseOverride) {
     base = baseOverride;
   } else if (tipo === 'conectados') {
-    // Monta base dinâmica a partir dos conectados reais
     base = {};
     lerConectadosMyDropsNex().forEach((perfil) => {
       const idPerfil = normalizarIdPerfilNex(perfil.id);
@@ -571,29 +460,18 @@ function abrirViewerPublicacaoNex(
     let perfilAtualId = id && base[id] ? id : ids[0];
   let dropIndexAtual = Math.max(0, Number(dropIndexInicial) || 0);
 
-// ⚠️ Controla a direção da animação entre drops/perfis
 let direcaoAnimacaoNex = 'left';
 let primeiraRenderizacaoNex = true;
 
-// ⚠️ Controle do swipe
 let swipeStartX = 0;
 let swipeStartY = 0;
 let swipeStartTime = 0;
 let swipeAtivo = false;
 
-// ⚠️ CORREÇÃO (swipe lento demorava 2 tentativas):
-//    - LIMITE menor (35px): responde a gestos curtos
-//    - TEMPO maior (1500ms): não descarta gestures "pensados"
-//    - LIMITE_RAPIDO: se o gesto foi MUITO rápido (<200ms),
-//      aceita com menos distância ainda (25px)
 const LIMITE_SWIPE = 35;
 const TEMPO_MAX_SWIPE = 1500;
 const TEMPO_GESTO_RAPIDO = 200;
 const LIMITE_SWIPE_RAPIDO = 25;
-
-// ============================================
-// FASE 2 (fluidez) — PRÉ-CARREGAR MÍDIAS ADJACENTES
-// ============================================
 
 const _midiasPreCarregadasNex = new Set();
 
@@ -636,16 +514,8 @@ function preCarregarDropsAdjacentesNex() {
   });
 }
   
-  // ============================================
-  // REMOVE VIEWER ANTIGO
-  // ============================================
-
   const antigo = document.querySelector('.nearby-drop-viewer');
   if (antigo) antigo.remove();
-
-  // ============================================
-  // MONTA HTML DO VIEWER
-  // ============================================
 
   const viewer = document.createElement('div');
   viewer.className = 'nearby-drop-viewer';
@@ -655,7 +525,6 @@ function preCarregarDropsAdjacentesNex() {
 
   <div class="nearby-pub-shell">
 
-    <!-- TOPBAR -->
     <div class="nearby-pub-topbar">
       <div class="nearby-pub-topbar-linha1">
         <div class="nearby-drop-user">
@@ -674,17 +543,14 @@ function preCarregarDropsAdjacentesNex() {
       </div>
     </div>
 
-     <!-- PALCO + PAPEL -->
 <div class="nearby-pub-palco">
   <div class="nearby-pub-papel" id="nearbyDropMedia"></div>
 
-  <!-- CÁPSULA DE LEGENDA (sobreposta na mídia) -->
   <div class="nearby-pub-legenda" id="nearbyDropLegenda" style="display:none;">
     <p class="nearby-pub-legenda-texto" id="nearbyDropLegendaTexto"></p>
     <button type="button" class="nearby-pub-legenda-ver-mais" id="nearbyDropVerMais">Ver mais</button>
   </div>
 
-    <!-- BARRA TOPO: expandir + cápsula de autor (drop compartilhado) -->
   <div class="nearby-pub-barra-topo">
     <button type="button" class="nearby-drop-expandir" id="nearbyDropExpandir" aria-label="Expandir mídia">⤢</button>
 
@@ -703,9 +569,8 @@ function preCarregarDropsAdjacentesNex() {
     </div>
   </div>
 </div>
-        <!-- RODAPÉ — COMMENT + COMPARTILHAR -->
     <div class="nearby-pub-rodape">
-      <div class="nearby-drop-comment-box">
+            <div class="nearby-drop-comment-box">
   <textarea class="nearby-drop-comment-input" placeholder="Comentar..." rows="1"></textarea>
   <button class="nearby-drop-reaction" type="button">❤️</button>
   <button class="nearby-drop-reaction" type="button">💔</button>
@@ -723,12 +588,18 @@ function preCarregarDropsAdjacentesNex() {
   <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
   <path class="nearby-check-azul" d="M9.5 13.5l2 2 3-3"/>
 </svg>
+  <svg class="nearby-icone-mudo-nex" id="nearbyIconeMudoNex" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="1" y1="1" x2="23" y2="23"></line>
+    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+    <line x1="12" y1="19" x2="12" y2="23"></line>
+    <line x1="8" y1="23" x2="16" y2="23"></line>
+  </svg>
   <span class="nearby-icone-send" aria-hidden="true">⌯⌲</span>
 </button>
 </div>
     </div>
 
-    <!-- STATS + VISITAR -->
     <div class="nearby-pub-stats-row">
       <div class="nearby-pub-stats-lista">
         <div class="nearby-drop-views">
@@ -748,10 +619,6 @@ function preCarregarDropsAdjacentesNex() {
 
             document.body.appendChild(viewer);
 
-// ============================================
-// EXPOE ESTADO PRO SCROLL CONTÍNUO (38-*.js)
-// ============================================
-
 window.__nearbyScrollStateNex = {
   viewerRef: viewer,
   ids,
@@ -767,25 +634,16 @@ window.__nearbyScrollStateNex = {
     dropIndexAtual = 0;
     direcaoAnimacaoNex = direcao;
 
-    // ⚠️ Pula a animação de mídia antiga — a troca já foi animada
-    //    pelo 38-nearby-scroll-continuo.js
     primeiraRenderizacaoNex = true;
 
     renderizar();
   }
 };
 
-// ============================================
-// ONBOARDING — aparece IMEDIATAMENTE
-// ============================================
-
 if (typeof window.mostrarOnboardingNearbyNex === 'function') {
   window.mostrarOnboardingNearbyNex();
 }
 
-// ============================================
-// BOTÃO VISITAR PERFIL
-// ============================================
  const btnVisitarPerfil = viewer.querySelector('.nearby-drop-profile-btn');
 
   if (tipo === 'perfil') {
@@ -798,9 +656,6 @@ btnVisitarPerfil.addEventListener('click', (e) => {
   const perfil = base[perfilAtualId];
   if (!perfil) return;
 
-  // ⚠️ CORREÇÃO: bloqueia popstate durante a transição viewer → perfil.
-  //    Senão o 28-history.js vê a tela do Nearby ainda ativa
-  //    e joga o usuário de volta pro feed antes do perfil abrir.
   window.__dropsBloquearPopstate = true;
 
   abrirPerfilVisitadoNex(
@@ -812,16 +667,11 @@ viewer.remove();
 document.body.style.overflow = '';
 document.body.classList.remove('viewer-aberto');
 
-  // ⚠️ Libera o bloqueio depois que a transição terminar
   setTimeout(() => {
     window.__dropsBloquearPopstate = false;
   }, 800);
 });
   }
-
-// ============================================
-// BOTÃO EXPANDIR — TELA CHEIA (FOCO TOTAL)
-// ============================================
 
 const btnExpandir = viewer.querySelector('#nearbyDropExpandir');
 
@@ -859,10 +709,6 @@ if (btnExpandir) {
   });
 }
 
-// ============================================
-// INPUT DE COMENTÁRIO — MODO FOCO TOTAL
-// ============================================
-  
 const inputComentario = viewer.querySelector('.nearby-drop-comment-input');
 const botaoEnviar = viewer.querySelector('.nearby-drop-send');
 const commentBox = viewer.querySelector('.nearby-drop-comment-box');
@@ -879,17 +725,11 @@ function atualizarEstadoEnviarNex() {
   botaoEnviar.disabled = false;
   botaoEnviar.classList.toggle('is-active', !!texto);
 
-  // ⚠️ Troca o ícone do botão (compartilhar ↔ enviar)
-  // Mostra aviãozinho se: tem texto OU input tá focado
   const commentBoxAtual = viewer.querySelector('.nearby-drop-comment-box');
   if (commentBoxAtual) {
     commentBoxAtual.classList.toggle('input-com-texto', mostrarEnviar);
   }
 }
-
-// ============================================
-// MODO COMENTÁRIO (foco total)
-// ============================================
 
 function entrarModoComentarioNex() {
   if (!commentBox) return;
@@ -921,13 +761,11 @@ if (inputComentario) {
   atualizarEstadoEnviarNex();
   inputComentario.addEventListener('input', atualizarEstadoEnviarNex);
 
-  // ⚠️ FOCO — entra no modo comentário + troca ícone pra enviar
   inputComentario.addEventListener('focus', () => {
     entrarModoComentarioNex();
     atualizarEstadoEnviarNex();
   });
 
-  // ⚠️ BLUR — só sai se o campo estiver VAZIO
   inputComentario.addEventListener('blur', () => {
     const temTexto = (inputComentario.value || '').trim().length > 0;
     if (!temTexto) {
@@ -937,7 +775,6 @@ if (inputComentario) {
   });
 }
 
-// ⚠️ CLIQUE FORA DO CAMPO (dentro do viewer)
 viewer.addEventListener('click', (e) => {
   if (e.target.closest('.nearby-drop-comment-box')) return;
 
@@ -947,9 +784,6 @@ viewer.addEventListener('click', (e) => {
   }
 });
   
-// ============================================
-// BOTÃO "VER MAIS" / "VER MENOS" DA LEGENDA
-// ============================================
 const btnVerMaisLegenda = viewer.querySelector('#nearbyDropVerMais');
 const legendaTextoEl = viewer.querySelector('#nearbyDropLegendaTexto');
 
@@ -971,11 +805,6 @@ if (btnVerMaisLegenda && legendaTextoEl) {
     }
   };
 }
-  
-
-  // ============================================
-  // BOTÕES DE REAÇÃO
-  // ============================================
 
   viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -988,7 +817,6 @@ if (btnVerMaisLegenda && legendaTextoEl) {
     const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
     const urlCalc = drop.url || drop.imagem || '';
 
-    // ⚠️ Bloqueia auto-reação
     const autorLimpo = String(perfilIdCalc).toLowerCase();
     const meuUser = String(Drops.usernameAtual || '').toLowerCase();
 
@@ -1000,7 +828,6 @@ if (btnVerMaisLegenda && legendaTextoEl) {
       return;
     }
 
-    // ⚠️ Usa o @username real, não 'local'
     const usuarioId = Drops.usernameAtual || 'anonimo';
 
     registrarReacaoDropNex(
@@ -1011,22 +838,17 @@ if (btnVerMaisLegenda && legendaTextoEl) {
   usuarioId
 );
 
-// ⚠️ FEEDBACK: vibra + toca ao reagir
 if (typeof window.feedbackNex?.reagiu === 'function') {
   window.feedbackNex.reagiu();
 }
 
-// ⚠️ Pop visual
     btn.classList.remove('pop-anim');
     void btn.offsetWidth;
     btn.classList.add('pop-anim');
     setTimeout(() => btn.classList.remove('pop-anim'), 360);
 
-    // ⚠️ Atualiza estado ativo dos botões
     atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 
-    // ⚠️ NÃO chamar renderizar() — evita animar a mídia
-    // Atualiza só o contador de reações localmente
     const reacoesElAtual = viewer.querySelector('#nearbyDropReactions');
 
     if (reacoesElAtual) {
@@ -1058,11 +880,9 @@ if (typeof window.feedbackNex?.reagiu === 'function') {
 
   document.body.style.overflow = 'hidden';
 
-  // ============================================
+    // ============================================
 // GERAR FRAME DE VÍDEO (thumbnail como imagem)
 // ============================================
-// Pega o 1º frame "bonito" do vídeo e devolve como dataURL.
-// Se falhar (CORS, formato, etc), devolve string vazia.
 
 function gerarFrameVideoNearbyNex(urlVideo) {
   return new Promise((resolve) => {
@@ -1100,7 +920,6 @@ function gerarFrameVideoNearbyNex(urlVideo) {
     });
 
     video.addEventListener('loadeddata', () => {
-      // ⚠️ Pula pro meio do vídeo pra pegar um frame mais interessante
       try {
         const alvo = Math.min(0.5, (video.duration || 1) / 2);
         video.currentTime = alvo;
@@ -1130,7 +949,6 @@ function gerarFrameVideoNearbyNex(urlVideo) {
         clearTimeout(timeout);
         finalizar(dataURL);
       } catch (err) {
-        // CORS ou canvas tainted — devolve vazio
         console.warn('Falha ao gerar frame do vídeo:', err);
         clearTimeout(timeout);
         finalizar('');
@@ -1144,10 +962,20 @@ function gerarFrameVideoNearbyNex(urlVideo) {
 // ============================================
 
 async function enviarComentarioNearbyNex() {
+  // ⚠️ Bloqueio de segurança: se estiver silenciado, não envia
+  const perfil = base[perfilAtualId];
+  if (perfil) {
+    const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
+    const estouSilenciado = window.__quemMeSilenciouNex && window.__quemMeSilenciouNex.has(perfilIdCalc);
+    if (estouSilenciado) {
+      window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+      return;
+    }
+  }
+
   const texto = (inputComentario?.value || '').trim();
   if (!texto) return;
   
-    const perfil = base[perfilAtualId];
     const drops = obterDropsDoPerfil(perfil);
     const drop = drops[dropIndexAtual];
 
@@ -1156,17 +984,11 @@ async function enviarComentarioNearbyNex() {
     const nomeContato = perfil.nome || 'Perfil Nearby';
 const chaveConversa = nomeContato;
 
-// ============================================
-// ⚠️ Detecta o tipo do drop
-// ============================================
 const tipoDrop =
   drop.type === 'video' || drop.tipo === 'video' ? 'video' : 'imagem';
 
 let urlAnexo = drop.url || drop.imagem || '';
 
-// ============================================
-// ⚠️ Se for VÍDEO, gera um frame (imagem) como prévia
-// ============================================
 if (tipoDrop === 'video' && urlAnexo) {
   const frame = await gerarFrameVideoNearbyNex(urlAnexo);
 
@@ -1175,7 +997,6 @@ if (tipoDrop === 'video' && urlAnexo) {
   }
 }
 
-// Sempre envia como imagem (o botão "Ver Drop" abre o original)
 const mensagemNearby = {
   id: gerarIdMensagemNex(),
   timestamp: Date.now(),
@@ -1196,13 +1017,11 @@ const mensagemNearby = {
   }
 };
 
-// ⚠️ Envia pro Supabase (pra outra pessoa receber)
 const usernameDestino =
   (window.__convUsernamesNex && window.__convUsernamesNex[nomeContato]) ||
   perfil.id ||
   nomeContato;
 
-// ⚠️ Garante que a conversa existe no Supabase
 let convId = null;
 
 if (typeof window.obterOuCriarConversaSupabase === 'function') {
@@ -1221,7 +1040,6 @@ if (typeof window.obterOuCriarConversaSupabase === 'function') {
   }
 }
 
-// ⚠️ Envia a mensagem pro Supabase
 let msgSupabase = null;
 
 if (
@@ -1252,7 +1070,6 @@ if (
   }
 }
 
-// ⚠️ Adiciona localmente
 if (typeof registrarMensagemRecebidaNex === 'function') {
   registrarMensagemRecebidaNex(nomeContato, mensagemNearby, false);
 } else {
@@ -1262,7 +1079,6 @@ if (typeof registrarMensagemRecebidaNex === 'function') {
   conversas[chaveConversa].push(mensagemNearby);
 }
 
-// ⚠️ Se o card não existir, cria
 if (
   typeof window.criarCardConversaNex === 'function' &&
   typeof window.obterCardConversaNex === 'function' &&
@@ -1291,10 +1107,8 @@ if (
   inputComentario.value = 'Você enviou um comentário.';
   atualizarEstadoEnviarNex();
 
-  // ⚠️ Sai do modo comentário imediatamente após enviar
   sairModoComentarioNex();
 
-  // ⚠️ Tira o foco do input (fecha o teclado)
   inputComentario.blur();
 
   setTimeout(() => {
@@ -1303,26 +1117,17 @@ if (
   }, 1200);
         }
 
-// ⚠️ FEEDBACK: só toca (sem vibração) ao comentar
 if (typeof window.feedbackNex?.comentou === 'function') {
   window.feedbackNex.comentou();
 }
 
-// Registra comentário como interação pro sistema de adeptos
 registrarInteracaoNex(
   perfil.id || perfilAtualId || perfil.nome || '',
   'comment',
   `nearby::${dropIndexAtual}`
 );
-  }
-
-// ============================================
-// BOTÃO DE AÇÃO (COMPARTILHAR ou ENVIAR)
-// ============================================
-// Se o input tem texto → envia comentário
-// Se o input tá vazio → compartilha o drop
-
-if (botaoEnviar) {
+}
+  if (botaoEnviar) {
   botaoEnviar.addEventListener('click', () => {
     const temTexto = (inputComentario?.value || '').trim().length > 0;
 
@@ -1348,7 +1153,6 @@ async function compartilharDropNearbyNex() {
   const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
   const urlCalc = drop.url || drop.imagem || '';
 
-  // ⚠️ Não pode compartilhar o próprio drop
   const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
   const autorLimpo = String(perfilIdCalc).toLowerCase().trim();
 
@@ -1360,7 +1164,6 @@ async function compartilharDropNearbyNex() {
     return;
   }
 
-  // Pega o ID da publicação no Supabase
   const chaveDrop = window.chaveDropPerfilNex
     ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
     : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
@@ -1393,7 +1196,6 @@ async function compartilharDropNearbyNex() {
 
   if (btn) btn.classList.add('ja-compartilhado');
 
-  // ⚠️ Revela a cápsula imediatamente após compartilhar
   if (publicacaoId) {
     atualizarCapsulaShareNearbyNex(publicacaoId);
   }
@@ -1435,22 +1237,18 @@ async function compartilharDropNearbyNex() {
 }
 
 window.compartilharDropNearbyNex = compartilharDropNearbyNex;
-  
-     // ============================================
+
+// ============================================
 // RENDERIZAR O VIEWER
 // ============================================
 
-// ⚠️ FASE 5: garante que só busca do Supabase 1x por drop
 const dropsJaSincronizados = new Set();
-
-// ⚠️ FASE 5.2: evita registrar view 2x do mesmo drop
 const viewsJaRegistradas = new Set();
-  
+
 function renderizar() {
   const perfil = base[perfilAtualId];
   if (!perfil) return;
 
-  // ⚠️ Reseta modo comentário ao trocar de drop/perfil
   const commentBoxAtual = viewer.querySelector('.nearby-drop-comment-box');
 
 if (commentBoxAtual && commentBoxAtual.classList.contains('comentario-focado')) {
@@ -1469,7 +1267,6 @@ if (commentBoxAtual && commentBoxAtual.classList.contains('comentario-focado')) 
   if (setaR) setaR.style.display = '';
 }
 
-// ⚠️ Sai do modo expandido ao trocar de drop/perfil
 if (viewer.classList.contains('modo-expandido')) {
   viewer.classList.remove('modo-expandido');
   const btnExp = viewer.querySelector('#nearbyDropExpandir');
@@ -1512,7 +1309,6 @@ if (nome) nome.textContent = perfil.nome || 'Perfil';
   expire.textContent = calcularTempoExpiracaoNex(drop.expiraEm);
       }
 
-      // ⚠️ Renderiza os selos de origem do drop
       const selosAntigosNearby = viewer.querySelector('.selos-origem');
       if (selosAntigosNearby) selosAntigosNearby.remove();
 
@@ -1526,12 +1322,6 @@ if (nome) nome.textContent = perfil.nome || 'Perfil';
   counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
 }
 if (views) views.textContent = drop.views || 0;
-
-// ============================================
-// ⚠️ AJUSTE 1 — CÁPSULA DE AUTOR (drop compartilhado)
-// ============================================
-// Se o drop é uma republicação, mostra a cápsula com o
-// autor original ao lado do botão expandir.
 
 const capsulaAutorNearby = viewer.querySelector('#nearbyPubCapsulaAutor');
 
@@ -1547,7 +1337,6 @@ if (capsulaAutorNearby) {
     const nomeEl = capsulaAutorNearby.querySelector('.nearby-pub-capsula-autor-nome');
     const userEl = capsulaAutorNearby.querySelector('.nearby-pub-capsula-autor-user');
 
-    // Avatar
     if (avatarEl) {
       if (drop.compartilhado_de_avatar) {
         avatarEl.innerHTML = `<img src="${escapeHTML(drop.compartilhado_de_avatar)}" alt="">`;
@@ -1558,12 +1347,10 @@ if (capsulaAutorNearby) {
       }
     }
 
-    // Nome
     if (nomeEl) {
       nomeEl.textContent = drop.compartilhado_de_nome || '';
     }
 
-    // @username
     if (userEl) {
       const userLimpo = String(drop.compartilhado_de_username || '')
         .replace(/^@/, '')
@@ -1573,9 +1360,6 @@ if (capsulaAutorNearby) {
   }
 }
   
-// ============================================
-// LEGENDA DO DROP (cápsula sobre a mídia)
-// ============================================
 const legendaEl = viewer.querySelector('#nearbyDropLegenda');
 const legendaTextoEl = viewer.querySelector('#nearbyDropLegendaTexto');
 const btnVerMaisLegenda = viewer.querySelector('#nearbyDropVerMais');
@@ -1594,7 +1378,6 @@ if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
     btnVerMaisLegenda.dataset.expandido = 'false';
     btnVerMaisLegenda.textContent = 'Ver mais';
 
-    // Mostra "Ver mais" só se o texto passar de 3 linhas
     setTimeout(() => {
       if (legendaTextoEl.scrollHeight > legendaTextoEl.clientHeight + 2) {
         btnVerMaisLegenda.classList.add('visivel');
@@ -1604,10 +1387,6 @@ if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
     legendaEl.style.display = 'none';
   }
 }
-
-      // ============================================
-      // REAÇÕES
-      // ============================================
 
       const reacoesEl = viewer.querySelector('#nearbyDropReactions');
 const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
@@ -1621,10 +1400,45 @@ const stats = obterStatsReacaoDropNex(
 
 const totalReacoes = stats.heart + stats.broken;
 
-// ⚠️ Marca os botões que o usuário já reagiu
 atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 
-      if (reacoesEl) {
+// ⚠️ VERIFICA SE FUI SILENCIADO PELO AUTOR DESTE DROP
+const estouSilenciado = window.__quemMeSilenciouNex && window.__quemMeSilenciouNex.has(perfilIdCalc);
+
+const commentInputAtual = viewer.querySelector('.nearby-drop-comment-input');
+const btnEnviarAtual = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
+const iconeMudoAtual = viewer.querySelector('#nearbyIconeMudoNex');
+const iconeShareAtual = viewer.querySelector('.nearby-icone-share');
+const iconeShareCheckAtual = viewer.querySelector('.nearby-icone-share-check');
+const iconeSendSpanAtual = viewer.querySelector('.nearby-icone-send');
+
+if (estouSilenciado) {
+  if (commentInputAtual) {
+    commentInputAtual.disabled = true;
+    commentInputAtual.placeholder = 'Você foi silenciado';
+    commentInputAtual.style.background = 'rgba(255, 255, 255, 0.05)';
+    commentInputAtual.style.color = '#64748b';
+  }
+  if (btnEnviarAtual) btnEnviarAtual.disabled = true;
+  if (iconeMudoAtual) iconeMudoAtual.style.display = 'block';
+  if (iconeShareAtual) iconeShareAtual.style.display = 'none';
+  if (iconeShareCheckAtual) iconeShareCheckAtual.style.display = 'none';
+  if (iconeSendSpanAtual) iconeSendSpanAtual.style.display = 'none';
+} else {
+  if (commentInputAtual) {
+    commentInputAtual.disabled = false;
+    commentInputAtual.placeholder = 'Comentar...';
+    commentInputAtual.style.background = '';
+    commentInputAtual.style.color = '';
+  }
+  if (btnEnviarAtual) btnEnviarAtual.disabled = false;
+  if (iconeMudoAtual) iconeMudoAtual.style.display = 'none';
+  if (iconeShareAtual) iconeShareAtual.style.display = '';
+  if (iconeShareCheckAtual) iconeShareCheckAtual.style.display = '';
+  if (iconeSendSpanAtual) iconeSendSpanAtual.style.display = '';
+}
+
+if (reacoesEl) {
   if (totalReacoes > 0) {
     reacoesEl.innerHTML = `
       <span class="nearby-drop-reaction-count">❤️${stats.heart}</span>
@@ -1635,11 +1449,8 @@ atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
     reacoesEl.innerHTML = '';
     reacoesEl.style.display = 'none';
   }
-}
-
-// ⚠️ FASE 5: Busca reações reais do Supabase (sincronização)
-// Só busca UMA VEZ por drop, pra não competir com o clique
-const chaveDropAtual = window.chaveDropPerfilNex
+      }
+  const chaveDropAtual = window.chaveDropPerfilNex
   ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
   : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
 
@@ -1647,31 +1458,21 @@ const publicacaoIdAtual =
   window.__dropsMapaIdsPublicacao &&
   window.__dropsMapaIdsPublicacao[chaveDropAtual];
 
-// ⚠️ FASE 1 (fluidez): detecta se é troca HORIZONTAL entre drops
-// do mesmo perfil. Se for, os fetches de reações/views/share são
-// pulados — a UI local já mostra o estado instantâneo, e o
-// Supabase sincroniza na próxima troca vertical ou abertura.
 const ehTrocaHorizontal =
   !primeiraRenderizacaoNex &&
   (direcaoAnimacaoNex === 'left' || direcaoAnimacaoNex === 'right');
 
-// ⚠️ Marca como visto (apareceu na tela = visto)
 if (
   publicacaoIdAtual &&
   window.dropsVistosNex?.marcarVisto
 ) {
   window.dropsVistosNex.marcarVisto(publicacaoIdAtual);
 
-  // ⚠️ Limpa o cache de "não visto" — senão o 38-*.js usa dado velho
   if (window.__limparCacheNaoVistoNex) {
     window.__limparCacheNaoVistoNex();
   }
 }
   
-// ⚠️ FASE 1 (fluidez): em troca horizontal, pula o fetch de
-// reações do Supabase. O contador local (do localStorage) já
-// aparece instantâneo. O Supabase sincroniza na próxima troca
-// vertical ou na reabertura do viewer.
 if (
   publicacaoIdAtual &&
   typeof window.buscarReacoesSupabase === 'function' &&
@@ -1688,7 +1489,6 @@ if (
       const totalSupabase =
         dadosSupabase.heart + dadosSupabase.broken;
 
-      // Atualiza o contador com dados reais
       if (reacoesEl) {
         if (totalSupabase > 0) {
           reacoesEl.innerHTML = `
@@ -1702,7 +1502,6 @@ if (
         }
       }
 
-            // Atualiza os botões ativos
       viewer
         .querySelectorAll('.nearby-drop-reaction')
         .forEach((b) => {
@@ -1718,7 +1517,6 @@ if (
     );
 }
 
-// ⚠️ FASE 5.2: registra visualização (só se não for o próprio autor)
 if (
   publicacaoIdAtual &&
   typeof window.registrarVisualizacaoSupabase === 'function' &&
@@ -1734,14 +1532,12 @@ if (
     .toLowerCase()
     .trim();
 
-  // Só conta se NÃO for o próprio drop
   if (autor && autor !== eu) {
     viewsJaRegistradas.add(chaveDropAtual);
 
     window
       .registrarVisualizacaoSupabase(publicacaoIdAtual)
       .then(() => {
-        // ⚠️ Depois de registrar, busca o número real
         if (views && typeof window.buscarVisualizacoesSupabase === 'function') {
           window.buscarVisualizacoesSupabase(publicacaoIdAtual)
             .then((total) => {
@@ -1756,7 +1552,6 @@ if (
   }
 }
 
-// ⚠️ NOVO: busca views mesmo se já registrou antes (pra mostrar contagem real)
 if (
   publicacaoIdAtual &&
   typeof window.buscarVisualizacoesSupabase === 'function' &&
@@ -1770,19 +1565,11 @@ if (
     .catch((err) => console.warn('Erro ao buscar views:', err));
 }
 
-// ============================================
-// ⚠️ VERIFICA SE JÁ COMPARTILHOU ESSE DROP
-// ============================================
-
 const btnRodapeNex = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
 
 if (btnRodapeNex) {
   btnRodapeNex.classList.remove('ja-compartilhado');
 
-  // ⚠️ FASE 1 (fluidez): em troca horizontal, pula o fetch.
-  // Se o usuário parar nesse drop, ele não verá o "check" de
-  // compartilhado imediatamente — mas ao trocar de perfil (vertical)
-  // ou reabrir o viewer, o estado é atualizado.
   if (
     publicacaoIdAtual &&
     typeof window.jaCompartilhouSupabase === 'function' &&
@@ -1798,31 +1585,17 @@ if (btnRodapeNex) {
   }
 }
 
-// ============================================
-// ⚠️ CÁPSULA DE COMPARTILHAMENTO
-// ============================================
-// Só aparece se VOCÊ já compartilhou esse drop.
-// Mostra o total de pessoas que compartilharam.
-
-// ⚠️ FASE 1 (fluidez): em troca horizontal, esconde a cápsula
-// imediatamente (sem fetch). Ela é recalculada no próximo render
-// completo (troca vertical ou abertura).
 if (publicacaoIdAtual && !ehTrocaHorizontal) {
   atualizarCapsulaShareNearbyNex(publicacaoIdAtual);
 } else {
   const capsulaEl = viewer.querySelector('#nearbyDropShareCapsula');
   if (capsulaEl) capsulaEl.style.display = 'none';
 }  
-      // ============================================
-// MÍDIA (imagem ou vídeo) — COM ANIMAÇÃO
-// ============================================
 
 if (media) {
   const url = String(drop.url || drop.imagem || '');
   const tipoDrop = String(drop.type || drop.tipo || '').toLowerCase();
 
-  // ⚠️ Primeira renderização: monta direto (sem animação)
-  // ⚠️ Navegações: usa animação direcional
   if (primeiraRenderizacaoNex) {
     primeiraRenderizacaoNex = false;
 
@@ -1840,19 +1613,12 @@ const video = document.createElement('video');
 video.src = url;
 video.controls = true;
 video.setAttribute('controls', '');
-// ⚠️ CORREÇÃO (autoplay atrapalhava swipe): idem animarMidiaNex
 video.autoplay = false;
 video.muted = true;
 video.playsInline = true;
 video.preload = 'metadata';
-
-// ⚠️ CORREÇÃO CHROME MOBILE:
-//    Sem isso, o vídeo captura o gesto horizontal e o swipe
-//    do app nunca dispara.
 video.style.touchAction = 'pan-x';
 
-// ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
-//    Play depois de 2 frames — não compete com o touchstart.
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
     if (video.isConnected && video.paused) {
@@ -1861,11 +1627,8 @@ requestAnimationFrame(() => {
   });
 });
 
-  // ⚠️ CORREÇÃO: variável correta neste escopo é 'novoInicial'
-//    (não 'novo' — aquele é do animarMidiaNex).
 novoInicial.appendChild(video);
 
-  // ⚠️ OVERLAY INVISÍVEL PARA CAPTURAR SWIPES (faltou aqui!)
   const videoOverlay = document.createElement('div');
   videoOverlay.className = 'video-overlay-swipe-nex';
   videoOverlay.style.cssText = `
@@ -1894,20 +1657,11 @@ novoInicial.appendChild(video);
         }
     media.appendChild(novoInicial);
   } else {
-    // Navegação → animação
     animarMidiaNex(media, url, tipoDrop, direcaoAnimacaoNex);
   }
 }
 
-    // ============================================
-  // NAVEGAÇÃO — setas foram removidas
-  // ============================================
-
 }
-  
-    // ============================================
-// EVENTOS DE FECHAR
-// ============================================
 
 viewer.querySelector('.nearby-drop-close').onclick = () => {
   if (inputComentario) inputComentario.value = '';
@@ -1924,25 +1678,7 @@ viewer.addEventListener('click', (e) => {
     document.body.style.overflow = '';
   }
 });
-  
-// ============================================
-// NAVEGAÇÃO ENTRE DROPS E PERFIS
-// (feita apenas por SWIPE)
-// ============================================
 
-// As setas foram removidas. O usuário navega apenas com swipe.
-
-      // ============================================
-// SWIPE (ARRASTAR) — horizontal = troca drop
-//                 — vertical   = troca perfil
-// ============================================
-
-// ⚠️ As variáveis (swipeStartX, swipeStartY,
-//    LIMITE_SWIPE, etc.) foram movidas pra cima,
-//    junto das declarações do viewer, pra poderem
-//    ser usadas também no bloco de onboarding.
-
-      
         viewer.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
 
@@ -1960,12 +1696,6 @@ viewer.addEventListener('click', (e) => {
   return;
         }
 
-        // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
-        //    Se tem vídeo tocando, pausa AGORA. Isso libera a
-        //    thread de decodificação imediatamente — o Chrome
-        //    para de competir com o gesto de toque.
-        //    Se o gesto for só um toque (sem swipe), o vídeo é
-        //    retomado no touchend.
         const videoAtual = viewer.querySelector('#nearbyDropMedia video');
         if (videoAtual && !videoAtual.paused) {
           videoAtual.pause();
@@ -1977,9 +1707,6 @@ viewer.addEventListener('click', (e) => {
         swipeStartY = e.touches[0].clientY;
         swipeStartTime = Date.now();
 
-        // ⚠️ FASE 2 (fluidez): pré-carrega a mídia dos drops adjacentes
-        // no touchstart — assim quando o swipe acontecer, a imagem
-        // ou vídeo já está no cache do navegador e entra instantâneo.
         preCarregarDropsAdjacentesNex();
       }, { passive: true });
 
@@ -1987,14 +1714,7 @@ viewer.addEventListener('click', (e) => {
 if (!swipeAtivo) return;
 swipeAtivo = false;
 
-// ⚠️ CORREÇÃO CHROME MOBILE:
-//    Bloqueia ANTES de qualquer cálculo. O 38-*.js seta o flag
-//    no início do touchmove vertical — se o flag não veio, mas
-//    existe um preview do 38-*.js no DOM, também ignora.
 if (window.__nearbyScrollVerticalAtivo) {
-  // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
-  //    Se o vídeo foi pausado no touchstart mas o gesto foi
-  //    vertical (não horizontal), retoma o vídeo.
   const videoAtual = viewer.querySelector('#nearbyDropMedia video');
   if (videoAtual && videoAtual.dataset.pausadoPeloSwipe === '1') {
     delete videoAtual.dataset.pausadoPeloSwipe;
@@ -2010,8 +1730,6 @@ if (!e.changedTouches || e.changedTouches.length === 0) return;
       const dt = Date.now() - swipeStartTime;
 
       if (dt > TEMPO_MAX_SWIPE) {
-        // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
-        //    Gesto longo demais = não foi swipe. Retoma o vídeo.
         const videoAtual = viewer.querySelector('#nearbyDropMedia video');
         if (videoAtual && videoAtual.dataset.pausadoPeloSwipe === '1') {
           delete videoAtual.dataset.pausadoPeloSwipe;
@@ -2023,30 +1741,20 @@ if (!e.changedTouches || e.changedTouches.length === 0) return;
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
-        // ⚠️ CORREÇÃO (swipe demorava 2 tentativas):
-        //    Se o gesto foi muito rápido, aceita uma distância
-        //    menor. Antes, um flick rápido de 30px era descartado
-        //    e o usuário precisava repetir o gesto.
         const limiteHorizontal =
           dt < TEMPO_GESTO_RAPIDO ? LIMITE_SWIPE_RAPIDO : LIMITE_SWIPE;
 
-                // Horizontal dominante
 if (absX > limiteHorizontal && absX > absY * 1.3) {
-  // ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
-  //    Swipe confirmado — o vídeo atual NÃO é retomado (o
-  //    renderizar() vai destruí-lo e criar o próximo).
   const videoAtual = viewer.querySelector('#nearbyDropMedia video');
   if (videoAtual) delete videoAtual.dataset.pausadoPeloSwipe;
 
   if (dx < 0) {
-    // arrastou para a ESQUERDA → próximo drop
     const perfil = base[perfilAtualId];
     const drops = obterDropsDoPerfil(perfil);
     if (dropIndexAtual < drops.length - 1) {
       dropIndexAtual += 1;
       direcaoAnimacaoNex = 'left';
 
-      // ⚠️ FEEDBACK: vibra + toca ao trocar drop
       if (typeof window.feedbackNex?.navegouDrop === 'function') {
         window.feedbackNex.navegouDrop();
       }
@@ -2054,12 +1762,10 @@ if (absX > limiteHorizontal && absX > absY * 1.3) {
       renderizar();
     }
   } else {
-    // arrastou para a DIREITA → drop anterior
     if (dropIndexAtual > 0) {
       dropIndexAtual -= 1;
       direcaoAnimacaoNex = 'right';
 
-      // ⚠️ FEEDBACK: vibra + toca ao trocar drop
       if (typeof window.feedbackNex?.navegouDrop === 'function') {
         window.feedbackNex.navegouDrop();
       }
@@ -2070,26 +1776,21 @@ if (absX > limiteHorizontal && absX > absY * 1.3) {
   return;
 }
 
-// ⚠️ CORREÇÃO (autoplay atrapalhava swipe):
-//    Chegou até aqui = não foi swipe horizontal. Retoma o vídeo.
 const videoAtual = viewer.querySelector('#nearbyDropMedia video');
 if (videoAtual && videoAtual.dataset.pausadoPeloSwipe === '1') {
   delete videoAtual.dataset.pausadoPeloSwipe;
   videoAtual.play().catch(() => {});
 }
 
-// Vertical dominante
 if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
   const idx = ids.indexOf(perfilAtualId);
 
   if (dy < 0) {
-    // arrastou para CIMA → próximo perfil
     if (idx < ids.length - 1) {
       perfilAtualId = ids[idx + 1];
       dropIndexAtual = 0;
       direcaoAnimacaoNex = 'down';
 
-      // ⚠️ FEEDBACK: só vibra ao trocar perfil
       if (typeof window.feedbackNex?.trocouPerfil === 'function') {
         window.feedbackNex.trocouPerfil();
       }
@@ -2097,13 +1798,11 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
       renderizar();
     }
   } else {
-    // arrastou para BAIXO → perfil anterior
     if (idx > 0) {
       perfilAtualId = ids[idx - 1];
       dropIndexAtual = 0;
       direcaoAnimacaoNex = 'up';
 
-      // ⚠️ FEEDBACK: só vibra ao trocar perfil
       if (typeof window.feedbackNex?.trocouPerfil === 'function') {
         window.feedbackNex.trocouPerfil();
       }
@@ -2114,32 +1813,15 @@ if (absY > LIMITE_SWIPE && absY > absX * 1.3) {
 }
           }, { passive: true });
 
-    // ⚠️ CORREÇÃO: trata touchcancel
-    //    O Chrome mobile pode disparar touchcancel em vários
-    //    cenários (mudança de touch-action, gesto de sistema, etc.).
-    //    Sem esse listener, swipeAtivo fica travado em true e o
-    //    próximo touchend processa um gesto fantasma.
     viewer.addEventListener('touchcancel', () => {
       swipeAtivo = false;
     }, { passive: true });
 
-// ⚠️ Renderiza primeira vez
-//    (o agendamento da dica flutuante já acontece dentro do renderizar)
 renderizar();
 
-  // ⚠️ CORREÇÃO CHROME MOBILE:
-  //    Garante que o body não fique travado se o viewer anterior
-  //    deixou o overflow em 'hidden' por algum erro.
-  //    (O 38-*.js limpa isso ao final do gesto, mas por segurança...)
-  document.body.style.overflow = 'hidden'; // viewer SEMPRE trava
+  document.body.style.overflow = 'hidden';
   document.body.style.touchAction = '';
 }
-  
-// ============================================
-// ATUALIZA CÁPSULA DE COMPARTILHAMENTO
-// ============================================
-// Busca se o usuário já compartilhou + total de pessoas.
-// Mostra a cápsula só quando ele já compartilhou.
 
 async function atualizarCapsulaShareNearbyNex(publicacaoId) {
   const capsulaEl = document.querySelector('#nearbyDropShareCapsula');
@@ -2184,10 +1866,6 @@ async function atualizarCapsulaShareNearbyNex(publicacaoId) {
   }
 }
 
-// ============================================
-// MARCA BOTÕES DE REAÇÃO COM ESTADO ATIVO
-// ============================================
-
 function atualizarBotoesReacaoNex(
   viewerEl,
   perfilId,
@@ -2221,10 +1899,6 @@ function atualizarBotoesReacaoNex(
   });
 }
 
-  // ============================================
-  // ABRIR PUBLICAÇÃO DE CONECTADO
-  // ============================================
-
   function abrirPublicacaoConectadaNex(id) {
     const conectadosReais = lerConectadosMyDropsNex();
 
@@ -2254,17 +1928,9 @@ function atualizarBotoesReacaoNex(
     abrirViewerPublicacaoNex(perfil, 'conectados', id, 0, baseDinamica);
   }
 
-  // ============================================
-  // ABRIR PUBLICAÇÃO DE PERFIL NEARBY
-  // ============================================
-
   function abrirPublicacaoNearbyNex(id) {
     abrirViewerPublicacaoNex(publicacoesNearbyNex.nearby[id], 'nearby', id);
   }
-
-  // ============================================
-  // ABRIR MINHAS PUBLICAÇÕES
-  // ============================================
 
   function abrirMinhasPublicacoesNearby() {
     const publicacoesOrdenadas = obterPublicacoesOrdenadasMyDropsNex();
@@ -2278,8 +1944,7 @@ function atualizarBotoesReacaoNex(
 
     abrirVisualizadorPublicacaoMyDropsNex(publicacoesOrdenadas, 0);
   }
-
-  // ============================================
+    // ============================================
   // RENDERIZAR PUBLICACOES DO NEARBY
   // ============================================
 async function renderizarPublicacoesNearbyNex() {
@@ -2288,61 +1953,73 @@ async function renderizarPublicacoesNearbyNex() {
 
   if (!stories || !grid) return;
 
-  // Mantém o story fixo "Minhas publicações"
   const storyFixa = stories.querySelector('.my-story');
   stories.innerHTML = '';
   if (storyFixa) stories.appendChild(storyFixa);
 
-  // ============================================
-  // VERIFICA FUNÇÕES NECESSÁRIAS
-  // ============================================
   if (typeof window.buscarPerfisComDropsProximosSupabase !== 'function') {
     console.warn('buscarPerfisComDropsProximosSupabase não disponível');
     return;
   }
 
   const minhaLat = window.minhaLatitudeAtual;
-  const minhaLng = window.minhaLongitudeAtual;
+const minhaLng = window.minhaLongitudeAtual;
 
-  // ============================================
-  // BUSCA EXPANSIVA POR RAIO (100 → 200 → 500 → 1000 → país)
-  // ============================================
-  const TOTAL_MINIMO = 20;
-const raios = [100, 200, 500, 1000, 99999];
-  let perfisEncontrados = [];
-  let raioAtual = 100;
+const TOTAL_MINIMO = 20;
+let perfisEncontrados = [];
 
-  for (const raio of raios) {
-    try {
-      perfisEncontrados =
-        await window.buscarPerfisComDropsProximosSupabase(
-          typeof minhaLat === 'number' ? minhaLat : null,
-          typeof minhaLng === 'number' ? minhaLng : null,
-          raio,
-          TOTAL_MINIMO
-        );
-    } catch (e) {
-      console.warn('Erro na busca expansiva:', e);
-      perfisEncontrados = [];
-    }
+const temLocalizacaoValida = 
+  typeof minhaLat === 'number' && 
+  typeof minhaLng === 'number';
 
-    raioAtual = raio;
+let usuarioSeMoveu = false;
 
-    // Se achou o suficiente, para
-    if (perfisEncontrados.length >= TOTAL_MINIMO) break;
+if (temLocalizacaoValida && ultimaLatNearbyNex !== null && ultimaLngNearbyNex !== null) {
+  const distancia = calcularDistanciaMetrosNex(
+    ultimaLatNearbyNex, 
+    ultimaLngNearbyNex, 
+    minhaLat, 
+    minhaLng
+  );
+  
+  if (distancia > DISTANCIA_MINIMA_METROS) {
+    usuarioSeMoveu = true;
+    console.log(`📍 Usuário se moveu ${Math.round(distancia)}m. Limpando cache.`);
+  }
+}
+
+if (
+  !usuarioSeMoveu &&
+  cachePerfisNearbyNex !== null &&
+  cachePerfisNearbyNex.length > 0
+) {
+  perfisEncontrados = cachePerfisNearbyNex;
+  console.log(`📦 Nearby: usando cache (${perfisEncontrados.length} perfis)`);
+} else {
+  try {
+    perfisEncontrados =
+      await window.buscarPerfisComDropsProximosSupabase(
+        temLocalizacaoValida ? minhaLat : null,
+        temLocalizacaoValida ? minhaLng : null,
+        cacheRaioNearbyNex,
+        TOTAL_MINIMO
+      );
+  } catch (e) {
+    console.warn('Erro na busca do Nearby:', e);
+    perfisEncontrados = [];
   }
 
+  cachePerfisNearbyNex = perfisEncontrados;
+  ultimaLatNearbyNex = minhaLat;
+  ultimaLngNearbyNex = minhaLng;
+
   console.log(
-    `📡 Nearby: ${perfisEncontrados.length} perfis em raio de ${
-      raioAtual >= 99999 ? 'país inteiro' : raioAtual + ' km'
-    }`
+    `📡 Nearby: ${perfisEncontrados.length} perfis encontrados (busca única de ${cacheRaioNearbyNex} km)`
   );
+}
 
   grid.innerHTML = '';
 
-  // ============================================
-  // SE NÃO ACHOU NINGUÉM
-  // ============================================
   if (!Array.isArray(perfisEncontrados) || perfisEncontrados.length === 0) {
     const vazio = document.createElement('div');
     vazio.style.cssText = `
@@ -2357,13 +2034,6 @@ const raios = [100, 200, 500, 1000, 99999];
     grid.appendChild(vazio);
     return;
   }
-
-  // ============================================
-  // MONTA ESTRUTURA SIMILAR AO FORMATO ANTIGO
-  // ============================================
-  // O resto do código espera `drops` com campos:
-  // autorUsername, autorNome, autorAvatar, autorUltimaAtividade,
-  // autorLat, autorLng, mediaUrl, tipo, expiraEm, selos, id
 
   const drops = [];
 
@@ -2382,7 +2052,6 @@ const raios = [100, 200, 500, 1000, 99999];
     criadoEm: drop.criadoEm ? new Date(drop.criadoEm).getTime() : null,
     selos: drop.selos || null,
 
-    // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
     compartilhado_de_id: drop.compartilhado_de_id || null,
     compartilhado_de_username: drop.compartilhado_de_username || '',
     compartilhado_de_nome: drop.compartilhado_de_nome || '',
@@ -2399,9 +2068,6 @@ const raios = [100, 200, 500, 1000, 99999];
 });
   });
 
-  // ============================================
-  // SEPARA CONECTADOS vs NÃO-CONECTADOS
-  // ============================================
   const conectadosLista = lerConectadosMyDropsNex();
   const idsConectados = new Set(
     conectadosLista.map((c) =>
@@ -2409,7 +2075,6 @@ const raios = [100, 200, 500, 1000, 99999];
     )
   );
 
-  // Agrupa por autor (o banco já mandou ordenado por distância)
   const dropsPorAutor = {};
 
   drops.forEach((drop) => {
@@ -2424,7 +2089,6 @@ const raios = [100, 200, 500, 1000, 99999];
     dropsPorAutor[autorId].push(drop);
   });
 
-  // Mantém a ORDEM de distância que veio do banco
   const autoresOrdenados = perfisEncontrados.map((p) =>
     String(p.username || '').replace(/^@/, '').toLowerCase().trim()
   );
@@ -2442,26 +2106,6 @@ const raios = [100, 200, 500, 1000, 99999];
       autoresNaoConectados.push({ autorId, drops: lista });
     }
   });
-  // ============================================
-  // CÁLCULO DE DISTÂNCIA REAL (Haversine)
-  // ============================================
-  function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => (g * Math.PI) / 180;
-
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
 
   function formatarDistanciaNex(metros) {
     if (metros == null || !Number.isFinite(metros)) return '';
@@ -2496,17 +2140,12 @@ const raios = [100, 200, 500, 1000, 99999];
     return formatarDistanciaNex(metros);
   }
 
-
- // ============================================
-  // RENDERIZA CONECTADOS (dentro do .nearby-stories)
-  // ============================================
   autoresConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
   const dropPrincipal = dropsDoAutor[0];
 
   const card = document.createElement('div');
   card.className = 'story-card my-story';
   card.dataset.autorId = autorId;
-    // Avatar
     const avatar = document.createElement('div');
     avatar.className = 'story-avatar';
 
@@ -2521,7 +2160,6 @@ const raios = [100, 200, 500, 1000, 99999];
         .toUpperCase();
     }
 
-    // Bolinha de status
     const status = document.createElement('div');
     const ultimaAtiv = dropPrincipal.autorUltimaAtividade;
     const LIMITE_ONLINE_MS = 5 * 60 * 1000;
@@ -2532,11 +2170,9 @@ const raios = [100, 200, 500, 1000, 99999];
 
     status.className = estaOnline ? 'story-online' : 'story-offline';
 
-    // Nome
     const nome = document.createElement('h4');
     nome.textContent = '@' + (dropPrincipal.autorUsername || 'usuario');
 
-    // Distância
     const dist = document.createElement('span');
     dist.textContent = obterDistanciaDropNex(dropPrincipal) || '—';
 
@@ -2545,7 +2181,6 @@ const raios = [100, 200, 500, 1000, 99999];
     card.appendChild(nome);
     card.appendChild(dist);
 
-      // Clique abre o drop — MODO CONECTADOS
   card.addEventListener('click', () => {
     abrirDropRealNearbyNex(dropPrincipal, drops, 'conectados');
   });
@@ -2554,7 +2189,7 @@ const raios = [100, 200, 500, 1000, 99999];
 });
 
   // ============================================
-  // RENDERIZA NÃO-CONECTADOS (no grid)
+  // RENDERIZA NÃO-CONECTADOS (no grid) + EXPIRAÇÃO
   // ============================================
   autoresNaoConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
     const dropPrincipal = dropsDoAutor[0];
@@ -2574,23 +2209,23 @@ const raios = [100, 200, 500, 1000, 99999];
     }
 
     if (dropPrincipal.mediaUrl) {
-  const imgFundo = document.createElement('img');
-  imgFundo.src = dropPrincipal.mediaUrl;
-  imgFundo.alt = '';
-  imgFundo.loading = 'lazy';
-  imgFundo.decoding = 'async';
-  imgFundo.style.position = 'absolute';
-  imgFundo.style.inset = '0';
-  imgFundo.style.width = '100%';
-  imgFundo.style.height = '100%';
-  imgFundo.style.objectFit = 'cover';
-  imgFundo.style.zIndex = '0';
-  imgFundo.style.pointerEvents = 'none';
+      const imgFundo = document.createElement('img');
+      imgFundo.src = dropPrincipal.mediaUrl;
+      imgFundo.alt = '';
+      imgFundo.loading = 'lazy';
+      imgFundo.decoding = 'async';
+      imgFundo.style.position = 'absolute';
+      imgFundo.style.inset = '0';
+      imgFundo.style.width = '100%';
+      imgFundo.style.height = '100%';
+      imgFundo.style.objectFit = 'cover';
+      imgFundo.style.zIndex = '0';
+      imgFundo.style.pointerEvents = 'none';
 
-  card.style.position = 'relative';
-  card.style.overflow = 'hidden';
+      card.style.position = 'relative';
+      card.style.overflow = 'hidden';
 
-  card.appendChild(imgFundo);
+      card.appendChild(imgFundo);
     }
 
     const avatar = document.createElement('div');
@@ -2613,21 +2248,114 @@ const raios = [100, 200, 500, 1000, 99999];
     const dist = document.createElement('span');
     dist.textContent = obterDistanciaDropNex(dropPrincipal) || '—';
 
-        card.append(avatar, nome, dist);
+    card.append(avatar, nome, dist);
     grid.appendChild(card);
 
     card.addEventListener('click', () => {
       abrirDropRealNearbyNex(dropPrincipal, drops, 'nearby');
     });
+
+    if (dropPrincipal.expiraEm) {
+      const agora = Date.now();
+      const expira = new Date(dropPrincipal.expiraEm).getTime();
+      const tempoRestante = expira - agora;
+
+      if (tempoRestante > 0) {
+        setTimeout(() => {
+          console.log(`⏳ Drop de @${autorId} expirou. Removendo card e buscando substituto.`);
+          
+          card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.8)';
+
+          setTimeout(() => {
+            if (card.parentNode) card.remove();
+          }, 400);
+
+          cachePerfisNearbyNex = null;
+
+          setTimeout(() => {
+            if (typeof renderizarPublicacoesNearbyNex === 'function') {
+              renderizarPublicacoesNearbyNex();
+            }
+          }, 500);
+
+        }, tempoRestante);
+      }
+    }
   });
 }
   
-  // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
+// ============================================
+// RECEBER AVISO DO REALTIME (Sem gastar cota)
+// ============================================
+// ⚠️ Essa função é chamada pelo 33-notificacoes-realtime.js
+// quando alguém posta algo novo. Ela decide localmente se
+// o drop deve aparecer no Nearby.
 
-  window.publicacoesNearbyNex = publicacoesNearbyNex;
+function receberAvisoNearbyNex(pub) {
+  if (!pub || !pub.autor_username) return;
 
+  // 1. Verifica se o drop já expirou
+  if (pub.expira_em) {
+    const agora = Date.now();
+    const expira = new Date(pub.expira_em).getTime();
+    if (expira <= agora) {
+      console.log('⏳ Aviso ignorado (drop já expirou):', pub.id);
+      return;
+    }
+  }
+
+  // 2. Verifica a minha localização
+  const minhaLat = window.minhaLatitudeAtual;
+  const minhaLng = window.minhaLongitudeAtual;
+
+  if (typeof minhaLat !== 'number' || typeof minhaLng !== 'number') return;
+
+  // 3. As coordenadas JÁ VÊM no aviso do Realtime (não precisa buscar)
+  const autorLat = pub.autor_lat;
+  const autorLng = pub.autor_lng;
+
+  if (typeof autorLat !== 'number' || typeof autorLng !== 'number') {
+    console.warn('Aviso sem coordenadas do autor. Ignorando.');
+    return;
+  }
+
+  // 4. Calcula a distância
+  const distancia = calcularDistanciaMetrosNex(
+    minhaLat,
+    minhaLng,
+    autorLat,
+    autorLng
+  );
+
+  const RAIO_MAXIMO = 5000 * 1000; // 5.000 km em metros
+
+  if (distancia > RAIO_MAXIMO) {
+    console.log(`📡 Aviso de @${pub.autor_username} ignorado (distância: ${Math.round(distancia / 1000)} km)`);
+    return;
+  }
+
+  // 5. Está dentro do raio e não expirou → atualiza a tela
+  console.log(`📡 Aviso válido de @${pub.autor_username}. Atualizando Nearby.`);
+
+  // ⚠️ Limpa o cache para forçar uma nova busca
+  cachePerfisNearbyNex = null;
+  ultimaLatNearbyNex = null;
+  ultimaLngNearbyNex = null;
+
+  // ⚠️ Re-renderiza o Nearby
+  if (typeof renderizarPublicacoesNearbyNex === 'function') {
+    renderizarPublicacoesNearbyNex();
+  }
+}
+
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
+
+window.publicacoesNearbyNex = publicacoesNearbyNex;
+window.receberAvisoNearbyNex = receberAvisoNearbyNex;
   window.buscarPerfilNearbyNex = buscarPerfilNearbyNex;
   window.abrirDropComentadoNex = abrirDropComentadoNex;
   window.abrirViewerPublicacaoNex = abrirViewerPublicacaoNex;
@@ -2726,18 +2454,11 @@ const raios = [100, 200, 500, 1000, 99999];
 // ============================================
 // ABRIR DROP REAL (novo sistema)
 // ============================================
-// tipoOrigem:
-//   'conectados' → navega verticalmente SÓ entre perfis conectados
-//   'nearby'     → navega verticalmente SÓ entre perfis NÃO-conectados
-//   null/omisso  → navega entre todos (comportamento antigo, usado pelo chat)
 function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
   if (!dropClicado) return;
 
   let lista = Array.isArray(listaDeDrops) ? listaDeDrops : [];
 
-  // ============================================
-  // FILTRA A LISTA POR TIPO (conectados vs nearby)
-  // ============================================
   if (tipoOrigem === 'conectados' || tipoOrigem === 'nearby') {
     const conectados = typeof lerConectadosMyDropsNex === 'function'
       ? lerConectadosMyDropsNex()
@@ -2765,15 +2486,11 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
         : !ehConectado;
     });
 
-    // Se o filtro esvaziou, mantém o drop clicado só ele
     if (!lista.length) {
       lista = [dropClicado];
     }
   }
 
-  // ============================================
-  // AGRUPA DROPS POR AUTOR
-  // ============================================
   const dropsPorAutor = {};
 
   lista.forEach((d) => {
@@ -2782,9 +2499,6 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
     dropsPorAutor[id].push(d);
   });
 
-  // ============================================
-  // MONTA A BASE DE PERFIS (compatível com viewer)
-  // ============================================
   const base = {};
 
   Object.entries(dropsPorAutor).forEach(([autorId, drops]) => {
@@ -2796,7 +2510,6 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
   avatar: primeiro.autorAvatar || null,
   distancia: '',
   drops: drops.map((d, idxDentro) => {
-    // ⚠️ FASE 5: guarda o id do Supabase pra ligar a reação
     const chaveLocal =
       typeof window.chaveDropPerfilNex === 'function'
         ? window.chaveDropPerfilNex(autorId, idxDentro, d.mediaUrl)
@@ -2815,7 +2528,6 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
   selos: d.selos || null,
   legenda: d.legenda || '',
 
-  // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
   compartilhado_de_id: d.compartilhado_de_id || null,
   compartilhado_de_username: d.compartilhado_de_username || '',
   compartilhado_de_nome: d.compartilhado_de_nome || '',
@@ -2825,34 +2537,24 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
   };
   });
 
-  // ============================================
-  // IDENTIFICA O AUTOR CLICADO E O ÍNDICE DO DROP
-  // ============================================
   const autorClicado = dropClicado.autorUsername || 'usuario';
 const perfilClicado = base[autorClicado];
 
 if (!perfilClicado) return;
 
-// ⚠️ Fase 5: limpa a borda azul do conectado que postou algo novo
 window.limparNovidadePostConectado?.(autorClicado);
 window.atualizarBordasCardsNex?.();
 
-// Acha o índice do drop clicado dentro do perfil dele
-
-  // Acha o índice do drop clicado dentro do perfil dele
   const indexClicado = perfilClicado.drops.findIndex(
     (d) => d.dropIndex === dropClicado.id
   );
 
   const dropIndexFinal = indexClicado >= 0 ? indexClicado : 0;
 
-  // ============================================
-  // ABRE O VIEWER COM TIPO 'nearby'
-  // ============================================
   if (typeof window.abrirViewerPublicacaoNex === 'function') {
     window.abrirViewerPublicacaoNex(
       perfilClicado,
-      'nearby',       // <- tipo 'nearby' faz o botão "Visitar perfil" aparecer
+      'nearby',
       autorClicado,
       dropIndexFinal,
       base
@@ -2870,3 +2572,4 @@ window.abrirDropRealNearbyNex = abrirDropRealNearbyNex;
 
 console.log('🗺️ 11-nearby.js carregado');
 })();
+

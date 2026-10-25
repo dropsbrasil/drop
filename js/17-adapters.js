@@ -77,18 +77,24 @@ salvarUltimaMudancaNome(timestamp) {
     // PERFIL (avatar, capa, bio)
     // ------------------------------------------
 
-    lerPerfil() {
-      return {
-        avatar:
-          localStorage.getItem(Drops.chaveUsuario('mydropsAvatar')) || '',
-        capa:
-          localStorage.getItem(Drops.chaveUsuario('mydropsCover')) || '',
-        bio:
-          localStorage.getItem(Drops.chaveUsuario('mydropsBio')) || ''
-      };
-    },
+   lerPerfil() {
+  return {
+    avatar:
+      localStorage.getItem(Drops.chaveUsuario('mydropsAvatar')) || '',
+    capa:
+      localStorage.getItem(Drops.chaveUsuario('mydropsCover')) || '',
+    bio:
+      localStorage.getItem(Drops.chaveUsuario('mydropsBio')) || '',
+    bioFonte:
+      localStorage.getItem(Drops.chaveUsuario('mydropsBioFont')) || '',
+    bioCor:
+      localStorage.getItem(Drops.chaveUsuario('mydropsBioColor')) || '',
+    bioAlign:
+      localStorage.getItem(Drops.chaveUsuario('mydropsBioAlign')) || ''
+  };
+},
 
-    salvarAvatar(dataUrl) {
+salvarAvatar(dataUrl) {
   localStorage.setItem(
     Drops.chaveUsuario('mydropsAvatar'),
     String(dataUrl || '')
@@ -111,6 +117,13 @@ salvarBio(texto) {
   );
   if (window.atualizarPerfilSupabase) window.atualizarPerfilSupabase();
 },
+
+salvarBioEstilos(fonte, cor, align) {
+  localStorage.setItem(Drops.chaveUsuario('mydropsBioFont'), String(fonte || ''));
+  localStorage.setItem(Drops.chaveUsuario('mydropsBioColor'), String(cor || ''));
+  localStorage.setItem(Drops.chaveUsuario('mydropsBioAlign'), String(align || ''));
+  if (window.atualizarPerfilSupabase) window.atualizarPerfilSupabase();
+}, 
 
     // ------------------------------------------
     // SOCIAL

@@ -282,9 +282,18 @@ async function iniciarRealtimePublicacoesNex() {
           table: 'publicacoes'
         },
         (payload) => {
-          const pub = payload.new;
-          if (!pub) return;
-          processarPublicacaoRealtimeNex(pub);
+  const pub = payload.new;
+  if (!pub) return;
+
+  // ⚠️ NOVO: 1. Atualiza as bolinhas e bordas (já existia)
+  processarPublicacaoRealtimeNex(pub);
+
+  // ⚠️ NOVO: 2. Avisa o Nearby para atualizar a lista
+  // O 11-nearby.js vai receber os dados, checar a distância
+  // e o tempo de expiração localmente, sem gastar cota.
+  if (typeof window.receberAvisoNearbyNex === 'function') {
+    window.receberAvisoNearbyNex(pub);
+  }
         }
       )
       .subscribe((status) => {

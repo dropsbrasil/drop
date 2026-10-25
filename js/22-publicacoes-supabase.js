@@ -81,6 +81,14 @@ return urlData.publicUrl;
 
       const username = localStorage.getItem('drops_username') || '';
 
+            // ⚠️ Pega a localização atual do autor no momento do post
+      const autorLat = typeof window.minhaLatitudeAtual === 'number' 
+        ? window.minhaLatitudeAtual 
+        : null;
+      const autorLng = typeof window.minhaLongitudeAtual === 'number' 
+        ? window.minhaLongitudeAtual 
+        : null;
+
       const { data, error } = await window.supabaseClient
         .from('publicacoes')
         .insert({
@@ -92,7 +100,9 @@ return urlData.publicUrl;
   loop: publicacao.loop === true,
   duracao: publicacao.duracao || '24h',
   expira_em: publicacao.expiraEm || null,
-  selos: publicacao.selos || null
+  selos: publicacao.selos || null,
+  autor_lat: autorLat,
+  autor_lng: autorLng
 })
         .select()
         .single();

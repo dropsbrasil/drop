@@ -86,27 +86,48 @@ if (avatarEl) {
 }
 
     // Bio
-    const bioEl = document.getElementById('mydropsBioEl');
-    if (bioEl) {
-      bioEl.textContent = bioSalva || 'Sem bio ainda.';
-    }
+const bioEl = document.getElementById('mydropsBioEl');
+if (bioEl) {
+  bioEl.textContent = bioSalva || 'Sem bio ainda.';
 
-  // Capa salva
-  const capa = document.querySelector('.mydrops-cover');
-  if (capa) {
-    capa.style.cursor = 'pointer';
+  // ⚠️ Carrega os estilos salvos usando o adaptador
+const bioFont = perfil.bioFonte;
+const bioColor = perfil.bioCor;
+const bioAlign = perfil.bioAlign;
+  
+  if (bioFont) bioEl.style.setProperty('font-family', bioFont, 'important');
+  if (bioColor) bioEl.style.setProperty('color', bioColor, 'important');
+  if (bioAlign) bioEl.style.setProperty('text-align', bioAlign, 'important');
+}
 
-    if (capaSalva) {
-      capa.style.backgroundImage =
-        `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
-      capa.style.backgroundSize = 'cover';
-      capa.style.backgroundPosition = 'center';
-    }
+// Capa salva
+const capa = document.querySelector('.mydrops-cover');
+const aviso = document.getElementById('avisoNovoPerfilNex');
 
-    capa.onclick = () => {
-      abrirFotoPerfilNex(capaSalva, nome, 'capa');
-    };
+if (capa) {
+  capa.style.cursor = 'pointer';
+
+  if (capaSalva) {
+    // Tem capa: aplica a imagem e esconde o aviso
+    capa.style.backgroundImage =
+      `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
+    capa.style.backgroundSize = 'cover';
+    capa.style.backgroundPosition = 'center';
+    
+    capa.classList.remove('sem-foto');
+    if (aviso) aviso.style.display = 'none';
+
+  } else {
+    // Não tem capa: mostra o degradê animado e o aviso
+    capa.style.backgroundImage = 'none';
+    capa.classList.add('sem-foto');
+    if (aviso) aviso.style.display = 'flex';
   }
+
+  capa.onclick = () => {
+    abrirFotoPerfilNex(capaSalva, nome, 'capa');
+  };
+}
 }
 
 // ============================================
@@ -122,15 +143,35 @@ function abrirFotoPerfilNex(url, nome, tipo) {
     return;
   }
 
-  // ⚠️ Abre no viewer que já existe
-  if (typeof window.abrirVisualizadorMidiasNex === 'function') {
-    window.abrirVisualizadorMidiasNex(
-      [{ url, type: 'imagem' }],
-      0,
-      false, // sem comentário
-      null   // sem contexto de reação
-    );
+  const viewer = document.getElementById('viewerPerfilNex');
+  const img = document.getElementById('viewerPerfilImgNex');
+  
+  if (!viewer || !img) return;
+
+  // Define a imagem e abre o viewer
+  img.src = url;
+  viewer.classList.add('aberto');
+  document.body.style.overflow = 'hidden';
+
+  // Configura o botão de fechar (remove listener antigo para não duplicar)
+  const btnFechar = document.getElementById('viewerPerfilFecharNex');
+  if (btnFechar) {
+    const novoBtn = btnFechar.cloneNode(true);
+    btnFechar.parentNode.replaceChild(novoBtn, btnFechar);
+
+    novoBtn.addEventListener('click', () => {
+      viewer.classList.remove('aberto');
+      document.body.style.overflow = '';
+    });
   }
+
+  // Fecha ao clicar no fundo escuro
+  viewer.addEventListener('click', (e) => {
+    if (e.target === viewer) {
+      viewer.classList.remove('aberto');
+      document.body.style.overflow = '';
+    }
+  });
 }
 
 window.abrirFotoPerfilNex = abrirFotoPerfilNex;
@@ -566,47 +607,57 @@ async function aplicarAvatarNex(event) {
     return;
   }
 
-  const reader = new FileReader();
-
-  reader.onload = async function (e) {
-    try {
-      const avatar = document.querySelector('.mydrops-avatar');
-      if (!avatar) throw new Error('Elemento do avatar não encontrado.');
-
-      // Mostra a imagem localmente de imediato (feedback visual)
-      avatar.innerHTML = `<img src="${e.target.result}" alt="Avatar do usuário">`;
-
-      window.mostrarToastNex?.('Enviando avatar...', 'info');
-
-      // Faz upload pro Supabase Storage
-      const urlPublica = await window.uploadImagemSupabase?.('avatars', e.target.result);
-
-      if (urlPublica) {
-        // Sucesso — salva a URL no localStorage
-        window.AuthAdapterNex.salvarAvatar(urlPublica);
-        window.mostrarToastNex?.('Avatar atualizado!', 'sucesso');
-      } else {
-        // Fallback — salva base64 (localStorage só)
-        window.AuthAdapterNex.salvarAvatar(e.target.result);
-        window.mostrarToastNex?.('Avatar salvo localmente.', 'info');
-      }
-
-      if (typeof fecharPainelControleNex === 'function') {
-        fecharPainelControleNex();
-      }
-    } catch (erro) {
-      console.error('Erro ao salvar avatar:', erro);
-      window.mostrarToastNex?.('Falha ao salvar o avatar.', 'erro');
-    }
-  };
-
-  reader.onerror = function () {
-    console.error('Erro de leitura do arquivo do avatar.');
-    window.mostrarToastNex?.('Falha ao ler a imagem.', 'erro');
-  };
-
-  reader.readAsDataURL(file);
   event.target.value = '';
+
+  try {
+    // ⚠️ Comprime ANTES: 400×400, ~30KB
+    const comprimido = await window.comprimirImagemNex?.(file, {
+      maxWidthOrHeight: 400,
+      maxSizeMB: 0.15,
+      fileType: 'image/jpeg',
+      useWebWorker: true
+    }) || file;
+
+    // Preview imediato com o arquivo comprimido
+    const blobUrl = URL.createObjectURL(comprimido);
+    const avatar = document.querySelector('.mydrops-avatar');
+    if (avatar) {
+      avatar.innerHTML = `<img src="${blobUrl}" alt="Avatar do usuário">`;
+    }
+
+    window.mostrarToastNex?.('Enviando avatar...', 'info');
+
+    // Upload (File direto, sem dataURL gigante)
+    const urlPublica = await window.uploadImagemSupabase?.('avatars', comprimido);
+
+    if (!urlPublica) {
+      // ⚠️ SEM fallback base64 — restaura foto antiga e avisa
+      if (avatar) {
+  const perfil = window.AuthAdapterNex.lerPerfil();
+  if (perfil.avatar) {
+    avatar.innerHTML = `<img src="${perfil.avatar}" alt="Avatar do usuário">`;
+  } else {
+    const usuario = window.AuthAdapterNex.lerUsuario();
+    avatar.innerHTML = '';
+    avatar.textContent = (usuario.nome || '?').charAt(0).toUpperCase() || '?';
+  }
+}
+URL.revokeObjectURL(blobUrl);
+      window.mostrarToastNex?.('Falha ao salvar. Tente novamente.', 'erro');
+      return;
+    }
+
+    window.AuthAdapterNex.salvarAvatar(urlPublica);
+    URL.revokeObjectURL(blobUrl);
+    window.mostrarToastNex?.('Avatar atualizado!', 'sucesso');
+
+    if (typeof fecharPainelControleNex === 'function') {
+      fecharPainelControleNex();
+    }
+  } catch (erro) {
+    console.error('Erro ao salvar avatar:', erro);
+    window.mostrarToastNex?.('Falha ao salvar o avatar.', 'erro');
+  }
 }
 
 // ============================================
@@ -628,48 +679,65 @@ async function aplicarCapaNex(event) {
     return;
   }
 
-  const reader = new FileReader();
+  event.target.value = '';
 
-  reader.onload = async function (e) {
-    try {
-      const capa = document.querySelector('.mydrops-cover');
-      if (!capa) throw new Error('Elemento da capa não encontrado.');
+  try {
+    // ⚠️ Comprime ANTES: 1600×900, ~200KB
+    const comprimido = await window.comprimirImagemNex?.(file, {
+      maxWidthOrHeight: 1600,
+      maxSizeMB: 0.5,
+      fileType: 'image/jpeg',
+      useWebWorker: true
+    }) || file;
 
-      // Mostra a imagem localmente de imediato
+    const blobUrl = URL.createObjectURL(comprimido);
+    const capa = document.querySelector('.mydrops-cover');
+    if (capa) {
       capa.style.backgroundImage =
-        `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${e.target.result}')`;
+        `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${blobUrl}')`;
       capa.style.backgroundSize = 'cover';
       capa.style.backgroundPosition = 'center';
+      capa.classList.remove('sem-foto');
 
-      window.mostrarToastNex?.('Enviando capa...', 'info');
-
-      // Faz upload pro Supabase Storage
-      const urlPublica = await window.uploadImagemSupabase?.('capas', e.target.result);
-
-      if (urlPublica) {
-        window.AuthAdapterNex.salvarCapa(urlPublica);
-        window.mostrarToastNex?.('Foto de capa atualizada!', 'sucesso');
-      } else {
-        window.AuthAdapterNex.salvarCapa(e.target.result);
-        window.mostrarToastNex?.('Capa salva localmente.', 'info');
-      }
-
-      if (typeof fecharPainelControleNex === 'function') {
-        fecharPainelControleNex();
-      }
-    } catch (erro) {
-      console.error('Erro ao salvar capa:', erro);
-      window.mostrarToastNex?.('Falha ao salvar a capa.', 'erro');
+      const avisoNovo = document.getElementById('avisoNovoPerfilNex');
+      if (avisoNovo) avisoNovo.style.display = 'none';
     }
-  };
 
-  reader.onerror = function () {
-    console.error('Erro de leitura do arquivo da capa.');
-    window.mostrarToastNex?.('Falha ao ler a imagem.', 'erro');
-  };
+    window.mostrarToastNex?.('Enviando capa...', 'info');
 
-  reader.readAsDataURL(file);
-  event.target.value = '';
+    const urlPublica = await window.uploadImagemSupabase?.('capas', comprimido);
+
+    if (!urlPublica) {
+      // ⚠️ SEM fallback base64 — restaura capa anterior
+      if (capa) {
+        const perfil = window.AuthAdapterNex.lerPerfil();
+        if (perfil.capa) {
+          capa.style.backgroundImage =
+            `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${perfil.capa}')`;
+          capa.classList.remove('sem-foto');
+        } else {
+          capa.style.backgroundImage = 'none';
+          capa.classList.add('sem-foto');
+          const avisoNovo = document.getElementById('avisoNovoPerfilNex');
+          if (avisoNovo) avisoNovo.style.display = 'flex';
+        }
+      }
+      URL.revokeObjectURL(blobUrl);
+      window.mostrarToastNex?.('Falha ao salvar. Tente novamente.', 'erro');
+      return;
+    }
+
+    window.AuthAdapterNex.salvarCapa(urlPublica);
+    URL.revokeObjectURL(blobUrl);
+    window.mostrarToastNex?.('Foto de capa atualizada!', 'sucesso');
+
+    if (typeof fecharPainelControleNex === 'function') {
+      fecharPainelControleNex();
+    }
+  } catch (erro) {
+    console.error('Erro ao salvar capa:', erro);
+    window.mostrarToastNex?.('Falha ao salvar a capa.', 'erro');
+  }
 }
   // ============================================
 // EDITOR DE BIO
@@ -686,7 +754,28 @@ function editarBioNex() {
 
   if (!bioModal || !inputBio) return;
 
+  // Carrega o texto
   inputBio.value = window.AuthAdapterNex.lerPerfil().bio || '';
+
+  // Carrega os estilos salvos
+  const bioFont = localStorage.getItem(Drops.chaveUsuario('mydropsBioFont')) || '';
+  const bioColor = localStorage.getItem(Drops.chaveUsuario('mydropsBioColor')) || '';
+  const bioAlign = localStorage.getItem(Drops.chaveUsuario('mydropsBioAlign')) || '';
+
+  // Aplica no textarea
+  inputBio.style.fontFamily = bioFont;
+  inputBio.style.color = bioColor;
+  inputBio.style.textAlign = bioAlign;
+
+  // Sincroniza os botões (remove ativo de todos e ativa o correspondente)
+  document.querySelectorAll('.bio-fonte-btn').forEach(b => b.classList.toggle('ativo', b.dataset.fonte === bioFont));
+  document.querySelectorAll('.bio-cor-btn').forEach(b => b.classList.toggle('ativo', b.dataset.cor === bioColor));
+  document.querySelectorAll('.bio-align-btn').forEach(b => b.classList.toggle('ativo', b.dataset.align === bioAlign));
+
+  // Se não houver estilo salvo, ativa os padrões
+  if (!bioFont) document.querySelector('.bio-fonte-btn')?.classList.add('ativo');
+  if (!bioColor) document.querySelector('.bio-cor-btn')?.classList.add('ativo');
+  if (!bioAlign) document.querySelector('.bio-align-btn[data-align="left"]')?.classList.add('ativo');
 
   bioModal.classList.add('active');
 }
@@ -697,11 +786,34 @@ function initBioEventos() {
   bioModal = document.getElementById('bioModal');
   inputBio = document.getElementById('inputBioNex');
 
-  // Botões de alinhamento
-  document.querySelectorAll('.bio-align-btn').forEach((btn) => {
+  const bioFonteBtns = document.querySelectorAll('.bio-fonte-btn');
+  const bioCorBtns = document.querySelectorAll('.bio-cor-btn');
+  const bioAlignBtns = document.querySelectorAll('.bio-align-btn');
+
+  // Eventos das Fontes
+  bioFonteBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const align = btn.dataset.align;
-      if (inputBio) inputBio.style.textAlign = align;
+      bioFonteBtns.forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      if (inputBio) inputBio.style.fontFamily = btn.dataset.fonte;
+    });
+  });
+
+  // Eventos das Cores
+  bioCorBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      bioCorBtns.forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      if (inputBio) inputBio.style.color = btn.dataset.cor;
+    });
+  });
+
+  // Eventos do Alinhamento
+  bioAlignBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      bioAlignBtns.forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      if (inputBio) inputBio.style.textAlign = btn.dataset.align;
     });
   });
 
@@ -711,9 +823,23 @@ function initBioEventos() {
         const texto = inputBio.value.trim();
 
         const bioEl = document.querySelector('.mydrops-bio');
-        if (bioEl) bioEl.textContent = texto || 'Sem bio ainda.';
+if (bioEl) {
+  bioEl.textContent = texto || 'Sem bio ainda.';
+  
+  // ⚠️ Aplica o estilo no fundo (tela do My Drops) na mesma hora
+  bioEl.style.setProperty('font-family', inputBio.style.fontFamily || '', 'important');
+  bioEl.style.setProperty('color', inputBio.style.color || '', 'important');
+  bioEl.style.setProperty('text-align', inputBio.style.textAlign || '', 'important');
+}
 
-        window.AuthAdapterNex.salvarBio(texto);
+window.AuthAdapterNex.salvarBio(texto);
+
+// ⚠️ Salva os estilos usando o adaptador
+window.AuthAdapterNex.salvarBioEstilos(
+  inputBio.style.fontFamily || '',
+  inputBio.style.color || '',
+  inputBio.style.textAlign || ''
+);
 
         if (bioModal) bioModal.classList.remove('active');
 
@@ -731,6 +857,7 @@ function initBioEventos() {
     });
   }
 }
+  
 // ============================================
 // EDITOR DE SOCIAL
 // ============================================
@@ -948,11 +1075,24 @@ if (btnToggleSom) {
 
     if (ligado) {
       window.feedbackNex.desligarSom();
-      btnToggleSom.textContent = '🔇 Sons';
+      btnToggleSom.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+        Sons
+      `;
       window.mostrarToastNex?.('Sons desativados', 'info');
     } else {
       window.feedbackNex.ligarSom();
-      btnToggleSom.textContent = '🔊 Sons';
+      btnToggleSom.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        Sons
+      `;
       window.mostrarToastNex?.('Sons ativados', 'sucesso');
     }
   });
@@ -967,11 +1107,24 @@ if (btnToggleVibracao) {
 
     if (ligado) {
       window.feedbackNex.desligarVibracao();
-      btnToggleVibracao.textContent = '📴 Vibração';
+      btnToggleVibracao.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          <line x1="2" y1="2" x2="22" y2="22"></line>
+        </svg>
+        Vibração
+      `;
       window.mostrarToastNex?.('Vibração desativada', 'info');
     } else {
       window.feedbackNex.ligarVibracao();
-      btnToggleVibracao.textContent = '📳 Vibração';
+      btnToggleVibracao.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        Vibração
+      `;
       window.mostrarToastNex?.('Vibração ativada', 'sucesso');
 
       // Vibra uma vez pra confirmar
@@ -991,15 +1144,17 @@ function atualizarBotoesSomVibracaoNex() {
   const btnVib = document.getElementById('btnToggleVibracaoNex');
 
   if (btnSom && window.feedbackNex) {
-    btnSom.textContent = window.feedbackNex.somLigado()
-      ? '🔊 Sons'
-      : '🔇 Sons';
+    const ligado = window.feedbackNex.somLigado();
+    btnSom.innerHTML = ligado
+      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> Sons`
+      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg> Sons`;
   }
 
   if (btnVib && window.feedbackNex) {
-    btnVib.textContent = window.feedbackNex.vibracaoLigada()
-      ? '📳 Vibração'
-      : '📴 Vibração';
+    const ligado = window.feedbackNex.vibracaoLigada();
+    btnVib.innerHTML = ligado
+      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> Vibração`
+      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="2" y1="2" x2="22" y2="22"></line></svg> Vibração`;
   }
 }
 

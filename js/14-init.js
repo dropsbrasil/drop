@@ -90,6 +90,32 @@ if (typeof iniciarRealtimeNexSupabase === 'function') {
   }, 2000);
 }
 
+// ⚠️ Carrega a lista de quem EU silenciei e de quem ME silenciou
+if (typeof carregarSilenciadosSupabase === 'function') {
+  setTimeout(() => {
+    carregarSilenciadosSupabase();
+  }, 2500);
+}
+
+// ⚠️ Ativa o Realtime dos silenciados:
+//    - Quando ALGUÉM me silencia/desilencia → UI atualiza na hora
+//    - Quando EU silencio/desilencia alguém → lista em memória atualiza
+//    - Se estou no chat da pessoa → botão de enviar troca pro cadeado na hora
+if (typeof iniciarRealtimeSilenciadosNex === 'function') {
+  setTimeout(() => {
+    iniciarRealtimeSilenciadosNex();
+  }, 2800);
+}
+
+// ⚠️ Ativa o Realtime de presença (Online/Offline):
+//    - Ouve a tabela profiles e avisa a tela na hora
+//    - Elimina a necessidade de perguntar "quem está online?" toda hora
+if (typeof iniciarRealtimePresencaNex === 'function') {
+  setTimeout(() => {
+    iniciarRealtimePresencaNex();
+  }, 3000);
+}
+
 // ⚠️ Inicia o Realtime das reações de mídia
 if (typeof iniciarRealtimeReacoesMidiaNex === 'function') {
   setTimeout(() => {
@@ -252,73 +278,100 @@ if (typeof window.atualizarContadorVisitasNex === 'function') {
 if (weatherLocationEl) {
   weatherLocationEl.textContent = 'Buscando localização...';
 
-  // ⚠️ iOS: até 30s pra dar tempo do GPS responder
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      try {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+  // ============================================
+  // GPS INTELIGENTE (Local-First)
+  // ============================================
+  // ⚠️ Nada de salvar no Supabase a cada minuto.
+  // A localização é guardada só na memória do celular.
+  // O Nearby usa o cache local e o Realtime para economizar cota.
 
-        // ⚠️ NOVO: guarda em memória pra calcular distância no Nearby
-        window.minhaLatitudeAtual = lat;
-        window.minhaLongitudeAtual = lng;
-
-        // ⚠️ GPS 2: salva lat/lng no Supabase (pra usar no Nearby)
-        if (typeof window.salvarLocalizacaoSupabase === 'function') {
-          window.salvarLocalizacaoSupabase(lat, lng).catch((err) =>
-            console.warn('Erro ao salvar localização:', err)
-          );
-        }
-
-        // ⚠️ NOVO: re-renderiza o Nearby com a distância real
-        if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
-          setTimeout(() => {
-            window.renderizarPublicacoesNearbyNex();
-          }, 200);
-        }
-
-        // Tenta pegar o endereço (com timeout próprio)
-        let address = null;
-
+  const atualizarLocalizacaoNex = () => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
         try {
-          address = await Promise.race([
-            reverseGeocodeExact(lat, lng),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('geocode timeout')), 8000)
-            )
-          ]);
-        } catch (geoErr) {
-          console.warn('Reverse geocode falhou:', geoErr.message);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          // ⚠️ Guarda apenas em memória (o 11-nearby.js usa pra calcular)
+          window.minhaLatitudeAtual = lat;
+          window.minhaLongitudeAtual = lng;
+
+          // ⚠️ Re-renderiza o Nearby (o cache decide se busca ou não)
+          if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
+            window.renderizarPublicacoesNearbyNex();
+          }
+
+          // Tenta pegar o endereço pra mostrar no MyDrops
+          let address = null;
+          try {
+            address = await Promise.race([
+              reverseGeocodeExact(lat, lng),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('geocode timeout')), 8000)
+              )
+            ]);
+          } catch (geoErr) {
+            console.warn('Reverse geocode falhou:', geoErr.message);
+          }
+
+          weatherLocationEl.textContent =
+            address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        } catch (err) {
+          console.error('Erro localização:', err);
+          weatherLocationEl.textContent = 'Localização indisponível';
         }
-
-        // ⚠️ FALLBACK: se não conseguiu endereço, mostra coordenadas
-        weatherLocationEl.textContent =
-          address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      } catch (err) {
-        console.error('Erro localização:', err);
-        weatherLocationEl.textContent = 'Localização indisponível';
+      },
+      (err) => {
+        console.error('Erro geolocalização:', err);
+        if (err.code === 1) weatherLocationEl.textContent = 'Permissão negada';
+        else if (err.code === 2) weatherLocationEl.textContent = 'GPS indisponível';
+        else if (err.code === 3) weatherLocationEl.textContent = 'GPS demorou demais';
+        else weatherLocationEl.textContent = 'Localização indisponível';
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 60000
       }
-    },
-    (err) => {
-      console.error('Erro geolocalização:', err);
+    );
+  };
 
-      // ⚠️ Mensagens mais claras por tipo de erro
-      if (err.code === 1) {
-        weatherLocationEl.textContent = 'Permissão negada';
-      } else if (err.code === 2) {
-        weatherLocationEl.textContent = 'GPS indisponível';
-      } else if (err.code === 3) {
-        weatherLocationEl.textContent = 'GPS demorou demais';
-      } else {
-        weatherLocationEl.textContent = 'Localização indisponível';
+  // ⚠️ Chama uma vez ao abrir
+  atualizarLocalizacaoNex();
+
+  // ============================================
+  // WATCH POSITION (Monitoramento Inteligente)
+  // ============================================
+  // ⚠️ Em vez de perguntar de minuto em minuto, o navegador
+  // nos avisa quando o usuário realmente se move. Isso economiza
+  // bateria e evita atualizações desnecessárias.
+
+  if (navigator.geolocation.watchPosition) {
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        const novaLat = pos.coords.latitude;
+        const novaLng = pos.coords.longitude;
+
+        // Atualiza as variáveis globais
+        window.minhaLatitudeAtual = novaLat;
+        window.minhaLongitudeAtual = novaLng;
+
+        // Chama a renderização (o cache do 11-nearby decide se busca)
+        if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
+          window.renderizarPublicacoesNearbyNex();
+        }
+      },
+      (err) => {
+        console.warn('WatchPosition erro:', err);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 60000,
+        distanceFilter: 500 // Só dispara quando mover 500m
       }
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 30000,      // ⚠️ Aumentado de 10s para 30s (iOS)
-      maximumAge: 60000    // ⚠️ Cache de 1 min (antes era 5 min)
-    }
-  );
+    );
+  }
 }
 
     // ============================================
@@ -403,63 +456,103 @@ if (weatherLocationEl) {
     let menuFotoVideoAtivo = null;
 
     function criarMenuFotoVideoMyDrops(tipo) {
-      let menu = document.getElementById('mydropsMediaMenu');
+  let menu = document.getElementById('mydropsMediaMenu');
+  let overlay = document.getElementById('mydropsMediaOverlay');
 
-      if (!menu) {
-        menu = document.createElement('div');
-        menu.id = 'mydropsMediaMenu';
-        menu.className = 'mydrops-media-menu';
-        document.body.appendChild(menu);
-      }
+  // Cria o overlay se não existir
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'mydropsMediaOverlay';
+    overlay.className = 'mydrops-media-overlay';
+    overlay.addEventListener('click', fecharMenuFotoVideoMyDrops);
+    document.body.appendChild(overlay);
+  }
 
-      if (tipo === 'foto') {
-        menu.innerHTML = `
-          <button type="button" class="mydrops-media-option" id="mydropsCameraFotoOption">
-            <span>📷</span> Tirar foto
-          </button>
-          <button type="button" class="mydrops-media-option" id="mydropsGaleriaFotoOption">
-            <span>🖼️</span> Escolher da galeria
-          </button>
-        `;
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id = 'mydropsMediaMenu';
+    menu.className = 'mydrops-media-menu';
+    document.body.appendChild(menu);
+  }
 
-        document.getElementById('mydropsCameraFotoOption')?.addEventListener('click', () => {
-          fecharMenuFotoVideoMyDrops();
-          window.abrirCameraFotoMyDropsNex?.();
-        });
+  if (tipo === 'foto') {
+    menu.innerHTML = `
+      <button type="button" class="mydrops-media-option" id="mydropsCameraFotoOption" style="display: flex; align-items: center; gap: 14px;">
+        <span class="icone-capsula" style="width: 40px; height: 40px; min-width: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(37, 99, 235, 0.2); color: #60a5fa; flex-shrink: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </span>
+        Tirar foto
+      </button>
+      <button type="button" class="mydrops-media-option" id="mydropsGaleriaFotoOption" style="display: flex; align-items: center; gap: 14px;">
+        <span class="icone-capsula" style="width: 40px; height: 40px; min-width: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(37, 99, 235, 0.2); color: #60a5fa; flex-shrink: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </span>
+        Escolher da galeria
+      </button>
+    `;
 
-        document.getElementById('mydropsGaleriaFotoOption')?.addEventListener('click', () => {
-          fecharMenuFotoVideoMyDrops();
-          document.getElementById('mydropsGalleryImageInput')?.click();
-        });
-      } else if (tipo === 'video') {
-        menu.innerHTML = `
-          <button type="button" class="mydrops-media-option" id="mydropsCameraVideoOption">
-            <span>🎥</span> Gravar vídeo
-          </button>
-          <button type="button" class="mydrops-media-option" id="mydropsGaleriaVideoOption">
-            <span>📁</span> Escolher da galeria
-          </button>
-        `;
+    document.getElementById('mydropsCameraFotoOption')?.addEventListener('click', () => {
+      fecharMenuFotoVideoMyDrops();
+      window.abrirCameraFotoMyDropsNex?.();
+    });
 
-        document.getElementById('mydropsCameraVideoOption')?.addEventListener('click', () => {
-          fecharMenuFotoVideoMyDrops();
-          window.abrirCameraMyDrops?.();
-        });
+    document.getElementById('mydropsGaleriaFotoOption')?.addEventListener('click', () => {
+      fecharMenuFotoVideoMyDrops();
+      document.getElementById('mydropsGalleryImageInput')?.click();
+    });
+  } else if (tipo === 'video') {
+    menu.innerHTML = `
+      <button type="button" class="mydrops-media-option" id="mydropsCameraVideoOption" style="display: flex; align-items: center; gap: 14px;">
+        <span class="icone-capsula" style="width: 40px; height: 40px; min-width: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(37, 99, 235, 0.2); color: #60a5fa; flex-shrink: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+        </span>
+        Gravar vídeo
+      </button>
+      <button type="button" class="mydrops-media-option" id="mydropsGaleriaVideoOption" style="display: flex; align-items: center; gap: 14px;">
+        <span class="icone-capsula" style="width: 40px; height: 40px; min-width: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(37, 99, 235, 0.2); color: #60a5fa; flex-shrink: 0;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </span>
+        Escolher da galeria
+      </button>
+    `;
 
-        document.getElementById('mydropsGaleriaVideoOption')?.addEventListener('click', () => {
-          fecharMenuFotoVideoMyDrops();
-          document.getElementById('mydropsGalleryVideoInput')?.click();
-        });
-      }
+    document.getElementById('mydropsCameraVideoOption')?.addEventListener('click', () => {
+      fecharMenuFotoVideoMyDrops();
+      window.abrirCameraMyDrops?.();
+    });
 
-      menu.style.display = 'flex';
-      menuFotoVideoAtivo = tipo;
+    document.getElementById('mydropsGaleriaVideoOption')?.addEventListener('click', () => {
+      fecharMenuFotoVideoMyDrops();
+      document.getElementById('mydropsGalleryVideoInput')?.click();
+    });
+  }
+
+  // ⚠️ Ativa o fundo desfocado e mostra o menu
+  if (overlay) overlay.classList.add('aberto');
+  menu.style.display = 'flex';
+  menuFotoVideoAtivo = tipo;
     }
 
     function fecharMenuFotoVideoMyDrops() {
-      const menu = document.getElementById('mydropsMediaMenu');
-      if (menu) menu.style.display = 'none';
-      menuFotoVideoAtivo = null;
+  const menu = document.getElementById('mydropsMediaMenu');
+  const overlay = document.getElementById('mydropsMediaOverlay');
+  
+  if (menu) menu.style.display = 'none';
+  if (overlay) overlay.classList.remove('aberto');
+  
+  menuFotoVideoAtivo = null;
     }
 
     // Inputs escondidos para galeria
@@ -548,6 +641,47 @@ if (weatherLocationEl) {
         });
       }
     }, 500);
+
+    // ============================================
+  // SYNC GERAL DE SEGURANÇA (ao voltar ao app ou reconectar)
+  // ============================================
+  const executarSyncGeralNex = () => {
+    console.log('🔄 Sync Geral: atualizando dados em background...');
+    
+    // 1. Atualiza o perfil do próprio usuário
+    if (typeof window.sincronizarPerfilSupabase === 'function') {
+      window.sincronizarPerfilSupabase().catch(() => {});
+    }
+
+    // 2. Atualiza as métricas (interações e visitas)
+    if (typeof window.atualizarMetricaInteracoesMyDropsNex === 'function') {
+      window.atualizarMetricaInteracoesMyDropsNex();
+    }
+    if (typeof window.atualizarContadorVisitasNex === 'function') {
+      window.atualizarContadorVisitasNex();
+    }
+
+    // 3. Atualiza as publicações do MyDrops
+    if (typeof window.sincronizarPublicacoesSupabase === 'function') {
+      window.sincronizarPublicacoesSupabase();
+    }
+
+    // 4. Atualiza o feed do Nearby
+    if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
+      window.renderizarPublicacoesNearbyNex();
+    }
+  };
+
+  // ⚠️ Quando o usuário volta para o app (tela desligou, trocou de aba, etc.)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    executarSyncGeralNex();
+  });
+
+  // ⚠️ Quando a internet volta
+  window.addEventListener('online', () => {
+    executarSyncGeralNex();
+  });
 
   console.log('✅ Drops inicializado com sucesso!');
 });

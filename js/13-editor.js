@@ -280,16 +280,14 @@ function criarAlcasMyDropsNex(el) {
   removerAlcasMyDropsNex(el);
 
   const alcaRot = document.createElement('button');
-  alcaRot.type = 'button';
-  alcaRot.className = 'editor-alca-nex editor-alca-rotacionar-nex';
-  alcaRot.textContent = '↻';
-  alcaRot.setAttribute('aria-label', 'Rotacionar');
+alcaRot.type = 'button';
+alcaRot.className = 'editor-alca-nex editor-alca-rotacionar-nex';
+alcaRot.setAttribute('aria-label', 'Rotacionar');
 
-  const alcaRes = document.createElement('button');
+const alcaRes = document.createElement('button');
 alcaRes.type = 'button';
 alcaRes.className = 'editor-alca-nex editor-alca-redimensionar-nex';
-alcaRes.textContent = '+';
-alcaRes.setAttribute('aria-label', 'Redimensionar');
+alcaRes.setAttribute('aria-label', 'Redimensionar'); 
   
   el.appendChild(alcaRot);
   el.appendChild(alcaRes);
@@ -1805,25 +1803,20 @@ function capturarFotoMyDropsNex() {
   let fundoTipoMyDropsNex = null;
 
   function abrirModalFundoMyDropsNex() {
-    const modal = document.getElementById('modalFundoMyDropsNex');
-    if (!modal) return;
+  const modal = document.getElementById('modalFundoMyDropsNex');
+  if (!modal) return;
 
-    fundoSelecionadoMyDropsNex = null;
-    fundoTipoMyDropsNex = null;
+  fundoSelecionadoMyDropsNex = null;
+  fundoTipoMyDropsNex = null;
 
-    document.getElementById('fundoPaletaCores').style.display = 'none';
-    document.getElementById('fundoGaleriaPreview').style.display = 'none';
+  document.getElementById('fundoPaletaCores').style.display = 'none';
 
-    document.getElementById('fundoGaleriaVazio').style.display = 'block';
-    document.getElementById('fundoGaleriaPreviewImg').style.display = 'none';
-    document.getElementById('fundoPreviewImagem').src = '';
+  document.querySelectorAll('.fundo-cor').forEach((el) => {
+    el.classList.remove('selecionada');
+  });
 
-    document.querySelectorAll('.fundo-cor').forEach((el) => {
-      el.classList.remove('selecionada');
-    });
-
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
   }
 
   function fecharModalFundoMyDropsNex() {
@@ -1837,37 +1830,38 @@ function capturarFotoMyDropsNex() {
   }
 
   function aplicarFundoMyDropsNex() {
-    const preview = document.getElementById('fotoEditorPreviewMyDropsNex');
-    const stage = document.getElementById('fotoEditorStageMyDropsNex');
+  const preview = document.getElementById('fotoEditorPreviewMyDropsNex');
+  const stage = document.getElementById('fotoEditorStageMyDropsNex');
 
-    if (!preview || !stage) return;
+  if (!preview || !stage) return;
 
-    if (fundoTipoMyDropsNex === 'cor' && fundoSelecionadoMyDropsNex) {
+  if (fundoTipoMyDropsNex === 'cor' && fundoSelecionadoMyDropsNex) {
+    // ⚠️ Verifica se é degradê ou cor sólida
+    if (fundoSelecionadoMyDropsNex.includes('gradient')) {
+      preview.style.setProperty('background-image', fundoSelecionadoMyDropsNex, 'important');
+      preview.style.setProperty('background-color', 'transparent', 'important');
+      
+      stage.style.setProperty('background-image', fundoSelecionadoMyDropsNex, 'important');
+      stage.style.setProperty('background-color', 'transparent', 'important');
+    } else {
       preview.style.setProperty('background-color', fundoSelecionadoMyDropsNex, 'important');
       preview.style.setProperty('background-image', 'none', 'important');
-      preview.style.backgroundSize = 'cover';
-      preview.style.backgroundPosition = 'center';
-      preview.style.backgroundRepeat = 'no-repeat';
-
+      
       stage.style.setProperty('background-color', fundoSelecionadoMyDropsNex, 'important');
       stage.style.setProperty('background-image', 'none', 'important');
-    } else if (fundoTipoMyDropsNex === 'imagem' && fundoSelecionadoMyDropsNex) {
-      preview.style.setProperty('background-image', `url('${fundoSelecionadoMyDropsNex}')`, 'important');
-      preview.style.backgroundSize = 'cover';
-      preview.style.backgroundPosition = 'center';
-      preview.style.backgroundRepeat = 'no-repeat';
-      preview.style.setProperty('background-color', '#000', 'important');
-
-      stage.style.setProperty('background-image', `url('${fundoSelecionadoMyDropsNex}')`, 'important');
-      stage.style.backgroundSize = 'cover';
-      stage.style.backgroundPosition = 'center';
-      stage.style.backgroundRepeat = 'no-repeat';
-      stage.style.setProperty('background-color', '#000', 'important');
-    } else {
-      return;
     }
 
-    fecharModalFundoMyDropsNex();
+    preview.style.backgroundSize = 'cover';
+    preview.style.backgroundPosition = 'center';
+    preview.style.backgroundRepeat = 'no-repeat';
+    stage.style.backgroundSize = 'cover';
+    stage.style.backgroundPosition = 'center';
+    stage.style.backgroundRepeat = 'no-repeat';
+  } else {
+    return;
+  }
+
+  fecharModalFundoMyDropsNex();
   }
 
   // ============================================
@@ -2116,15 +2110,10 @@ if (switchVideoBtn) {
     // ============================================
 
     document.getElementById('fundoCoresBtn')?.addEventListener('click', () => {
-      document.getElementById('fundoPaletaCores').style.display = 'block';
-      document.getElementById('fundoGaleriaPreview').style.display = 'none';
-    });
+  document.getElementById('fundoPaletaCores').style.display = 'block';
+});
 
-    document.getElementById('fundoGaleriaBtn')?.addEventListener('click', () => {
-      document.getElementById('fundoGaleriaPreview').style.display = 'block';
-      document.getElementById('fundoPaletaCores').style.display = 'none';
-      document.getElementById('fundoGaleriaInput')?.click();
-    });
+// ⚠️ REMOVIDO: Botão "Personalizar" foi excluído do HTML.
 
     document.querySelectorAll('.fundo-cor').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -2146,31 +2135,7 @@ if (switchVideoBtn) {
       fundoTipoMyDropsNex = 'cor';
     });
 
-    document.getElementById('fundoGaleriaInput')?.addEventListener('change', (e) => {
-      const arquivo = (e.target.files || [])[0];
-      if (!arquivo) return;
-
-      const leitor = new FileReader();
-      leitor.onload = function (evt) {
-        const dataURL = evt.target.result;
-        fundoSelecionadoMyDropsNex = dataURL;
-        fundoTipoMyDropsNex = 'imagem';
-
-        document.getElementById('fundoGaleriaVazio').style.display = 'none';
-        document.getElementById('fundoGaleriaPreviewImg').style.display = 'block';
-        document.getElementById('fundoPreviewImagem').src = dataURL;
-      };
-      leitor.readAsDataURL(arquivo);
-      e.target.value = '';
-    });
-
-    document.getElementById('fundoRemoverImagem')?.addEventListener('click', () => {
-      fundoSelecionadoMyDropsNex = null;
-      fundoTipoMyDropsNex = null;
-      document.getElementById('fundoGaleriaVazio').style.display = 'block';
-      document.getElementById('fundoGaleriaPreviewImg').style.display = 'none';
-      document.getElementById('fundoPreviewImagem').src = '';
-    });
+    // ⚠️ REMOVIDO: Eventos da galeria de fundo (não existem mais).
 
     document.getElementById('fundoCancelarBtn')?.addEventListener('click', fecharModalFundoMyDropsNex);
     document.getElementById('fundoAplicarBtn')?.addEventListener('click', aplicarFundoMyDropsNex);

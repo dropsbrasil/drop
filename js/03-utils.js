@@ -214,28 +214,49 @@
     ? tipo
     : 'sucesso';
 
-  const icone =
-    tipoLimpo === 'sucesso' ? '✅' :
-    tipoLimpo === 'erro' ? '⚠️' :
-    'ℹ️';
+  let iconeHTML = '';
 
-  let toast = document.getElementById('toastGlobalNex');
+if (tipoLimpo === 'sucesso') {
+  iconeHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+  `;
+} else if (tipoLimpo === 'erro') {
+  iconeHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  `;
+} else {
+  iconeHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="16" x2="12" y2="12"></line>
+      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+    </svg>
+  `;
+}
 
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'toastGlobalNex';
-  }
+let toast = document.getElementById('toastGlobalNex');
 
-  // ⚠️ CORREÇÃO: move o toast para o FINAL do body SEMPRE.
-  //    Sem isso, se o toast foi criado antes do viewer do Nearby,
-  //    ele fica atrás (mesmo z-index, mas o viewer veio depois).
-  document.body.appendChild(toast);
+if (!toast) {
+  toast = document.createElement('div');
+  toast.id = 'toastGlobalNex';
+}
 
-    toast.className = tipoLimpo;
-    toast.innerHTML = `
-      <span class="toast-icone-nex">${icone}</span>
-      <span class="toast-texto-nex">${escapeHTML(texto)}</span>
-    `;
+// ⚠️ CORREÇÃO: move o toast para o FINAL do body SEMPRE.
+//    Sem isso, se o toast foi criado antes do viewer do Nearby,
+//    ele fica atrás (mesmo z-index, mas o viewer veio depois).
+document.body.appendChild(toast);
+
+  toast.className = tipoLimpo;
+  toast.innerHTML = `
+    <span class="toast-icone-nex">${iconeHTML}</span>
+    <span class="toast-texto-nex">${escapeHTML(texto)}</span>
+  `;
 
     // força reflow pra reiniciar a animação
     void toast.offsetWidth;

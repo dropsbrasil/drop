@@ -84,21 +84,26 @@ if (id && id !== 'chatNex') {
   // ============================================
 
   function mostrarMyDropsTab(tipo) {
-    const tabs = document.querySelectorAll('.mydrops-tab');
-    const panels = document.querySelectorAll('.mydrops-tab-panel');
+  const tabs = document.querySelectorAll('.mydrops-tab');
+  const panels = document.querySelectorAll('.mydrops-tab-panel');
 
-    tabs.forEach((tab) => tab.classList.remove('active'));
-    panels.forEach((panel) => panel.classList.remove('active'));
+  tabs.forEach((tab) => tab.classList.remove('active'));
+  panels.forEach((panel) => panel.classList.remove('active'));
 
-    const tabAtiva = document.querySelector(
-      `.mydrops-tab[data-tab="${tipo}"]`
-    );
-    const painelAtivo = document.querySelector(
-      `.mydrops-tab-panel[data-panel="${tipo}"]`
-    );
+  const tabAtiva = document.querySelector(
+    `.mydrops-tab[data-tab="${tipo}"]`
+  );
+  const painelAtivo = document.querySelector(
+    `.mydrops-tab-panel[data-panel="${tipo}"]`
+  );
 
-    if (tabAtiva) tabAtiva.classList.add('active');
-    if (painelAtivo) painelAtivo.classList.add('active');
+  if (tabAtiva) tabAtiva.classList.add('active');
+  if (painelAtivo) painelAtivo.classList.add('active');
+
+  // ⚠️ Se clicou na aba Amigos, força a busca real no Supabase
+  if (tipo === 'conectados' && typeof window.renderizarConectadosMyDropsNex === 'function') {
+    window.renderizarConectadosMyDropsNex();
+  }
   }
 
   // ============================================

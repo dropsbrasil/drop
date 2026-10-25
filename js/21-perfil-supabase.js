@@ -150,85 +150,103 @@
     }
   }
 
-async function uploadImagemSupabase(bucket, dataUrl) {
-  if (!window.supabaseClient) return null;
-  if (!dataUrl) return null;
+async function uploadImagemSupabase(bucket, fonte) {
+  if (!window.supabaseClient || !fonte) return null;
 
   try {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return null;
 
-    // Converte base64 em Blob
-    const resposta = await fetch(dataUrl);
-    const blob = await resposta.blob();
+    // Aceita File, Blob ou dataURL
+    let blob = null;
+    if (fonte instanceof File || fonte instanceof Blob) {
+      blob = fonte;
+    } else if (typeof fonte === 'string' && fonte.startsWith('data:')) {
+      const resp = await fetch(fonte);
+      blob = await resp.blob();
+    } else {
+      console.warn('uploadImagemSupabase: tipo de fonte não suportado');
+      return null;
+    }
 
-    // Nome do arquivo: pasta_do_user/timestamp.png
-    const extensao = blob.type.includes('png') ? 'png' : 'jpg';
-    const nomeArquivo = `${user.id}/${Date.now()}.${extensao}`;
+    // ⚠️ NOME FIXO — sobrescreve ao trocar (sem acumular)
+    const nomeBase = bucket === 'avatars' ? 'avatar' : 'capa';
+    const nomeArquivo = `${user.id}/${nomeBase}.jpg`;
 
-    // Faz upload (upsert = substitui se já existir)
-const { error: uploadError } = await window.supabaseClient.storage
-  .from(bucket)
-  .upload(nomeArquivo, blob, {
-    contentType: blob.type,
-    upsert: true,
-    cacheControl: '31536000'
-  });
+    const { error: uploadError } = await window.supabaseClient.storage
+      .from(bucket)
+      .upload(nomeArquivo, blob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+        cacheControl: '31536000'
+      });
 
-if (uploadError) {
-  console.error('Erro no upload:', uploadError);
-  return null;
-}
+    if (uploadError) {
+      console.error('Erro no upload:', uploadError);
+      return null;
+    }
 
-const configTransform = bucket === 'avatars'
-  ? { width: 200, height: 200, resize: 'cover', quality: 75 }
-  : { width: 800, quality: 75 };
+    const configTransform = bucket === 'avatars'
+      ? { width: 200, height: 200, resize: 'cover', quality: 75 }
+      : { width: 800, quality: 75 };
 
-const { data: urlData } = window.supabaseClient.storage
-  .from(bucket)
-  .getPublicUrl(nomeArquivo, { transform: configTransform });
+    const { data: urlData } = window.supabaseClient.storage
+      .from(bucket)
+      .getPublicUrl(nomeArquivo, { transform: configTransform });
 
-console.log('☁️ Upload OK:', urlData.publicUrl);
-return urlData.publicUrl;
+    // ⚠️ Cache buster — força o navegador a buscar versão nova
+    const urlFinal =
+      urlData.publicUrl +
+      (urlData.publicUrl.includes('?') ? '&' : '?') +
+      'v=' + Date.now();
+
+    console.log('☁️ Upload OK:', urlFinal);
+    return urlFinal;
   } catch (erro) {
     console.error('Erro no upload da imagem:', erro);
     return null;
   }
 }
 
-    async function atualizarPerfilSupabase() {
-    if (!window.supabaseClient) return;
+  async function atualizarPerfilSupabase() {
+  if (!window.supabaseClient) return;
 
-    try {
-      const { data: { user } } = await window.supabaseClient.auth.getUser();
-      if (!user) return;
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
 
-      const username = localStorage.getItem('drops_username') || '';
-      const userKey = username;
+    const username = localStorage.getItem('drops_username') || '';
+    const userKey = username;
 
-      const { error } = await window.supabaseClient
-        .from('profiles')
-        .update({
-          username: username,
-          nome: localStorage.getItem('drops_nome') || '',
-          bio: localStorage.getItem('mydropsBio_' + userKey) || '',
-          avatar_url: localStorage.getItem('mydropsAvatar_' + userKey) || '',
-          capa_url: localStorage.getItem('mydropsCover_' + userKey) || '',
-          social_instagram: localStorage.getItem('mydropsSocialInstagram_' + userKey) || '',
-          social_tiktok: localStorage.getItem('mydropsSocialTiktok_' + userKey) || '',
-          social_whatsapp: localStorage.getItem('mydropsSocialWhatsapp_' + userKey) || '',
-          atualizado_em: new Date().toISOString()
-        })
-        .eq('id', user.id);
+    const { error } = await window.supabaseClient
+      .from('profiles')
+      .update({
+        username: username,
+        nome: localStorage.getItem('drops_nome') || '',
+        bio: localStorage.getItem('mydropsBio_' + userKey) || '',
+        avatar_url: localStorage.getItem('mydropsAvatar_' + userKey) || '',
+        capa_url: localStorage.getItem('mydropsCover_' + userKey) || '',
+        social_instagram: localStorage.getItem('mydropsSocialInstagram_' + userKey) || '',
+        social_tiktok: localStorage.getItem('mydropsSocialTiktok_' + userKey) || '',
+        social_whatsapp: localStorage.getItem('mydropsSocialWhatsapp_' + userKey) || '',
+        
+        // ⚠️ Novos campos de estilo da Bio
+        bio_fonte: localStorage.getItem('mydropsBioFont_' + userKey) || '',
+        bio_cor: localStorage.getItem('mydropsBioColor_' + userKey) || '',
+        bio_alinhamento: localStorage.getItem('mydropsBioAlign_' + userKey) || '',
+        
+        atualizado_em: new Date().toISOString()
+      })
+      .eq('id', user.id);
 
-      if (error) {
-        console.error('Erro ao atualizar perfil no Supabase:', error);
-      } else {
-        console.log('☁️ Perfil atualizado no Supabase!');
-      }
-    } catch (erro) {
-      console.error('Erro na atualização do perfil:', erro);
+    if (error) {
+      console.error('Erro ao atualizar perfil no Supabase:', error);
+    } else {
+      console.log('☁️ Perfil atualizado no Supabase!');
     }
+  } catch (erro) {
+    console.error('Erro na atualização do perfil:', erro);
+  }
   }
 
     // ============================================
@@ -289,32 +307,30 @@ function iniciarHeartbeatNex() {
   // Envia 1x imediatamente
   enviarHeartbeatNex();
 
-  // ⚠️ Atualiza a cada 60 segundos (economia de cota e bateria)
-  heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 60 * 1000);
+  // ⚠️ OTIMIZAÇÃO DE COTA: 5 minutos em vez de 60s
+heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 5 * 60 * 1000);
 
-  // ⚠️ Pausa quando o app vai para segundo plano e retoma ao voltar
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      // App minimizado: para o loop para não gastar bateria
-      clearInterval(heartbeatIntervaloNex);
-      heartbeatIntervaloNex = null;
-    } else {
-      // App voltou ao foco: envia sinal imediato e reinicia o loop
-      enviarHeartbeatNex();
-      if (!heartbeatIntervaloNex) {
-        heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 60 * 1000);
-      }
+// ⚠️ Pausa quando o app vai para segundo plano e retoma ao voltar
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(heartbeatIntervaloNex);
+    heartbeatIntervaloNex = null;
+  } else {
+    enviarHeartbeatNex();
+    if (!heartbeatIntervaloNex) {
+      heartbeatIntervaloNex = setInterval(enviarHeartbeatNex, 5 * 60 * 1000);
     }
-  });
+  }
+});
 
-  // ⚠️ Atualiza também quando o usuário interage
-  let ultimoEnvioInteracao = 0;
-  const handlerInteracao = () => {
-    const agora = Date.now();
-    if (agora - ultimoEnvioInteracao < 60000) return; // 60s de cooldown
-    ultimoEnvioInteracao = agora;
-    if (!document.hidden) enviarHeartbeatNex();
-  };
+// ⚠️ Cooldown de 5 minutos na interação
+let ultimoEnvioInteracao = 0;
+const handlerInteracao = () => {
+  const agora = Date.now();
+  if (agora - ultimoEnvioInteracao < 5 * 60 * 1000) return;
+  ultimoEnvioInteracao = agora;
+  if (!document.hidden) enviarHeartbeatNex();
+};
 
   ['click', 'keydown', 'touchstart'].forEach((evt) => {
     document.addEventListener(evt, handlerInteracao, { passive: true });

@@ -10,6 +10,51 @@
 (function () {
   'use strict';
 
+  // ============================================
+  // SKELETON DE CARREGAMENTO DO CHAT
+  // ============================================
+
+  function ativarSkeletonChatNex() {
+    const avatar = document.getElementById('chatAvatar');
+    const nome = document.getElementById('chatName');
+    const bio = document.getElementById('chatBio');
+    const status = document.getElementById('chatStatus');
+
+    if (avatar) {
+      avatar.classList.add('is-loading');
+      avatar.innerHTML = '';
+      avatar.textContent = '';
+    }
+
+    if (nome) {
+      nome.classList.add('is-loading');
+      nome.textContent = 'Carregando...';
+    }
+
+    if (bio) {
+      bio.classList.add('is-loading');
+      bio.textContent = 'Carregando...';
+    }
+
+    if (status) {
+      status.classList.add('is-loading');
+      status.classList.remove('online', 'offline');
+      status.textContent = 'Carregando...';
+    }
+  }
+
+  function desativarSkeletonChatNex() {
+    const avatar = document.getElementById('chatAvatar');
+    const nome = document.getElementById('chatName');
+    const bio = document.getElementById('chatBio');
+    const status = document.getElementById('chatStatus');
+
+    if (avatar) avatar.classList.remove('is-loading');
+    if (nome) nome.classList.remove('is-loading');
+    if (bio) bio.classList.remove('is-loading');
+    if (status) status.classList.remove('is-loading');
+  }
+
   let respostaSelecionadaNex = null;
   let mensagemSelecionadaNex = null;
   let mensagemParaApagarNex = null;
@@ -40,25 +85,51 @@
     const silenciado = estaSilenciadoNex(usernameAtual);
 
     menu.innerHTML = `
-      <button type="button" class="chat-menu-item" data-acao="midias">
-        <span class="chat-menu-item-icone">🖼️</span>
-        <span class="chat-menu-item-texto">Ver mídias compartilhadas</span>
-      </button>
+  <button type="button" class="chat-menu-item" data-acao="midias">
+    <span class="chat-menu-item-icone">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
+      </svg>
+    </span>
+    <span class="chat-menu-item-texto">Ver mídias compartilhadas</span>
+  </button>
 
-      <div class="chat-menu-divisor"></div>
+  <div class="chat-menu-divisor"></div>
 
-      <button type="button" class="chat-menu-item" data-acao="silenciar">
-        <span class="chat-menu-item-icone">${silenciado ? '🔔' : '🔕'}</span>
-        <span class="chat-menu-item-texto">${silenciado ? 'Reativar notificações' : 'Silenciar conversa'}</span>
-      </button>
+  <button type="button" class="chat-menu-item" data-acao="silenciar">
+    <span class="chat-menu-item-icone">
+      ${silenciado ? `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+      ` : `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          <path d="M18.63 13A17.888 17.888 0 0 1 18 8"></path>
+          <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path>
+          <path d="M18 8a6 6 0 0 0-9.33-5"></path>
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+        </svg>
+      `}
+    </span>
+    <span class="chat-menu-item-texto">${silenciado ? 'Reativar notificações' : 'Silenciar conversa'}</span>
+  </button>
 
-      <div class="chat-menu-divisor"></div>
+  <div class="chat-menu-divisor"></div>
 
-      <button type="button" class="chat-menu-item danger" data-acao="apagar">
-        <span class="chat-menu-item-icone">🗑️</span>
-        <span class="chat-menu-item-texto">Apagar conversa</span>
-      </button>
-    `;
+  <button type="button" class="chat-menu-item danger" data-acao="apagar">
+    <span class="chat-menu-item-icone">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    </span>
+    <span class="chat-menu-item-texto">Apagar conversa</span>
+  </button>
+`;
 
     menu.querySelectorAll('.chat-menu-item').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -124,36 +195,54 @@
     } catch (e) {}
   }
 
-  function alternarSilenciarChatNex(username) {
-    if (!username) return;
+  async function alternarSilenciarChatNex(username) {
+  if (!username) return;
 
-    const lista = (() => {
-      try {
-        return JSON.parse(
-          localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
-        );
-      } catch (e) {
-        return [];
-      }
-    })();
-
-    const index = lista.indexOf(username);
-    let ativouSilencio = false;
-
-    if (index === -1) {
-      lista.push(username);
-      ativouSilencio = true;
-    } else {
-      lista.splice(index, 1);
+  const lista = (() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
+      );
+    } catch (e) {
+      return [];
     }
+  })();
 
-    salvarSilenciadosNex(lista);
-    atualizarSilenciadoNoCardNex(username);
+  const index = lista.indexOf(username);
+  let ativouSilencio = false;
 
-    window.mostrarToastNex?.(
-      ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
-      'info'
+  if (index === -1) {
+    lista.push(username);
+    ativouSilencio = true;
+  } else {
+    lista.splice(index, 1);
+  }
+
+  // ⚠️ Salva no localStorage (cache)
+  salvarSilenciadosNex(lista);
+
+  // ⚠️ Atualiza o cache em memória (quem EU silenciei)
+  if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
+  if (ativouSilencio) {
+    window.__euSilencieiNex.add(username);
+  } else {
+    window.__euSilencieiNex.delete(username);
+  }
+
+  // ⚠️ Salva no Supabase
+  if (typeof window.alternarSilenciarSupabase === 'function') {
+    await window.alternarSilenciarSupabase(
+      username,
+      ativouSilencio ? 'silenciar' : 'dessilenciar'
     );
+  }
+
+  atualizarSilenciadoNoCardNex(username);
+
+  window.mostrarToastNex?.(
+    ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
+    'info'
+  );
   }
 
   function atualizarSilenciadoNoCardNex(username) {
@@ -576,6 +665,10 @@ async function buscarAvatarNex(username) {
 // ============================================
 
 async function abrirChatNex(el) {
+  // ⚠️ Ativa o Skeleton de carregamento
+  //    (avatar girando, textos pulsando)
+  ativarSkeletonChatNex();
+  
   // ⚠️ NOVO: aceita DOM (card) OU objeto { username, nome }
   const ehObjetoDireto =
     el &&
@@ -668,41 +761,10 @@ if (card && card.dataset) {
   const chatStatus = document.getElementById('chatStatus');
   const chatAvatar = document.getElementById('chatAvatar');
 
-  // ============================================
-  // ⚠️ CRIA O BOTÃO ⋮ NO TOPO DO CHAT
-  // ============================================
-
-  const chatTopMain = document.querySelector('.chat-top-main');
-
-  if (chatTopMain) {
-    const antigo = document.getElementById('chatMenuBtnNex');
-    if (antigo) antigo.remove();
-
-    const btnMenu = document.createElement('button');
-    btnMenu.type = 'button';
-    btnMenu.id = 'chatMenuBtnNex';
-    btnMenu.className = 'chat-menu-btn';
-    btnMenu.setAttribute('aria-label', 'Menu da conversa');
-    btnMenu.innerHTML = '⋮';
-
-    btnMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      if (chatMenuAbertoNex) {
-        fecharMenuChatNex();
-      } else {
-        abrirMenuChatNex();
-      }
-    });
-
-    const statusWrap = chatTopMain.querySelector('.chat-user-status-wrap');
-
-    if (statusWrap) {
-      chatTopMain.insertBefore(btnMenu, statusWrap);
-    } else {
-      chatTopMain.appendChild(btnMenu);
-    }
-  }
+// ============================================
+// O botão ⋮ agora vem fixo do HTML (index.html)
+// ============================================
+  
     // ============================================
   // PRESENÇA ONLINE/OFFLINE
   // ============================================
@@ -744,7 +806,8 @@ if (card && card.dataset) {
   if (window.__presencaIntervalNex) {
     clearInterval(window.__presencaIntervalNex);
   }
-  window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 30000);
+// ⚠️ OTIMIZAÇÃO DE COTA: 2 minutos em vez de 30s
+window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 120000);
 
   // ============================================
   // ⚠️ NOME DO CHAT = NOME EXIBIDO (não o @username)
@@ -820,35 +883,63 @@ if (card && card.dataset) {
     chatAvatar.style.cursor = 'pointer';
   }
 
-  if (
-    usernameReal &&
-    typeof window.buscarPerfilPublicoSupabase === 'function'
-  ) {
-    try {
-      const perfil = await window.buscarPerfilPublicoSupabase(usernameReal);
+  // ⚠️ Desativa o Skeleton AQUI. Nome, bio e inicial do avatar já estão prontos.
+  // A foto real e o histórico vão carregar em segundo plano.
+  desativarSkeletonChatNex();
 
-      if (perfil && perfil.avatar_url && chatAvatar) {
-        chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">`;
-        chatAvatar.style.backgroundImage = 'none';
-      }
-    } catch (err) {
-      console.warn('Erro ao buscar avatar no chat:', err);
+  if (
+  usernameReal &&
+  typeof window.buscarPerfilPublicoSupabase === 'function'
+) {
+  try {
+    const perfil = await window.buscarPerfilPublicoSupabase(usernameReal);
+
+    if (perfil && perfil.avatar_url && chatAvatar) {
+      chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
+      chatAvatar.style.backgroundImage = 'none';
     }
+  } catch (err) {
+    console.warn('Erro ao buscar avatar no chat:', err);
+  }
   }
 
   if (chatAvatar) {
-    if (chatAvatar.__clickPerfilHandler) {
-      chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
-    }
-
-    chatAvatar.__clickPerfilHandler = () => {
-      if (typeof window.abrirPerfilVisitadoNex === 'function') {
-        window.abrirPerfilVisitadoNex(usernameReal, nomeExibido);
-      }
-    };
-
-    chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
+  if (chatAvatar.__clickPerfilHandler) {
+    chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
   }
+
+  chatAvatar.__clickPerfilHandler = () => {
+    if (typeof window.abrirPerfilVisitadoNex === 'function') {
+      window.abrirPerfilVisitadoNex(usernameReal, nomeExibido);
+    }
+  };
+
+  chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
+}
+
+// ============================================
+// ⚠️ VERIFICA SE FUI SILENCIADO POR ESSA PESSOA
+// ============================================
+const chatBottom = document.querySelector('.chat-bottom');
+const toastSilenciado = document.getElementById('toastSilenciadoNex');
+const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+const iconeMudo = document.getElementById('iconeMudoChatNex');
+
+// Simulação (até o Supabase voltar): lista global de quem me silenciou
+const listaQuemMeSilenciou = window.__quemMeSilenciouNex || new Set();
+const estouSilenciado = listaQuemMeSilenciou.has(usernameReal);
+
+if (estouSilenciado) {
+  if (chatBottom) chatBottom.classList.add('silenciado');
+  if (toastSilenciado) toastSilenciado.style.display = 'flex';
+  if (iconeEnviar) iconeEnviar.style.display = 'none';
+  if (iconeMudo) iconeMudo.style.display = 'block';
+} else {
+  if (chatBottom) chatBottom.classList.remove('silenciado');
+  if (toastSilenciado) toastSilenciado.style.display = 'none';
+  if (iconeEnviar) iconeEnviar.style.display = 'block';
+  if (iconeMudo) iconeMudo.style.display = 'none';
+}
 
   // ============================================
   // CARREGA CONVERSA (com o @username como chave)
@@ -910,17 +1001,23 @@ function voltarChatNex() {
   fecharMenuChatNex();
 
   const chat = document.getElementById('chatNex');
-  const nex = document.getElementById('nex');
+const nex = document.getElementById('nex');
 
-  if (chat) {
-    chat.style.display = 'none';
-    chat.classList.remove('active');
-  }
+if (chat) {
+  chat.style.display = 'none';
+  chat.classList.remove('active');
+}
 
+// ⚠️ Só volta pro NEX se NÃO veio do perfil visitado
+if (!window.__chatVeioDoPerfil) {
   if (nex) {
     nex.style.display = 'block';
     nex.classList.add('active');
   }
+} else {
+  // Se veio do perfil, reseta a flag (o perfil continua aberto por baixo)
+  window.__chatVeioDoPerfil = false;
+}
 
   mostrarNexTab(Drops.estado.abaNex);
 
@@ -931,10 +1028,23 @@ function voltarChatNex() {
   Drops.estado.conversaAtual = '';
 
   document.body.classList.remove('chat-aberto');
-  document.body.classList.remove('chat-open');
+document.body.classList.remove('chat-open');
 
-  if (typeof window.sincronizarCardsNexSupabase === 'function') {
-    setTimeout(() => {
+// ⚠️ Limpa o estado de silenciado ao sair
+const chatBottom = document.querySelector('.chat-bottom');
+if (chatBottom) chatBottom.classList.remove('silenciado');
+
+const toastSilenciado = document.getElementById('toastSilenciadoNex');
+if (toastSilenciado) toastSilenciado.style.display = 'none';
+
+const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+if (iconeEnviar) iconeEnviar.style.display = 'block';
+
+const iconeMudo = document.getElementById('iconeMudoChatNex');
+if (iconeMudo) iconeMudo.style.display = 'none';
+
+if (typeof window.sincronizarCardsNexSupabase === 'function') {
+  setTimeout(() => {
       window.sincronizarCardsNexSupabase();
     }, 300);
   }
@@ -1233,35 +1343,36 @@ if (typeof window.montarAnexosHTMLNex === 'function') {
         </div>
 
         ${
-          msg.resposta
-            ? `
-        <div style="display:flex;align-items:center;margin-top:8px;">
-          <div
-            class="reply-linked-top"
-            onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
-            <span class="reply-arrow">↖</span>
-            <span>Resposta</span>
-            <span class="reply-count-pill">
-              ${ordemResposta}/${totalRespostasDaOriginal}
-            </span>
-          </div>
+              msg.resposta
+      ? `
+  <div style="display:flex;align-items:center;margin-top:8px;gap:8px;">
+    <div
+      class="reply-linked-top"
+      style="background: #10b981 !important; color: #ffffff !important; border: none !important; border-radius: 999px !important; padding: 6px 12px !important; display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; width: fit-content;"
+      onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
+      <span class="reply-arrow" style="color: #ffffff !important; font-size: 16px !important; margin: 0 !important;">↖</span>
+      <span class="reply-count-pill" style="background: #ffffff !important; color: #10b981 !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">
+        ${ordemResposta}/${totalRespostasDaOriginal}
+      </span>
+    </div>
 
-          ${
-            lado === 'right' && ordemResposta < totalRespostasDaOriginal
-              ? `
-            <button
-              type="button"
-              class="reply-next-btn"
-              onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
-              ⬇
-            </button>
-          `
-              : ''
-          }
-        </div>
-      `
-            : ''
-        }
+    ${
+      lado === 'right' && ordemResposta < totalRespostasDaOriginal
+        ? `
+      <button
+        type="button"
+        class="reply-next-btn"
+        style="background: #10b981 !important; color: #ffffff !important; border: none !important; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900;"
+        onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
+        ⬇
+      </button>
+    `
+        : ''
+    }
+  </div>
+`
+      : ''
+        } 
 
         <div class="msg-content">
   ${
@@ -1278,24 +1389,22 @@ if (typeof window.montarAnexosHTMLNex === 'function') {
 </div>
 
         ${
-          qtdCitacoes > 0
-            ? `
-          <button
-            type="button"
-            class="reply-cited-bottom"
-            onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
-            <span>Msg foi citada</span>
-            <span class="reply-cited-meta">
-              ${
-                qtdCitacoes > 1
-                  ? `<span class="reply-count-pill">${qtdCitacoes}x</span>`
-                  : ''
-              }
-              <span class="reply-arrow">↘</span>
-            </span>
-          </button>
-        `
-            : ''
+  qtdCitacoes > 0
+    ? `
+  <button
+    type="button"
+    class="reply-cited-bottom"
+    style="background: #facc15 !important; color: #1a1a1a !important; border: none !important; border-radius: 999px !important; padding: 6px 12px !important; display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; width: fit-content; margin-top: 4px;"
+    onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
+    ${
+      qtdCitacoes > 1
+        ? `<span class="reply-count-pill" style="background: #ffffff !important; color: #1a1a1a !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">${qtdCitacoes}x</span>`
+        : `<span class="reply-count-pill" style="background: #ffffff !important; color: #1a1a1a !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">1x</span>`
+    }
+    <span class="reply-arrow" style="color: #1a1a1a !important; font-size: 16px !important; margin: 0 !important;">↘</span>
+  </button>
+`
+    : ''
         }
 
       </div>
@@ -1363,6 +1472,13 @@ area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (e
 // ============================================
 
 async function enviarMsgNex() {
+  // ⚠️ Bloqueio de segurança: se estiver silenciado, não faz nada
+  const chatBottom = document.querySelector('.chat-bottom');
+  if (chatBottom && chatBottom.classList.contains('silenciado')) {
+    window.mostrarToastNex?.('Você está silenciado nesta conversa.', 'erro');
+    return;
+  }
+
   const input = document.getElementById('chatInput');
   const texto = input ? input.value.trim() : '';
 
@@ -1973,18 +2089,46 @@ function atualizarPreviewStackNex() {
     const lado = msg.side === 'right' ? 'right' : 'left';
 
     menu.innerHTML =
-      lado === 'left'
-        ? `
-      <button type="button" onclick="acaoResponderNex()">💬 Responder</button>
-      <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()">🗑️ Apagar pra mim</button>
-      <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
-    `
-        : `
-      <button type="button" onclick="window.acaoResponderNex()">💬 Responder</button>
-      <button type="button" onclick="window.acaoReeditarNex()">✍🏼 Reeditar</button>
-      <button type="button" class="danger" onclick="window.acaoApagarMsgNex()">🗑️ Apagar para todos</button>
-      <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
-    `;
+  lado === 'left'
+    ? `
+  <button type="button" onclick="acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    Responder
+  </button>
+  <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()" style="display:flex; align-items:center; gap:10px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+    Apagar pra mim
+  </button>
+  <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
+`
+    : `
+  <button type="button" onclick="window.acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    Responder
+  </button>
+  <button type="button" onclick="window.acaoReeditarNex()" style="display:flex; align-items:center; gap:10px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+    </svg>
+    Reeditar
+  </button>
+  <button type="button" class="danger" onclick="window.acaoApagarMsgNex()" style="display:flex; align-items:center; gap:10px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+    Apagar para todos
+  </button>
+  <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
+`;
 
     menu.style.display = 'flex';
     menu.style.visibility = 'visible';
@@ -2278,25 +2422,35 @@ function atualizarPreviewStackNex() {
   }, true);
 
   document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('chatInput');
-    if (input) {
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          enviarMsgNex();
-        }
-      });
+// ⚠️ O envio via "Enter" foi removido para permitir pular linha.
+// O envio agora ocorre apenas pelo botão de enviar (avião de papel).
+
+const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
+  if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
+
+  const inputEdicao = document.getElementById('editarMsgInputNex');
+  if (inputEdicao) inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
+
+  const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
+  if (btnFecharEdicao) btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
+
+  // ⚠️ ESCUTA O AVISO DO REALTIME DE PRESENÇA (0 requisições extras)
+  document.addEventListener('drops_presenca_atualizada', (e) => {
+    const { username, online } = e.detail || {};
+    if (!username) return;
+
+    // Só atualiza se o aviso for da pessoa que está com o chat aberto
+    const conversaAberta = Drops.estado.conversaAtual;
+    if (String(username).toLowerCase() === String(conversaAberta).toLowerCase()) {
+      const chatStatus = document.getElementById('chatStatus');
+      if (chatStatus) {
+        chatStatus.innerText = online ? 'online' : 'offline';
+        chatStatus.classList.toggle('online', !!online);
+        chatStatus.classList.toggle('offline', !online);
+      }
     }
-
-    const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
-    if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
-
-    const inputEdicao = document.getElementById('editarMsgInputNex');
-    if (inputEdicao) inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
-
-    const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
-    if (btnFecharEdicao) btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
   });
+});
 
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -2331,7 +2485,16 @@ function atualizarPreviewStackNex() {
   window.buscarAvatarNex = buscarAvatarNex;
 
   window.abrirMenuChatNex = abrirMenuChatNex;
-  window.fecharMenuChatNex = fecharMenuChatNex;
+window.fecharMenuChatNex = fecharMenuChatNex;
+
+// ⚠️ Função global para o botão ⋮ do HTML
+window.toggleMenuChatNex = function() {
+  if (chatMenuAbertoNex) {
+    fecharMenuChatNex();
+  } else {
+    abrirMenuChatNex();
+  }
+};
   window.estaSilenciadoNex = estaSilenciadoNex;
   window.alternarSilenciarChatNex = alternarSilenciarChatNex;
   window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;

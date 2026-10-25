@@ -1021,11 +1021,11 @@ function limparPreviaAudioNex() {
   }
 
   const micBtn = document.getElementById('micBtn');
-  if (micBtn) {
-    micBtn.style.display = 'flex';
-    micBtn.classList.remove('mic-recording');
-    micBtn.innerText = '🎙️';
-  }
+if (micBtn) {
+  micBtn.style.display = 'flex';
+  micBtn.classList.remove('mic-recording');
+  // (Emoji removido para não sobrescrever o SVG)
+}
 
   audioChunksNex = [];
   audioBlobNex = null;
@@ -1495,26 +1495,9 @@ let albumDeleteModeNex = false;
     renderChat(conversaAtual);
   }
 
-  if (!window.__albumRemoveListenerNex) {
-    window.__albumRemoveListenerNex = true;
-
-    const removerAlbumHandlerNex = (e) => {
-      const btn = e.target.closest('[data-album-remove]');
-      if (!btn) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const index = Number(btn.dataset.albumRemove);
-      if (Number.isNaN(index)) return;
-
-      removerSlotAlbumNex(index);
-    };
-
-    document.addEventListener('click', removerAlbumHandlerNex, true);
-    document.addEventListener('pointerup', removerAlbumHandlerNex, true);
-    document.addEventListener('touchend', removerAlbumHandlerNex, true);
-  }
+// ============================================
+// (ÁLBUM REMOVIDO)
+// ============================================
 
   // ============================================
   // MENU DE ANEXO / CÂMERA LATERAL
@@ -1687,33 +1670,7 @@ mostrarPreviaMidiaNex(previewMidiaNex);
       });
     }
 
-    // Álbum
-    const inputAlbumNex = document.getElementById('inputAlbumNex');
-    if (inputAlbumNex) {
-      inputAlbumNex.addEventListener('change', () => {
-        const files = Array.from(inputAlbumNex.files || []).filter(
-          (file) =>
-            file.type.startsWith('image/') ||
-            file.type.startsWith('video/')
-        );
-
-        if (!files.length) return;
-
-        files.forEach((file) => {
-          const slotLivre = albumSlotsNex.findIndex((item) => item === null);
-          if (slotLivre === -1) return;
-
-          albumSlotsNex[slotLivre] = {
-            type: file.type.startsWith('video/') ? 'video' : 'imagem',
-            url: URL.createObjectURL(file)
-          };
-        });
-
-        albumDeleteModeNex = false;
-        atualizarAlbumModalNex();
-        inputAlbumNex.value = '';
-      });
-    }
+    // (Input do Álbum removido)
 
     // Múltiplas mídias (envio direto)
     const inputMidiasNex = document.getElementById('inputMidiasNex');
@@ -1735,7 +1692,6 @@ mostrarPreviaMidiaNex(previewMidiaNex);
       });
     }
   }
-
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
@@ -1771,14 +1727,7 @@ window.buscarCapaNex = buscarCapaNex;
   window.pararGravacaoAudioNex = pararGravacaoAudioNex;
   window.enviarAudioNex = enviarAudioNex;
   window.toggleAudioNex = toggleAudioNex;
-
-  window.abrirAlbumNex = abrirAlbumNex;
-  window.fecharAlbumNex = fecharAlbumNex;
-  window.toggleExcluirAlbumNex = toggleExcluirAlbumNex;
-  window.removerSlotAlbumNex = removerSlotAlbumNex;
-  window.enviarAlbumNex = enviarAlbumNex;
-  window.atualizarAlbumModalNex = atualizarAlbumModalNex;
-
+// (Exportações do Álbum removidas)
   window.abrirCameraMenuNex = abrirCameraMenuNex;
   window.fecharCameraMenuNex = fecharCameraMenuNex;
   window.abrirCameraFotoNex = abrirCameraFotoNex;

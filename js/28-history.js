@@ -51,9 +51,8 @@
       'painelControleNex',
       'painelMeusAdeptosNex',
       'painelBloqueadosNex',
-      'painelDesconectadosNex',
-      'albumModalNex',
-      'muralConfirmSairNex',
+'painelDesconectadosNex',
+'muralConfirmSairNex',
       'muralConfirmLimparNex',
       'muralModalTextoNex',
       'perfilMuralEmBreveNex'
@@ -191,9 +190,8 @@
           modalFundoMyDropsNex: 'fecharModalFundoMyDropsNex',
           modalDuracaoPublicacaoMyDropsNex: 'fecharModalDuracaoPublicacaoMyDropsNex',
           confirmLimparPerfilModalNex: 'fecharConfirmLimparPerfilNex',
-          confirmNomeModalNex: 'fecharConfirmNomeNex',
-          albumModalNex: 'fecharAlbumNex',
-          muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
+confirmNomeModalNex: 'fecharConfirmNomeNex',
+muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
           muralModalTextoNex: 'fecharModalTextoMuralNex',
           perfilMuralEmBreveNex: 'fecharMuralEmBrevePerfilNex'
         };

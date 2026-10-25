@@ -95,25 +95,53 @@
 
   // ⚠️ Atualiza o status de todos os cards visíveis
   async function atualizarStatusTodosCardsNex() {
-    if (typeof window.buscarStatusNex !== 'function') return;
+  if (!window.supabaseClient) return;
 
-    const cards = document.querySelectorAll('.nex-chat');
+  const cards = document.querySelectorAll('.nex-chat');
+  if (!cards.length) return;
 
-    for (const card of cards) {
-      const dotEl = card.querySelector('.nex-status-dot');
-      if (!dotEl) continue;
-
-      const username = dotEl.dataset.statusUser;
-      if (!username) continue;
-
-      try {
-        const online = await window.buscarStatusNex(username);
-        dotEl.classList.toggle('online', !!online);
-        dotEl.classList.toggle('offline', !online);
-      } catch (err) {
-        // silencioso
-      }
+  const usernames = new Set();
+  cards.forEach(card => {
+    const dotEl = card.querySelector('.nex-status-dot');
+    if (dotEl && dotEl.dataset.statusUser) {
+      usernames.add(dotEl.dataset.statusUser);
     }
+  });
+
+  const listaUsernames = Array.from(usernames);
+  if (!listaUsernames.length) return;
+
+  try {
+    // ⚠️ OTIMIZAÇÃO N+1: 1 query única para todos os usuários
+    const { data, error } = await window.supabaseClient
+      .from('profiles')
+      .select('username, ultima_atividade')
+      .in('username', listaUsernames);
+
+    if (error) return;
+
+    const agora = Date.now();
+    const LIMITE_ONLINE_MS = 30 * 1000;
+    
+    const mapaOnline = {};
+    (data || []).forEach(p => {
+      const ultima = p.ultima_atividade;
+      mapaOnline[p.username] = ultima && (agora - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+    });
+
+    cards.forEach(card => {
+      const dotEl = card.querySelector('.nex-status-dot');
+      if (!dotEl) return;
+      const u = dotEl.dataset.statusUser;
+      if (!u) return;
+
+      const online = mapaOnline[u];
+      dotEl.classList.toggle('online', !!online);
+      dotEl.classList.toggle('offline', !online);
+    });
+  } catch (err) {
+    console.warn('Erro ao buscar status em lote:', err);
+  }
   }
 
   // ============================================
@@ -751,10 +779,26 @@ function reordenarCardsNex() {
 window.reordenarCardsNex = reordenarCardsNex;
 
   
+window.reordenarCardsNex = reordenarCardsNex;
+
+// ⚠️ ESCUTA O AVISO DO REALTIME DE PRESENÇA NOS CARDS (0 requisições extras)
+document.addEventListener('drops_presenca_atualizada', (e) => {
+  const { username, online } = e.detail || {};
+  if (!username) return;
+
+  // Procura a bolinha em todos os cards e atualiza se for da pessoa certa
+  document.querySelectorAll('.nex-chat').forEach((card) => {
+    const dotEl = card.querySelector('.nex-status-dot');
+    if (dotEl && dotEl.dataset.statusUser === username) {
+      dotEl.classList.toggle('online', !!online);
+      dotEl.classList.toggle('offline', !online);
+    }
+  });
+});
+  
   // ============================================
   // DEBUG
   // ============================================
 
   console.log('💬 04-conversas.js carregado');
-
-})();
+  })();

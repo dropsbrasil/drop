@@ -249,10 +249,10 @@ async function obterOuCriarConversaSupabase(usernameOutro) {
 
     try {
       const { data: mensagens, error } = await window.supabaseClient
-        .from('mensagens')
-        .select('*')
-        .eq('conversa_id', conversaId)
-        .order('criado_em', { ascending: true });
+  .from('mensagens')
+  .select('id, autor_id, tipo, texto, media_url, media_meta, resposta_a_id, editada, apagada_para_todos, entregue_em, visualizado_em, criado_em')
+  .eq('conversa_id', conversaId)
+  .order('criado_em', { ascending: true });
 
       if (error) {
         console.warn('Erro ao buscar mensagens:', error);
@@ -876,10 +876,19 @@ function agendarReconexaoNex() {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
 
+  // Reconecta o Realtime se caiu
   if (!canalRealtimeNex || canalRealtimeNex.state !== 'joined') {
-    console.log('👁️ Aba voltou ao foco. Verificando Realtime...');
+    console.log('👁️ Aba voltou ao foco. Reconectando Realtime...');
     tentativaReconexaoNex = 0;
     iniciarRealtimeNexSupabase();
+  }
+
+  // ⚠️ SYNC DE SEGURANÇA: Puxa o que foi perdido enquanto estava fora
+  console.log('🔄 Sincronizando dados após voltar ao foco...');
+  sincronizarCardsNexSupabase().catch(() => {});
+  
+  if (Drops.estado.conversaAtual) {
+    carregarConversaSupabase(Drops.estado.conversaAtual).catch(() => {});
   }
 });
 
@@ -887,6 +896,14 @@ window.addEventListener('online', () => {
   console.log('🌐 Internet voltou. Reconectando Realtime...');
   tentativaReconexaoNex = 0;
   iniciarRealtimeNexSupabase();
+
+  // ⚠️ SYNC DE SEGURANÇA: Puxa o que foi perdido enquanto estava offline
+  console.log('🔄 Sincronizando dados após retorno da rede...');
+  sincronizarCardsNexSupabase().catch(() => {});
+  
+  if (Drops.estado.conversaAtual) {
+    carregarConversaSupabase(Drops.estado.conversaAtual).catch(() => {});
+  }
 });
 
 // ============================================
@@ -1698,10 +1715,282 @@ async function pedirPermissaoNotificacaoNex() {
   }
 }
 
-    // ============================================
+ // ============================================
+// SILENCIADOS
+// ============================================
+async function carregarSilenciadosSupabase() {
+  if (!window.supabaseClient) return;
+  
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // 1. Quem EU silenciei
+    const { data: euSilenciei } = await window.supabaseClient
+      .from('silenciados')
+      .select('silenciado_username')
+      .eq('usuario_id', user.id);
+
+    // 2. Quem ME silenciou
+    const { data: meSilenciou } = await window.supabaseClient
+      .from('silenciados')
+      .select('usuario_username')
+      .eq('silenciado_id', user.id);
+
+    // Como a tabela não tem os usernames ainda (vamos salvar só o ID),
+    // precisamos buscar os perfis para cruzar os dados.
+    // Para simplificar e economizar logs, vamos buscar todos os silenciados de uma vez.
+    
+    const { data: todosSilenciados } = await window.supabaseClient
+      .from('silenciados')
+      .select(`
+        usuario_id,
+        silenciado_id,
+        usuario:usuario_id(username),
+        silenciado:silenciado_id(username)
+      `)
+      .or(`usuario_id.eq.${user.id},silenciado_id.eq.${user.id}`);
+
+    if (!todosSilenciados) return;
+
+    const quemEuSilenciei = new Set();
+    const quemMeSilenciou = new Set();
+
+    todosSilenciados.forEach(s => {
+  if (s.usuario_id === user.id) {
+    if (s.silenciado?.username) {
+      quemEuSilenciei.add(
+        String(s.silenciado.username).toLowerCase().trim()
+      );
+    }
+  }
+  if (s.silenciado_id === user.id) {
+    if (s.usuario?.username) {
+      quemMeSilenciou.add(
+        String(s.usuario.username).toLowerCase().trim()
+      );
+    }
+  }
+});
+
+    window.__euSilencieiNex = quemEuSilenciei;
+    window.__quemMeSilenciouNex = quemMeSilenciou;
+
+    console.log('🔇 Silenciados carregados:', {
+      euSilenciei: quemEuSilenciei.size,
+      meSilenciou: quemMeSilenciou.size
+    });
+
+  } catch (err) {
+    console.warn('Erro ao carregar silenciados:', err);
+  }
+}
+
+async function alternarSilenciarSupabase(username, acao) {
+  if (!window.supabaseClient || !username) return false;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return false;
+
+    // Busca o ID do perfil pelo username
+    const { data: perfil } = await window.supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+
+    if (!perfil?.id) return false;
+
+    if (acao === 'silenciar') {
+      const { error } = await window.supabaseClient
+        .from('silenciados')
+        .insert({ usuario_id: user.id, silenciado_id: perfil.id });
+
+      if (error && error.code !== '23505') { // Ignora se já existe
+        console.warn('Erro ao silenciar:', error);
+        return false;
+      }
+      return true;
+    } else if (acao === 'dessilenciar') {
+      const { error } = await window.supabaseClient
+        .from('silenciados')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('silenciado_id', perfil.id);
+
+      if (error) {
+        console.warn('Erro ao dessilenciar:', error);
+        return false;
+      }
+      return true;
+    }
+
+  } catch (err) {
+    console.warn('Erro ao alternar silenciar:', err);
+    return false;
+  }
+}
+
+// ============================================
+// REALTIME: SILENCIADOS
+// ============================================
+let canalRealtimeSilenciadosNex = null;
+
+async function iniciarRealtimeSilenciadosNex() {
+  if (!window.supabaseClient) return;
+  if (canalRealtimeSilenciadosNex) return;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    console.log('📡 Iniciando Realtime de silenciados...');
+
+    canalRealtimeSilenciadosNex = window.supabaseClient
+      .channel('nex-silenciados-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'silenciados'
+        },
+        async (payload) => {
+          const registro = payload.new || payload.old;
+          if (!registro) return;
+
+          const ehMeuSilenciamento = registro.usuario_id === user.id;
+          const fuiSilenciado = registro.silenciado_id === user.id;
+
+          if (!ehMeuSilenciamento && !fuiSilenciado) return;
+
+          // Precisamos do username da outra pessoa para atualizar a lista
+          const outroId = ehMeuSilenciamento ? registro.silenciado_id : registro.usuario_id;
+          
+          if (!outroId) return;
+
+          // Busca o username da outra pessoa (rápido, só 1 linha)
+          const { data: perfil } = await window.supabaseClient
+            .from('profiles')
+            .select('username')
+            .eq('id', outroId)
+            .maybeSingle();
+
+          if (!perfil?.username) return;
+          const username = String(perfil.username).toLowerCase().trim();
+
+          // Garante que os Sets existam
+          if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
+          if (!window.__quemMeSilenciouNex) window.__quemMeSilenciouNex = new Set();
+
+          // Atualiza as listas na memória
+          if (ehMeuSilenciamento) {
+            if (payload.eventType === 'INSERT') {
+              window.__euSilencieiNex.add(username);
+            } else if (payload.eventType === 'DELETE') {
+              window.__euSilencieiNex.delete(username);
+            }
+          }
+
+          if (fuiSilenciado) {
+            if (payload.eventType === 'INSERT') {
+              window.__quemMeSilenciouNex.add(username);
+              
+              // Se eu estiver no chat com essa pessoa agora, bloqueia na hora
+              if (Drops.estado.conversaAtual === username) {
+                if (typeof window.abrirChatNex === 'function') {
+                  // Força reavaliar a interface
+                  const card = typeof window.obterCardConversaNex === 'function' ? window.obterCardConversaNex(username) : null;
+                  if (card) window.abrirChatNex(card);
+                }
+              }
+            } else if (payload.eventType === 'DELETE') {
+              window.__quemMeSilenciouNex.delete(username);
+              
+              // Se eu estiver no chat, desbloqueia na hora
+              if (Drops.estado.conversaAtual === username) {
+                const chatBottom = document.querySelector('.chat-bottom');
+                if (chatBottom) chatBottom.classList.remove('silenciado');
+                const toast = document.getElementById('toastSilenciadoNex');
+                if (toast) toast.style.display = 'none';
+                const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+                if (iconeEnviar) iconeEnviar.style.display = 'block';
+                const iconeMudo = document.getElementById('iconeMudoChatNex');
+                if (iconeMudo) iconeMudo.style.display = 'none';
+              }
+            }
+          }
+
+          console.log(`🔇 Realtime silenciados: ${username} (${payload.eventType})`);
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime silenciados status:', status);
+      });
+
+  } catch (err) {
+    console.warn('Erro ao iniciar Realtime de silenciados:', err);
+  }
+}
+
+// ============================================
+// REALTIME: PRESENÇA (ONLINE/OFFLINE)
+// ============================================
+let canalRealtimePresencaNex = null;
+
+async function iniciarRealtimePresencaNex() {
+  if (!window.supabaseClient) return;
+  if (canalRealtimePresencaNex && canalRealtimePresencaNex.state === 'joined') return;
+
+  try {
+    console.log('📡 Iniciando Realtime de presença...');
+
+    canalRealtimePresencaNex = window.supabaseClient
+      .channel('nex-presenca-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          const perfil = payload.new;
+          if (!perfil || !perfil.username) return;
+
+          // Calcula se está online com base na ultima_atividade
+          const ultima = perfil.ultima_atividade;
+          const LIMITE_ONLINE_MS = 30 * 1000;
+          const online = ultima && (Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+
+          // Avisa as telas (Chat e lista de Cards) que a presença mudou
+          document.dispatchEvent(new CustomEvent('drops_presenca_atualizada', {
+            detail: { username: perfil.username.toLowerCase(), online }
+          }));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime presença status:', status);
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setTimeout(iniciarRealtimePresencaNex, 5000);
+        }
+      });
+
+  } catch (err) {
+    console.warn('Erro ao iniciar Realtime de presença:', err);
+    setTimeout(iniciarRealtimePresencaNex, 5000);
+  }
+}
+
+  // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
+  window.iniciarRealtimePresencaNex = iniciarRealtimePresencaNex;
   window.carregarConversaSupabase = carregarConversaSupabase;
+  window.carregarSilenciadosSupabase = carregarSilenciadosSupabase;
+  window.alternarSilenciarSupabase = alternarSilenciarSupabase;
+  window.iniciarRealtimeSilenciadosNex = iniciarRealtimeSilenciadosNex;
   window.marcarConversaLidaSupabase = marcarConversaLidaSupabase;
   window.marcarConversaLidaDebounced = marcarConversaLidaDebounced;
 window.marcarMensagensComoEntreguesSupabase = marcarMensagensComoEntreguesSupabase;

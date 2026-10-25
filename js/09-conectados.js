@@ -87,6 +87,14 @@ async function renderizarConectadosMyDropsNex() {
   const container = document.getElementById('listaConectadosMyDropsNex');
   if (!container) return;
 
+  // ⚠️ MOSTRA SKELETON ENQUANTO BUSCA
+  container.innerHTML = '<div style="text-align:center; padding: 20px; color: #94a3b8; font-weight: 600;">Carregando amigos...</div>';
+
+  // ⚠️ BUSCA O DADO REAL DO SUPABASE ANTES DE MOSTRAR
+  if (window.ConectadosAdapterNex?.carregarConectadosSupabase) {
+    await window.ConectadosAdapterNex.carregarConectadosSupabase();
+  }
+
   let lista = lerConectadosMyDropsNex();
   container.innerHTML = '';
 
