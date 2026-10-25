@@ -374,18 +374,18 @@ if (bioEl) {
           }
         });
 
-        if (drop.type === 'video') {
-  card.innerHTML = `
-    <div class="perfil-drop-media-indicator" style="display: flex; align-items: center; gap: 4px;">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true">
-        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-      </svg>
-      vídeo
-    </div>
-    <video src="${drop.url}" muted loop playsinline autoplay></video>
-    <div class="perfil-drop-meta">preview</div>
-  `;
+             if (drop.type === 'video') {
+card.innerHTML = `
+  <div class="perfil-drop-media-indicator" style="display: flex; align-items: center; gap: 4px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true">
+      <polygon points="23 7 16 12 23 17 23 7"></polygon>
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+    </svg>
+    vídeo
+  </div>
+  <video src="${drop.url}" muted playsinline preload="metadata"></video>
+  <div class="perfil-drop-meta">preview</div>
+`; 
 } else {
   card.innerHTML = `
     <div class="perfil-drop-media-indicator" style="display: flex; align-items: center; gap: 4px;">

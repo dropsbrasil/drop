@@ -485,48 +485,59 @@ async function sincronizarTudoNoBootNex() {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return;
 
-    const promessas = [];
-
-    // 1. Perfil
-    promessas.push(sincronizar());
-
-    // 2. Publicações
-    if (typeof window.sincronizarPublicacoesSupabase === 'function') {
-      promessas.push(window.sincronizarPublicacoesSupabase());
-    }
-
-    // 3. Conectados
+    // ============================================
+    // FASE 1: O ESSENCIAL (Apenas Perfil e Conectados)
+    // ============================================
+    const promessasEssenciais = [];
+    promessasEssenciais.push(sincronizar());
+    
     if (window.ConectadosAdapterNex?.carregarConectadosSupabase) {
-      promessas.push(window.ConectadosAdapterNex.carregarConectadosSupabase());
+      promessasEssenciais.push(window.ConectadosAdapterNex.carregarConectadosSupabase());
     }
 
-    // 4. Histórico NEX
-    if (typeof window.sincronizarCardsNexSupabase === 'function') {
-      promessas.push(window.sincronizarCardsNexSupabase());
-    }
-
-    // 5. Bloqueados
-    if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
-      promessas.push(window.BloqueadosAdapterNex.carregarBloqueadosSupabase());
-    }
-
-    // ⚠️ allSettled garante que, se o NEX falhar, as publicações carregam
-    await Promise.allSettled(promessas);
-    console.log('✅ Sync Absoluto concluído. Dados 100% do Supabase.');
+    await Promise.allSettled(promessasEssenciais);
+    console.log('✅ Boot Essencial concluído.');
 
   } catch (err) {
-    console.error('Erro no Sync Absoluto:', err);
+    console.error('Erro no Sync Essencial:', err);
   } finally {
+    // Libera a tela IMEDIATAMENTE para o usuário usar o app
     if (loader) loader.remove();
+    
+    // ============================================
+    // FASE 2: O PESADO (Sob Demanda / Background)
+    // ============================================
+    // O app já está aberto. Espera 2 segundos e puxa o resto silenciosamente.
+    setTimeout(async () => {
+      try {
+        const promessasBackground = [];
+
+        if (typeof window.sincronizarPublicacoesSupabase === 'function') {
+          promessasBackground.push(window.sincronizarPublicacoesSupabase());
+        }
+
+        if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
+          promessasBackground.push(window.BloqueadosAdapterNex.carregarBloqueadosSupabase());
+        }
+
+        if (typeof window.sincronizarCardsNexSupabase === 'function') {
+          promessasBackground.push(window.sincronizarCardsNexSupabase());
+        }
+
+        await Promise.allSettled(promessasBackground);
+        console.log('✅ Sync de Background concluído (Dados pesados prontos).');
+      } catch (err) {
+        console.warn('Erro no Sync de Background:', err);
+      }
+    }, 2000);
   }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
   await aguardarSupabase();
   
-  // ⚠️ TIMEOUT DE 3 SEGUNDOS: Se a rede demorar, o app abre mesmo assim.
-  const timeoutSync = new Promise(resolve => setTimeout(resolve, 3000));
-  await Promise.race([sincronizarTudoNoBootNex(), timeoutSync]);
+  // ⚠️ Remove o Timeout do Race. Agora a Fase 1 é rápida e tem seu próprio controle.
+  await sincronizarTudoNoBootNex();
   
   iniciarHeartbeatNex();
   

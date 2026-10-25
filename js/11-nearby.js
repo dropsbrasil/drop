@@ -2209,23 +2209,45 @@ if (
     }
 
     if (dropPrincipal.mediaUrl) {
-      const imgFundo = document.createElement('img');
-      imgFundo.src = dropPrincipal.mediaUrl;
-      imgFundo.alt = '';
-      imgFundo.loading = 'lazy';
-      imgFundo.decoding = 'async';
-      imgFundo.style.position = 'absolute';
-      imgFundo.style.inset = '0';
-      imgFundo.style.width = '100%';
-      imgFundo.style.height = '100%';
-      imgFundo.style.objectFit = 'cover';
-      imgFundo.style.zIndex = '0';
-      imgFundo.style.pointerEvents = 'none';
+  const isVideo = dropPrincipal.tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(dropPrincipal.mediaUrl);
+  
+  if (isVideo) {
+    const videoFundo = document.createElement('video');
+    videoFundo.src = dropPrincipal.mediaUrl;
+    videoFundo.muted = true;
+    videoFundo.playsInline = true;
+    videoFundo.preload = 'metadata'; // Baixa só a capa, não o vídeo todo
+    videoFundo.style.position = 'absolute';
+    videoFundo.style.inset = '0';
+    videoFundo.style.width = '100%';
+    videoFundo.style.height = '100%';
+    videoFundo.style.objectFit = 'cover';
+    videoFundo.style.zIndex = '0';
+    videoFundo.style.pointerEvents = 'none';
 
-      card.style.position = 'relative';
-      card.style.overflow = 'hidden';
+    card.style.position = 'relative';
+    card.style.overflow = 'hidden';
 
-      card.appendChild(imgFundo);
+    card.appendChild(videoFundo);
+  } else {
+    const imgFundo = document.createElement('img');
+    imgFundo.src = dropPrincipal.mediaUrl;
+    imgFundo.alt = '';
+    imgFundo.loading = 'lazy';
+    imgFundo.decoding = 'async';
+    imgFundo.style.position = 'absolute';
+    imgFundo.style.inset = '0';
+    imgFundo.style.width = '100%';
+    imgFundo.style.height = '100%';
+    imgFundo.style.objectFit = 'cover';
+    imgFundo.style.zIndex = '0';
+    imgFundo.style.pointerEvents = 'none';
+
+    card.style.position = 'relative';
+    card.style.overflow = 'hidden';
+
+    card.appendChild(imgFundo);
+  }
     }
 
     const avatar = document.createElement('div');

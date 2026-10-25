@@ -785,9 +785,9 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarClassesBodyNex();
 
   // Em vez de MutationObserver (que trava), usa interval
-  // A cada 400ms verifica o estado. Leve e sem loop infinito.
-  setInterval(atualizarClassesBodyNex, 400);
-
+// ⚠️ Aumentado para 1500ms para poupar CPU e bateria (OOM)
+setInterval(atualizarClassesBodyNex, 1500);
+  
   // Reajusta quando a tela mudar
   window.addEventListener('resize', () => {
     ajustarAlturaEditorNex();

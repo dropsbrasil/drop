@@ -254,12 +254,12 @@ preview.appendChild(topbar);
   papel.style.boxShadow = '0 20px 60px rgba(0,0,0,0.45)';
 
   if (ehVideo) {
-    const video = document.createElement('video');
-    video.src = url;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'metadata';
-    video.style.position = 'absolute';
+  const video = document.createElement('video');
+  video.src = url;
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'none'; // ⚠️ Só baixa se o usuário parar no perfil
+  video.style.position = 'absolute';
     video.style.inset = '0';
     video.style.width = '100%';
     video.style.height = '100%';
