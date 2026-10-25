@@ -11,49 +11,42 @@
 
 .editor-alca-nex {
   position: absolute;
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  min-height: 42px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.92);
   border: 2px solid #ffffff;
-  color: #fff;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 999999;
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  pointer-events: auto;
   padding: 0;
-  transition: transform 0.12s ease, background 0.15s ease;
+  pointer-events: auto;
   box-sizing: border-box;
-  flex-shrink: 0;
-}
-
-.editor-alca-nex:active {
-  transform: scale(0.9);
-  background: rgba(37, 99, 235, 0.95);
+  color: transparent; /* Esconde qualquer texto sobrando */
 }
 
 .editor-alca-rotacionar-nex {
-  top: -50px;
-  left: -50px;
+  top: -11px;
+  left: -11px;
+  background: #10b981; /* Verde */
+  cursor: grab;
+}
+
+.editor-alca-rotacionar-nex:active {
+  cursor: grabbing;
 }
 
 .editor-alca-redimensionar-nex {
-  bottom: -50px;
-  right: -50px;
+  bottom: -11px;
+  right: -11px;
+  background: #3b82f6; /* Azul */
+  cursor: nwse-resize;
 }
 
 /* Esconde alças quando o elemento não está selecionado */
@@ -271,9 +264,10 @@
 }
 
 .notas-btn-topo {
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  /* ⚠️ Fundo sutil e Borda branca fina */
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  
   height: 36px;
   min-width: 36px;
   border-radius: 999px;
@@ -283,17 +277,19 @@
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
   -webkit-tap-highlight-color: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
 }
 
 .notas-btn-topo:active {
   background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: scale(0.94);
 }
 
@@ -307,10 +303,13 @@
 #notasBtnSalvarNex {
   background: rgba(37, 99, 235, 0.22);
   color: #bfdbfe;
+  /* ⚠️ Borda azulada */
+  border-color: rgba(96, 165, 250, 0.5);
 }
 
 #notasBtnSalvarNex:active {
   background: rgba(37, 99, 235, 0.38);
+  border-color: rgba(96, 165, 250, 0.8);
 }
 
 /* Sair — destaque vermelho suave */
@@ -318,6 +317,13 @@
   background: rgba(239, 68, 68, 0.18);
   color: #fca5a5;
   margin-left: 4px;
+  /* ⚠️ Borda avermelhada */
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+#notasBtnSairNex:active {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(248, 113, 113, 0.8);
 }
 
 /* ============================================
@@ -396,7 +402,7 @@
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.92);
   border: 2px solid #ffffff;
-  color: #fff;
+  color: #ef4444; /* ⚠️ Vermelho vibrante */
   font-size: 16px;
   font-weight: 900;
   display: none;

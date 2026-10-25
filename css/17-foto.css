@@ -136,60 +136,90 @@
   50%      { outline-offset: 8px; }
 }
 
+
 /* ============================================
-   BARRA SUPERIOR — PILL PRINCIPAL
+   BARRA SUPERIOR DO EDITOR DE FOTO (FINA)
 ============================================ */
 
-#fotoBarraTopoNex {
+#fotoBarraTopoNex,
+#fotoBarraContextoNex {
   position: absolute;
-  top: 14px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(20, 20, 30, 0.82);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  gap: 6px; /* Menor espaço entre os botões */
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px; /* ⚠️ Barra fina */
   border-radius: 999px;
-  padding: 6px;
-  gap: 4px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-  max-width: calc(100vw - 20px);
-  flex-wrap: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  max-width: 95vw;
   overflow-x: auto;
   scrollbar-width: none;
-  display: flex;
   align-items: center;
-  z-index: 100001;
 }
 
-#fotoBarraTopoNex::-webkit-scrollbar {
+#fotoBarraTopoNex::-webkit-scrollbar,
+#fotoBarraContextoNex::-webkit-scrollbar {
   display: none;
 }
 
+/* A barra de contexto começa escondida */
+#fotoBarraContextoNex {
+  display: none;
+}
+
+/* Estilo dos botões em cápsula (Fino) */
 .foto-btn-topo {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 999px;
-  font-size: 14px;
-  padding: 0 10px;
-  color: #e2e8f0;
-  white-space: nowrap;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease;
-  -webkit-tap-highlight-color: transparent;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  height: 34px; /* ⚠️ Altura reduzida */
+  padding: 0 12px; /* ⚠️ Menos padding */
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 13px; /* ⚠️ Fonte levemente menor */
   font-weight: 700;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+.foto-btn-topo:active {
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Botão que tem apenas o ícone (Clipe) */
+.foto-btn-topo.so-icone {
+  width: 34px;
+  padding: 0;
+}
+
+/* Botão Sair (Vermelho contido, indicando ação de fechar) */
+.foto-btn-topo.sair {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.foto-btn-topo.sair:active {
+  background: rgba(239, 68, 68, 0.3);
 }
 
 .foto-btn-topo:active {
   background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: scale(0.94);
 }
 
@@ -270,7 +300,7 @@
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.92);
   border: 2px solid #ffffff;
-  color: #fff;
+  color: #ef4444; /* ⚠️ Vermelho vibrante */
   font-size: 16px;
   font-weight: 900;
   display: none;

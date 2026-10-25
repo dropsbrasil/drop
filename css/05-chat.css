@@ -67,6 +67,7 @@
 
 .chat-back-btn:active {
   transform: scale(.96);
+  opacity: 0.7;
 }
 
 .chat-user-left {
@@ -218,6 +219,72 @@
    RODAPÉ DO CHAT (INPUT + BOTÕES)
 ============================================ */
 
+/* ============================================
+   CHAT SILENCIADO (Você foi silenciado)
+============================================ */
+
+.toast-silenciado-nex {
+  background: rgba(37, 99, 235, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  color: #bfdbfe;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px auto;
+  width: fit-content;
+  max-width: 90%;
+  text-align: center;
+  animation: fadeInToastSilenciado 0.3s ease;
+  z-index: 10;
+}
+
+@keyframes fadeInToastSilenciado {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Quando o chat está silenciado, a barra fica cinza e desabilitada */
+.chat-bottom.silenciado {
+  pointer-events: none; /* Desabilita todos os cliques */
+  opacity: 0.6;
+}
+
+.chat-bottom.silenciado textarea {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.chat-bottom.silenciado textarea::placeholder {
+  color: #64748b;
+}
+
+.chat-bottom.silenciado .chat-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* O botão de enviar fica vermelho silenciado */
+.chat-bottom.silenciado .send-btn {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  cursor: not-allowed;
+}
+
+/* Mantém o botão de enviar visível, mas bloqueia o input e clipe */
+.chat-bottom.silenciado #micBtn,
+.chat-bottom.silenciado #btnAnexoNex {
+  display: none !important;
+}
+
 .chat-bottom {
   position: relative !important;
   flex-shrink: 0 !important;
@@ -269,6 +336,15 @@
 #micBtn {
   background: #2563eb !important;
   color: #fff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#micBtn svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
 }
 
 #micBtn.mic-recording {

@@ -87,8 +87,8 @@
   z-index: 100;
   width: 132px;
   height: 132px;
-  border-radius: 50%;
-  border: 5px solid #8b5cf6;
+  border-radius: 32px;
+  border: 2px solid #8b5cf6;
   background: transparent;
   display: flex;
   align-items: center;
@@ -107,7 +107,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: 32px;
   display: block;
   z-index: 101;
 }
@@ -325,8 +325,16 @@
   display: block;
 }
 
-.btn-conectar-perfil {
+.btn-conectar-perfil,
+.btn-nex-perfil {
   background: rgba(100,116,139,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .btn-conectar-perfil.is-connected {
@@ -337,10 +345,42 @@
   background: rgba(255,255,255,.04);
 }
 
+/* Garante que o ícone não amasse e fique num tamanho bom */
+.btn-conectar-perfil svg,
+.btn-nex-perfil svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+
+/* ============================================
+   SKELETON LOADING (Efeito de carregamento)
+   ============================================ */
+@keyframes skeletonPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+.skeleton-box {
+  background: rgba(255, 255, 255, 0.1);
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+  border-radius: 8px;
+  color: transparent !important; /* Esconde o texto original se houver */
+  user-select: none;
+}
+
+.skeleton-texto {
+  display: inline-block;
+  height: 16px;
+  width: 120px;
+  margin-top: 8px;
+}
+
 /* ============================================
    TÍTULO DOS DROPS
-============================================ */
-
+   ============================================ */
 .perfil-drops-titulo {
   position: relative;
   z-index: 50;
@@ -352,11 +392,13 @@
   margin: 18px 14px 12px;
 }
 
-.perfil-drops-titulo img {
-  width: 24px;
-  height: 24px;
+.perfil-drops-titulo img,
+.perfil-drops-titulo .icone-cartoes-drop {
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
+  flex-shrink: 0;
 }
 
 .perfil-drops-titulo::after {
@@ -514,6 +556,7 @@
   color: #94a3b8;
   flex-shrink: 0;
 }
+
 /* ⚠️ Avatar e capa clicáveis (perfil visitado) */
 .perfil-avatar,
 .perfil-capa {
@@ -524,4 +567,74 @@
 .perfil-capa:active {
   filter: brightness(0.92);
   transform: scale(0.99);
+}
+
+/* ============================================
+   VISUALIZADOR DE FOTO DE PERFIL / CAPA
+============================================ */
+
+.viewer-perfil-nex {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 11, 24, 0.92); /* Fundo escuro */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 2147483647;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.viewer-perfil-nex.aberto {
+  display: flex;
+  opacity: 1;
+}
+
+/* Botão Fechar (Canto superior direito) */
+.viewer-perfil-fechar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 24px);
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.viewer-perfil-fechar:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.viewer-perfil-fechar svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Imagem */
+.viewer-perfil-img {
+  max-width: 100vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  animation: zoomInPerfil 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes zoomInPerfil {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

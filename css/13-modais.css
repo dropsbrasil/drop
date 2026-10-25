@@ -128,75 +128,41 @@
 }
 
 .modal-fundo-box {
-  width: min(92vw, 480px);
+  width: min(92vw, 400px);
   max-height: 90vh;
   overflow-y: auto;
-  background: #1a1f2e;
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 28px;
   padding: 24px;
   color: #fff;
-  box-shadow: 0 24px 60px rgba(0,0,0,.5);
-  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  border: 1px solid rgba(255,255,255,.1);
 }
 
 .modal-fundo-titulo {
   font-size: 20px;
   font-weight: 900;
   text-align: center;
-  margin-bottom: 20px;
-}
-
-.modal-fundo-opcoes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.modal-fundo-btn {
-  height: 64px;
-  border: none;
-  border-radius: 18px;
-  background: rgba(255,255,255,.08);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  cursor: pointer;
-  transition: .2s ease;
-  border: 1px solid rgba(255,255,255,.06);
-}
-
-.modal-fundo-btn:hover {
-  background: rgba(255,255,255,.15);
-  transform: scale(1.02);
-}
-
-.modal-fundo-btn:active {
-  transform: scale(.96);
-}
-
-.modal-fundo-btn span {
-  font-size: 24px;
+  margin-bottom: 24px;
 }
 
 .fundo-cores-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .fundo-cor {
   aspect-ratio: 1 / 1;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: .2s ease;
   border: 2px solid transparent;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
 }
 
 .fundo-cor:hover {
@@ -210,100 +176,41 @@
 
 .fundo-cor.selecionada {
   border-color: #fff;
-  box-shadow: 0 0 16px rgba(255,255,255,.3);
-}
-
-#fundoColorPicker {
-  width: 100%;
-  height: 50px;
-  border: none;
-  border-radius: 14px;
-  padding: 0;
-  cursor: pointer;
-  background: transparent;
-}
-
-.fundo-galeria-vazio {
-  padding: 30px;
-  text-align: center;
-  color: #94a3b8;
-  border: 2px dashed rgba(255,255,255,.1);
-  border-radius: 18px;
-  font-size: 14px;
-}
-
-.fundo-galeria-preview {
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.fundo-galeria-preview img {
-  width: 100%;
-  max-height: 300px;
-  object-fit: contain;
-  display: block;
-  background: #000;
-  border-radius: 18px;
-}
-
-.fundo-remover-img {
-  margin-top: 12px;
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 14px;
-  background: rgba(255,0,55,.25);
-  color: #fff;
-  font-weight: 800;
-  cursor: pointer;
-  transition: .2s ease;
-}
-
-.fundo-remover-img:hover {
-  background: rgba(255,0,55,.4);
+  box-shadow: 0 0 16px rgba(255,255,255,.3), inset 0 2px 4px rgba(0,0,0,0.15);
+  transform: scale(1.05);
 }
 
 .modal-fundo-actions {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,.06);
+  justify-content: flex-end;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 20px;
 }
 
 .modal-fundo-actions button {
-  height: 44px;
-  padding: 0 24px;
-  border: none;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 800;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: .2s ease;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.modal-fundo-actions button:active {
+  opacity: 0.7;
 }
 
 #fundoCancelarBtn {
-  background: rgba(255,255,255,.08);
-  color: #fff;
-}
-
-#fundoCancelarBtn:hover {
-  background: rgba(255,255,255,.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
 }
 
 #fundoAplicarBtn {
-  background: #3b82f6;
-  color: #fff;
-}
-
-#fundoAplicarBtn:hover {
   background: #2563eb;
-}
-
-#fundoAplicarBtn:active {
-  transform: scale(.95);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
 }
 
 /* Avatar do painel de controle — formato circular */
@@ -401,39 +308,116 @@
   color: #fff;
 }
 
+/* ============================================
+   BIO TOOLBAR (FONTES, CORES, ALINHAMENTO)
+============================================ */
+
 .bio-toolbar {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 12px;
   margin-bottom: 14px;
 }
 
-.bio-align-btn {
-  width: 38px;
-  height: 38px;
-  border: none;
-  border-radius: 12px;
-  background: rgba(255,255,255,.08);
+.bio-toolbar-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bio-toolbar-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+}
+
+.bio-fontes-lista,
+.bio-cores-lista,
+.bio-alinhamento-lista {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Botões de Fonte */
+.bio-fonte-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bio-fonte-btn.ativo {
+  background: rgba(37, 99, 235, 0.3);
+  border-color: #3b82f6;
+}
+
+/* Bolinhas de Cor */
+.bio-cor-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.bio-cor-btn.ativo {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+/* Botões de Alinhamento */
+.bio-align-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+}
+
+.bio-align-btn.ativo {
+  background: rgba(37, 99, 235, 0.3);
+  border-color: #3b82f6;
 }
 
 #inputBioNex {
   width: 100%;
-  height: 220px;
+  height: 160px;
   resize: none;
-  border: none;
+  border: 2px solid rgba(255,255,255,0.08);
   outline: none;
   padding: 16px;
   border-radius: 20px;
-  background: rgba(255,255,255,.06);
+  background: rgba(255,255,255,0.04);
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
+  transition: border-color 0.2s;
+}
+
+#inputBioNex:focus {
+  border-color: #3b82f6;
 }
 
 .mydrops-bio-actions {
@@ -1218,6 +1202,27 @@
 #mydropsGalleryImageInput {
   display: none;
 }
+
+/* ============================================
+   OVERLAY DE FOCO TOTAL (Vidro Fosco)
+============================================ */
+.mydrops-media-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 11, 24, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999998;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mydrops-media-overlay.aberto {
+  display: block;
+  opacity: 1;
+}
+
 /* ============================================
    MODAL SOBRE O APP
 ============================================ */

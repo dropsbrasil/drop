@@ -29,12 +29,25 @@
   border-radius: 14px;
   background: #111827;
   color: #fff;
-  font-size: 22px;
-  font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  padding: 0;
+  transition: transform 0.12s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-menu-global svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  pointer-events: none;
+}
+
+.btn-menu-global:active {
+  transform: scale(0.94);
+  background: #1e293b;
 }
 
 /* ============================================

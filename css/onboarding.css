@@ -7,10 +7,11 @@
 
 html, body {
   width: 100%;
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   background: #050b18;
   color: #ffffff;
-  overflow-x: hidden;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -38,9 +39,14 @@ button {
 .onb-tela {
   display: none;
   width: 100%;
-  min-height: 100vh;
-  padding: 24px 20px;
-  position: relative;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px)) 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .onb-tela.onb-ativa {
@@ -205,8 +211,10 @@ button {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  padding: 80px 0 40px;
-  gap: 32px;
+  padding: 80px 0 20px;
+  gap: 20px;
+  height: 100%;
+  overflow: hidden;
 }
 
 .onb-carrossel-slides {
@@ -297,6 +305,8 @@ button {
   justify-content: center;
   transition: .2s ease;
   box-shadow: 0 8px 20px rgba(37,99,235,.25);
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .onb-btn-principal:active {
