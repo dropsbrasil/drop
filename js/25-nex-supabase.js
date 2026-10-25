@@ -199,13 +199,19 @@ async function buscarStatusMensagensSupabase(conversaId) {
 // OBTER OU CRIAR CONVERSA
 // ============================================
 async function obterOuCriarConversaSupabase(usernameOutro) {
-    if (!window.supabaseClient || !usernameOutro) return null;
+  if (!window.supabaseClient || !usernameOutro) return null;
 
-    try {
-      const { data, error } = await window.supabaseClient
-        .rpc('obter_ou_criar_conversa', {
-          username_outro: normalizarUsernameNex(usernameOutro)
-        });
+  try {
+    // ⚠️ GARANTE QUE A SESSÃO ESTÁ ATIVA NO NAVEGADOR
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    if (!session) {
+      await window.supabaseClient.auth.refreshSession();
+    }
+
+    const { data, error } = await window.supabaseClient
+      .rpc('obter_ou_criar_conversa', {
+        username_outro: normalizarUsernameNex(usernameOutro)
+      });
 
       if (error) {
         console.warn('Erro ao obter/criar conversa:', error);
