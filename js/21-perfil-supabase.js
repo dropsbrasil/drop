@@ -460,13 +460,12 @@ window.salvarMuralSupabase = salvarMuralSupabase;
 window.buscarMuralSupabase = buscarMuralSupabase;
 window.limparMuralSupabase = limparMuralSupabase;
   
-  // ============================================
-// SYNC ABSOLUTO NO BOOT (Zero Cache)
+// ============================================
+// SYNC ABSOLUTO NO BOOT (Zero Cache + Timeout)
 // ============================================
 async function sincronizarTudoNoBootNex() {
   if (!window.supabaseClient) return;
 
-  // 1. Mostra um Loader Global para o usuário saber que está buscando
   let loader = document.getElementById('bootLoaderNex');
   if (!loader) {
     loader = document.createElement('div');
@@ -483,39 +482,41 @@ async function sincronizarTudoNoBootNex() {
   }
 
   try {
-    // 2. Busca a sessão real do usuário
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return;
 
-    // 3. Puxa Perfil do banco e sobrescreve o localStorage
-    await sincronizar(); 
+    const promessas = [];
 
-    // 4. Puxa Publicações do banco (MyDrops e Nearby)
+    // 1. Perfil
+    promessas.push(sincronizar());
+
+    // 2. Publicações
     if (typeof window.sincronizarPublicacoesSupabase === 'function') {
-      await window.sincronizarPublicacoesSupabase();
+      promessas.push(window.sincronizarPublicacoesSupabase());
     }
 
-    // 5. Puxa Conectados do banco
+    // 3. Conectados
     if (window.ConectadosAdapterNex?.carregarConectadosSupabase) {
-      await window.ConectadosAdapterNex.carregarConectadosSupabase();
+      promessas.push(window.ConectadosAdapterNex.carregarConectadosSupabase());
     }
 
-    // 6. Puxa Cards do NEX (Histórico de conversas)
+    // 4. Histórico NEX
     if (typeof window.sincronizarCardsNexSupabase === 'function') {
-      await window.sincronizarCardsNexSupabase();
+      promessas.push(window.sincronizarCardsNexSupabase());
     }
 
-    // 7. Puxa Bloqueados
+    // 5. Bloqueados
     if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
-      await window.BloqueadosAdapterNex.carregarBloqueadosSupabase();
+      promessas.push(window.BloqueadosAdapterNex.carregarBloqueadosSupabase());
     }
 
+    // ⚠️ allSettled garante que, se o NEX falhar, as publicações carregam
+    await Promise.allSettled(promessas);
     console.log('✅ Sync Absoluto concluído. Dados 100% do Supabase.');
 
   } catch (err) {
     console.error('Erro no Sync Absoluto:', err);
   } finally {
-    // 8. Remove o loader e libera o app
     if (loader) loader.remove();
   }
 }
@@ -523,10 +524,10 @@ async function sincronizarTudoNoBootNex() {
 document.addEventListener('DOMContentLoaded', async () => {
   await aguardarSupabase();
   
-  // Executa o Sync Absoluto antes de liberar o app
-  await sincronizarTudoNoBootNex();
+  // ⚠️ TIMEOUT DE 3 SEGUNDOS: Se a rede demorar, o app abre mesmo assim.
+  const timeoutSync = new Promise(resolve => setTimeout(resolve, 3000));
+  await Promise.race([sincronizarTudoNoBootNex(), timeoutSync]);
   
-  // Inicia batimentos e realtime
   iniciarHeartbeatNex();
   
   if (typeof window.iniciarRealtimeNexSupabase === 'function') {
