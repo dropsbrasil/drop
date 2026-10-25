@@ -729,8 +729,7 @@ btn.classList.toggle('is-connected', conectado);
   // ============================================
   // ABRIR CHAT DIRETO COM PERFIL
   // ============================================
-
-  function abrirChatDiretoPerfilNex() {
+function abrirChatDiretoPerfilNex() {
   // ⚠️ Pega direto do estado global (não do DOM, que pode estar desatualizado)
   const perfilUsername = Drops.estado.perfilBloquearAtual;
   const perfilAberto = Drops.estado.perfilAberto;
@@ -742,17 +741,21 @@ btn.classList.toggle('is-connected', conectado);
 
   // ⚠️ Avisa o chat que veio do perfil para ele voltar pra cá
   window.__chatVeioDoPerfil = true;
+  
+  // ⚠️ Limpa a conversa atual antes de abrir a nova (evita o Efeito Fantasma do Jadilson)
+  Drops.estado.conversaAtual = '';
 
   // ⚠️ PADRONIZAÇÃO: Usa a função oficial de abrir chat do 05-nex-chat.js
   if (typeof window.abrirChatNex === 'function') {
     window.abrirChatNex({
       username: perfilUsername,
-      nome: perfilAberto
+      nome: perfilAberto,
+      chave: perfilUsername
     });
   } else {
     console.error('❌ abrirChatNex não está disponível.');
   }
-  }
+}
 
   window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;
 

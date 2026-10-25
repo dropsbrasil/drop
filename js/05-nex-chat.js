@@ -49,11 +49,19 @@
     const bio = document.getElementById('chatBio');
     const status = document.getElementById('chatStatus');
 
+    if (nome && nome.textContent === 'Carregando...') nome.textContent = '';
+    if (bio && bio.textContent === 'Carregando...') bio.textContent = '';
+    if (status && status.textContent === 'Carregando...') status.textContent = '';
+
     if (avatar) avatar.classList.remove('is-loading');
     if (nome) nome.classList.remove('is-loading');
     if (bio) bio.classList.remove('is-loading');
     if (status) status.classList.remove('is-loading');
   }
+
+  // ============================================
+  // VARIÁVEIS DE ESTADO
+  // ============================================
 
   let respostaSelecionadaNex = null;
   let mensagemSelecionadaNex = null;
@@ -64,8 +72,7 @@
 
   const cacheAvataresNex = {};
   const avataresEmBuscaNex = new Set();
-
-  // ============================================
+    // ============================================
   // MENU DO CHAT (3 pontinhos)
   // ============================================
 
@@ -196,53 +203,50 @@
   }
 
   async function alternarSilenciarChatNex(username) {
-  if (!username) return;
+    if (!username) return;
 
-  const lista = (() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
-      );
-    } catch (e) {
-      return [];
+    const lista = (() => {
+      try {
+        return JSON.parse(
+          localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
+        );
+      } catch (e) {
+        return [];
+      }
+    })();
+
+    const index = lista.indexOf(username);
+    let ativouSilencio = false;
+
+    if (index === -1) {
+      lista.push(username);
+      ativouSilencio = true;
+    } else {
+      lista.splice(index, 1);
     }
-  })();
 
-  const index = lista.indexOf(username);
-  let ativouSilencio = false;
+    salvarSilenciadosNex(lista);
 
-  if (index === -1) {
-    lista.push(username);
-    ativouSilencio = true;
-  } else {
-    lista.splice(index, 1);
-  }
+    if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
+    if (ativouSilencio) {
+      window.__euSilencieiNex.add(username);
+    } else {
+      window.__euSilencieiNex.delete(username);
+    }
 
-  // ⚠️ Salva no localStorage (cache)
-  salvarSilenciadosNex(lista);
+    if (typeof window.alternarSilenciarSupabase === 'function') {
+      await window.alternarSilenciarSupabase(
+        username,
+        ativouSilencio ? 'silenciar' : 'dessilenciar'
+      );
+    }
 
-  // ⚠️ Atualiza o cache em memória (quem EU silenciei)
-  if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
-  if (ativouSilencio) {
-    window.__euSilencieiNex.add(username);
-  } else {
-    window.__euSilencieiNex.delete(username);
-  }
+    atualizarSilenciadoNoCardNex(username);
 
-  // ⚠️ Salva no Supabase
-  if (typeof window.alternarSilenciarSupabase === 'function') {
-    await window.alternarSilenciarSupabase(
-      username,
-      ativouSilencio ? 'silenciar' : 'dessilenciar'
+    window.mostrarToastNex?.(
+      ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
+      'info'
     );
-  }
-
-  atualizarSilenciadoNoCardNex(username);
-
-  window.mostrarToastNex?.(
-    ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
-    'info'
-  );
   }
 
   function atualizarSilenciadoNoCardNex(username) {
@@ -267,7 +271,7 @@
   }
 
   // ============================================
-  // APAGAR CONVERSA (para todos + local)
+  // APAGAR CONVERSA
   // ============================================
 
   function abrirConfirmApagarChatNex(username) {
@@ -614,7 +618,7 @@ async function resolverUsernameRealNex(chave, card = null) {
 }
 
 // ============================================
-// BUSCAR AVATAR
+// BUSCAR AVATAR (cache em memória)
 // ============================================
 
 async function buscarAvatarNex(username) {
@@ -659,17 +663,29 @@ async function buscarAvatarNex(username) {
 
   return null;
 }
-
+  // ============================================
+// ABRIR CHAT (versão definitiva)
 // ============================================
-// ABRIR CHAT (⚠️ CORRIGIDO: chave interna vs nome exibido)
+// Aceita DUAS formas:
+//   1. Um Card do DOM (vem da aba NEX)
+//   2. Um objeto { username, nome } (vem do perfil visitado)
+//
+// Fluxo idêntico nos dois casos:
+//   a) Descobre o @username
+//   b) Pinta o cabeçalho direto do Supabase
+//   c) Desativa o Skeleton
+//   d) Carrega o histórico e renderiza
 // ============================================
 
 async function abrirChatNex(el) {
-  // ⚠️ Ativa o Skeleton de carregamento
-  //    (avatar girando, textos pulsando)
+  // --------------------------------------------
+  // 1. ATIVA O SKELETON IMEDIATAMENTE
+  // --------------------------------------------
   ativarSkeletonChatNex();
-  
-  // ⚠️ NOVO: aceita DOM (card) OU objeto { username, nome }
+
+  // --------------------------------------------
+  // 2. IDENTIFICA A ORIGEM E PEGA O @USERNAME
+  // --------------------------------------------
   const ehObjetoDireto =
     el &&
     typeof el === 'object' &&
@@ -678,66 +694,63 @@ async function abrirChatNex(el) {
     (el.username || el.chave);
 
   let card = null;
-  let chaveInterna = '';
-  let nomeExibido = '';
+  let chaveBruta = '';
+  let nomeSugerido = '';
 
   if (ehObjetoDireto) {
-    chaveInterna = String(el.username || el.chave || '')
+    chaveBruta = String(el.username || el.chave || '')
       .replace(/^@/, '')
       .trim()
       .toLowerCase();
-    nomeExibido = el.nome || chaveInterna;
+    nomeSugerido = el.nome || chaveBruta;
   } else {
     card = el?.closest?.('.nex-chat') || el;
-    chaveInterna =
-      card?.dataset?.chat || card?.querySelector('h3')?.innerText?.trim();
-    nomeExibido =
+    chaveBruta = String(
+      card?.dataset?.chat ||
+        card?.querySelector('h3')?.innerText ||
+        ''
+    ).trim();
+    nomeSugerido =
       card?.dataset?.nomeExibido ||
       card?.querySelector('h3')?.innerText?.trim() ||
-      chaveInterna;
+      chaveBruta;
   }
 
-  if (!chaveInterna) return;
-
-  // ============================================
-  // RESOLVE O USERNAME REAL
-  // ============================================
-
-  const usernameReal = await resolverUsernameRealNex(chaveInterna, card);
-
-  if (!usernameReal) {
-    console.warn('⚠️ Não foi possível resolver o username de:', chaveInterna);
-    window.mostrarToastNex?.('Não foi possível abrir a conversa.', 'erro');
+  if (!chaveBruta) {
+    console.warn('⚠️ abrirChatNex: chave vazia');
+    desativarSkeletonChatNex();
     return;
   }
 
-  // ⚠️ A partir daqui, tudo usa o USERNAME como chave
-    if (typeof window.dropsEmpilharEstado === 'function') {
+  // Resolve o @username real (pode ter que buscar no banco se veio um nome solto)
+  const usernameReal = await resolverUsernameRealNex(chaveBruta, card);
+
+  if (!usernameReal) {
+    console.warn('⚠️ abrirChatNex: não foi possível resolver username');
+    window.mostrarToastNex?.('Não foi possível abrir a conversa.', 'erro');
+    desativarSkeletonChatNex();
+    return;
+  }
+
+  // --------------------------------------------
+// 3. ATUALIZA O ESTADO GLOBAL E LIMPA A TELA
+// --------------------------------------------
+// ⚠️ Força a chave para o usuário novo ANTES de qualquer render
+Drops.estado.conversaAtual = usernameReal;
+window.setConversaAbertaNex(usernameReal);
+window.setCardAbertoNex(card || null);
+
+// ⚠️ Limpa a área de mensagens para não mostrar histórico do perfil anterior
+const areaMsgs = document.getElementById('chatMsgs');
+if (areaMsgs) areaMsgs.innerHTML = '';
+
+  if (typeof window.dropsEmpilharEstado === 'function') {
     window.dropsEmpilharEstado('chat', { username: usernameReal });
   }
 
-  Drops.estado.conversaAtual = usernameReal;
-  window.setConversaAbertaNex(usernameReal);
-window.setCardAbertoNex(card || null);
-  
-window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
-window.__convNomesExibidosNex[usernameReal] = nomeExibido;
-
-  console.log('📂 Abrindo chat. Chave:', chaveInterna, '| Username:', usernameReal, '| Nome:', nomeExibido);
-
-  const connected =
-  card?.dataset?.connected === 'yes' ||
-  estaConectadoNoMyDropsNex(usernameReal);
-
-obterEstadoConversaNex(usernameReal, connected);
-
-// ⚠️ Só escreve no card se ele existir
-if (card && card.dataset) {
-  card.dataset.connected = connected ? 'yes' : 'no';
-}
-  
-  marcarConversaComoLidaNex(usernameReal, card);
-
+  // --------------------------------------------
+  // 4. TROCA DE TELA (mostra o chat, esconde o NEX)
+  // --------------------------------------------
   const chat = document.getElementById('chatNex');
   const nex = document.getElementById('nex');
 
@@ -753,66 +766,46 @@ if (card && card.dataset) {
 
   document.body.classList.add('chat-aberto');
 
-  const bio =
-    el?.dataset?.bio || el?.querySelector('p')?.innerText?.trim() || '';
+  // --------------------------------------------
+  // 5. BUSCA OS DADOS DO PERFIL (nome, bio, avatar, status)
+  // --------------------------------------------
+  // Faz uma única query e usa para pintar o cabeçalho.
+  // Se falhar, ainda tenta pintar com o que tem (nomeSugerido).
+  let perfilReal = null;
 
+  if (window.supabaseClient) {
+    try {
+      const { data } = await window.supabaseClient
+        .from('profiles')
+        .select('nome, bio, avatar_url, ultima_atividade')
+        .eq('username', usernameReal)
+        .maybeSingle();
+
+      perfilReal = data || null;
+    } catch (err) {
+      console.warn('Erro ao buscar dados do perfil:', err);
+    }
+  }
+
+  // Nome final: banco > card > chave crua
+  const nomeExibido =
+    perfilReal?.nome ||
+    nomeSugerido ||
+    usernameReal;
+
+  // Salva o nome exibido no cache global (para o histórico usar depois)
+  window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
+  window.__convNomesExibidosNex[usernameReal] = nomeExibido;
+
+  // --------------------------------------------
+  // 6. PREENCHE O CABEÇALHO
+  // --------------------------------------------
   const chatName = document.getElementById('chatName');
   const chatBio = document.getElementById('chatBio');
   const chatStatus = document.getElementById('chatStatus');
   const chatAvatar = document.getElementById('chatAvatar');
 
-// ============================================
-// O botão ⋮ agora vem fixo do HTML (index.html)
-// ============================================
-  
-    // ============================================
-  // PRESENÇA ONLINE/OFFLINE
-  // ============================================
-
-  async function atualizarPresencaChatNex() {
-    if (!usernameReal || !window.supabaseClient) return;
-
-    try {
-      const { data: perfil } = await window.supabaseClient
-        .from('profiles')
-        .select('ultima_atividade')
-        .eq('username', usernameReal)
-        .maybeSingle();
-
-      const ultima = perfil?.ultima_atividade;
-      const LIMITE_ONLINE_MS = 30 * 1000;
-
-      const estaOnline =
-        ultima &&
-        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
-
-      if (chatStatus) {
-        chatStatus.innerText = estaOnline ? 'online' : 'offline';
-        chatStatus.classList.toggle('online', !!estaOnline);
-        chatStatus.classList.toggle('offline', !estaOnline);
-      }
-    } catch (err) {
-      console.warn('Erro ao buscar presença:', err);
-      if (chatStatus) {
-        chatStatus.innerText = 'offline';
-        chatStatus.classList.add('offline');
-        chatStatus.classList.remove('online');
-      }
-    }
-  }
-
-  atualizarPresencaChatNex();
-
-  if (window.__presencaIntervalNex) {
-    clearInterval(window.__presencaIntervalNex);
-  }
-// ⚠️ OTIMIZAÇÃO DE COTA: 2 minutos em vez de 30s
-window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 120000);
-
-  // ============================================
-  // ⚠️ NOME DO CHAT = NOME EXIBIDO (não o @username)
-  // ============================================
-
+  // Nome
   if (chatName) {
     chatName.innerText = nomeExibido;
     chatName.style.cursor = 'pointer';
@@ -830,160 +823,138 @@ window.__presencaIntervalNex = setInterval(atualizarPresencaChatNex, 120000);
     chatName.addEventListener('click', chatName.__clickPerfilHandler);
   }
 
-  // ============================================
-  // BIO
-  // ============================================
-
+  // Bio
   if (chatBio) {
-    chatBio.textContent = 'Carregando...';
+    const bioReal = (perfilReal?.bio || '').trim();
+    const textoBio = bioReal || 'Sem bio ainda.';
+
+    chatBio.innerText = textoBio;
+    chatBio.setAttribute('data-texto', textoBio);
     chatBio.classList.remove('marquee-ativo');
 
-    if (usernameReal && window.supabaseClient) {
-      try {
-        const { data: perfil } = await window.supabaseClient
-          .from('profiles')
-          .select('bio')
-          .eq('username', usernameReal)
-          .maybeSingle();
-
-        const bioReal = (perfil?.bio || '').trim();
-        const textoBio = bioReal || 'Sem bio ainda.';
-        chatBio.textContent = textoBio;
-        chatBio.setAttribute('data-texto', textoBio);
-
-        setTimeout(() => {
-          if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
-            chatBio.classList.add('marquee-ativo');
-          }
-        }, 100);
-      } catch (err) {
-        console.warn('Erro ao buscar bio no chat:', err);
-        chatBio.textContent = bio || 'Sem bio ainda.';
-        chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
+    setTimeout(() => {
+      if (chatBio.scrollWidth > chatBio.clientWidth + 2) {
+        chatBio.classList.add('marquee-ativo');
       }
-    } else {
-      chatBio.textContent = bio || 'Sem bio ainda.';
-      chatBio.setAttribute('data-texto', bio || 'Sem bio ainda.');
-    }
+    }, 100);
   }
 
-  // ============================================
-  // STATUS E AVATAR
-  // ============================================
-
+  // Status
   if (chatStatus) {
-    chatStatus.innerText = '';
-    chatStatus.classList.remove('online', 'offline');
+    const ultima = perfilReal?.ultima_atividade;
+    const LIMITE_ONLINE_MS = 30 * 1000;
+
+    const estaOnline =
+      ultima &&
+      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS;
+
+    chatStatus.innerText = estaOnline ? 'online' : 'offline';
+    chatStatus.classList.toggle('online', !!estaOnline);
+    chatStatus.classList.toggle('offline', !estaOnline);
   }
 
-  // ⚠️ Avatar mostra a inicial do NOME EXIBIDO
+  // Avatar
   if (chatAvatar) {
     chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
     chatAvatar.style.backgroundImage = 'none';
     chatAvatar.style.cursor = 'pointer';
+
+    if (perfilReal?.avatar_url) {
+      chatAvatar.innerHTML = `<img src="${perfilReal.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
+    }
+
+    if (chatAvatar.__clickPerfilHandler) {
+      chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
+    }
+
+    chatAvatar.__clickPerfilHandler = () => {
+      if (typeof window.abrirPerfilVisitadoNex === 'function') {
+        window.abrirPerfilVisitadoNex(usernameReal, nomeExibido);
+      }
+    };
+
+    chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
   }
 
-  // ⚠️ Desativa o Skeleton AQUI. Nome, bio e inicial do avatar já estão prontos.
-  // A foto real e o histórico vão carregar em segundo plano.
+  // --------------------------------------------
+  // 7. CABEÇALHO PRONTO → MATA O SKELETON
+  // --------------------------------------------
   desativarSkeletonChatNex();
 
-  if (
-  usernameReal &&
-  typeof window.buscarPerfilPublicoSupabase === 'function'
-) {
-  try {
-    const perfil = await window.buscarPerfilPublicoSupabase(usernameReal);
+  // --------------------------------------------
+  // 8. VERIFICA SE ESTOU SILENCIADO POR ESSA PESSOA
+  // --------------------------------------------
+  const chatBottom = document.querySelector('.chat-bottom');
+  const toastSilenciado = document.getElementById('toastSilenciadoNex');
+  const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+  const iconeMudo = document.getElementById('iconeMudoChatNex');
 
-    if (perfil && perfil.avatar_url && chatAvatar) {
-      chatAvatar.innerHTML = `<img src="${perfil.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
-      chatAvatar.style.backgroundImage = 'none';
-    }
-  } catch (err) {
-    console.warn('Erro ao buscar avatar no chat:', err);
+  const listaQuemMeSilenciou = window.__quemMeSilenciouNex || new Set();
+  const estouSilenciado = listaQuemMeSilenciou.has(usernameReal);
+
+  if (estouSilenciado) {
+    if (chatBottom) chatBottom.classList.add('silenciado');
+    if (toastSilenciado) toastSilenciado.style.display = 'flex';
+    if (iconeEnviar) iconeEnviar.style.display = 'none';
+    if (iconeMudo) iconeMudo.style.display = 'block';
+  } else {
+    if (chatBottom) chatBottom.classList.remove('silenciado');
+    if (toastSilenciado) toastSilenciado.style.display = 'none';
+    if (iconeEnviar) iconeEnviar.style.display = 'block';
+    if (iconeMudo) iconeMudo.style.display = 'none';
   }
-  }
 
-  if (chatAvatar) {
-  if (chatAvatar.__clickPerfilHandler) {
-    chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
-  }
-
-  chatAvatar.__clickPerfilHandler = () => {
-    if (typeof window.abrirPerfilVisitadoNex === 'function') {
-      window.abrirPerfilVisitadoNex(usernameReal, nomeExibido);
-    }
-  };
-
-  chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
-}
-
-// ============================================
-// ⚠️ VERIFICA SE FUI SILENCIADO POR ESSA PESSOA
-// ============================================
-const chatBottom = document.querySelector('.chat-bottom');
-const toastSilenciado = document.getElementById('toastSilenciadoNex');
-const iconeEnviar = document.getElementById('iconeEnviarChatNex');
-const iconeMudo = document.getElementById('iconeMudoChatNex');
-
-// Simulação (até o Supabase voltar): lista global de quem me silenciou
-const listaQuemMeSilenciou = window.__quemMeSilenciouNex || new Set();
-const estouSilenciado = listaQuemMeSilenciou.has(usernameReal);
-
-if (estouSilenciado) {
-  if (chatBottom) chatBottom.classList.add('silenciado');
-  if (toastSilenciado) toastSilenciado.style.display = 'flex';
-  if (iconeEnviar) iconeEnviar.style.display = 'none';
-  if (iconeMudo) iconeMudo.style.display = 'block';
-} else {
-  if (chatBottom) chatBottom.classList.remove('silenciado');
-  if (toastSilenciado) toastSilenciado.style.display = 'none';
-  if (iconeEnviar) iconeEnviar.style.display = 'block';
-  if (iconeMudo) iconeMudo.style.display = 'none';
-}
-
-  // ============================================
-  // CARREGA CONVERSA (com o @username como chave)
-  // ============================================
-
+  // --------------------------------------------
+  // 9. CARREGA O HISTÓRICO DO BANCO
+  // --------------------------------------------
   if (typeof window.carregarConversaSupabase === 'function') {
-  try {
-    await window.carregarConversaSupabase(usernameReal);
-  } catch (err) {
-    console.warn('Erro ao carregar conversa do Supabase:', err);
+    try {
+      await window.carregarConversaSupabase(usernameReal);
+    } catch (err) {
+      console.warn('Erro ao carregar histórico:', err);
+    }
   }
-}
 
-if (!conversas[usernameReal]) {
-  conversas[usernameReal] = [];
-}
+  if (!conversas[usernameReal]) {
+    conversas[usernameReal] = [];
+  }
 
-// ⚠️ Marca as mensagens da conversa como VISUALIZADAS no banco
-const convIdParaMarcarVisto =
-  window.__convIdsNex && window.__convIdsNex[usernameReal];
+  // --------------------------------------------
+  // 10. MARCA MENSAGENS COMO VISUALIZADAS
+  // --------------------------------------------
+  const convIdParaMarcarVisto =
+    window.__convIdsNex && window.__convIdsNex[usernameReal];
 
-if (
-  convIdParaMarcarVisto &&
-  typeof window.marcarMensagensComoVisualizadasSupabase === 'function'
-) {
-  window
-    .marcarMensagensComoVisualizadasSupabase(convIdParaMarcarVisto)
-    .catch((err) =>
-      console.warn('Falha ao marcar visualizadas:', err)
-    );
-}
+  if (
+    convIdParaMarcarVisto &&
+    typeof window.marcarMensagensComoVisualizadasSupabase === 'function'
+  ) {
+    window
+      .marcarMensagensComoVisualizadasSupabase(convIdParaMarcarVisto)
+      .catch((err) =>
+        console.warn('Falha ao marcar visualizadas:', err)
+      );
+  }
 
-atualizarSilenciadoNoCardNex(usernameReal);
+  // Atualiza o card (se existir) para tirar o "silenciado"
+  atualizarSilenciadoNoCardNex(usernameReal);
 
+  // --------------------------------------------
+  // 11. RENDERIZA AS MENSAGENS NA TELA
+  // --------------------------------------------
   renderChat(usernameReal);
+
   document.getElementById('chatInput')?.focus();
 
-if (window.__statusPollingNex) {
-  clearInterval(window.__statusPollingNex);
-  window.__statusPollingNex = null;
+  // --------------------------------------------
+  // 12. LIMPA O PRESENÇA POLLING ANTIGO
+  // --------------------------------------------
+  if (window.__statusPollingNex) {
+    clearInterval(window.__statusPollingNex);
+    window.__statusPollingNex = null;
+  }
 }
-}
-
-// ============================================
+  // ============================================
 // FECHAR CHAT
 // ============================================
 
@@ -1001,23 +972,21 @@ function voltarChatNex() {
   fecharMenuChatNex();
 
   const chat = document.getElementById('chatNex');
-const nex = document.getElementById('nex');
+  const nex = document.getElementById('nex');
 
-if (chat) {
-  chat.style.display = 'none';
-  chat.classList.remove('active');
-}
-
-// ⚠️ Só volta pro NEX se NÃO veio do perfil visitado
-if (!window.__chatVeioDoPerfil) {
-  if (nex) {
-    nex.style.display = 'block';
-    nex.classList.add('active');
+  if (chat) {
+    chat.style.display = 'none';
+    chat.classList.remove('active');
   }
-} else {
-  // Se veio do perfil, reseta a flag (o perfil continua aberto por baixo)
-  window.__chatVeioDoPerfil = false;
-}
+
+  if (!window.__chatVeioDoPerfil) {
+    if (nex) {
+      nex.style.display = 'block';
+      nex.classList.add('active');
+    }
+  } else {
+    window.__chatVeioDoPerfil = false;
+  }
 
   mostrarNexTab(Drops.estado.abaNex);
 
@@ -1028,23 +997,22 @@ if (!window.__chatVeioDoPerfil) {
   Drops.estado.conversaAtual = '';
 
   document.body.classList.remove('chat-aberto');
-document.body.classList.remove('chat-open');
+  document.body.classList.remove('chat-open');
 
-// ⚠️ Limpa o estado de silenciado ao sair
-const chatBottom = document.querySelector('.chat-bottom');
-if (chatBottom) chatBottom.classList.remove('silenciado');
+  const chatBottom = document.querySelector('.chat-bottom');
+  if (chatBottom) chatBottom.classList.remove('silenciado');
 
-const toastSilenciado = document.getElementById('toastSilenciadoNex');
-if (toastSilenciado) toastSilenciado.style.display = 'none';
+  const toastSilenciado = document.getElementById('toastSilenciadoNex');
+  if (toastSilenciado) toastSilenciado.style.display = 'none';
 
-const iconeEnviar = document.getElementById('iconeEnviarChatNex');
-if (iconeEnviar) iconeEnviar.style.display = 'block';
+  const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+  if (iconeEnviar) iconeEnviar.style.display = 'block';
 
-const iconeMudo = document.getElementById('iconeMudoChatNex');
-if (iconeMudo) iconeMudo.style.display = 'none';
+  const iconeMudo = document.getElementById('iconeMudoChatNex');
+  if (iconeMudo) iconeMudo.style.display = 'none';
 
-if (typeof window.sincronizarCardsNexSupabase === 'function') {
-  setTimeout(() => {
+  if (typeof window.sincronizarCardsNexSupabase === 'function') {
+    setTimeout(() => {
       window.sincronizarCardsNexSupabase();
     }, 300);
   }
@@ -1134,25 +1102,23 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
     await atualizarBadgeReacaoMidiaNex(msgId, midiaIndex);
   }
 }
-
-// ============================================
+  // ============================================
 // RENDERIZAR CHAT
 // ============================================
 
-  function renderChat(nome) {
+function renderChat(nome) {
   const area = document.getElementById('chatMsgs');
   if (!area) return;
 
   area.innerHTML = '';
 
-  // ⚠️ Sempre resolve pro username real (chave única)
-  const chaveUnica = (typeof window.resolverChaveNex === 'function')
-    ? window.resolverChaveNex(nome)
-    : String(nome || '').replace(/^@/, '').toLowerCase().trim();
+  const chaveUnica =
+    typeof window.resolverChaveNex === 'function'
+      ? window.resolverChaveNex(nome)
+      : String(nome || '').replace(/^@/, '').toLowerCase().trim();
 
   const msgs = conversas[chaveUnica] || conversas[nome] || [];
 
-  
   msgs.forEach((msg) => {
     if (!msg.id) msg.id = gerarIdMensagemNex();
     if (!msg.timestamp) msg.timestamp = Date.now();
@@ -1192,22 +1158,23 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
 
     const lado = msg.side === 'right' ? 'right' : 'left';
 
-let nomeExibido;
+    let nomeExibido;
 
-if (lado === 'right') {
-  nomeExibido = 'Eu';
-} else {
-  const usernameContato =
-    (typeof window.resolverChaveNex === 'function')
-      ? window.resolverChaveNex(nome)
-      : String(nome || '').replace(/^@/, '').toLowerCase().trim();
+    if (lado === 'right') {
+      nomeExibido = 'Eu';
+    } else {
+      const usernameContato =
+        typeof window.resolverChaveNex === 'function'
+          ? window.resolverChaveNex(nome)
+          : String(nome || '').replace(/^@/, '').toLowerCase().trim();
 
-  nomeExibido =
-    (window.__convNomesExibidosNex &&
-     window.__convNomesExibidosNex[usernameContato]) ||
-    msg.nome ||
-    usernameContato;
-}
+      nomeExibido =
+        (window.__convNomesExibidosNex &&
+          window.__convNomesExibidosNex[usernameContato]) ||
+        msg.nome ||
+        usernameContato;
+    }
+
     const avatarTexto = (msg.avatar || nomeExibido || 'U')
       .toString()
       .slice(0, 2)
@@ -1265,15 +1232,15 @@ if (lado === 'right') {
 
     let anexosHTML = '';
 
-if (typeof window.montarAnexosHTMLNex === 'function') {
-  try {
-    anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
-  } catch (errAnexo) {
-    console.error('❌ Erro ao montar anexo da msg:', msg.id, errAnexo, msg);
-    // fallback: mostra placeholder
-    anexosHTML = '<div style="padding:8px;font-size:12px;color:#94a3b8;font-style:italic;">📎 Anexo indisponível</div>';
-  }
-}
+    if (typeof window.montarAnexosHTMLNex === 'function') {
+      try {
+        anexosHTML = window.montarAnexosHTMLNex(msg, dataExibida, horaExibida);
+      } catch (errAnexo) {
+        console.error('❌ Erro ao montar anexo da msg:', msg.id, errAnexo, msg);
+        anexosHTML =
+          '<div style="padding:8px;font-size:12px;color:#94a3b8;font-style:italic;">📎 Anexo indisponível</div>';
+      }
+    }
 
     const statusOnclick =
       lado === 'right' && msg.status === 'erro'
@@ -1343,68 +1310,68 @@ if (typeof window.montarAnexosHTMLNex === 'function') {
         </div>
 
         ${
-              msg.resposta
-      ? `
-  <div style="display:flex;align-items:center;margin-top:8px;gap:8px;">
-    <div
-      class="reply-linked-top"
-      style="background: #10b981 !important; color: #ffffff !important; border: none !important; border-radius: 999px !important; padding: 6px 12px !important; display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; width: fit-content;"
-      onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
-      <span class="reply-arrow" style="color: #ffffff !important; font-size: 16px !important; margin: 0 !important;">↖</span>
-      <span class="reply-count-pill" style="background: #ffffff !important; color: #10b981 !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">
-        ${ordemResposta}/${totalRespostasDaOriginal}
-      </span>
-    </div>
+          msg.resposta
+            ? `
+        <div style="display:flex;align-items:center;margin-top:8px;gap:8px;">
+          <div
+            class="reply-linked-top"
+            style="background: #10b981 !important; color: #ffffff !important; border: none !important; border-radius: 999px !important; padding: 6px 12px !important; display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; width: fit-content;"
+            onclick="irParaMensagemNex('${msg.resposta.id}', '${msg.id}', '${msg._supabaseId || ''}')">
+            <span class="reply-arrow" style="color: #ffffff !important; font-size: 16px !important; margin: 0 !important;">↖</span>
+            <span class="reply-count-pill" style="background: #ffffff !important; color: #10b981 !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">
+              ${ordemResposta}/${totalRespostasDaOriginal}
+            </span>
+          </div>
 
-    ${
-      lado === 'right' && ordemResposta < totalRespostasDaOriginal
-        ? `
-      <button
-        type="button"
-        class="reply-next-btn"
-        style="background: #10b981 !important; color: #ffffff !important; border: none !important; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900;"
-        onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
-        ⬇
-      </button>
-    `
-        : ''
-    }
-  </div>
-`
-      : ''
-        } 
+          ${
+            lado === 'right' && ordemResposta < totalRespostasDaOriginal
+              ? `
+            <button
+              type="button"
+              class="reply-next-btn"
+              style="background: #10b981 !important; color: #ffffff !important; border: none !important; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900;"
+              onclick="event.stopPropagation(); irParaProximaRespostaNex('${msg.resposta.id}', ${ordemResposta})">
+              ⬇
+            </button>
+          `
+              : ''
+          }
+        </div>
+      `
+            : ''
+        }
 
         <div class="msg-content">
-  ${
-    msg.text
-      ? `<div class="msg-text">${escapeHTML(msg.text)}</div>`
-      : ''
-  }
+          ${
+            msg.text
+              ? `<div class="msg-text">${escapeHTML(msg.text)}</div>`
+              : ''
+          }
 
-  ${
-    anexosHTML
-      ? `<div class="msg-media-wrapper ${msg._supabaseId ? 'media-cacheada' : ''}" data-media-url="${escapeHTML(msg.anexo?.url || msg.audio || '')}">${anexosHTML}</div>`
-      : ''
-  }
-</div>
+          ${
+            anexosHTML
+              ? `<div class="msg-media-wrapper ${msg._supabaseId ? 'media-cacheada' : ''}" data-media-url="${escapeHTML(msg.anexo?.url || msg.audio || '')}">${anexosHTML}</div>`
+              : ''
+          }
+        </div>
 
         ${
-  qtdCitacoes > 0
-    ? `
-  <button
-    type="button"
-    class="reply-cited-bottom"
-    style="background: #facc15 !important; color: #1a1a1a !important; border: none !important; border-radius: 999px !important; padding: 6px 12px !important; display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; width: fit-content; margin-top: 4px;"
-    onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
-    ${
-      qtdCitacoes > 1
-        ? `<span class="reply-count-pill" style="background: #ffffff !important; color: #1a1a1a !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">${qtdCitacoes}x</span>`
-        : `<span class="reply-count-pill" style="background: #ffffff !important; color: #1a1a1a !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">1x</span>`
-    }
-    <span class="reply-arrow" style="color: #1a1a1a !important; font-size: 16px !important; margin: 0 !important;">↘</span>
-  </button>
-`
-    : ''
+          qtdCitacoes > 0
+            ? `
+          <button
+            type="button"
+            class="reply-cited-bottom"
+            style="background: #facc15 !important; color: #1a1a1a !important; border: none !important; border-radius: 999px !important; padding: 6px 12px !important; display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; width: fit-content; margin-top: 4px;"
+            onclick="irParaRespostaFilhaNex('${msg.id}', '${msg._supabaseId || ''}')">
+            ${
+              qtdCitacoes > 1
+                ? `<span class="reply-count-pill" style="background: #ffffff !important; color: #1a1a1a !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">${qtdCitacoes}x</span>`
+                : `<span class="reply-count-pill" style="background: #ffffff !important; color: #1a1a1a !important; padding: 2px 8px !important; border-radius: 99px !important; font-size: 12px !important; font-weight: 900 !important; margin: 0 !important;">1x</span>`
+            }
+            <span class="reply-arrow" style="color: #1a1a1a !important; font-size: 16px !important; margin: 0 !important;">↘</span>
+          </button>
+        `
+            : ''
         }
 
       </div>
@@ -1419,43 +1386,43 @@ if (typeof window.montarAnexosHTMLNex === 'function') {
   atualizarTodosBadgesReacaoMidiaNex();
 
   area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
-  const username = el.dataset.avatarUser;
-  const fallback = el.dataset.avatarFallback || '?';
+    const username = el.dataset.avatarUser;
+    const fallback = el.dataset.avatarFallback || '?';
 
-  if (!username) return;
-  if (cacheAvataresNex[username]) {
-    el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
-    return;
-  }
+    if (!username) return;
+    if (cacheAvataresNex[username]) {
+      el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
+      return;
+    }
 
-  const url = await buscarAvatarNex(username);
+    const url = await buscarAvatarNex(username);
 
-  if (url && el.isConnected) {
-    el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
-  } else if (el.isConnected && !el.querySelector('img')) {
-    el.textContent = fallback;
-  }
-});
+    if (url && el.isConnected) {
+      el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+    } else if (el.isConnected && !el.querySelector('img')) {
+      el.textContent = fallback;
+    }
+  });
 
-area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (el) => {
-  const username = el.dataset.avatarUser;
-  const fallback = el.dataset.avatarFallback || '?';
+  area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (el) => {
+    const username = el.dataset.avatarUser;
+    const fallback = el.dataset.avatarFallback || '?';
 
-  if (!username) return;
+    if (!username) return;
 
-  if (cacheAvataresNex[username]) {
-    el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
-    return;
-  }
+    if (cacheAvataresNex[username]) {
+      el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
+      return;
+    }
 
-  const url = await buscarAvatarNex(username);
+    const url = await buscarAvatarNex(username);
 
-  if (url && el.isConnected) {
-    el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
-  } else if (el.isConnected && !el.querySelector('img')) {
-    el.textContent = fallback;
-  }
-});
+    if (url && el.isConnected) {
+      el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+    } else if (el.isConnected && !el.querySelector('img')) {
+      el.textContent = fallback;
+    }
+  });
 
   document.querySelectorAll('.btn-fotos-open').forEach((btn) => {
     btn.addEventListener('click', (e) => {
@@ -1467,12 +1434,12 @@ area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (e
     });
   });
 }
+
   // ============================================
 // ENVIAR MENSAGEM
 // ============================================
 
 async function enviarMsgNex() {
-  // ⚠️ Bloqueio de segurança: se estiver silenciado, não faz nada
   const chatBottom = document.querySelector('.chat-bottom');
   if (chatBottom && chatBottom.classList.contains('silenciado')) {
     window.mostrarToastNex?.('Você está silenciado nesta conversa.', 'erro');
@@ -1482,21 +1449,22 @@ async function enviarMsgNex() {
   const input = document.getElementById('chatInput');
   const texto = input ? input.value.trim() : '';
 
-  const temAudio = typeof window.temAudioNex === 'function'
-    ? window.temAudioNex()
-    : false;
-  const temMidia = typeof window.temMidiasNex === 'function'
-    ? window.temMidiasNex()
-    : false;
-  const temMidiaUnica = typeof window.getPreviewMidiaNex === 'function'
-    ? !!window.getPreviewMidiaNex()
-    : false;
-  const temDocumento = typeof window.temDocumentoNex === 'function'
-    ? window.temDocumentoNex()
-    : false;
-  const temLocalizacao = typeof window.temLocalizacaoNex === 'function'
-    ? window.temLocalizacaoNex()
-    : false;
+  const temAudio =
+    typeof window.temAudioNex === 'function' ? window.temAudioNex() : false;
+  const temMidia =
+    typeof window.temMidiasNex === 'function' ? window.temMidiasNex() : false;
+  const temMidiaUnica =
+    typeof window.getPreviewMidiaNex === 'function'
+      ? !!window.getPreviewMidiaNex()
+      : false;
+  const temDocumento =
+    typeof window.temDocumentoNex === 'function'
+      ? window.temDocumentoNex()
+      : false;
+  const temLocalizacao =
+    typeof window.temLocalizacaoNex === 'function'
+      ? window.temLocalizacaoNex()
+      : false;
 
   if (
     !texto &&
@@ -1536,15 +1504,14 @@ async function enviarMsgNex() {
       : null;
 
   const audioLocal =
-  typeof window.getAudioUrlNex === 'function'
-    ? window.getAudioUrlNex()
-    : '';
+    typeof window.getAudioUrlNex === 'function'
+      ? window.getAudioUrlNex()
+      : '';
 
-// ⚠️ NOVO: pega o Blob real do áudio
-const audioBlobLocal =
-  typeof window.getAudioBlobNex === 'function'
-    ? window.getAudioBlobNex()
-    : null;
+  const audioBlobLocal =
+    typeof window.getAudioBlobNex === 'function'
+      ? window.getAudioBlobNex()
+      : null;
 
   const mensagem = {
     id: gerarIdMensagemNex(),
@@ -1575,20 +1542,20 @@ const audioBlobLocal =
   if (texto) mensagem.text = texto;
 
   if (midiaUnicaLocal && midiaUnicaLocal.url) {
-  mensagem.anexo = {
-    type: midiaUnicaLocal.type === 'video' ? 'video' : 'imagem',
-    url: midiaUnicaLocal.url,
-    _file: midiaUnicaLocal._file || null  // ⚠️ preserva o File real
-  };
-}
+    mensagem.anexo = {
+      type: midiaUnicaLocal.type === 'video' ? 'video' : 'imagem',
+      url: midiaUnicaLocal.url,
+      _file: midiaUnicaLocal._file || null
+    };
+  }
 
-if (Array.isArray(midiasLocais) && midiasLocais.length) {
-  mensagem.midias = midiasLocais.map((m) => ({
-    url: m.url,
-    type: m.type === 'video' ? 'video' : 'imagem',
-    _file: m._file || null  // ⚠️ preserva o File real
-  }));
-}
+  if (Array.isArray(midiasLocais) && midiasLocais.length) {
+    mensagem.midias = midiasLocais.map((m) => ({
+      url: m.url,
+      type: m.type === 'video' ? 'video' : 'imagem',
+      _file: m._file || null
+    }));
+  }
 
   if (documentoLocal && documentoLocal.url && !mensagem.anexo) {
     mensagem.anexo = {
@@ -1624,14 +1591,13 @@ if (Array.isArray(midiasLocais) && midiasLocais.length) {
 
   conversas[conversaAtual].push(mensagem);
 
-if (input) input.value = '';
+  if (input) input.value = '';
 
-// ⚠️ NÃO limpa o preview ainda — só depois que o upload der certo
-renderChat(conversaAtual);
+  renderChat(conversaAtual);
 
-if (respostaSelecionadaNex) {
-  cancelarRespostaNex();
-}
+  if (respostaSelecionadaNex) {
+    cancelarRespostaNex();
+  }
 
   (async () => {
     try {
@@ -1642,62 +1608,59 @@ if (respostaSelecionadaNex) {
       if (!msgLocal) return;
 
       if (midiaUnicaLocal && midiaUnicaLocal.url) {
-  // ⚠️ Prioriza o File real (evita depender de blob URL que pode estar revogada)
-  const fonteUpload = midiaUnicaLocal._file || midiaUnicaLocal.url;
+        const fonteUpload = midiaUnicaLocal._file || midiaUnicaLocal.url;
 
-  console.log('📤 Enviando mídia única:', {
-    temFile: !!midiaUnicaLocal._file,
-    tipo: midiaUnicaLocal.type
-  });
+        console.log('📤 Enviando mídia única:', {
+          temFile: !!midiaUnicaLocal._file,
+          tipo: midiaUnicaLocal.type
+        });
 
-  const urlStorage = await window.uploadMidiaNexSupabase(
-    fonteUpload,
-    midiaUnicaLocal.type
-  );
+        const urlStorage = await window.uploadMidiaNexSupabase(
+          fonteUpload,
+          midiaUnicaLocal.type
+        );
 
-  if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-    msgLocal.anexo.url = urlStorage;
-
-    if (msgLocal.anexo._file) delete msgLocal.anexo._file;
-  } else {
-    throw new Error('Falha no upload da mídia única');
-  }
+        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+          msgLocal.anexo.url = urlStorage;
+          if (msgLocal.anexo._file) delete msgLocal.anexo._file;
+        } else {
+          throw new Error('Falha no upload da mídia única');
+        }
       }
 
       if (Array.isArray(midiasLocais) && midiasLocais.length) {
-  const enviadas = [];
+        const enviadas = [];
 
-  for (const m of midiasLocais) {
-    // ⚠️ Prioriza o File real
-    const fonteUpload = m._file || m.url;
+        for (const m of midiasLocais) {
+          const fonteUpload = m._file || m.url;
 
-    const urlStorage = await window.uploadMidiaNexSupabase(
-      fonteUpload,
-      m.type
-    );
+          const urlStorage = await window.uploadMidiaNexSupabase(
+            fonteUpload,
+            m.type
+          );
 
-    if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-      enviadas.push({
-        url: urlStorage,
-        type: m.type === 'video' ? 'video' : 'imagem'
-      });
-    } else {
-      console.warn('⚠️ Falha no upload de uma mídia do álbum:', m);
-    }
-  }
+          if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+            enviadas.push({
+              url: urlStorage,
+              type: m.type === 'video' ? 'video' : 'imagem'
+            });
+          } else {
+            console.warn('⚠️ Falha no upload de uma mídia do álbum:', m);
+          }
+        }
 
-  if (!enviadas.length) {
-    throw new Error('Falha no upload das mídias');
-  }
+        if (!enviadas.length) {
+          throw new Error('Falha no upload das mídias');
+        }
 
-  msgLocal.midias = enviadas;
+        msgLocal.midias = enviadas;
       }
 
       if (documentoLocal && documentoLocal.url && !midiaUnicaLocal) {
-  const urlStorage = await window.uploadMidiaNexSupabase(
-    documentoLocal.url,
-    'pdf'
-  );
+        const urlStorage = await window.uploadMidiaNexSupabase(
+          documentoLocal.url,
+          'pdf'
+        );
 
         if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
           msgLocal.anexo.url = urlStorage;
@@ -1710,24 +1673,23 @@ if (respostaSelecionadaNex) {
       }
 
       if (audioLocal) {
-  // ⚠️ Prioriza o Blob real (não depende de blob URL ainda viva)
-  const fonteAudio = audioBlobLocal || audioLocal;
+        const fonteAudio = audioBlobLocal || audioLocal;
 
-  console.log('📤 Enviando áudio:', {
-    temBlob: !!audioBlobLocal,
-    tipoBlob: audioBlobLocal?.type
-  });
+        console.log('📤 Enviando áudio:', {
+          temBlob: !!audioBlobLocal,
+          tipoBlob: audioBlobLocal?.type
+        });
 
-  const urlStorage = await window.uploadMidiaNexSupabase(
-    fonteAudio,
-    'audio'
-  );
+        const urlStorage = await window.uploadMidiaNexSupabase(
+          fonteAudio,
+          'audio'
+        );
 
-  if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
-    msgLocal.audio = urlStorage;
-  } else {
-    throw new Error('Falha no upload do áudio');
-  }
+        if (urlStorage && /^https?:\/\//i.test(urlStorage)) {
+          msgLocal.audio = urlStorage;
+        } else {
+          throw new Error('Falha no upload do áudio');
+        }
       }
 
       let convId =
@@ -1759,7 +1721,8 @@ if (respostaSelecionadaNex) {
           console.warn('Erro ao criar conversa antes de enviar:', err);
         }
       }
-            if (
+
+      if (
         typeof window.enviarMensagemSupabase === 'function' &&
         convId
       ) {
@@ -1767,35 +1730,35 @@ if (respostaSelecionadaNex) {
         let mediaUrl = null;
         let mediaMeta = null;
 
-if (msgLocal.audio) {
-  tipo = 'audio';
-  mediaUrl = msgLocal.audio;
-} else if (msgLocal.anexo) {
-  if (msgLocal.anexo.type === 'location') {
-    tipo = 'location';
+        if (msgLocal.audio) {
+          tipo = 'audio';
+          mediaUrl = msgLocal.audio;
+        } else if (msgLocal.anexo) {
+          if (msgLocal.anexo.type === 'location') {
+            tipo = 'location';
 
-    const latLoc = Number(msgLocal.anexo.lat);
-    const lngLoc = Number(msgLocal.anexo.lng);
-    const endLoc = msgLocal.anexo.address || 'Localização';
+            const latLoc = Number(msgLocal.anexo.lat);
+            const lngLoc = Number(msgLocal.anexo.lng);
+            const endLoc = msgLocal.anexo.address || 'Localização';
 
-    mediaMeta = {
-      lat: latLoc,
-      lng: lngLoc,
-      address: endLoc,
-      localizacao: { lat: latLoc, lng: lngLoc, address: endLoc }
-    };
-  } else if (msgLocal.anexo.type === 'pdf') {
-    tipo = 'pdf';
-    mediaUrl = msgLocal.anexo.url || null;
-    mediaMeta = {
-      documento: msgLocal.anexo.documento || null,
-      name: msgLocal.anexo.name || 'Documento PDF'
-    };
-  } else {
-    tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
-    mediaUrl = msgLocal.anexo.url || null;
-  }
-} else if (msgLocal.midias && msgLocal.midias.length) {
+            mediaMeta = {
+              lat: latLoc,
+              lng: lngLoc,
+              address: endLoc,
+              localizacao: { lat: latLoc, lng: lngLoc, address: endLoc }
+            };
+          } else if (msgLocal.anexo.type === 'pdf') {
+            tipo = 'pdf';
+            mediaUrl = msgLocal.anexo.url || null;
+            mediaMeta = {
+              documento: msgLocal.anexo.documento || null,
+              name: msgLocal.anexo.name || 'Documento PDF'
+            };
+          } else {
+            tipo = msgLocal.anexo.type === 'video' ? 'video' : 'imagem';
+            mediaUrl = msgLocal.anexo.url || null;
+          }
+        } else if (msgLocal.midias && msgLocal.midias.length) {
           tipo = 'album';
           mediaUrl = msgLocal.midias[0].url || null;
           mediaMeta = { midias: msgLocal.midias };
@@ -1820,7 +1783,9 @@ if (msgLocal.audio) {
           tipo,
           texto: msgLocal.text || null,
           media_url: mediaUrl,
-          media_meta: Object.keys(metaCompleta).length ? metaCompleta : null,
+          media_meta: Object.keys(metaCompleta).length
+            ? metaCompleta
+            : null,
           resposta_a_id: msgLocal.resposta?.id || null
         });
 
@@ -1837,25 +1802,20 @@ if (msgLocal.audio) {
         throw new Error('Mensagem não foi salva no servidor');
       }
 
-      // ⚠️ Sempre 'enviado'. O backend atualiza pra 'entregue'
-//    e 'visualizado' via Realtime quando o outro lado
-//    receber/abrir a mensagem.
-msgLocal.status = 'enviado';
+      msgLocal.status = 'enviado';
 
-renderChat(conversaAtual);
+      renderChat(conversaAtual);
 
-marcarConversaRespondidaNex(conversaAtual);
+      marcarConversaRespondidaNex(conversaAtual);
 
-// ⚠️ FEEDBACK: toca + vibra leve ao enviar msg
-if (typeof window.feedbackNex?.enviouMsg === 'function') {
-  window.feedbackNex.enviouMsg();
-}
+      if (typeof window.feedbackNex?.enviouMsg === 'function') {
+        window.feedbackNex.enviouMsg();
+      }
 
-// ⚠️ SÓ AGORA limpa o preview (upload deu certo)
-if (typeof window.limparTodosPreviewsNex === 'function') {
-  window.limparTodosPreviewsNex();
-}
-} catch (err) {
+      if (typeof window.limparTodosPreviewsNex === 'function') {
+        window.limparTodosPreviewsNex();
+      }
+    } catch (err) {
       console.error('❌ Erro no envio:', err);
 
       const msgErro = conversas[conversaAtual].find(
@@ -1940,18 +1900,18 @@ async function reenviarMensagemNex(msgId) {
         mediaUrl = novaMensagem.audio;
       } else if (novaMensagem.anexo) {
         if (novaMensagem.anexo.type === 'location') {
-  tipo = 'location';
+          tipo = 'location';
 
-  const latLoc = Number(novaMensagem.anexo.lat);
-  const lngLoc = Number(novaMensagem.anexo.lng);
-  const endLoc = novaMensagem.anexo.address || 'Localização';
+          const latLoc = Number(novaMensagem.anexo.lat);
+          const lngLoc = Number(novaMensagem.anexo.lng);
+          const endLoc = novaMensagem.anexo.address || 'Localização';
 
-  mediaMeta = {
-    lat: latLoc,
-    lng: lngLoc,
-    address: endLoc,
-    localizacao: { lat: latLoc, lng: lngLoc, address: endLoc }
-  };
+          mediaMeta = {
+            lat: latLoc,
+            lng: lngLoc,
+            address: endLoc,
+            localizacao: { lat: latLoc, lng: lngLoc, address: endLoc }
+          };
         } else if (novaMensagem.anexo.type === 'pdf') {
           tipo = 'pdf';
           mediaUrl = novaMensagem.anexo.url || null;
@@ -2005,8 +1965,7 @@ async function reenviarMensagemNex(msgId) {
 
     novaMensagem.status = 'enviado';
 
-renderChat(conversaAtual);
-    
+    renderChat(conversaAtual);
   } catch (err) {
     console.warn('Erro no reenvio:', err);
     novaMensagem.status = 'erro';
@@ -2070,6 +2029,7 @@ function atualizarPreviewStackNex() {
 
   stack.classList.toggle('tem-conteudo', temAlgo);
 }
+  
     // ============================================
   // MENU DE MENSAGEM
   // ============================================
@@ -2089,46 +2049,46 @@ function atualizarPreviewStackNex() {
     const lado = msg.side === 'right' ? 'right' : 'left';
 
     menu.innerHTML =
-  lado === 'left'
-    ? `
-  <button type="button" onclick="acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-    </svg>
-    Responder
-  </button>
-  <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()" style="display:flex; align-items:center; gap:10px;">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-      <polyline points="3 6 5 6 21 6"></polyline>
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-    </svg>
-    Apagar pra mim
-  </button>
-  <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
-`
-    : `
-  <button type="button" onclick="window.acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-    </svg>
-    Responder
-  </button>
-  <button type="button" onclick="window.acaoReeditarNex()" style="display:flex; align-items:center; gap:10px;">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-      <path d="M12 20h9"></path>
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-    </svg>
-    Reeditar
-  </button>
-  <button type="button" class="danger" onclick="window.acaoApagarMsgNex()" style="display:flex; align-items:center; gap:10px;">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-      <polyline points="3 6 5 6 21 6"></polyline>
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-    </svg>
-    Apagar para todos
-  </button>
-  <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
-`;
+      lado === 'left'
+        ? `
+      <button type="button" onclick="acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Responder
+      </button>
+      <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()" style="display:flex; align-items:center; gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Apagar pra mim
+      </button>
+      <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
+    `
+        : `
+      <button type="button" onclick="window.acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Responder
+      </button>
+      <button type="button" onclick="window.acaoReeditarNex()" style="display:flex; align-items:center; gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+        Reeditar
+      </button>
+      <button type="button" class="danger" onclick="window.acaoApagarMsgNex()" style="display:flex; align-items:center; gap:10px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Apagar para todos
+      </button>
+      <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
+    `;
 
     menu.style.display = 'flex';
     menu.style.visibility = 'visible';
@@ -2165,7 +2125,10 @@ function atualizarPreviewStackNex() {
     if (!mensagemSelecionadaNex) return;
     const msg = mensagemSelecionadaNex;
     const temTexto = typeof msg.text === 'string' && msg.text.trim().length > 0;
-    if (!temTexto) { fecharMenuMsgNex(); return; }
+    if (!temTexto) {
+      fecharMenuMsgNex();
+      return;
+    }
     mensagemEmEdicaoNex = msg;
     textoOriginalEdicaoNex = msg.text || '';
     abrirModalEdicaoNex(msg.text || '');
@@ -2191,11 +2154,15 @@ function atualizarPreviewStackNex() {
     if (!mensagemParaApagarNex) return;
     const msg = mensagemParaApagarNex;
     const idMsg = typeof msg === 'string' ? msg : msg.id;
-    const idSupabase = typeof msg === 'object' ? (msg._supabaseId || msg.id) : msg;
+    const idSupabase =
+      typeof msg === 'object' ? msg._supabaseId || msg.id : msg;
 
     if (typeof window.apagarPraMimSupabase === 'function' && idSupabase) {
-      try { await window.apagarPraMimSupabase(idSupabase); }
-      catch (err) { console.warn('Erro ao ocultar no Supabase:', err); }
+      try {
+        await window.apagarPraMimSupabase(idSupabase);
+      } catch (err) {
+        console.warn('Erro ao ocultar no Supabase:', err);
+      }
     }
 
     const conversaAtual = Drops.estado.conversaAtual;
@@ -2233,8 +2200,11 @@ function atualizarPreviewStackNex() {
 
     const idSupabase = msg._supabaseId || msg.id;
     if (typeof window.apagarPraTodosSupabase === 'function' && idSupabase) {
-      try { await window.apagarPraTodosSupabase(idSupabase); }
-      catch (err) { console.warn('Erro ao apagar no Supabase:', err); }
+      try {
+        await window.apagarPraTodosSupabase(idSupabase);
+      } catch (err) {
+        console.warn('Erro ao apagar no Supabase:', err);
+      }
     }
 
     msg.deleted = true;
@@ -2277,7 +2247,10 @@ function atualizarPreviewStackNex() {
     const modal = document.getElementById('editarMsgModalNex');
     const input = document.getElementById('editarMsgInputNex');
     const btn = document.getElementById('btnConcluirEdicaoNex');
-    if (input) { input.blur(); input.value = ''; }
+    if (input) {
+      input.blur();
+      input.value = '';
+    }
     if (btn) btn.disabled = true;
     if (modal) modal.style.display = 'none';
     mensagemEmEdicaoNex = null;
@@ -2300,8 +2273,11 @@ function atualizarPreviewStackNex() {
 
     const idSupabase = mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
     if (typeof window.editarMensagemSupabase === 'function' && idSupabase) {
-      try { await window.editarMensagemSupabase(idSupabase, novoTexto); }
-      catch (err) { console.warn('Erro ao editar no Supabase:', err); }
+      try {
+        await window.editarMensagemSupabase(idSupabase, novoTexto);
+      } catch (err) {
+        console.warn('Erro ao editar no Supabase:', err);
+      }
     }
 
     mensagemEmEdicaoNex.text = novoTexto;
@@ -2335,13 +2311,17 @@ function atualizarPreviewStackNex() {
     return (
       alvo.querySelector('.msg-layer') ||
       alvo.querySelector('.msg-card') ||
-      alvo.firstElementChild || alvo
+      alvo.firstElementChild ||
+      alvo
     );
   }
 
   function limparDestaqueMensagemNex() {
     if (!msgDestacadaNex) return;
-    msgDestacadaNex.classList.remove('msg-destaque-verde-nex', 'msg-destaque-amarelo-nex');
+    msgDestacadaNex.classList.remove(
+      'msg-destaque-verde-nex',
+      'msg-destaque-amarelo-nex'
+    );
     msgDestacadaNex = null;
   }
 
@@ -2349,25 +2329,36 @@ function atualizarPreviewStackNex() {
     const card = obterCardMensagemNex(msgId);
     if (!card) return;
     limparDestaqueMensagemNex();
-    card.classList.add(tipo === 'amarelo' ? 'msg-destaque-amarelo-nex' : 'msg-destaque-verde-nex');
+    card.classList.add(
+      tipo === 'amarelo' ? 'msg-destaque-amarelo-nex' : 'msg-destaque-verde-nex'
+    );
     msgDestacadaNex = card;
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
     let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-    if (!alvo && msgIdLocal) alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
+    if (!alvo && msgIdLocal)
+      alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
     if (!alvo) {
       const msgs = conversas[Drops.estado.conversaAtual] || [];
-      const msgEncontrada = msgs.find((m) =>
-        String(m.id) === String(msgId) ||
-        String(m._supabaseId) === String(msgId) ||
-        (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
+      const msgEncontrada = msgs.find(
+        (m) =>
+          String(m.id) === String(msgId) ||
+          String(m._supabaseId) === String(msgId) ||
+          (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
       );
-      if (msgEncontrada) alvo = document.querySelector(`[data-msg-id="${msgEncontrada.id || msgEncontrada._supabaseId}"]`);
+      if (msgEncontrada)
+        alvo = document.querySelector(
+          `[data-msg-id="${msgEncontrada.id || msgEncontrada._supabaseId}"]`
+        );
     }
     if (!alvo) return;
-    const card = alvo.querySelector('.msg-layer') || alvo.querySelector('.msg-card') || alvo.firstElementChild || alvo;
+    const card =
+      alvo.querySelector('.msg-layer') ||
+      alvo.querySelector('.msg-card') ||
+      alvo.firstElementChild ||
+      alvo;
     limparDestaqueMensagemNex();
     card.classList.add('msg-destaque-verde-nex');
     msgDestacadaNex = card;
@@ -2376,8 +2367,13 @@ function atualizarPreviewStackNex() {
 
   function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
     const msgs = conversas[Drops.estado.conversaAtual] || [];
-    const idsValidos = [String(msgIdOriginal || ''), String(msgIdSupabaseOriginal || '')].filter(Boolean);
-    const respostas = msgs.filter((m) => m.resposta && idsValidos.includes(String(m.resposta.id || '')));
+    const idsValidos = [
+      String(msgIdOriginal || ''),
+      String(msgIdSupabaseOriginal || '')
+    ].filter(Boolean);
+    const respostas = msgs.filter(
+      (m) => m.resposta && idsValidos.includes(String(m.resposta.id || ''))
+    );
     if (!respostas.length) return;
     const primeira = respostas[0];
     destacarMensagemNex(primeira.id || primeira._supabaseId, 'amarelo');
@@ -2385,7 +2381,9 @@ function atualizarPreviewStackNex() {
 
   function irParaProximaRespostaNex(originalId, ordemAtual) {
     const msgs = conversas[Drops.estado.conversaAtual] || [];
-    const respostas = msgs.filter((m) => m.resposta && m.resposta.id === originalId);
+    const respostas = msgs.filter(
+      (m) => m.resposta && m.resposta.id === originalId
+    );
     const proxima = respostas[ordemAtual];
     if (!proxima) return;
     destacarMensagemNex(proxima.id, 'amarelo');
@@ -2397,60 +2395,78 @@ function atualizarPreviewStackNex() {
 
   document.addEventListener('click', (e) => {
     const menu = document.getElementById('msgMenuNex');
-    if (menu && menu.style.display !== 'none' && !menu.contains(e.target) && !e.target.closest('.msg-menu-btn')) {
+    if (
+      menu &&
+      menu.style.display !== 'none' &&
+      !menu.contains(e.target) &&
+      !e.target.closest('.msg-menu-btn')
+    ) {
       fecharMenuMsgNex();
     }
     const modal = document.getElementById('editarMsgModalNex');
-    if (modal && getComputedStyle(modal).display !== 'none' && e.target.id === 'editarMsgModalNex') {
+    if (
+      modal &&
+      getComputedStyle(modal).display !== 'none' &&
+      e.target.id === 'editarMsgModalNex'
+    ) {
       fecharModalEdicaoNex();
     }
     const deleteModal = document.getElementById('confirmDeleteModalNex');
-    if (deleteModal && getComputedStyle(deleteModal).display !== 'none' && e.target.id === 'confirmDeleteModalNex') {
+    if (
+      deleteModal &&
+      getComputedStyle(deleteModal).display !== 'none' &&
+      e.target.id === 'confirmDeleteModalNex'
+    ) {
       fecharConfirmDeleteNex();
     }
   });
 
-  document.addEventListener('click', (e) => {
-    if (
-      e.target.closest('.msg-card') ||
-      e.target.closest('.msg-layer') ||
-      e.target.closest('.reply-linked-top') ||
-      e.target.closest('.reply-cited-bottom') ||
-      e.target.closest('.reply-next-btn')
-    ) return;
-    limparDestaqueMensagemNex();
-  }, true);
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (
+        e.target.closest('.msg-card') ||
+        e.target.closest('.msg-layer') ||
+        e.target.closest('.reply-linked-top') ||
+        e.target.closest('.reply-cited-bottom') ||
+        e.target.closest('.reply-next-btn')
+      )
+        return;
+      limparDestaqueMensagemNex();
+    },
+    true
+  );
 
   document.addEventListener('DOMContentLoaded', () => {
-// ⚠️ O envio via "Enter" foi removido para permitir pular linha.
-// O envio agora ocorre apenas pelo botão de enviar (avião de papel).
+    const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
+    if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
 
-const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
-  if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
+    const inputEdicao = document.getElementById('editarMsgInputNex');
+    if (inputEdicao)
+      inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
 
-  const inputEdicao = document.getElementById('editarMsgInputNex');
-  if (inputEdicao) inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
+    const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
+    if (btnFecharEdicao)
+      btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
 
-  const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
-  if (btnFecharEdicao) btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
+    document.addEventListener('drops_presenca_atualizada', (e) => {
+      const { username, online } = e.detail || {};
+      if (!username) return;
 
-  // ⚠️ ESCUTA O AVISO DO REALTIME DE PRESENÇA (0 requisições extras)
-  document.addEventListener('drops_presenca_atualizada', (e) => {
-    const { username, online } = e.detail || {};
-    if (!username) return;
-
-    // Só atualiza se o aviso for da pessoa que está com o chat aberto
-    const conversaAberta = Drops.estado.conversaAtual;
-    if (String(username).toLowerCase() === String(conversaAberta).toLowerCase()) {
-      const chatStatus = document.getElementById('chatStatus');
-      if (chatStatus) {
-        chatStatus.innerText = online ? 'online' : 'offline';
-        chatStatus.classList.toggle('online', !!online);
-        chatStatus.classList.toggle('offline', !online);
+      const conversaAberta = Drops.estado.conversaAtual;
+      if (
+        String(username).toLowerCase() ===
+        String(conversaAberta).toLowerCase()
+      ) {
+        const chatStatus = document.getElementById('chatStatus');
+        if (chatStatus) {
+          chatStatus.innerText = online ? 'online' : 'offline';
+          chatStatus.classList.toggle('online', !!online);
+          chatStatus.classList.toggle('offline', !online);
+        }
       }
-    }
+    });
   });
-});
 
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -2485,16 +2501,16 @@ const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
   window.buscarAvatarNex = buscarAvatarNex;
 
   window.abrirMenuChatNex = abrirMenuChatNex;
-window.fecharMenuChatNex = fecharMenuChatNex;
+  window.fecharMenuChatNex = fecharMenuChatNex;
 
-// ⚠️ Função global para o botão ⋮ do HTML
-window.toggleMenuChatNex = function() {
-  if (chatMenuAbertoNex) {
-    fecharMenuChatNex();
-  } else {
-    abrirMenuChatNex();
-  }
-};
+  window.toggleMenuChatNex = function () {
+    if (chatMenuAbertoNex) {
+      fecharMenuChatNex();
+    } else {
+      abrirMenuChatNex();
+    }
+  };
+
   window.estaSilenciadoNex = estaSilenciadoNex;
   window.alternarSilenciarChatNex = alternarSilenciarChatNex;
   window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;
@@ -2507,17 +2523,23 @@ window.toggleMenuChatNex = function() {
       const { data: perfil } = await window.supabaseClient
         .from('profiles')
         .select('ultima_atividade')
-        .eq('username', String(username).toLowerCase().replace(/^@/, '').trim())
+        .eq(
+          'username',
+          String(username).toLowerCase().replace(/^@/, '').trim()
+        )
         .maybeSingle();
       const ultima = perfil?.ultima_atividade;
       const LIMITE_ONLINE_MS = 30 * 1000;
-      return !!(ultima && Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+      return !!(
+        ultima &&
+        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS
+      );
     } catch (err) {
       console.warn('Erro ao buscar status:', err);
       return false;
     }
   };
 
-  console.log('💬 05-nex-chat.js completo (nome exibido + @username como chave)');
+  console.log('💬 05-nex-chat.js completo (versão definitiva)');
 
 })();
