@@ -460,10 +460,78 @@ window.salvarMuralSupabase = salvarMuralSupabase;
 window.buscarMuralSupabase = buscarMuralSupabase;
 window.limparMuralSupabase = limparMuralSupabase;
   
-  document.addEventListener('DOMContentLoaded', async () => {
+  // ============================================
+// SYNC ABSOLUTO NO BOOT (Zero Cache)
+// ============================================
+async function sincronizarTudoNoBootNex() {
+  if (!window.supabaseClient) return;
+
+  // 1. Mostra um Loader Global para o usuário saber que está buscando
+  let loader = document.getElementById('bootLoaderNex');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'bootLoaderNex';
+    loader.style.cssText = 'position:fixed;inset:0;background:#050b18;z-index:999999;display:flex;align-items:center;justify-content:center;color:#2f8cff;font-weight:900;font-size:16px;flex-direction:column;gap:16px;';
+    loader.innerHTML = `
+      <svg class="spin" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+      </svg>
+      <style>@keyframes spin { 100% { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }</style>
+      Sincronizando dados...
+    `;
+    document.body.appendChild(loader);
+  }
+
+  try {
+    // 2. Busca a sessão real do usuário
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // 3. Puxa Perfil do banco e sobrescreve o localStorage
+    await sincronizar(); 
+
+    // 4. Puxa Publicações do banco (MyDrops e Nearby)
+    if (typeof window.sincronizarPublicacoesSupabase === 'function') {
+      await window.sincronizarPublicacoesSupabase();
+    }
+
+    // 5. Puxa Conectados do banco
+    if (window.ConectadosAdapterNex?.carregarConectadosSupabase) {
+      await window.ConectadosAdapterNex.carregarConectadosSupabase();
+    }
+
+    // 6. Puxa Cards do NEX (Histórico de conversas)
+    if (typeof window.sincronizarCardsNexSupabase === 'function') {
+      await window.sincronizarCardsNexSupabase();
+    }
+
+    // 7. Puxa Bloqueados
+    if (window.BloqueadosAdapterNex?.carregarBloqueadosSupabase) {
+      await window.BloqueadosAdapterNex.carregarBloqueadosSupabase();
+    }
+
+    console.log('✅ Sync Absoluto concluído. Dados 100% do Supabase.');
+
+  } catch (err) {
+    console.error('Erro no Sync Absoluto:', err);
+  } finally {
+    // 8. Remove o loader e libera o app
+    if (loader) loader.remove();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
   await aguardarSupabase();
-  await sincronizar();
+  
+  // Executa o Sync Absoluto antes de liberar o app
+  await sincronizarTudoNoBootNex();
+  
+  // Inicia batimentos e realtime
   iniciarHeartbeatNex();
+  
+  if (typeof window.iniciarRealtimeNexSupabase === 'function') {
+    window.iniciarRealtimeNexSupabase();
+  }
 });
 
   console.log('☁️ 21-perfil-supabase.js carregado');
