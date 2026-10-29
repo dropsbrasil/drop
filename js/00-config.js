@@ -11,9 +11,44 @@
   'use strict';
 
   // ============================================
+  // 🛡️ ESCUDO ANTI-TELA BRANCA GLOBAL
+  // ============================================
+  window.addEventListener('error', function(event) {
+    console.error('🚨 Erro capturado:', event.message);
+    
+    // Se a tela já estiver quebrada, evita loop de erro
+    if (document.getElementById('erroGlobalNex')) return;
+
+    // Cria um aviso amigável em vez da tela branca
+    const erroBox = document.createElement('div');
+    erroBox.id = 'erroGlobalNex';
+    erroBox.style.cssText = `
+      position: fixed; inset: 0; background: #050b18; color: #fff; 
+      z-index: 9999999; display: flex; flex-direction: column; 
+      align-items: center; justify-content: center; padding: 20px; text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    `;
+    erroBox.innerHTML = `
+      <div style="font-size: 40px; margin-bottom: 10px;">🛠️</div>
+      <h2 style="margin: 0 0 10px; font-size: 20px;">Ops, algo deu errado.</h2>
+      <p style="margin: 0 0 20px; color: #94a3b8; font-size: 14px;">Ocorreu um problema interno, mas já estamos cuidando disso.</p>
+      <button onclick="location.reload()" style="background: #2563eb; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer;">Recarregar App</button>
+    `;
+    document.body.appendChild(erroBox);
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    console.error('🚨 Promessa rejeitada sem catch:', event.reason);
+    
+    // Mostra um toast de aviso se o app estiver rodando (evita tela branca por falha no Supabase)
+    if (typeof window.mostrarToastNex === 'function') {
+      window.mostrarToastNex('Falha de conexão. Tente novamente.', 'erro');
+    }
+  });
+
+  // ============================================
   // NAMESPACE GLOBAL
   // ============================================
-
   window.Drops = window.Drops || {};
 
   // ============================================

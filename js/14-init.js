@@ -784,10 +784,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Roda uma vez no início
   atualizarClassesBodyNex();
 
-  // Em vez de MutationObserver (que trava), usa interval
-// ⚠️ Aumentado para 1500ms para poupar CPU e bateria (OOM)
-setInterval(atualizarClassesBodyNex, 1500);
-  
+// ⚠️ REMOVIDO: O setInterval foi desativado na Fase 1 de estabilização.
+// Ele consumia memória à toa. O app agora só atualiza o body quando necessário.
+// setInterval(atualizarClassesBodyNex, 1500);
   // Reajusta quando a tela mudar
   window.addEventListener('resize', () => {
     ajustarAlturaEditorNex();
