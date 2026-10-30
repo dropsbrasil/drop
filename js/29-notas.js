@@ -1648,194 +1648,68 @@ if (papel && fundoTipo === 'cor') {
 // CAPTURAR NOTAS COMO IMAGEM (INDEPENDENTE)
 // ============================================
 
+// ============================================
+// CAPTURAR NOTAS COMO IMAGEM (USANDO HTML2CANVAS)
+// ============================================
+
 async function capturarNotasComoImagemNex() {
-  // 1. Limpa qualquer seleção antes de capturar
+  const editor = document.getElementById('notasEditorNex');
+  const papel = notasPapel();
+  if (!editor || !papel) return '';
+
+  // 1. Verifica se o html2canvas está disponível
+  if (typeof window.html2canvas !== 'function') {
+    console.warn('⚠️ html2canvas não carregado. Fallback indisponível.');
+    return '';
+  }
+
+  // 2. Encerra edições e limpa seleções (igual o Salvar faz)
   if (notasTextoEditando) {
     finalizarEdicaoTextoNotasNex();
   }
   desselecionarTudoNotasNex();
 
-  const papel = notasPapel();
-  const camada = notasLayer();
-  if (!papel) return '';
-
-  // 2. Remove a lixeira temporariamente para não sair na foto
+  // 3. Esconde os controles da tela (barra, rodapé, lixeira)
+  const barra = document.getElementById('notasBarraTopoNex');
+  const rodape = document.getElementById('notasLegendaRowNex');
   const btnLixeira = document.getElementById('notasLixeiraNex');
+  
+  const barraDisplay = barra?.style.display;
+  const rodapeDisplay = rodape?.style.display;
+  const lixeiraDisplay = btnLixeira?.style.display;
+
+  if (barra) barra.style.display = 'none';
+  if (rodape) rodape.style.display = 'none';
   if (btnLixeira) btnLixeira.style.display = 'none';
 
-  // 3. Pega as dimensões exatas do papel
-  const rect = papel.getBoundingClientRect();
-  const largura = Math.round(rect.width);
-  const altura = Math.round(rect.height);
+  // 4. Adiciona a cápsula da marca (assim como no salvar)
+  const capsula = garantirCapsulaMarcaNex();
+  if (capsula) capsula.classList.add('visivel');
 
-  const canvas = document.createElement('canvas');
-  canvas.width = largura;
-  canvas.height = altura;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return '';
+  // 5. Dá um tempo para o navegador redesenhar a tela
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-  // 4. Pinta o fundo do papel (aceita cor sólida ou gradiente)
-  const bgImage = papel.style.backgroundImage;
-  if (bgImage && bgImage !== 'none' && bgImage.includes('gradient')) {
-    // Para gradientes simples, usamos a cor de fundo base
-    // (O canvas nativo não lê gradientes complexos do CSS facilmente, 
-    // então pegamos a cor primária do gradiente ou a cor de fundo)
-    ctx.fillStyle = papel.style.backgroundColor || '#fffef8';
-    ctx.fillRect(0, 0, largura, altura);
-  } else {
-    const corFundo = papel.style.backgroundColor || '#fffef8';
-    ctx.fillStyle = corFundo;
-    ctx.fillRect(0, 0, largura, altura);
+  try {
+    // 6. Usa o html2canvas (a MESMA técnica do botão Salvar)
+    const canvas = await window.html2canvas(papel, {
+      backgroundColor: null,
+      useCORS: true,
+      scale: Math.min(2, window.devicePixelRatio || 1),
+      logging: false
+    });
+
+    // 7. Retorna a imagem final
+    return canvas.toDataURL('image/jpeg', 0.85);
+  } catch (err) {
+    console.error('Erro ao capturar Nota:', err);
+    return '';
+  } finally {
+    // 8. Devolve os controles para a tela
+    if (barra) barra.style.display = barraDisplay || '';
+    if (rodape) rodape.style.display = rodapeDisplay || '';
+    if (btnLixeira) btnLixeira.style.display = lixeiraDisplay || '';
+    if (capsula) capsula.classList.remove('visivel');
   }
-
-  // 5. Renderiza os elementos (Textos e Fotos)
-  if (camada) {
-    const elementos = camada.querySelectorAll('.video-editor-text-mydrops-nex, .video-editor-photo-mydrops-nex');
-
-    for (const el of elementos) {
-      // Ignora as alças e a lixeira
-      if (el.classList.contains('editor-alca-nex') || el.id === 'notasLixeiraNex') continue;
-
-      const elRect = el.getBoundingClientRect();
-      const x = elRect.left - rect.left;
-      const y = elRect.top - rect.top;
-
-      if (el.classList.contains('video-editor-text-mydrops-nex')) {
-        const body = el.querySelector('.video-editor-text-body-mydrops-nex');
-        if (!body) continue;
-        const texto = (body.textContent || '').trim();
-        if (!texto || texto === '2 toque para editar') continue;
-
-        const fontSize = parseFloat(body.style.fontSize) || 28;
-        const fontWeight = body.style.fontWeight || '500';
-        const fontStyle = body.style.fontStyle || 'normal';
-        const fontFamily = body.style.fontFamily || 'Arial, sans-serif';
-        const cor = body.style.color || '#1a1a1a';
-        const align = body.style.textAlign || 'center';
-        const scale = Number(el.dataset.scale) || 1;
-        const rotation = Number(el.dataset.rotation) || 0;
-
-        // ⚠️ CAPTURA O TEMA (cor de fundo, borda, etc)
-        const classes = body.className;
-        let bgTema = null;
-        let borderTema = null;
-        let borderRadius = 0;
-
-        if (classes.includes('tema-branco')) {
-          bgTema = '#ffffff';
-          borderTema = '#000000';
-          borderRadius = 14;
-        } else if (classes.includes('tema-escuro')) {
-          bgTema = '#1a1a1a';
-          borderTema = '#000000';
-          borderRadius = 14;
-        } else if (classes.includes('tema-azul')) {
-          bgTema = '#60a5fa';
-          borderTema = '#1e40af';
-          borderRadius = 14;
-        } else if (classes.includes('tema-verde')) {
-          bgTema = '#4ade80';
-          borderTema = '#15803d';
-          borderRadius = 14;
-        } else if (classes.includes('tema-amarelo')) {
-          bgTema = '#facc15';
-          borderTema = '#a16207';
-          borderRadius = 14;
-        } else if (classes.includes('tema-rosa')) {
-          bgTema = '#f472b6';
-          borderTema = '#9d174d';
-          borderRadius = 14;
-        } else if (classes.includes('tema-roxo')) {
-          bgTema = '#a78bfa';
-          borderTema = '#5b21b6';
-          borderRadius = 14;
-        } else if (classes.includes('tema-neon')) {
-          bgTema = '#0a0a0a';
-          borderTema = '#00ffff';
-          borderRadius = 14;
-        } else if (classes.includes('tema-papel')) {
-          bgTema = '#fffef5';
-          borderTema = '#8b7355';
-          borderRadius = 8;
-        } else if (classes.includes('tema-vidro')) {
-          bgTema = 'rgba(200,220,255,0.5)';
-          borderTema = 'rgba(0,0,0,0.5)';
-          borderRadius = 14;
-        }
-
-        ctx.save();
-        ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
-        ctx.rotate((rotation * Math.PI) / 180);
-        ctx.scale(scale, scale);
-
-        // Desenha o fundo do tema (se existir)
-        if (bgTema) {
-          const boxW = elRect.width / scale;
-          const boxH = elRect.height / scale;
-          
-          ctx.beginPath();
-          if (ctx.roundRect) {
-            ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, borderRadius);
-          } else {
-            ctx.rect(-boxW / 2, -boxH / 2, boxW, boxH);
-          }
-          ctx.fillStyle = bgTema;
-          ctx.fill();
-
-          if (borderTema) {
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = borderTema;
-            ctx.stroke();
-          }
-        }
-
-        // Desenha o texto
-        ctx.fillStyle = cor;
-        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
-        ctx.textAlign = align;
-        ctx.textBaseline = 'middle';
-
-        const linhas = texto.split('\n');
-        const alturaLinha = fontSize * 1.2;
-        const total = linhas.length * alturaLinha;
-        const yInicial = -total / 2 + alturaLinha / 2;
-        const xTexto = align === 'center' ? 0 : align === 'right' ? (elRect.width / 2 / scale) : -(elRect.width / 2 / scale);
-
-        linhas.forEach((linha, i) => {
-          ctx.fillText(linha, xTexto, yInicial + i * alturaLinha);
-        });
-        ctx.restore();
-      } 
-      else if (el.classList.contains('video-editor-photo-mydrops-nex')) {
-        const img = el.querySelector('.video-editor-photo-body-mydrops-nex img');
-        if (!img || !img.src) continue;
-        const scale = Number(el.dataset.scale) || 1;
-        const rotation = Number(el.dataset.rotation) || 0;
-
-        await new Promise((resolve) => {
-          const imgCarregada = new Image();
-          imgCarregada.crossOrigin = 'anonymous';
-          imgCarregada.onload = () => {
-            ctx.save();
-            ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
-            ctx.rotate((rotation * Math.PI) / 180);
-            ctx.scale(scale, scale);
-            ctx.drawImage(imgCarregada, -elRect.width / 2 / scale, -elRect.height / 2 / scale, elRect.width / scale, elRect.height / scale);
-            ctx.restore();
-            resolve();
-          };
-          imgCarregada.onerror = resolve;
-          imgCarregada.src = img.src;
-        });
-      }
-    }
-  }
-
-  // 6. Devolve a lixeira ao normal
-  if (btnLixeira) btnLixeira.style.display = '';
-
-  // 7. Retorna a imagem final em formato dataURL (JPEG para menor peso)
-  return canvas.toDataURL('image/jpeg', 0.85);
 }
 
 // ============================================
