@@ -21,54 +21,89 @@
     });
   }
 
-  // ============================================
-  // UPLOAD DE MÍDIA (foto ou vídeo)
-  // ============================================
-  async function uploadMidiaDropsSupabase(dataUrl) {
-    if (!window.supabaseClient || !dataUrl) return null;
+// ============================================
+// UPLOAD DE MÍDIA (foto ou vídeo) — AGORA NO CLOUDFLARE R2
+// ============================================
+async function uploadMidiaDropsSupabase(dataUrl) {
+  if (!window.supabaseClient || !dataUrl) return null;
 
-    try {
-      const { data: { user } } = await window.supabaseClient.auth.getUser();
-      if (!user) return null;
-
-      const resposta = await fetch(dataUrl);
-      const blob = await resposta.blob();
-
-      const extensao = blob.type.includes('video') ? 'mp4'
-                    : blob.type.includes('png') ? 'png'
-                    : 'jpg';
-
-      const nomeArquivo = `${user.id}/${Date.now()}.${extensao}`;
-
-      const { error: uploadError } = await window.supabaseClient.storage
-  .from('drops')
-  .upload(nomeArquivo, blob, {
-    contentType: blob.type,
-    upsert: true,
-    cacheControl: '31536000'
-  });
-
-if (uploadError) {
-  console.error('Erro no upload do drop:', uploadError);
-  return null;
-}
-
-const configTransform = blob.type.includes('video')
-  ? undefined
-  : { width: 800, quality: 75 };
-
-const { data: urlData } = window.supabaseClient.storage
-  .from('drops')
-  .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
-
-console.log('☁️ Drop enviado:', urlData.publicUrl);
-return urlData.publicUrl;
-    } catch (erro) {
-      console.error('Erro no upload do drop:', erro);
+  try {
+    // 1) Pega a sessão atual (o JWT é usado pela Edge Function pra validar)
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    if (!session || !session.access_token) {
+      console.warn('uploadMidiaDropsSupabase: sem sessão ativa');
       return null;
     }
-  }
 
+    // 2) Transforma a fonte em Blob (aceita File, Blob, blob: URL ou dataURL)
+    let blob = null;
+
+    if (dataUrl instanceof File || dataUrl instanceof Blob) {
+      blob = dataUrl;
+    } else if (typeof dataUrl === 'string') {
+      const resposta = await fetch(dataUrl);
+      blob = await resposta.blob();
+    }
+
+    if (!blob || blob.size === 0) {
+      console.warn('uploadMidiaDropsSupabase: blob inválido');
+      return null;
+    }
+
+    const contentType = blob.type || 'application/octet-stream';
+    const size = blob.size;
+
+    // 3) Pede a URL assinada pra Edge Function
+    const supabaseUrl = 'https://sldiecaaplwgjxvfsdnq.supabase.co';
+    const endpoint = `${supabaseUrl}/functions/v1/gerar-url-r2`;
+
+    const respostaAssinatura = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        folder: 'drops',
+        contentType: contentType,
+        size: size
+      })
+    });
+
+    if (!respostaAssinatura.ok) {
+      const textoErro = await respostaAssinatura.text().catch(() => '');
+      console.error('Erro ao pedir URL assinada:', respostaAssinatura.status, textoErro);
+      return null;
+    }
+
+    const dados = await respostaAssinatura.json();
+
+    if (!dados || !dados.uploadUrl || !dados.publicUrl) {
+      console.error('Edge Function não devolveu uploadUrl/publicUrl:', dados);
+      return null;
+    }
+
+    // 4) Faz o PUT direto no Cloudflare R2
+    const uploadR2 = await fetch(dados.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: blob
+    });
+
+    if (!uploadR2.ok) {
+      const textoErro = await uploadR2.text().catch(() => '');
+      console.error('Erro no PUT pro R2:', uploadR2.status, textoErro);
+      return null;
+    }
+
+    console.log('☁️ Drop enviado pro R2:', dados.publicUrl);
+    return dados.publicUrl;
+  } catch (erro) {
+    console.error('Erro no upload do drop pro R2:', erro);
+    return null;
+  }
+}
+  
   // ============================================
   // CRIAR PUBLICAÇÃO NO BANCO
   // ============================================
