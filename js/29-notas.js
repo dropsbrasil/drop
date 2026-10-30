@@ -1644,11 +1644,127 @@ if (papel && fundoTipo === 'cor') {
     setTimeout(inicializarNotasNex, 300);
   });
 
-  // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
+// ============================================
+// CAPTURAR NOTAS COMO IMAGEM (INDEPENDENTE)
+// ============================================
 
-  window.abrirNotasNex = abrirNotasNex;
+async function capturarNotasComoImagemNex() {
+  // 1. Limpa qualquer seleção antes de capturar
+  if (notasTextoEditando) {
+    finalizarEdicaoTextoNotasNex();
+  }
+  desselecionarTudoNotasNex();
+
+  const papel = notasPapel();
+  const camada = notasLayer();
+  if (!papel) return '';
+
+  // 2. Remove a lixeira temporariamente para não sair na foto
+  const btnLixeira = document.getElementById('notasLixeiraNex');
+  if (btnLixeira) btnLixeira.style.display = 'none';
+
+  // 3. Pega as dimensões exatas do papel
+  const rect = papel.getBoundingClientRect();
+  const largura = Math.round(rect.width);
+  const altura = Math.round(rect.height);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = largura;
+  canvas.height = altura;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  // 4. Pinta o fundo do papel (cor sólida)
+  const corFundo = papel.style.backgroundColor || '#fffef8';
+  ctx.fillStyle = corFundo;
+  ctx.fillRect(0, 0, largura, altura);
+
+  // 5. Renderiza os elementos (Textos e Fotos)
+  if (camada) {
+    const elementos = camada.querySelectorAll('.video-editor-text-mydrops-nex, .video-editor-photo-mydrops-nex');
+
+    for (const el of elementos) {
+      // Ignora as alças e a lixeira
+      if (el.classList.contains('editor-alca-nex') || el.id === 'notasLixeiraNex') continue;
+
+      const elRect = el.getBoundingClientRect();
+      const x = elRect.left - rect.left;
+      const y = elRect.top - rect.top;
+
+      if (el.classList.contains('video-editor-text-mydrops-nex')) {
+        const body = el.querySelector('.video-editor-text-body-mydrops-nex');
+        if (!body) continue;
+        const texto = (body.textContent || '').trim();
+        if (!texto || texto === '2 toque para editar') continue;
+
+        const fontSize = parseFloat(body.style.fontSize) || 28;
+        const fontWeight = body.style.fontWeight || '500';
+        const fontStyle = body.style.fontStyle || 'normal';
+        const fontFamily = body.style.fontFamily || 'Arial, sans-serif';
+        const cor = body.style.color || '#1a1a1a';
+        const align = body.style.textAlign || 'center';
+        const scale = Number(el.dataset.scale) || 1;
+        const rotation = Number(el.dataset.rotation) || 0;
+
+        ctx.save();
+        ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = cor;
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+        ctx.textAlign = align;
+        ctx.textBaseline = 'middle';
+
+        const linhas = texto.split('\n');
+        const alturaLinha = fontSize * 1.2;
+        const total = linhas.length * alturaLinha;
+        const yInicial = -total / 2 + alturaLinha / 2;
+        const xTexto = align === 'center' ? 0 : align === 'right' ? elRect.width / 2 / scale : -elRect.width / 2 / scale;
+
+        linhas.forEach((linha, i) => {
+          ctx.fillText(linha, xTexto, yInicial + i * alturaLinha);
+        });
+        ctx.restore();
+      } 
+      else if (el.classList.contains('video-editor-photo-mydrops-nex')) {
+        const img = el.querySelector('.video-editor-photo-body-mydrops-nex img');
+        if (!img || !img.src) continue;
+        const scale = Number(el.dataset.scale) || 1;
+        const rotation = Number(el.dataset.rotation) || 0;
+
+        await new Promise((resolve) => {
+          const imgCarregada = new Image();
+          imgCarregada.crossOrigin = 'anonymous';
+          imgCarregada.onload = () => {
+            ctx.save();
+            ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
+            ctx.rotate((rotation * Math.PI) / 180);
+            ctx.scale(scale, scale);
+            ctx.drawImage(imgCarregada, -elRect.width / 2 / scale, -elRect.height / 2 / scale, elRect.width / scale, elRect.height / scale);
+            ctx.restore();
+            resolve();
+          };
+          imgCarregada.onerror = resolve;
+          imgCarregada.src = img.src;
+        });
+      }
+    }
+  }
+
+  // 6. Devolve a lixeira ao normal
+  if (btnLixeira) btnLixeira.style.display = '';
+
+  // 7. Retorna a imagem final em formato dataURL (JPEG para menor peso)
+  return canvas.toDataURL('image/jpeg', 0.85);
+}
+
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
+
+window.capturarNotasComoImagemNex = capturarNotasComoImagemNex;
+window.abrirNotasNex = abrirNotasNex;
   window.fecharNotasNex = fecharNotasNex;
   window.criarTextoNotasNex = criarTextoNotasNex;
   window.selecionarTextoNotasNex = selecionarTextoNotasNex;

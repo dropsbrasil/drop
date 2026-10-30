@@ -765,7 +765,13 @@ if (videoInfo?.src) {
     // IMAGEM
     // ============================================
 
-let mediaUrl = await capturarEditorComoImagemMyDropsNex();
+// ⚠️ Verifica se o editor aberto é o de Notas
+const notasVisivelParaCaptura = document.getElementById('notasEditorNex')?.classList.contains('aberto');
+
+// Se for Notas, usa a captura exclusiva. Se não, usa a antiga (foto/vídeo)
+let mediaUrl = notasVisivelParaCaptura 
+  ? await window.capturarNotasComoImagemNex?.() 
+  : await capturarEditorComoImagemMyDropsNex();
 
 // ⚠️ COMPRESSÃO DE IMAGEM PARA O FEED
 if (mediaUrl && window.comprimirImagemNex) {
