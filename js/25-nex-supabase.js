@@ -596,18 +596,34 @@ return {
   // ============================================
 // SINCRONIZAR CARDS DO NEX
 // ============================================
+
+  // ⚠️ NOVO: Timer para fazer o "Debounce" (agrupar chamadas repetidas)
+let _timerSyncCardsNex = null;
+
 async function sincronizarCardsNexSupabase() {
   if (!window.supabaseClient) return;
 
-  if (window.__sincronizandoCardsNex) return;
-  window.__sincronizandoCardsNex = true;
+  // ⚠️ Se já tem um sync agendado, cancela e reagenda (espera o usuário parar)
+  if (_timerSyncCardsNex) {
+    clearTimeout(_timerSyncCardsNex);
+  }
 
-  try {
-    const lista = await listarMinhasConversasSupabase();
+  return new Promise((resolve) => {
+    _timerSyncCardsNex = setTimeout(async () => {
+      _timerSyncCardsNex = null;
+
+      // Evita concorrência (se já tá rodando, não roda de novo)
+      if (window.__sincronizandoCardsNex) return resolve();
+
+      window.__sincronizandoCardsNex = true;
+
+      try {
+        const lista = await listarMinhasConversasSupabase();
 
     if (!Array.isArray(lista) || !lista.length) {
-      window.__sincronizandoCardsNex = false;
-      return;
+  window.__sincronizandoCardsNex = false;
+  resolve();
+  return;
     }
 
     const meuUser = normalizarUsernameNex(Drops.usernameAtual || '');
@@ -745,11 +761,14 @@ if (typeof window.criarCardConversaNex === 'function') {
 }
       
     }
-  } catch (err) {
-    console.warn('Erro ao sincronizar cards:', err);
-  } finally {
-    window.__sincronizandoCardsNex = false;
-  }
+        } catch (err) {
+        console.warn('Erro ao sincronizar cards:', err);
+      } finally {
+        window.__sincronizandoCardsNex = false;
+        resolve(); // ⚠️ Libera a Promise
+      }
+    }, 2000); // ⚠️ Espera 2 segundos antes de executar
+  });
 }
 
 // ============================================

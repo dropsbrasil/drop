@@ -1549,24 +1549,122 @@ const fechar = () => {
       media.innerHTML = '';
 
       if (ehVideo) {
-        const video = document.createElement('video');
-        video.src = url;
-        video.controls = true;
-        video.setAttribute('controls', '');
-        video.autoplay = true;
-        video.muted = !!pub.loop;
-        video.loop = !!pub.loop;
-        video.playsInline = true;
-        video.preload = 'metadata';
-        video.style.display = 'block';
-        media.appendChild(video);
-      } else {
+  // ============================================
+  // 🎬 NOVO PLAYER CUSTOMIZADO (FASE 2)
+  // ============================================
+  media.innerHTML = `
+    <div class="player-custom-nex">
+      <video id="videoPlayerMydropsNex" src="${url}" autoplay playsinline loop="${pub.loop ? 'true' : 'false'}" muted></video>
+      
+      <!-- Camada para bloquear toque acidental no vídeo -->
+      <div class="player-touch-area-nex"></div>
+
+      <!-- Botão Mute (Topo Direito) -->
+      <button type="button" class="btn-mute-custom-nex" id="btnMuteMydropsNex" onclick="toggleMuteMydropsNex()">
+        <svg id="iconeMudoMydropsNex" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+          <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
+
+      <!-- Controles Inferiores -->
+      <div class="controles-inferiores-nex">
+        <button type="button" class="btn-play-pause-custom-nex" id="btnPlayPauseMydropsNex" onclick="togglePlayMydropsNex()">
+          <svg id="iconePlayMydropsNex" viewBox="0 0 24 24" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="iconePauseMydropsNex" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+
+        <div class="barra-tempo-custom-nex" id="barraTempoMydropsNex">
+          <div class="barra-tempo-fundo-nex">
+            <div class="barra-tempo-progresso-nex" id="progressoMydropsNex"></div>
+          </div>
+        </div>
+
+        <div class="tempo-texto-nex">
+          <span id="tempoAtualMydropsNex">0:00</span> / <span id="tempoTotalMydropsNex">0:00</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Configura a lógica do player recém-criado
+setTimeout(() => {
+  const videoEl = document.getElementById('videoPlayerMydropsNex');
+  const progressoEl = document.getElementById('progressoMydropsNex');
+  const tempoAtualEl = document.getElementById('tempoAtualMydropsNex');
+  const tempoTotalEl = document.getElementById('tempoTotalMydropsNex');
+  const barraWrap = document.getElementById('barraTempoMydropsNex');
+
+  if (!videoEl) return;
+
+  const formatar = (s) => {
+    if (isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const seg = Math.floor(s % 60);
+    return `${m}:${seg.toString().padStart(2, '0')}`;
+  };
+
+  videoEl.addEventListener('loadedmetadata', () => {
+    tempoTotalEl.textContent = formatar(videoEl.duration);
+  });
+
+  videoEl.addEventListener('timeupdate', () => {
+    if (!videoEl.duration) return;
+    const pct = (videoEl.currentTime / videoEl.duration) * 100;
+    progressoEl.style.width = `${pct}%`;
+    tempoAtualEl.textContent = formatar(videoEl.currentTime);
+  });
+
+  videoEl.addEventListener('play', () => {
+    document.getElementById('iconePlayMydropsNex').style.display = 'none';
+    document.getElementById('iconePauseMydropsNex').style.display = 'block';
+  });
+
+  videoEl.addEventListener('pause', () => {
+    document.getElementById('iconePlayMydropsNex').style.display = 'block';
+    document.getElementById('iconePauseMydropsNex').style.display = 'none';
+  });
+
+  barraWrap.addEventListener('click', (e) => {
+    const rect = barraWrap.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    videoEl.currentTime = pct * videoEl.duration;
+  });
+}, 50);
+
+// ⚠️ FUNÇÕES FORA DO SETTIMEOUT (para o HTML conseguir chamar)
+window.togglePlayMydropsNex = function() {
+  const videoEl = document.getElementById('videoPlayerMydropsNex');
+  if (!videoEl) return;
+  if (videoEl.paused) videoEl.play();
+  else videoEl.pause();
+};
+
+window.toggleMuteMydropsNex = function() {
+  const videoEl = document.getElementById('videoPlayerMydropsNex');
+  const icone = document.getElementById('iconeMudoMydropsNex');
+  if (!videoEl || !icone) return;
+  
+  videoEl.muted = !videoEl.muted;
+  
+  if (videoEl.muted) {
+    icone.innerHTML = `<line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>`;
+  } else {
+    icone.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>`;
+  }
+};
+
+} else {
         const img = document.createElement('img');
         img.src = url;
         img.alt = 'Publicação';
         media.appendChild(img);
       }
     }
+    
 
 // ============================================
 // FASE 2 — CÁPSULA DE AUTOR (drop compartilhado)
@@ -1790,23 +1888,24 @@ let swipeStartX = 0;
   const TEMPO_MAX_SWIPE = 800;
 
   viewer.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) return;
+  if (e.touches.length !== 1) return;
 
-    const alvo = e.target;
-if (
-  alvo.closest('.mydrops-pub-voltar') ||
-  alvo.closest('.mydrops-pub-seta') ||
-  alvo.closest('.mydrops-pub-capsula') ||
-  alvo.closest('.mydrops-pub-stats-row') ||
-  alvo.closest('.mydrops-pub-stat-btn') ||
-  alvo.closest('.mydrops-pub-trash-btn') ||
-  alvo.closest('.mydrops-pub-expandir') ||
-  alvo.closest('video') ||
-  alvo.closest('button')
-) {
-  swipeAtivo = false;
-  return;
-}
+  const alvo = e.target;
+  // ⚠️ Removemos 'video' e 'button' daqui para permitir deslizar sobre eles.
+  // Mas mantemos os botões de AÇÃO (voltar, lixeira, stats, expandir) bloqueados.
+  if (
+    alvo.closest('.mydrops-pub-voltar') ||
+    alvo.closest('.mydrops-pub-seta') ||
+    alvo.closest('.mydrops-pub-capsula') ||
+    alvo.closest('.mydrops-pub-stats-row') ||
+    alvo.closest('.mydrops-pub-trash-btn') ||
+    alvo.closest('.mydrops-pub-expandir') ||
+    alvo.closest('.controles-inferiores-nex') || /* Bloqueia só a barra de tempo e play */
+    alvo.closest('.btn-mute-custom-nex') /* Bloqueia o botão de mudo */
+  ) {
+    swipeAtivo = false;
+    return;
+  }
 
     swipeAtivo = true;
     swipeStartX = e.touches[0].clientX;
@@ -2008,13 +2107,12 @@ if (btnExpandir) {
 // ============================================
 
 renderizarViewer();
-  }
+} // ⚠️ ESTA CHAVE FECHA A FUNÇÃO abrirVisualizadorPublicacaoMyDropsNex
 
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
-
-  window.publicacoesMyDropsNex = publicacoesMyDropsNex;
+    window.publicacoesMyDropsNex = publicacoesMyDropsNex;
   window.obterPublicacoesOrdenadasMyDropsNex =
     obterPublicacoesOrdenadasMyDropsNex;
   window.carregarPublicacoesMyDropsNex = carregarPublicacoesMyDropsNex;

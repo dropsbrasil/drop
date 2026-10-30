@@ -323,18 +323,16 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// ⚠️ Cooldown de 5 minutos na interação
-let ultimoEnvioInteracao = 0;
-const handlerInteracao = () => {
-  const agora = Date.now();
-  if (agora - ultimoEnvioInteracao < 5 * 60 * 1000) return;
-  ultimoEnvioInteracao = agora;
-  if (!document.hidden) enviarHeartbeatNex();
-};
-
-  ['click', 'keydown', 'touchstart'].forEach((evt) => {
-    document.addEventListener(evt, handlerInteracao, { passive: true });
-  });
+// ⚠️ OTIMIZAÇÃO DE COTA (FASE 5):
+// Removemos os listeners de 'click', 'keydown' e 'touchstart'.
+// Eles estavam disparando o handlerInteracao a cada clique/toque,
+// o que resultava em milhares de UPDATEs desnecessários no Supabase
+// (mesmo com o cooldown de 5 minutos, o cálculo era feito a cada evento).
+//
+// A presença online continua funcionando perfeitamente porque:
+//   1. O setInterval de 5 minutos (logo acima) mantém o usuário online.
+//   2. O evento visibilitychange (quando a aba volta ao foco) atualiza na hora.
+//   3. Quando o app é aberto, o boot já chama enviarHeartbeatNex().
 
   console.log('💓 Heartbeat iniciado (60s, com pausa em background)');
 }

@@ -620,12 +620,24 @@ async function resolverUsernameRealNex(chave, card = null) {
 // ============================================
 // BUSCAR AVATAR (cache em memória)
 // ============================================
+// ⚠️ NOVO: Cache com TTL (Time To Live) de 10 minutos
+const CACHE_AVATAR_TTL_MS = 10 * 60 * 1000;
 
 async function buscarAvatarNex(username) {
   if (!username) return null;
-  if (cacheAvataresNex[username]) return cacheAvataresNex[username];
-  if (avataresEmBuscaNex.has(username)) return null;
 
+  // ⚠️ Verifica se está no cache E se ainda é válido
+  const emCache = cacheAvataresNex[username];
+  if (emCache && typeof emCache === 'object') {
+    if (Date.now() - emCache.timestamp < CACHE_AVATAR_TTL_MS) {
+      return emCache.url;
+    }
+  } else if (emCache && typeof emCache === 'string') {
+    // Compatibilidade com cache antigo (string pura)
+    return emCache;
+  }
+
+  if (avataresEmBuscaNex.has(username)) return null;
   avataresEmBuscaNex.add(username);
 
   try {
@@ -643,7 +655,10 @@ async function buscarAvatarNex(username) {
           .maybeSingle();
 
         if (perfil?.avatar_url) {
-          cacheAvataresNex[username] = perfil.avatar_url;
+          cacheAvataresNex[username] = {
+            url: perfil.avatar_url,
+            timestamp: Date.now()
+          };
           return perfil.avatar_url;
         }
       }
@@ -652,7 +667,10 @@ async function buscarAvatarNex(username) {
     if (typeof window.buscarPerfilPublicoSupabase === 'function') {
       const perfil = await window.buscarPerfilPublicoSupabase(username);
       const url = perfil?.avatar_url || null;
-      cacheAvataresNex[username] = url;
+      cacheAvataresNex[username] = {
+        url,
+        timestamp: Date.now()
+      };
       return url;
     }
   } catch (err) {
@@ -663,6 +681,7 @@ async function buscarAvatarNex(username) {
 
   return null;
 }
+  
   // ============================================
 // ABRIR CHAT (versão definitiva)
 // ============================================
