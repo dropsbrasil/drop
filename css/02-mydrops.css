@@ -543,8 +543,19 @@
   }
 
   .mydrops-drop-card {
-    aspect-ratio: 1.14 / 1;
+    /* ⚠️ MUDANÇA AQUI: Força o card a ser vertical (retrato) 
+       para combinar com o formato do celular e do editor de Notas */
+    aspect-ratio: 9 / 16; 
   }
+}
+
+/* ⚠️ ADIÇÃO: Garante que a mídia dentro do card preencha sem achatar */
+.mydrops-drop-card img,
+.mydrops-drop-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 @media (max-width: 420px) {
