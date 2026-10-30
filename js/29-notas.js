@@ -1674,10 +1674,19 @@ async function capturarNotasComoImagemNex() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
-  // 4. Pinta o fundo do papel (cor sólida)
-  const corFundo = papel.style.backgroundColor || '#fffef8';
-  ctx.fillStyle = corFundo;
-  ctx.fillRect(0, 0, largura, altura);
+  // 4. Pinta o fundo do papel (aceita cor sólida ou gradiente)
+  const bgImage = papel.style.backgroundImage;
+  if (bgImage && bgImage !== 'none' && bgImage.includes('gradient')) {
+    // Para gradientes simples, usamos a cor de fundo base
+    // (O canvas nativo não lê gradientes complexos do CSS facilmente, 
+    // então pegamos a cor primária do gradiente ou a cor de fundo)
+    ctx.fillStyle = papel.style.backgroundColor || '#fffef8';
+    ctx.fillRect(0, 0, largura, altura);
+  } else {
+    const corFundo = papel.style.backgroundColor || '#fffef8';
+    ctx.fillStyle = corFundo;
+    ctx.fillRect(0, 0, largura, altura);
+  }
 
   // 5. Renderiza os elementos (Textos e Fotos)
   if (camada) {
@@ -1706,11 +1715,81 @@ async function capturarNotasComoImagemNex() {
         const scale = Number(el.dataset.scale) || 1;
         const rotation = Number(el.dataset.rotation) || 0;
 
+        // ⚠️ CAPTURA O TEMA (cor de fundo, borda, etc)
+        const classes = body.className;
+        let bgTema = null;
+        let borderTema = null;
+        let borderRadius = 0;
+
+        if (classes.includes('tema-branco')) {
+          bgTema = '#ffffff';
+          borderTema = '#000000';
+          borderRadius = 14;
+        } else if (classes.includes('tema-escuro')) {
+          bgTema = '#1a1a1a';
+          borderTema = '#000000';
+          borderRadius = 14;
+        } else if (classes.includes('tema-azul')) {
+          bgTema = '#60a5fa';
+          borderTema = '#1e40af';
+          borderRadius = 14;
+        } else if (classes.includes('tema-verde')) {
+          bgTema = '#4ade80';
+          borderTema = '#15803d';
+          borderRadius = 14;
+        } else if (classes.includes('tema-amarelo')) {
+          bgTema = '#facc15';
+          borderTema = '#a16207';
+          borderRadius = 14;
+        } else if (classes.includes('tema-rosa')) {
+          bgTema = '#f472b6';
+          borderTema = '#9d174d';
+          borderRadius = 14;
+        } else if (classes.includes('tema-roxo')) {
+          bgTema = '#a78bfa';
+          borderTema = '#5b21b6';
+          borderRadius = 14;
+        } else if (classes.includes('tema-neon')) {
+          bgTema = '#0a0a0a';
+          borderTema = '#00ffff';
+          borderRadius = 14;
+        } else if (classes.includes('tema-papel')) {
+          bgTema = '#fffef5';
+          borderTema = '#8b7355';
+          borderRadius = 8;
+        } else if (classes.includes('tema-vidro')) {
+          bgTema = 'rgba(200,220,255,0.5)';
+          borderTema = 'rgba(0,0,0,0.5)';
+          borderRadius = 14;
+        }
+
         ctx.save();
         ctx.translate(x + elRect.width / 2, y + elRect.height / 2);
         ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(scale, scale);
 
+        // Desenha o fundo do tema (se existir)
+        if (bgTema) {
+          const boxW = elRect.width / scale;
+          const boxH = elRect.height / scale;
+          
+          ctx.beginPath();
+          if (ctx.roundRect) {
+            ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, borderRadius);
+          } else {
+            ctx.rect(-boxW / 2, -boxH / 2, boxW, boxH);
+          }
+          ctx.fillStyle = bgTema;
+          ctx.fill();
+
+          if (borderTema) {
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = borderTema;
+            ctx.stroke();
+          }
+        }
+
+        // Desenha o texto
         ctx.fillStyle = cor;
         ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
         ctx.textAlign = align;
@@ -1720,7 +1799,7 @@ async function capturarNotasComoImagemNex() {
         const alturaLinha = fontSize * 1.2;
         const total = linhas.length * alturaLinha;
         const yInicial = -total / 2 + alturaLinha / 2;
-        const xTexto = align === 'center' ? 0 : align === 'right' ? elRect.width / 2 / scale : -elRect.width / 2 / scale;
+        const xTexto = align === 'center' ? 0 : align === 'right' ? (elRect.width / 2 / scale) : -(elRect.width / 2 / scale);
 
         linhas.forEach((linha, i) => {
           ctx.fillText(linha, xTexto, yInicial + i * alturaLinha);
