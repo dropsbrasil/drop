@@ -55,7 +55,7 @@ async function uploadMidiaDropsSupabase(dataUrl) {
 
     // 3) Pede a URL assinada pra Edge Function
     const supabaseUrl = 'https://sldiecaaplwgjxvfsdnq.supabase.co';
-    const endpoint = `${supabaseUrl}/functions/v1/gerar-url-r2`;
+    const endpoint = `${supabaseUrl}/functions/v1/Gerar-url-r2`;
 
     const respostaAssinatura = await fetch(endpoint, {
       method: 'POST',
@@ -71,9 +71,10 @@ async function uploadMidiaDropsSupabase(dataUrl) {
     });
 
     if (!respostaAssinatura.ok) {
-      const textoErro = await respostaAssinatura.text().catch(() => '');
-      console.error('Erro ao pedir URL assinada:', respostaAssinatura.status, textoErro);
-      return null;
+  const textoErro = await respostaAssinatura.text().catch(() => '');
+  console.error('Erro ao pedir URL assinada:', respostaAssinatura.status, textoErro);
+  alert('ERRO 1 (Assinatura): Status ' + respostaAssinatura.status + ' - Detalhe: ' + textoErro);
+  return null;
     }
 
     const dados = await respostaAssinatura.json();
