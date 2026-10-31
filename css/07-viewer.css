@@ -17,10 +17,8 @@
   content: '';
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at top, rgba(143,208,255,.18), transparent 42%),
-    radial-gradient(circle at bottom, rgba(45,140,255,.14), transparent 45%),
-    linear-gradient(180deg, rgba(5,11,24,.72), rgba(5,11,24,.92));
+  /* ⚠️ REMOVIDO: O fundo escuro foi tirado para a foto ficar livre */
+  background: transparent;
   pointer-events: none;
   z-index: 0;
 }
@@ -238,7 +236,7 @@
   right: 14px;
   bottom: 14px;
   z-index: 40;
-  display: flex;
+  display: none !important; /* ⚠️ ESCONDE O INPUT DE COMENTÁRIO */
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
@@ -367,19 +365,20 @@
 
 .nex-midia-viewer .viewer-save-btn {
   position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
+  top: 20px;
+  left: 20px;
+  bottom: auto;
+  transform: translateY(0);
   z-index: 50;
 
   background: rgba(34, 197, 94, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   
-  padding: 14px 28px;
-  border-radius: 50px;
+  padding: 8px 16px; /* ⚠️ Menor */
+  border-radius: 999px;
   
-  font-size: 15px;
+  font-size: 13px; /* ⚠️ Menor */
   font-weight: 700;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   letter-spacing: 0.3px;
@@ -387,10 +386,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   
   cursor: pointer;
@@ -404,18 +403,18 @@
 .nex-midia-viewer .viewer-save-btn.mostrar {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 /* ⚠️ Garante que o botão apareça quando o JS forçar display: flex */
 .nex-midia-viewer .viewer-save-btn[style*="display: flex"] {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 .nex-midia-viewer .viewer-save-btn:active {
-  transform: translateX(-50%) scale(0.95);
+  transform: scale(0.95);
 }
 
 /* ============================================
