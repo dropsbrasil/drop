@@ -890,7 +890,6 @@ if (chatAvatar) {
   } else {
     chatAvatar.innerHTML = '';
   }
-}
 
     if (chatAvatar.__clickPerfilHandler) {
       chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
