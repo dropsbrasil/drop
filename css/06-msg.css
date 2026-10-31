@@ -477,13 +477,16 @@
 ============================================ */
 
 .msg-album-card {
-  width: min(100%, 300px);
-  max-width: 300px;
+  width: 100%;
+  max-width: 200px; /* ⚠️ Largura reduzida */
+  max-height: 300px; /* ⚠️ Altura máxima */
+  margin: 0 auto;
   border-radius: 18px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
 }
 
 .msg-album-cover {
@@ -568,8 +571,15 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  max-width: 240px;
+  max-width: 200px; /* ⚠️ Largura reduzida */
   margin: 0 auto;
+  /* ⚠️ Altura máxima para não ficar gigante */
+  max-height: 300px; 
+  aspect-ratio: 9 / 16;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #000;
 }
 
 .msg-midia-thumb,
