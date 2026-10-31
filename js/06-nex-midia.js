@@ -345,63 +345,47 @@ if (msg.anexo.type === 'nearby-comment') {
     }
 
     // ----- ÁLBUM / MÚLTIPLAS IMAGENS -----
-    if (
-      msg.anexo.type === 'multi-imagem' ||
-      msg.anexo.type === 'album'
-    ) {
-      const lista = msg.anexo.midias || msg.anexo.urls || [];
-      const listaEncoded = encodeURIComponent(JSON.stringify(lista));
+if (
+  msg.anexo.type === 'multi-imagem' ||
+  msg.anexo.type === 'album'
+) {
+  const lista = msg.anexo.midias || msg.anexo.urls || [];
+  const listaEncoded = encodeURIComponent(JSON.stringify(lista));
 
-      if (lista.length) {
-        const totalMidias = lista.length;
-        const midiasPreview = lista.slice(0, 4);
+  if (lista.length) {
+    const totalMidias = lista.length;
+    const primeiraMidia = lista[0];
+    const urlCapa = typeof primeiraMidia === 'string' ? primeiraMidia : primeiraMidia.url;
+    const tipoCapa = typeof primeiraMidia === 'object' && primeiraMidia.type === 'video' ? 'video' : 'imagem';
+    const msgIdSafe = escapeHTML(String(msg._supabaseId || msg.id || ''));
 
-        html += `
-          <div class="msg-anexo-card msg-album-card">
-            <div class="msg-album-cover">
-              <div class="msg-album-blur-grid">
-                ${midiasPreview
-                  .map((midia) => {
-                    const url =
-                      typeof midia === 'string'
-                        ? midia
-                        : midia.url || midia.src || '';
+    html += `
+      <div class="msg-anexo-card msg-album-card" style="position: relative;">
+        ${tipoCapa === 'video' 
+          ? `<video src="${escapeHTML(urlCapa)}" class="msg-midia-thumb" muted playsinline></video>`
+          : `<img src="${escapeHTML(urlCapa)}" class="msg-midia-thumb" alt="Capa do álbum">`
+        }
 
-                    const tipo =
-                      typeof midia === 'object' && midia && midia.type
-                        ? midia.type
-                        : 'image';
+        <div class="msg-album-overlay" style="position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7) 100%); pointer-events: none; border-radius: 18px;"></div>
+        
+        <button
+          type="button"
+          class="msg-open-anexo-btn btn-fotos-open"
+          style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); width: max-content; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 2;"
+          data-list="${listaEncoded}">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          ${totalMidias} fotos
+        </button>
 
-                    return `
-                      <div class="msg-album-blur-thumb">
-                        ${
-                          tipo === 'video'
-                            ? `<video src="${escapeHTML(url)}" muted playsinline></video>`
-                            : `<img src="${escapeHTML(url)}" alt="">`
-                        }
-                      </div>
-                    `;
-                  })
-                  .join('')}
-
-                <div class="msg-album-overlay">
-                  <div class="msg-album-badge">🎴</div>
-                  <div class="msg-album-title">Álbum</div>
-                  <div class="msg-album-subtitle">${totalMidias} mídia(s)</div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="msg-open-anexo-btn msg-album-view-btn btn-fotos-open"
-              data-list="${listaEncoded}">
-              Ver álbum
-            </button>
-          </div>
-        `;
-      }
-    }
+        <div class="msg-midia-badge-slot" data-badge-msg-id="${msgIdSafe}" data-badge-midia-index="0" style="z-index: 3;"></div>
+      </div>
+    `;
+  }
+}
 
     // ----- PDF (formato antigo) -----
     if (
