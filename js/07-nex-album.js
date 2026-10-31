@@ -152,27 +152,30 @@ if (midiaAtual && midiaAtual.url && btnSalvar && toastExpira) {
     btnSalvar.style.display = 'none';
   }
 
-  // Ação de salvar na galeria
-  btnSalvar.onclick = (e) => {
-    e.stopPropagation();
+// Ação de salvar na galeria
+btnSalvar.onclick = (e) => {
+  e.stopPropagation();
 
-    // Cria o link para download
-    const a = document.createElement('a');
-    a.href = midiaAtual.url;
-    a.download = `Drop_midia_${Date.now()}.${midiaAtual.type === 'video' ? 'mp4' : 'jpg'}`;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  // Cria o link para download
+  const a = document.createElement('a');
+  a.href = midiaAtual.url;
+  a.download = `Drop_midia_${Date.now()}.${midiaAtual.type === 'video' ? 'mp4' : 'jpg'}`;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 
-    // ⚠️ Marca como salvo no localStorage
-    localStorage.setItem(chaveSalvo, 'true');
+  // ⚠️ Marca como salvo no localStorage
+  localStorage.setItem(chaveSalvo, 'true');
 
-    // Esconde o botão após salvar
+  // ⚠️ Remove o botão suavemente sem quebrar o layout
+  btnSalvar.style.opacity = '0';
+  setTimeout(() => {
     btnSalvar.style.display = 'none';
+  }, 200);
 
-    window.mostrarToastNex?.('Mídia salva na galeria!', 'sucesso');
-  };
+  window.mostrarToastNex?.('Mídia salva na galeria!', 'sucesso');
+};
 }
     // Setas
     const leftBtn = viewer.querySelector('.viewer-arrow-left');
@@ -337,11 +340,14 @@ if (bg) {
   bg.style.backgroundImage = ehVideo ? 'none' : `url("${url}")`;
 }
 
-// ⚠️ Garante que a área da mídia ocupe a tela toda (já que o input sumiu)
+// ⚠️ Garante que a área da mídia ocupe a tela toda e centralize a foto
 const mediaContainer = viewer.querySelector('#viewerMediaNex');
 if (mediaContainer) {
   mediaContainer.style.paddingBottom = '0';
   mediaContainer.style.height = '100vh';
+  mediaContainer.style.display = 'flex';
+  mediaContainer.style.alignItems = 'center';
+  mediaContainer.style.justifyContent = 'center';
 }
 
       media.innerHTML = '';
