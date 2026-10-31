@@ -58,7 +58,8 @@
 </div>
 
 <button type="button" class="viewer-save-btn" id="viewerSaveBtnNex" style="display: none;">
-  💾 Salvar na Galeria
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+  Salvar
 </button>
 
 <div class="toast-expira-nex" id="toastExpiraNex">
@@ -129,18 +130,27 @@ const midiaAtual = midiasViewerAtualNex[midiaViewerIndexNex];
 
 if (midiaAtual && midiaAtual.url && btnSalvar && toastExpira) {
   
-  // Mostra o Toast
-  toastExpira.classList.add('visivel');
-  
-  // Esconde o Toast e mostra o botão depois de 3s
-  setTimeout(() => {
-    toastExpira.classList.remove('visivel');
+  // ⚠️ Chave única para esta mídia específica
+  const chaveSalvo = `drop_salvo_${midiaAtual.url}`;
+  const jaFoiSalvo = localStorage.getItem(chaveSalvo) === 'true';
+
+  if (!jaFoiSalvo) {
+    // Se NUNCA foi salvo, mostra o toast e depois o botão
+    toastExpira.classList.add('visivel');
     
     setTimeout(() => {
-      btnSalvar.style.display = 'flex'; // Mostra o botão
-    }, 300);
+      toastExpira.classList.remove('visivel');
+      
+      setTimeout(() => {
+        btnSalvar.style.display = 'flex';
+      }, 300);
 
-  }, 3000);
+    }, 3000);
+  } else {
+    // Se JÁ FOI SALVO, não mostra nada (nem toast, nem botão)
+    toastExpira.classList.remove('visivel');
+    btnSalvar.style.display = 'none';
+  }
 
   // Ação de salvar na galeria
   btnSalvar.onclick = (e) => {
@@ -155,16 +165,15 @@ if (midiaAtual && midiaAtual.url && btnSalvar && toastExpira) {
     a.click();
     document.body.removeChild(a);
 
-    // Muda o botão para feedback
-    btnSalvar.innerHTML = '✅ Salvo!';
-    btnSalvar.style.background = 'rgba(34, 197, 94, 0.2)';
-    btnSalvar.style.color = '#4ade80';
-    btnSalvar.style.border = '1px solid rgba(74, 222, 128, 0.5)';
+    // ⚠️ Marca como salvo no localStorage
+    localStorage.setItem(chaveSalvo, 'true');
+
+    // Esconde o botão após salvar
+    btnSalvar.style.display = 'none';
 
     window.mostrarToastNex?.('Mídia salva na galeria!', 'sucesso');
   };
 }
-
     // Setas
     const leftBtn = viewer.querySelector('.viewer-arrow-left');
     const rightBtn = viewer.querySelector('.viewer-arrow-right');
@@ -324,9 +333,16 @@ if (midiaAtual && midiaAtual.url && btnSalvar && toastExpira) {
         /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
 
       const bg = viewer.querySelector('#viewerBgNex');
-      if (bg) {
-        bg.style.backgroundImage = ehVideo ? 'none' : `url("${url}")`;
-      }
+if (bg) {
+  bg.style.backgroundImage = ehVideo ? 'none' : `url("${url}")`;
+}
+
+// ⚠️ Garante que a área da mídia ocupe a tela toda (já que o input sumiu)
+const mediaContainer = viewer.querySelector('#viewerMediaNex');
+if (mediaContainer) {
+  mediaContainer.style.paddingBottom = '0';
+  mediaContainer.style.height = '100vh';
+}
 
       media.innerHTML = '';
 
