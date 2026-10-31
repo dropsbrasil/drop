@@ -873,14 +873,24 @@ if (areaMsgs) areaMsgs.innerHTML = '';
   }
 
   // Avatar
-  if (chatAvatar) {
-    chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
-    chatAvatar.style.backgroundImage = 'none';
-    chatAvatar.style.cursor = 'pointer';
+if (chatAvatar) {
+  chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
+  chatAvatar.style.backgroundImage = 'none';
+  chatAvatar.style.cursor = 'pointer';
 
-    if (perfilReal?.avatar_url) {
-      chatAvatar.innerHTML = `<img src="${perfilReal.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
-    }
+  if (perfilReal?.avatar_url) {
+    chatAvatar.innerHTML = `<img src="${perfilReal.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
+    
+    // ⚠️ CORREÇÃO: Salva no cache para as bolhas reaproveitarem
+    const chaveCache = String(usernameReal).toLowerCase().trim();
+    cacheAvataresNex[chaveCache] = {
+      url: perfilReal.avatar_url,
+      timestamp: Date.now()
+    };
+  } else {
+    chatAvatar.innerHTML = '';
+  }
+}
 
     if (chatAvatar.__clickPerfilHandler) {
       chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
@@ -1208,7 +1218,9 @@ function renderChat(nome) {
         (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
     }
 
-    const avatarUrlCache = cacheAvataresNex[usernameAvatarMsg] || null;
+    // ⚠️ CORREÇÃO: Extrai a URL corretamente, seja o cache em formato de objeto ou string
+const cacheItem = cacheAvataresNex[usernameAvatarMsg];
+const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
 
     const dataExibida = msg.data || 'Hoje';
     const horaExibida = msg.hora || msg.time || '';
@@ -1279,13 +1291,13 @@ function renderChat(nome) {
 
         <div class="msg-header ${lado}">
           ${
-            lado === 'left'
-              ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
-                  avatarUrlCache
-                    ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
-                    : escapeHTML(avatarTexto)
-                }</div>`
-              : ''
+  lado === 'left'
+    ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
+        avatarUrlCache
+          ? `<img src="${escapeHTML(avatarUrlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(avatarTexto)}';">`
+          : escapeHTML(avatarTexto)
+      }</div>`
+    : ''
           }
 
           ${
@@ -1321,10 +1333,10 @@ function renderChat(nome) {
                   ⋮
                 </button>`
               : `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
-                  avatarUrlCache
-                    ? `<img src="${escapeHTML(avatarUrlCache)}" alt="">`
-                    : escapeHTML(avatarTexto)
-                }</div>`
+    avatarUrlCache
+      ? `<img src="${escapeHTML(avatarUrlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(avatarTexto)}';">`
+      : escapeHTML(avatarTexto)
+  }</div>`
           }
         </div>
 
