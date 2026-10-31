@@ -1210,12 +1210,16 @@ function renderChat(nome) {
 
     let usernameAvatarMsg = '';
 
-    if (lado === 'right') {
-      usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
-    } else {
-      usernameAvatarMsg =
-        (window.__convUsernamesNex && window.__convUsernamesNex[nome]) || nome;
-    }
+if (lado === 'right') {
+  usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
+} else {
+  // ⚠️ CORREÇÃO: Pega o @username real usando a chave da conversa atual
+  const chaveReal = typeof window.resolverChaveNex === 'function'
+    ? window.resolverChaveNex(nome)
+    : nome;
+  
+  usernameAvatarMsg = String(chaveReal).replace(/^@/, '').toLowerCase().trim();
+}
 
     // ⚠️ CORREÇÃO: Extrai a URL corretamente, seja o cache em formato de objeto ou string
 const cacheItem = cacheAvataresNex[usernameAvatarMsg];
@@ -1416,23 +1420,28 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
   atualizarTodosBadgesReacaoMidiaNex();
 
   area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
-    const username = el.dataset.avatarUser;
-    const fallback = el.dataset.avatarFallback || '?';
+  const username = el.dataset.avatarUser;
+  const fallback = el.dataset.avatarFallback || '?';
 
-    if (!username) return;
-    if (cacheAvataresNex[username]) {
-      el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
-      return;
-    }
+  if (!username) return;
 
-    const url = await buscarAvatarNex(username);
+  // ⚠️ CORREÇÃO: Extrai a URL corretamente (se o cache for objeto, pega o .url)
+  const cacheItem = cacheAvataresNex[username];
+  const urlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
 
-    if (url && el.isConnected) {
-      el.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
-    } else if (el.isConnected && !el.querySelector('img')) {
-      el.textContent = fallback;
-    }
-  });
+  if (urlCache) {
+    el.innerHTML = `<img src="${escapeHTML(urlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(fallback)}';">`;
+    return;
+  }
+
+  const url = await buscarAvatarNex(username);
+
+  if (url && el.isConnected) {
+    el.innerHTML = `<img src="${escapeHTML(url)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(fallback)}';">`;
+  } else if (el.isConnected && !el.querySelector('img')) {
+    el.textContent = fallback;
+  }
+});
 
   area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (el) => {
     const username = el.dataset.avatarUser;
