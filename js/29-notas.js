@@ -1648,66 +1648,74 @@ if (papel && fundoTipo === 'cor') {
 // CAPTURAR NOTAS COMO IMAGEM (INDEPENDENTE)
 // ============================================
 
-// ============================================
-// CAPTURAR NOTAS COMO IMAGEM (USANDO HTML2CANVAS)
-// ============================================
-
 async function capturarNotasComoImagemNex() {
   const editor = document.getElementById('notasEditorNex');
   const papel = notasPapel();
   if (!editor || !papel) return '';
 
-  // 1. Verifica se o html2canvas está disponível
   if (typeof window.html2canvas !== 'function') {
-    console.warn('⚠️ html2canvas não carregado. Fallback indisponível.');
+    console.warn('⚠️ html2canvas não carregado.');
     return '';
   }
 
-  // 2. Encerra edições e limpa seleções (igual o Salvar faz)
   if (notasTextoEditando) {
     finalizarEdicaoTextoNotasNex();
   }
   desselecionarTudoNotasNex();
 
-  // 3. Esconde os controles da tela (barra, rodapé, lixeira)
+  // 1. Salva o estado atual do papel e do palco
+  const palco = document.getElementById('notasPalcoNex');
+  const palcoOriginalStyle = palco ? palco.getAttribute('style') : '';
+  const papelOriginalStyle = papel.getAttribute('style');
+
+  // 2. Esconde os controles
   const barra = document.getElementById('notasBarraTopoNex');
   const rodape = document.getElementById('notasLegendaRowNex');
   const btnLixeira = document.getElementById('notasLixeiraNex');
   
-  const barraDisplay = barra?.style.display;
-  const rodapeDisplay = rodape?.style.display;
-  const lixeiraDisplay = btnLixeira?.style.display;
-
   if (barra) barra.style.display = 'none';
   if (rodape) rodape.style.display = 'none';
   if (btnLixeira) btnLixeira.style.display = 'none';
 
-  // 4. Adiciona a cápsula da marca (assim como no salvar)
+  // 3. Cápsula da marca
   const capsula = garantirCapsulaMarcaNex();
   if (capsula) capsula.classList.add('visivel');
 
-  // 5. Dá um tempo para o navegador redesenhar a tela
+  // 4. ⚠️ A MÁGICA: Desfaz qualquer zoom/transformação no palco para a captura
+  if (palco) {
+    palco.style.transform = 'none';
+    palco.style.zoom = '1';
+    palco.style.top = '0';
+    palco.style.bottom = '0';
+    palco.style.height = '100vh'; // Força o palco a ter o tamanho da tela
+  }
+
+  // 5. Espera o navegador redesenhar
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   try {
-    // 6. Usa o html2canvas (a MESMA técnica do botão Salvar)
+    // 6. Captura com html2canvas, forçando as dimensões corretas
     const canvas = await window.html2canvas(papel, {
       backgroundColor: null,
       useCORS: true,
-      scale: Math.min(2, window.devicePixelRatio || 1),
-      logging: false
+      scale: 2, // Força alta resolução para não ficar embaçado
+      logging: false,
+      width: papel.offsetWidth,
+      height: papel.offsetHeight
     });
 
-    // 7. Retorna a imagem final
-    return canvas.toDataURL('image/jpeg', 0.85);
+    return canvas.toDataURL('image/jpeg', 0.9);
   } catch (err) {
     console.error('Erro ao capturar Nota:', err);
     return '';
   } finally {
-    // 8. Devolve os controles para a tela
-    if (barra) barra.style.display = barraDisplay || '';
-    if (rodape) rodape.style.display = rodapeDisplay || '';
-    if (btnLixeira) btnLixeira.style.display = lixeiraDisplay || '';
+    // 7. Restaura TUDO ao estado original
+    if (palco) palco.setAttribute('style', palcoOriginalStyle);
+    if (papel) papel.setAttribute('style', papelOriginalStyle);
+
+    if (barra) barra.style.display = '';
+    if (rodape) rodape.style.display = '';
+    if (btnLixeira) btnLixeira.style.display = '';
     if (capsula) capsula.classList.remove('visivel');
   }
 }

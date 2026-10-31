@@ -73,7 +73,6 @@ async function uploadMidiaDropsSupabase(dataUrl) {
     if (!respostaAssinatura.ok) {
   const textoErro = await respostaAssinatura.text().catch(() => '');
   console.error('Erro ao pedir URL assinada:', respostaAssinatura.status, textoErro);
-  alert('ERRO 1 (Assinatura): Status ' + respostaAssinatura.status + ' - Detalhe: ' + textoErro);
   return null;
     }
 
