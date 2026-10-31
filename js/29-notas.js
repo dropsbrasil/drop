@@ -1678,8 +1678,9 @@ async function capturarNotasComoImagemNex() {
   if (btnLixeira) btnLixeira.style.display = 'none';
 
   // 3. Cápsula da marca
-  const capsula = garantirCapsulaMarcaNex();
-  if (capsula) capsula.classList.add('visivel');
+// ⚠️ REGRA: Na captura para o Feed, a cápsula NUNCA aparece.
+const capsula = garantirCapsulaMarcaNex();
+if (capsula) capsula.classList.remove('visivel'); 
 
   // 4. ⚠️ A MÁGICA: Desfaz qualquer zoom/transformação no palco para a captura
   if (palco) {
@@ -1709,14 +1710,15 @@ async function capturarNotasComoImagemNex() {
     console.error('Erro ao capturar Nota:', err);
     return '';
   } finally {
-    // 7. Restaura TUDO ao estado original
-    if (palco) palco.setAttribute('style', palcoOriginalStyle);
-    if (papel) papel.setAttribute('style', papelOriginalStyle);
+  // 7. Restaura TUDO ao estado original
+  if (palco) palco.setAttribute('style', palcoOriginalStyle);
+  if (papel) papel.setAttribute('style', papelOriginalStyle);
 
-    if (barra) barra.style.display = '';
-    if (rodape) rodape.style.display = '';
-    if (btnLixeira) btnLixeira.style.display = '';
-    if (capsula) capsula.classList.remove('visivel');
+  if (barra) barra.style.display = '';
+  if (rodape) rodape.style.display = '';
+  if (btnLixeira) btnLixeira.style.display = '';
+  // ⚠️ Garante que a cápsula continue escondida após a captura
+  if (capsula) capsula.classList.remove('visivel');
   }
 }
 
