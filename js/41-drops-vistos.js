@@ -15,13 +15,20 @@
   let cacheVistos = null;
   let carregando = false;
   let pendentesCarregar = [];
+  
+  // ⚠️ CORREÇÃO: Tempo de vida do cache (12 horas)
+  let cacheExpiraEm = 0;
+  const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
   // ============================================
   // BUSCAR VISTOS (com cache)
   // ============================================
 
   async function buscarVistos(forceRecarregar = false) {
-    if (cacheVistos && !forceRecarregar) {
+    const agora = Date.now();
+
+    // Se tem cache E não expirou E não forçou, usa o cache
+    if (cacheVistos && agora < cacheExpiraEm && !forceRecarregar) {
       return cacheVistos;
     }
 
@@ -52,6 +59,9 @@
       cacheVistos = new Set(
         (data || []).map((item) => String(item.publicacao_id))
       );
+      
+      // Atualiza o tempo de expiração
+      cacheExpiraEm = agora + CACHE_TTL_MS;
 
       return cacheVistos;
     } catch (err) {
@@ -109,6 +119,7 @@
 
   function limparCacheVistos() {
     cacheVistos = null;
+    cacheExpiraEm = 0;
   }
 
   // ============================================
@@ -139,6 +150,6 @@
     }, 2500);
   });
 
-  console.log('👁️ 41-drops-vistos.js carregado');
+  console.log('👁️ 41-drops-vistos.js carregado (com TTL de 12h)');
 
 })();

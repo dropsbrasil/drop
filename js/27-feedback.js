@@ -101,13 +101,13 @@
     enviouMsg: () => {
       tocarTomNex({ freq: 1046, dur: 0.05, vol: 0.08 });
     },
-  reagiu: () => {
-    tocarTomNex({ freq: 1318, dur: 0.06, vol: 0.10 });
-  },
-  navegou: () => {
-    tocarTomNex({ freq: 700, dur: 0.03, vol: 0.06 });
-  }
-};
+    reagiu: () => {
+      tocarTomNex({ freq: 1318, dur: 0.06, vol: 0.10 });
+    },
+    navegou: () => {
+      tocarTomNex({ freq: 700, dur: 0.03, vol: 0.06 });
+    }
+  };
 
   // ============================================
   // BADGE NO ÍCONE DO PWA
@@ -196,20 +196,18 @@
     },
 
     reagiu() {
-  vibrarNex(PADROES_VIBRACAO.reagiu);
-  SONS.reagiu?.();
-},
+      vibrarNex(PADROES_VIBRACAO.reagiu);
+      SONS.reagiu?.();
+    },
 
-// ⚠️ Trocar de drop (horizontal): vibra + toca
-navegouDrop() {
-  vibrarNex(PADROES_VIBRACAO.reagiu);
-  SONS.navegou?.();
-},
+    navegouDrop() {
+      vibrarNex(PADROES_VIBRACAO.reagiu);
+      SONS.navegou?.();
+    },
 
-// ⚠️ Trocar de perfil (vertical): só vibra
-trocouPerfil() {
-  vibrarNex(PADROES_VIBRACAO.reagiu);
-},
+    trocouPerfil() {
+      vibrarNex(PADROES_VIBRACAO.reagiu);
+    },
 
     enviouMsg() {
       vibrarNex(PADROES_VIBRACAO.enviouMsg);
@@ -267,7 +265,7 @@ trocouPerfil() {
   // EXPÕE
   // ============================================
 
-    window.feedbackNex = feedbackNex;
+  window.feedbackNex = feedbackNex;
   window.vibrarNex = vibrarNex;
 
   // ============================================
@@ -275,7 +273,7 @@ trocouPerfil() {
   // ============================================
 
   function vibrarTrocouTabNex() {
-  vibrarNex([40]);
+    vibrarNex([40]);
   }
 
   document.addEventListener('click', function (e) {

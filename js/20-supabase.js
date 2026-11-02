@@ -14,6 +14,11 @@
     return;
   }
 
+  // ⚠️ FONTE ÚNICA DE VERDADE — todos os módulos devem ler daqui
+  window.Drops = window.Drops || {};
+  window.Drops.SUPABASE_URL = SUPABASE_URL;
+  window.Drops.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
   window.supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY

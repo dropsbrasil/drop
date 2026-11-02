@@ -72,108 +72,99 @@
   // ALTERNAR REAÇÃO (toggle)
   // ============================================
   async function alternarReacaoMidiaNex(mensagemId, midiaIndex, tipo) {
-  if (!window.supabaseClient) {
-    console.warn('❌ supabaseClient não existe');
-    return null;
-  }
-
-  if (!mensagemId) {
-    console.warn('❌ mensagemId vazio');
-    return null;
-  }
-
-  if (!tipo) {
-    console.warn('❌ tipo vazio');
-    return null;
-  }
-
-  try {
-    const { data: { user } } =
-      await window.supabaseClient.auth.getUser();
-
-    if (!user) {
-      console.warn('❌ usuário não logado');
+    if (!window.supabaseClient) {
+      console.warn('❌ supabaseClient não existe');
       return null;
     }
 
-    const tipoLimpo = tipo === 'broken' ? 'broken' : 'heart';
-    const indexLimpo = Number(midiaIndex) || 0;
-
-    console.log('🎯 Tentando reagir:', {
-      mensagemId,
-      midiaIndex: indexLimpo,
-      tipo: tipoLimpo,
-      usuario: user.id
-    });
-
-    // Busca reação existente
-    const { data: existente, error: erroSelect } = await window.supabaseClient
-      .from('reacoes_midia')
-      .select('id, tipo')
-      .eq('mensagem_id', mensagemId)
-      .eq('midia_index', indexLimpo)
-      .eq('usuario_id', user.id);
-
-    if (erroSelect) {
-      console.error('❌ Erro no SELECT:', erroSelect);
-      window.mostrarToastNex?.('Erro SELECT: ' + erroSelect.message, 'erro');
+    if (!mensagemId) {
+      console.warn('❌ mensagemId vazio');
       return null;
     }
 
-    const lista = existente || [];
-    const mesma = lista.find((r) => r.tipo === tipoLimpo);
+    if (!tipo) {
+      console.warn('❌ tipo vazio');
+      return null;
+    }
 
-    // Toggle: remove
-    if (mesma) {
-      const { error: erroDel } = await window.supabaseClient
-        .from('reacoes_midia')
-        .delete()
-        .eq('id', mesma.id);
+    try {
+      const { data: { user } } =
+        await window.supabaseClient.auth.getUser();
 
-      if (erroDel) {
-        console.error('❌ Erro DELETE:', erroDel);
-        window.mostrarToastNex?.('Erro DELETE: ' + erroDel.message, 'erro');
+      if (!user) {
+        console.warn('❌ usuário não logado');
         return null;
       }
 
-      console.log('✅ Reação removida');
-      return { acao: 'removida', tipo: tipoLimpo };
-    }
+      const tipoLimpo = tipo === 'broken' ? 'broken' : 'heart';
+      const indexLimpo = Number(midiaIndex) || 0;
 
-    // Remove outras
-    if (lista.length > 0) {
-      await window.supabaseClient
+      // Busca reação existente
+      const { data: existente, error: erroSelect } = await window.supabaseClient
         .from('reacoes_midia')
-        .delete()
+        .select('id, tipo')
         .eq('mensagem_id', mensagemId)
         .eq('midia_index', indexLimpo)
         .eq('usuario_id', user.id);
-    }
 
-    // Insere
-    const { error: erroInsert } = await window.supabaseClient
-      .from('reacoes_midia')
-      .insert({
-        mensagem_id: mensagemId,
-        midia_index: indexLimpo,
-        usuario_id: user.id,
-        tipo: tipoLimpo
-      });
+      if (erroSelect) {
+        console.error('❌ Erro no SELECT:', erroSelect);
+        window.mostrarToastNex?.('Erro SELECT: ' + erroSelect.message, 'erro');
+        return null;
+      }
 
-    if (erroInsert) {
-      console.error('❌ Erro INSERT:', erroInsert);
-      window.mostrarToastNex?.('Erro: ' + erroInsert.message, 'erro');
+      const lista = existente || [];
+      const mesma = lista.find((r) => r.tipo === tipoLimpo);
+
+      // Toggle: remove
+      if (mesma) {
+        const { error: erroDel } = await window.supabaseClient
+          .from('reacoes_midia')
+          .delete()
+          .eq('id', mesma.id);
+
+        if (erroDel) {
+          console.error('❌ Erro DELETE:', erroDel);
+          window.mostrarToastNex?.('Erro DELETE: ' + erroDel.message, 'erro');
+          return null;
+        }
+        return { acao: 'removida', tipo: tipoLimpo };
+      }
+
+      // Remove outras
+      if (lista.length > 0) {
+        await window.supabaseClient
+          .from('reacoes_midia')
+          .delete()
+          .eq('mensagem_id', mensagemId)
+          .eq('midia_index', indexLimpo)
+          .eq('usuario_id', user.id);
+      }
+
+      // Insere
+      const { error: erroInsert } = await window.supabaseClient
+        .from('reacoes_midia')
+        .insert({
+          mensagem_id: mensagemId,
+          midia_index: indexLimpo,
+          usuario_id: user.id,
+          tipo: tipoLimpo
+        });
+
+      if (erroInsert) {
+        console.error('❌ Erro INSERT:', erroInsert);
+        window.mostrarToastNex?.('Erro: ' + erroInsert.message, 'erro');
+        return null;
+      }
+
+      return { acao: 'adicionada', tipo: tipoLimpo };
+    } catch (err) {
+      console.error('❌ Erro catch:', err);
+      window.mostrarToastNex?.('Erro: ' + (err.message || 'desconhecido'), 'erro');
       return null;
     }
-
-    console.log('✅ Reação adicionada');
-    return { acao: 'adicionada', tipo: tipoLimpo };
-  } catch (err) {
-    console.error('❌ Erro catch:', err);
-    window.mostrarToastNex?.('Erro: ' + (err.message || 'desconhecido'), 'erro');
-    return null;
   }
-  }
+  
   // ============================================
   // REALTIME
   // ============================================
@@ -222,7 +213,7 @@
           }
         )
         .subscribe((status) => {
-          console.log('📡 Realtime reações mídia:', status);
+          // console.log('📡 Realtime reações mídia:', status);
         });
     } catch (err) {
       console.warn('Erro ao iniciar Realtime de reações de mídia:', err);
@@ -238,7 +229,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();
-    console.log('❤️ 26-reacoes-midia-supabase.js pronto');
+    console.log('❤️ 26-reacoes-midia-supabase.js pronto (logs limpos)');
   });
 
   console.log('❤️ 26-reacoes-midia-supabase.js carregado');

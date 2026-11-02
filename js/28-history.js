@@ -51,8 +51,8 @@
       'painelControleNex',
       'painelMeusAdeptosNex',
       'painelBloqueadosNex',
-'painelDesconectadosNex',
-'muralConfirmSairNex',
+      'painelDesconectadosNex',
+      'muralConfirmSairNex',
       'muralConfirmLimparNex',
       'muralModalTextoNex',
       'perfilMuralEmBreveNex'
@@ -80,176 +80,210 @@
         return { tipo: 'modal', id, via: 'hidden' };
       }
     }
-
-    // 4. Mural
-    const mural = document.getElementById('modalMuralNex');
-    if (mural && mural.style.display === 'flex') {
-      return { tipo: 'mural' };
-    }
-
-    // 5. Câmeras
-    const camVideo = document.getElementById('cameraMyDropsOverlayNex');
-    if (camVideo && camVideo.style.display === 'flex') {
-      return { tipo: 'camera-video' };
-    }
-
-    const camFoto = document.getElementById('cameraFotoMyDropsOverlayNex');
-    if (camFoto && camFoto.style.display === 'flex') {
-      return { tipo: 'camera-foto' };
-    }
-
-    // 6. Editor de vídeo
-    const editorVideo = document.getElementById('videoEditorMyDropsNex');
-    if (editorVideo && editorVideo.style.display === 'flex') {
-      return { tipo: 'editor-video' };
-    }
-
-    // 7. Editor de foto (criado dinamicamente)
-    const editorFoto = document.getElementById('fotoEditorMyDropsNex');
-    if (editorFoto && editorFoto.style.display === 'flex') {
-      return { tipo: 'editor-foto' };
-    }
-
-    // 8. Menus
-    const menuAnexo = document.getElementById('menuAnexoNex');
-    if (menuAnexo && menuAnexo.style.display === 'flex') {
-      return { tipo: 'menu-anexo' };
-    }
-
-    const menuMsg = document.getElementById('msgMenuNex');
-    if (menuMsg && menuMsg.style.display === 'flex') {
-      return { tipo: 'menu-msg' };
-    }
-
-    const chatMenu = document.getElementById('chatMenuDropdownNex');
-    if (chatMenu && chatMenu.classList.contains('aberto')) {
-      return { tipo: 'chat-menu' };
-    }
-
-    const menuCamera = document.getElementById('menuCameraLateralNex');
-    if (menuCamera && menuCamera.classList.contains('aberto')) {
-      return { tipo: 'menu-camera' };
-    }
-
-    // 9. Viewers
-    if (document.querySelector('.nex-midia-viewer')) return { tipo: 'viewer-midia' };
-    if (document.querySelector('.nearby-drop-viewer')) return { tipo: 'viewer-nearby' };
-    if (document.querySelector('.mydrops-publication-viewer')) return { tipo: 'viewer-pub' };
-    if (document.querySelector('.mydrops-list-modal')) return { tipo: 'lista-modal' };
-    if (document.querySelector('.mydrops-delete-modal')) return { tipo: 'lista-modal' };
-
-    // 10. Chat
-    const chat = document.getElementById('chatNex');
-    if (chat && chat.classList.contains('active') && chat.style.display !== 'none') {
-      return { tipo: 'chat' };
-    }
-
-    // 11. Perfil visitado
-    const perfil = document.getElementById('perfilVisitadoNex');
-    if (perfil && perfil.classList.contains('active')) {
-      return { tipo: 'perfil' };
-    }
-
-    // 12. Telas principais
-    if (document.getElementById('nex')?.classList.contains('active')) {
-      return { tipo: 'tela-nex' };
-    }
-    if (document.getElementById('nearby')?.classList.contains('active')) {
-      return { tipo: 'tela-nearby' };
-    }
-    if (document.getElementById('mydrops')?.classList.contains('active')) {
-      return { tipo: 'tela-mydrops' };
-    }
-
-    return { tipo: 'raiz' };
+      // 4. Mural
+  const mural = document.getElementById('modalMuralNex');
+  if (mural && mural.style.display === 'flex') {
+    return { tipo: 'mural' };
   }
 
+  // 5. Câmeras
+  const camVideo = document.getElementById('cameraMyDropsOverlayNex');
+  if (camVideo && camVideo.style.display === 'flex') {
+    return { tipo: 'camera-video' };
+  }
+
+  const camFoto = document.getElementById('cameraFotoMyDropsOverlayNex');
+  if (camFoto && camFoto.style.display === 'flex') {
+    return { tipo: 'camera-foto' };
+  }
+
+  // 6. Editores Antigos (Legado)
+  const editorVideo = document.getElementById('videoEditorMyDropsNex');
+  if (editorVideo && editorVideo.style.display === 'flex') {
+    return { tipo: 'editor-video' };
+  }
+
+  const editorFoto = document.getElementById('fotoEditorMyDropsNex');
+  if (editorFoto && editorFoto.style.display === 'flex') {
+    return { tipo: 'editor-foto-legado' };
+  }
+
+  // 7. Editores NOVOS (Notas, Foto, Vídeo) - ⚠️ CORREÇÃO CRÍTICA AQUI
+  const notasNovo = document.getElementById('notasEditorNex');
+  if (notasNovo && notasNovo.classList.contains('aberto')) {
+    return { tipo: 'editor-notas-novo' };
+  }
+
+  const fotoNovo = document.getElementById('fotoEditorNex');
+  if (fotoNovo && fotoNovo.classList.contains('aberto')) {
+    return { tipo: 'editor-foto-novo' };
+  }
+
+  const videoNovo = document.getElementById('videoEditorNex');
+  if (videoNovo && videoNovo.classList.contains('aberto')) {
+    return { tipo: 'editor-video-novo' };
+  }
+
+  // 8. Menus
+  const menuAnexo = document.getElementById('menuAnexoNex');
+  if (menuAnexo && menuAnexo.style.display === 'flex') {
+    return { tipo: 'menu-anexo' };
+  }
+
+  const menuMsg = document.getElementById('msgMenuNex');
+  if (menuMsg && menuMsg.style.display === 'flex') {
+    return { tipo: 'menu-msg' };
+  }
+
+  const chatMenu = document.getElementById('chatMenuDropdownNex');
+  if (chatMenu && chatMenu.classList.contains('aberto')) {
+    return { tipo: 'chat-menu' };
+  }
+
+  const menuCamera = document.getElementById('menuCameraLateralNex');
+  if (menuCamera && menuCamera.classList.contains('aberto')) {
+    return { tipo: 'menu-camera' };
+  }
+
+  // 9. Viewers
+  if (document.querySelector('.nex-midia-viewer')) return { tipo: 'viewer-midia' };
+  if (document.querySelector('.nearby-drop-viewer')) return { tipo: 'viewer-nearby' };
+  if (document.querySelector('.mydrops-publication-viewer')) return { tipo: 'viewer-pub' };
+  if (document.querySelector('.mydrops-list-modal')) return { tipo: 'lista-modal' };
+  if (document.querySelector('.mydrops-delete-modal')) return { tipo: 'lista-modal' };
+
+  // 10. Chat
+  const chat = document.getElementById('chatNex');
+  if (chat && chat.classList.contains('active') && chat.style.display !== 'none') {
+    return { tipo: 'chat' };
+  }
+
+  // 11. Perfil visitado
+  const perfil = document.getElementById('perfilVisitadoNex');
+  if (perfil && perfil.classList.contains('active')) {
+    return { tipo: 'perfil' };
+  }
+
+  // 12. Telas principais
+  if (document.getElementById('nex')?.classList.contains('active')) {
+    return { tipo: 'tela-nex' };
+  }
+  if (document.getElementById('nearby')?.classList.contains('active')) {
+    return { tipo: 'tela-nearby' };
+  }
+  if (document.getElementById('mydrops')?.classList.contains('active')) {
+    return { tipo: 'tela-mydrops' };
+  }
+
+  return { tipo: 'raiz' };
+  }
   // ============================================
-  // FECHAR O QUE ESTÁ ABERTO
-  // ============================================
-  function fecharAberto(aberto) {
-    switch (aberto.tipo) {
-      case 'modal': {
-        const el = document.getElementById(aberto.id);
-        if (!el) return false;
+// FECHAR O QUE ESTÁ ABERTO
+// ============================================
+function fecharAberto(aberto) {
+  switch (aberto.tipo) {
+    case 'modal': {
+      const el = document.getElementById(aberto.id);
+      if (!el) return false;
 
-        const fechadores = {
-          nomeModal: 'fecharEditorNomeNex',
-          editarMsgModalNex: 'fecharModalEdicaoNex',
-          confirmDeleteModalNex: 'fecharConfirmDeleteNex',
-          confirmDeleteMeModalNex: 'fecharConfirmDeleteMeNex',
-          bloquearPerfilModalNex: 'fecharModalBloquearPerfilNex',
-          modalDesbloquearNex: 'fecharModalDesbloquearNex',
-          modalSobreAppNex: 'fecharSobreAppNex',
-          modalDocSobreNex: 'fecharDocSobreNex',
-          modalSairContaNex: 'fecharModalSairContaNex',
-          painelControleNex: 'fecharPainelControleNex',
-          painelMeusAdeptosNex: 'fecharMeusAdeptosNex',
-          painelBloqueadosNex: 'fecharBloqueadosNex',
-          painelDesconectadosNex: 'fecharDesconectadosNex',
-          modalFundoMyDropsNex: 'fecharModalFundoMyDropsNex',
-          modalDuracaoPublicacaoMyDropsNex: 'fecharModalDuracaoPublicacaoMyDropsNex',
-          confirmLimparPerfilModalNex: 'fecharConfirmLimparPerfilNex',
-confirmNomeModalNex: 'fecharConfirmNomeNex',
-muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
-          muralModalTextoNex: 'fecharModalTextoMuralNex',
-          perfilMuralEmBreveNex: 'fecharMuralEmBrevePerfilNex'
-        };
+      const fechadores = {
+        nomeModal: 'fecharEditorNomeNex',
+        editarMsgModalNex: 'fecharModalEdicaoNex',
+        confirmDeleteModalNex: 'fecharConfirmDeleteNex',
+        confirmDeleteMeModalNex: 'fecharConfirmDeleteMeNex',
+        bloquearPerfilModalNex: 'fecharModalBloquearPerfilNex',
+        modalDesbloquearNex: 'fecharModalDesbloquearNex',
+        modalSobreAppNex: 'fecharSobreAppNex',
+        modalDocSobreNex: 'fecharDocSobreNex',
+        modalSairContaNex: 'fecharModalSairContaNex',
+        painelControleNex: 'fecharPainelControleNex',
+        painelMeusAdeptosNex: 'fecharMeusAdeptosNex',
+        painelBloqueadosNex: 'fecharBloqueadosNex',
+        painelDesconectadosNex: 'fecharDesconectadosNex',
+        modalFundoMyDropsNex: 'fecharModalFundoMyDropsNex',
+        modalDuracaoPublicacaoMyDropsNex: 'fecharModalDuracaoPublicacaoMyDropsNex',
+        confirmLimparPerfilModalNex: 'fecharConfirmLimparPerfilNex',
+        confirmNomeModalNex: 'fecharConfirmNomeNex',
+        muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
+        muralModalTextoNex: 'fecharModalTextoMuralNex',
+        perfilMuralEmBreveNex: 'fecharMuralEmBrevePerfilNex'
+      };
 
-        const fn = fechadores[aberto.id];
-        if (fn && typeof window[fn] === 'function') {
-          window[fn]();
-          return true;
-        }
-
-        if (aberto.via === 'active') {
-          el.classList.remove('active');
-        } else if (aberto.via === 'hidden') {
-          el.classList.add('hidden');
-        } else {
-          el.style.display = 'none';
-        }
-
+      const fn = fechadores[aberto.id];
+      if (fn && typeof window[fn] === 'function') {
+        window[fn]();
         return true;
       }
 
-      case 'mural': {
-        if (typeof window.tentarFecharMuralNex === 'function') {
-          window.tentarFecharMuralNex();
-        } else if (typeof window.fecharMuralNex === 'function') {
-          window.fecharMuralNex();
-        }
-        return true;
+      if (aberto.via === 'active') {
+        el.classList.remove('active');
+      } else if (aberto.via === 'hidden') {
+        el.classList.add('hidden');
+      } else {
+        el.style.display = 'none';
       }
 
-      case 'camera-video': {
-        if (typeof window.fecharCameraMyDrops === 'function') {
-          window.fecharCameraMyDrops();
-        }
-        return true;
-      }
+      return true;
+    }
 
-      case 'camera-foto': {
-        if (typeof window.fecharCameraFotoMyDropsNex === 'function') {
-          window.fecharCameraFotoMyDropsNex();
-        }
-        return true;
+    case 'mural': {
+      if (typeof window.tentarFecharMuralNex === 'function') {
+        window.tentarFecharMuralNex();
+      } else if (typeof window.fecharMuralNex === 'function') {
+        window.fecharMuralNex();
       }
+      return true;
+    }
 
-      case 'editor-video': {
-        if (typeof window.fecharEditorVideoMyDropsNex === 'function') {
-          window.fecharEditorVideoMyDropsNex();
-        }
-        return true;
+    case 'camera-video': {
+      if (typeof window.fecharCameraMyDrops === 'function') {
+        window.fecharCameraMyDrops();
       }
+      return true;
+    }
 
-      case 'editor-foto': {
-        const el = document.getElementById('fotoEditorMyDropsNex');
-        if (el) el.style.display = 'none';
-        return true;
+    case 'camera-foto': {
+      if (typeof window.fecharCameraFotoMyDropsNex === 'function') {
+        window.fecharCameraFotoMyDropsNex();
       }
+      return true;
+    }
 
-      case 'menu-anexo': {
+    case 'editor-video': {
+      if (typeof window.fecharEditorVideoMyDropsNex === 'function') {
+        window.fecharEditorVideoMyDropsNex();
+      }
+      return true;
+    }
+
+    case 'editor-foto-legado': {
+      const el = document.getElementById('fotoEditorMyDropsNex');
+      if (el) el.style.display = 'none';
+      return true;
+    }
+
+    // ⚠️ CORREÇÃO: Adicionado os fechadores dos NOVOS editores
+    case 'editor-notas-novo': {
+      if (typeof window.fecharNotasNex === 'function') {
+        window.fecharNotasNex();
+      }
+      return true;
+    }
+
+    case 'editor-foto-novo': {
+      if (typeof window.fecharFotoNex === 'function') {
+        window.fecharFotoNex();
+      }
+      return true;
+    }
+
+    case 'editor-video-novo': {
+      if (typeof window.fecharVideoNex === 'function') {
+        window.fecharVideoNex();
+      }
+      return true;
+    }
+            case 'menu-anexo': {
         const m = document.getElementById('menuAnexoNex');
         if (m) m.style.display = 'none';
         return true;
@@ -290,20 +324,19 @@ muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
       }
 
       case 'viewer-pub': {
-  const v = document.querySelector('.mydrops-publication-viewer');
-  if (!v) return false;
+        const v = document.querySelector('.mydrops-publication-viewer');
+        if (!v) return false;
 
-  // ⚠️ Se estiver em modo expandido, sai primeiro dele
-  if (v.classList.contains('modo-expandido')) {
-    v.classList.remove('modo-expandido');
-    const btnExp = v.querySelector('#mydropsPubExpandir');
-    if (btnExp) btnExp.textContent = '⤢';
-    return true;
-  }
+        if (v.classList.contains('modo-expandido')) {
+          v.classList.remove('modo-expandido');
+          const btnExp = v.querySelector('#mydropsPubExpandir');
+          if (btnExp) btnExp.textContent = '⤢';
+          return true;
+        }
 
-  v.remove();
-  document.body.style.overflow = '';
-  return true;
+        v.remove();
+        document.body.style.overflow = '';
+        return true;
       }
 
       case 'lista-modal': {
@@ -349,21 +382,17 @@ muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
   // POPSTATE — botão voltar
   // ============================================
   window.addEventListener('popstate', () => {
-  // ⚠️ BLOQUEIO: durante a transição viewer → perfil, o popstate
-  //    pode disparar antes do perfilVisitadoNex ficar ativo.
-  //    Sem esse guard, o history joga o usuário de volta pro feed.
-  if (window.__dropsBloquearPopstate) {
-    return;
-  }
+    if (window.__dropsBloquearPopstate) {
+      return;
+    }
 
-  const aberto = detectarAberto();
+    const aberto = detectarAberto();
 
-    // Está na raiz → pergunta se quer sair
     if (aberto.tipo === 'tela-mydrops' || aberto.tipo === 'raiz') {
       const agora = Date.now();
 
       if (agora - ultimaSaidaPedida < 2000) {
-        return; // deixa fechar
+        return;
       }
 
       ultimaSaidaPedida = agora;
@@ -388,30 +417,25 @@ muralConfirmLimparNex: 'fecharConfirmLimparMuralNex',
     }
   });
 
-// ============================================
-// INICIALIZAÇÃO
-// ============================================
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    // ⚠️ Cria 2 entradas no histórico:
-    // 1ª: state "tela-mydrops" (a que o app ocupa agora)
-    // 2ª: state "sentinela" (pra onde o 1º voltar cai)
+  // ============================================
+  // INICIALIZAÇÃO
+  // ============================================
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      history.replaceState(
+        { [HISTORY_KEY]: 'tela-mydrops' },
+        '',
+        location.href
+      );
 
-    history.replaceState(
-      { [HISTORY_KEY]: 'tela-mydrops' },
-      '',
-      location.href
-    );
-
-    // ⚠️ Empilha uma entrada extra
-    // Assim o 1º "voltar" cai aqui em vez de sair do app
-    history.pushState(
-      { [HISTORY_KEY]: 'tela-mydrops' },
-      '',
-      location.href
-    );
-  } catch (e) {}
-});
+      history.pushState(
+        { [HISTORY_KEY]: 'tela-mydrops' },
+        '',
+        location.href
+      );
+    } catch (e) {}
+  });
 
   console.log('🕹️ 28-history.js carregado');
+
 })();

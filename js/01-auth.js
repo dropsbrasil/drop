@@ -5,7 +5,7 @@
    Persistência: via window.AuthAdapterNex
    (17-adapters.js).
    
-   Depende de: 00-config.js
+   Depende de: 00-config.js, 20-supabase.js
 ============================================ */
 
 (function () {
@@ -14,9 +14,6 @@
 // ============================================
 // GUARDA DE INTEGRIDADE
 // ============================================
-// Se o 17-adapters.js não carregou, evita tela branca
-// silenciosa: loga o erro e para a execução deste módulo.
-
 if (!window.AuthAdapterNex) {
   console.error(
     '❌ 01-auth.js: AuthAdapterNex não encontrado. ' +
@@ -26,22 +23,37 @@ if (!window.AuthAdapterNex) {
 }
 
 // ============================================
-// VERIFICAÇÃO DE LOGIN
+// VERIFICAÇÃO DE LOGIN E SESSÃO (ASSÍNCRONO)
 // ============================================
-
-const sessao = window.AuthAdapterNex.lerSessao();
-
-  // Nunca fez onboarding
-  if (!sessao.cadastroCompleto) {
-    window.location.href = './onboarding.html';
+(async function verificarSessaoReal() {
+  if (!window.supabaseClient) {
+    console.warn('Aguardando Supabase...');
     return;
   }
 
-  // Fez onboarding mas não está logado
-  if (!sessao.logado) {
-    window.location.href = './onboarding.html?modo=login';
-    return;
+  try {
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+
+    if (!session) {
+      const cadastroCompleto = localStorage.getItem('drops_cadastro_completo') === 'true';
+      
+      if (!cadastroCompleto) {
+        window.location.href = './onboarding.html';
+      } else {
+        window.location.href = './onboarding.html?modo=login';
+      }
+      return;
+    }
+
+    localStorage.setItem('drops_logado', 'true');
+    localStorage.setItem('drops_cadastro_completo', 'true');
+
+    carregarDadosUsuarioMyDrops();
+
+  } catch (err) {
+    console.error('Erro ao verificar sessão:', err);
   }
+})();
 
   // ============================================
   // CARREGAR DADOS DO USUÁRIO NO MY DROPS
@@ -57,85 +69,74 @@ const sessao = window.AuthAdapterNex.lerSessao();
     const bioSalva = perfil.bio;
     const capaSalva = perfil.capa;
 
-    // Nome
     const nomeEl = document.getElementById('mydropsNomeUsuario');
     if (nomeEl) nomeEl.textContent = nome;
 
-    // @username
     const usernameEl = document.getElementById('mydropsUsername');
     if (usernameEl) {
       const userLimpo = String(username).replace(/^@/, '').trim();
       usernameEl.textContent = userLimpo ? '@' + userLimpo : '@usuario';
     }
 
-    // Avatar: imagem salva OU inicial do nome
-const avatarEl = document.getElementById('mydropsAvatarEl');
-if (avatarEl) {
-  if (avatarSalvo) {
-    avatarEl.innerHTML = `<img src="${avatarSalvo}" alt="Avatar do usuário">`;
-  } else {
-    const inicial = (nome || '?').trim().charAt(0).toUpperCase() || '?';
-    avatarEl.textContent = inicial;
+    const avatarEl = document.getElementById('mydropsAvatarEl');
+    if (avatarEl) {
+      if (avatarSalvo) {
+        avatarEl.innerHTML = `<img src="${avatarSalvo}" alt="Avatar do usuário">`;
+      } else {
+        const inicial = (nome || '?').trim().charAt(0).toUpperCase() || '?';
+        avatarEl.textContent = inicial;
+      }
+
+      avatarEl.style.cursor = 'pointer';
+      avatarEl.onclick = () => {
+        abrirFotoPerfilNex(avatarSalvo, nome, 'avatar');
+      };
+    }
+
+    const bioEl = document.getElementById('mydropsBioEl');
+    if (bioEl) {
+      bioEl.textContent = bioSalva || 'Sem bio ainda.';
+      const bioFont = perfil.bioFonte;
+      const bioColor = perfil.bioCor;
+      const bioAlign = perfil.bioAlign;
+      
+      if (bioFont) bioEl.style.setProperty('font-family', bioFont, 'important');
+      if (bioColor) bioEl.style.setProperty('color', bioColor, 'important');
+      if (bioAlign) bioEl.style.setProperty('text-align', bioAlign, 'important');
+    }
+
+    const capa = document.querySelector('.mydrops-cover');
+    const aviso = document.getElementById('avisoNovoPerfilNex');
+
+    if (capa) {
+      capa.style.cursor = 'pointer';
+
+      if (capaSalva) {
+        capa.style.backgroundImage =
+          `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
+        capa.style.backgroundSize = 'cover';
+        capa.style.backgroundPosition = 'center';
+        
+        capa.classList.remove('sem-foto');
+        if (aviso) aviso.style.display = 'none';
+
+      } else {
+        capa.style.backgroundImage = 'none';
+        capa.classList.add('sem-foto');
+        if (aviso) aviso.style.display = 'flex';
+      }
+
+      capa.onclick = () => {
+        abrirFotoPerfilNex(capaSalva, nome, 'capa');
+      };
+    }
   }
-
-  // ⚠️ Clique no avatar → abre em tela cheia
-  avatarEl.style.cursor = 'pointer';
-  avatarEl.onclick = () => {
-    abrirFotoPerfilNex(avatarSalvo, nome, 'avatar');
-  };
-}
-
-    // Bio
-const bioEl = document.getElementById('mydropsBioEl');
-if (bioEl) {
-  bioEl.textContent = bioSalva || 'Sem bio ainda.';
-
-  // ⚠️ Carrega os estilos salvos usando o adaptador
-const bioFont = perfil.bioFonte;
-const bioColor = perfil.bioCor;
-const bioAlign = perfil.bioAlign;
-  
-  if (bioFont) bioEl.style.setProperty('font-family', bioFont, 'important');
-  if (bioColor) bioEl.style.setProperty('color', bioColor, 'important');
-  if (bioAlign) bioEl.style.setProperty('text-align', bioAlign, 'important');
-}
-
-// Capa salva
-const capa = document.querySelector('.mydrops-cover');
-const aviso = document.getElementById('avisoNovoPerfilNex');
-
-if (capa) {
-  capa.style.cursor = 'pointer';
-
-  if (capaSalva) {
-    // Tem capa: aplica a imagem e esconde o aviso
-    capa.style.backgroundImage =
-      `linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.70)), url('${capaSalva}')`;
-    capa.style.backgroundSize = 'cover';
-    capa.style.backgroundPosition = 'center';
-    
-    capa.classList.remove('sem-foto');
-    if (aviso) aviso.style.display = 'none';
-
-  } else {
-    // Não tem capa: mostra o degradê animado e o aviso
-    capa.style.backgroundImage = 'none';
-    capa.classList.add('sem-foto');
-    if (aviso) aviso.style.display = 'flex';
-  }
-
-  capa.onclick = () => {
-    abrirFotoPerfilNex(capaSalva, nome, 'capa');
-  };
-}
-}
 
 // ============================================
 // ABRIR FOTO EM TELA CHEIA (avatar/capa)
 // ============================================
 
 function abrirFotoPerfilNex(url, nome, tipo) {
-  // ⚠️ Sem foto → toast
   if (!url) {
     if (typeof window.mostrarToastNex === 'function') {
       window.mostrarToastNex('Sem foto ainda', 'info');
@@ -148,12 +149,10 @@ function abrirFotoPerfilNex(url, nome, tipo) {
   
   if (!viewer || !img) return;
 
-  // Define a imagem e abre o viewer
   img.src = url;
   viewer.classList.add('aberto');
   document.body.style.overflow = 'hidden';
 
-  // Configura o botão de fechar (remove listener antigo para não duplicar)
   const btnFechar = document.getElementById('viewerPerfilFecharNex');
   if (btnFechar) {
     const novoBtn = btnFechar.cloneNode(true);
@@ -165,7 +164,6 @@ function abrirFotoPerfilNex(url, nome, tipo) {
     });
   }
 
-  // Fecha ao clicar no fundo escuro
   viewer.addEventListener('click', (e) => {
     if (e.target === viewer) {
       viewer.classList.remove('aberto');
@@ -175,13 +173,7 @@ function abrirFotoPerfilNex(url, nome, tipo) {
 }
 
 window.abrirFotoPerfilNex = abrirFotoPerfilNex;
-
-  // Expõe globalmente
-  window.carregarDadosUsuarioMyDrops = carregarDadosUsuarioMyDrops;
-
-  // Chama IMEDIATAMENTE (não espera DOMContentLoaded)
-  carregarDadosUsuarioMyDrops();
-
+window.carregarDadosUsuarioMyDrops = carregarDadosUsuarioMyDrops;
   // ============================================
 // ÍCONES SOCIAIS NO PAINEL DE CONTROLE
 // ============================================
@@ -225,7 +217,6 @@ async function atualizarContadorMeuMuralNex() {
 
   try {
     const contribuicoes = await window.buscarMuralSupabase(donoUsername);
-
     const pessoas = new Set();
 
     (contribuicoes || []).forEach((c) => {
@@ -323,7 +314,6 @@ function abrirEditorNomeNex() {
   const usuario = window.AuthAdapterNex.lerUsuario();
   const status = podeMudarNomeNex();
 
-  // Reset visual
   ajuda.textContent = 'Letras, números e até 2 emojis. Máx. 3 palavras.';
   ajuda.style.color = '';
   cooldown.textContent = '';
@@ -331,17 +321,13 @@ function abrirEditorNomeNex() {
   input.style.borderColor = '';
 
   if (!status.ok) {
-    // Bloqueado
     input.setAttribute('readonly', 'readonly');
     input.style.opacity = '0.55';
     btnSalvar.disabled = true;
     btnSalvar.style.opacity = '0.5';
     btnSalvar.style.cursor = 'not-allowed';
-
-    cooldown.textContent =
-      `⏳ Você poderá mudar o nome ${formatarCooldownNomeNex(status.restante)}.`;
+    cooldown.textContent = `⏳ Você poderá mudar o nome ${formatarCooldownNomeNex(status.restante)}.`;
   } else {
-    // Liberado
     input.removeAttribute('readonly');
     input.style.opacity = '1';
     btnSalvar.disabled = false;
@@ -394,13 +380,9 @@ function salvarNomeNex() {
   const input = document.getElementById('inputNomeNex');
   if (!input) return;
 
-  // Bloqueio de cooldown (defensivo)
   const status = podeMudarNomeNex();
   if (!status.ok) {
-    window.mostrarToastNex?.(
-      `Você só pode mudar o nome ${formatarCooldownNomeNex(status.restante)}.`,
-      'erro'
-    );
+    window.mostrarToastNex?.(`Você só pode mudar o nome ${formatarCooldownNomeNex(status.restante)}.`, 'erro');
     return;
   }
 
@@ -418,11 +400,9 @@ function salvarNomeNex() {
     return;
   }
 
-  // Abre modal de confirmação antes de salvar
   abrirConfirmNomeNex();
 }
-
-// ============================================
+  // ============================================
 // LIMPAR PERFIL
 // ============================================
 
@@ -440,27 +420,14 @@ function confirmarLimparPerfilNex() {
   fecharConfirmLimparPerfilNex();
 
   try {
-    // ============================================
-    // 1. APAGA CAPA, AVATAR E BIO (via adapter)
-    // ============================================
-
     window.AuthAdapterNex.salvarAvatar('');
     window.AuthAdapterNex.salvarCapa('');
     window.AuthAdapterNex.salvarBio('');
-
-    // ============================================
-    // 2. APAGA PUBLICAÇÕES (via adapter)
-    // ============================================
 
     if (window.MyDropsAdapterNex) {
       window.MyDropsAdapterNex.salvarPublicacoes([]);
     }
 
-    // ============================================
-    // 3. ATUALIZA UI DO MYDROPS
-    // ============================================
-
-    // Avatar → volta pra inicial do nome
     const avatarEl = document.getElementById('mydropsAvatarEl');
     if (avatarEl) {
       const usuario = window.AuthAdapterNex.lerUsuario();
@@ -469,7 +436,6 @@ function confirmarLimparPerfilNex() {
       avatarEl.innerHTML = inicial;
     }
 
-    // Capa → volta pra padrão
     const capaEl = document.querySelector('.mydrops-cover');
     if (capaEl) {
       capaEl.style.backgroundImage = '';
@@ -477,11 +443,9 @@ function confirmarLimparPerfilNex() {
       capaEl.style.backgroundPosition = '';
     }
 
-    // Bio → volta pro texto padrão
     const bioEl = document.getElementById('mydropsBioEl');
     if (bioEl) bioEl.textContent = 'Sem bio ainda.';
 
-    // Publicações → limpa o grid
     if (typeof window.renderizarPublicacoesMyDropsNex === 'function') {
       window.renderizarPublicacoesMyDropsNex();
     }
@@ -490,17 +454,9 @@ function confirmarLimparPerfilNex() {
       window.renderizarPublicacoesNearbyNex();
     }
 
-    // ============================================
-    // 4. FECHA O PAINEL DE CONTROLE
-    // ============================================
-
     if (typeof window.fecharPainelControleNex === 'function') {
       window.fecharPainelControleNex();
     }
-
-    // ============================================
-    // 5. FEEDBACK
-    // ============================================
 
     window.mostrarToastNex?.('Perfil limpo com sucesso!', 'sucesso');
   } catch (erro) {
@@ -518,9 +474,7 @@ let nomePendenteNex = '';
 function abrirConfirmNomeNex() {
   const input = document.getElementById('inputNomeNex');
   if (!input) return;
-
   nomePendenteNex = input.value.trim();
-
   const modal = document.getElementById('confirmNomeModalNex');
   if (modal) modal.style.display = 'flex';
 }
@@ -528,24 +482,18 @@ function abrirConfirmNomeNex() {
 function fecharConfirmNomeNex() {
   const modal = document.getElementById('confirmNomeModalNex');
   if (modal) modal.style.display = 'none';
-
   nomePendenteNex = '';
 }
 
 function confirmarSalvarNomeNex() {
   const novoNome = nomePendenteNex;
-
   fecharConfirmNomeNex();
 
   if (!novoNome) return;
 
-  // Revalida (defensivo — caso o input tenha mudado)
   const status = podeMudarNomeNex();
   if (!status.ok) {
-    window.mostrarToastNex?.(
-      `Você só pode mudar o nome ${formatarCooldownNomeNex(status.restante)}.`,
-      'erro'
-    );
+    window.mostrarToastNex?.(`Você só pode mudar o nome ${formatarCooldownNomeNex(status.restante)}.`, 'erro');
     return;
   }
 
@@ -556,39 +504,30 @@ function confirmarSalvarNomeNex() {
   }
 
   try {
-    // 1. Salva o nome
     window.AuthAdapterNex.salvarNome(novoNome);
-
-    // 2. Marca o timestamp da mudança
     window.AuthAdapterNex.salvarUltimaMudancaNome(Date.now());
 
-    // 3. Atualiza UI do MyDrops
     const nomeEl = document.getElementById('mydropsNomeUsuario');
     if (nomeEl) nomeEl.textContent = novoNome;
 
-    // 4. Atualiza o painel de controle
     const nomePainel = document.getElementById('controleNomeNex');
     if (nomePainel) nomePainel.textContent = novoNome;
 
-    // 5. Atualiza avatar fallback (se não tiver imagem, mostra inicial nova)
     const avatarEl = document.getElementById('mydropsAvatarEl');
     const perfil = window.AuthAdapterNex.lerPerfil();
     if (avatarEl && !perfil.avatar) {
       avatarEl.textContent = novoNome.charAt(0).toUpperCase() || '?';
     }
 
-    // 6. Fecha o modal de edição (também fecha tudo o resto)
     fecharEditorNomeNex();
-
-    // 7. Feedback
     window.mostrarToastNex?.('Nome atualizado com sucesso!', 'sucesso');
   } catch (erro) {
     console.error('Erro ao salvar nome:', erro);
     window.mostrarToastNex?.('Falha ao salvar o nome.', 'erro');
   }
 }
-  
-  // ============================================
+
+// ============================================
 // EDITOR DE AVATAR
 // ============================================
 
@@ -610,7 +549,6 @@ async function aplicarAvatarNex(event) {
   event.target.value = '';
 
   try {
-    // ⚠️ Comprime ANTES: 400×400, ~30KB
     const comprimido = await window.comprimirImagemNex?.(file, {
       maxWidthOrHeight: 400,
       maxSizeMB: 0.15,
@@ -618,7 +556,6 @@ async function aplicarAvatarNex(event) {
       useWebWorker: true
     }) || file;
 
-    // Preview imediato com o arquivo comprimido
     const blobUrl = URL.createObjectURL(comprimido);
     const avatar = document.querySelector('.mydrops-avatar');
     if (avatar) {
@@ -627,22 +564,20 @@ async function aplicarAvatarNex(event) {
 
     window.mostrarToastNex?.('Enviando avatar...', 'info');
 
-    // Upload (File direto, sem dataURL gigante)
     const urlPublica = await window.uploadImagemSupabase?.('avatars', comprimido);
 
     if (!urlPublica) {
-      // ⚠️ SEM fallback base64 — restaura foto antiga e avisa
       if (avatar) {
-  const perfil = window.AuthAdapterNex.lerPerfil();
-  if (perfil.avatar) {
-    avatar.innerHTML = `<img src="${perfil.avatar}" alt="Avatar do usuário">`;
-  } else {
-    const usuario = window.AuthAdapterNex.lerUsuario();
-    avatar.innerHTML = '';
-    avatar.textContent = (usuario.nome || '?').charAt(0).toUpperCase() || '?';
-  }
-}
-URL.revokeObjectURL(blobUrl);
+        const perfil = window.AuthAdapterNex.lerPerfil();
+        if (perfil.avatar) {
+          avatar.innerHTML = `<img src="${perfil.avatar}" alt="Avatar do usuário">`;
+        } else {
+          const usuario = window.AuthAdapterNex.lerUsuario();
+          avatar.innerHTML = '';
+          avatar.textContent = (usuario.nome || '?').charAt(0).toUpperCase() || '?';
+        }
+      }
+      URL.revokeObjectURL(blobUrl);
       window.mostrarToastNex?.('Falha ao salvar. Tente novamente.', 'erro');
       return;
     }
@@ -659,8 +594,7 @@ URL.revokeObjectURL(blobUrl);
     window.mostrarToastNex?.('Falha ao salvar o avatar.', 'erro');
   }
 }
-
-// ============================================
+  // ============================================
 // EDITOR DE CAPA
 // ============================================
 
@@ -682,7 +616,6 @@ async function aplicarCapaNex(event) {
   event.target.value = '';
 
   try {
-    // ⚠️ Comprime ANTES: 1600×900, ~200KB
     const comprimido = await window.comprimirImagemNex?.(file, {
       maxWidthOrHeight: 1600,
       maxSizeMB: 0.5,
@@ -708,7 +641,6 @@ async function aplicarCapaNex(event) {
     const urlPublica = await window.uploadImagemSupabase?.('capas', comprimido);
 
     if (!urlPublica) {
-      // ⚠️ SEM fallback base64 — restaura capa anterior
       if (capa) {
         const perfil = window.AuthAdapterNex.lerPerfil();
         if (perfil.capa) {
@@ -739,7 +671,8 @@ async function aplicarCapaNex(event) {
     window.mostrarToastNex?.('Falha ao salvar a capa.', 'erro');
   }
 }
-  // ============================================
+
+// ============================================
 // EDITOR DE BIO
 // ============================================
 
@@ -754,25 +687,20 @@ function editarBioNex() {
 
   if (!bioModal || !inputBio) return;
 
-  // Carrega o texto
   inputBio.value = window.AuthAdapterNex.lerPerfil().bio || '';
 
-  // Carrega os estilos salvos
   const bioFont = localStorage.getItem(Drops.chaveUsuario('mydropsBioFont')) || '';
   const bioColor = localStorage.getItem(Drops.chaveUsuario('mydropsBioColor')) || '';
   const bioAlign = localStorage.getItem(Drops.chaveUsuario('mydropsBioAlign')) || '';
 
-  // Aplica no textarea
   inputBio.style.fontFamily = bioFont;
   inputBio.style.color = bioColor;
   inputBio.style.textAlign = bioAlign;
 
-  // Sincroniza os botões (remove ativo de todos e ativa o correspondente)
   document.querySelectorAll('.bio-fonte-btn').forEach(b => b.classList.toggle('ativo', b.dataset.fonte === bioFont));
   document.querySelectorAll('.bio-cor-btn').forEach(b => b.classList.toggle('ativo', b.dataset.cor === bioColor));
   document.querySelectorAll('.bio-align-btn').forEach(b => b.classList.toggle('ativo', b.dataset.align === bioAlign));
 
-  // Se não houver estilo salvo, ativa os padrões
   if (!bioFont) document.querySelector('.bio-fonte-btn')?.classList.add('ativo');
   if (!bioColor) document.querySelector('.bio-cor-btn')?.classList.add('ativo');
   if (!bioAlign) document.querySelector('.bio-align-btn[data-align="left"]')?.classList.add('ativo');
@@ -790,7 +718,6 @@ function initBioEventos() {
   const bioCorBtns = document.querySelectorAll('.bio-cor-btn');
   const bioAlignBtns = document.querySelectorAll('.bio-align-btn');
 
-  // Eventos das Fontes
   bioFonteBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       bioFonteBtns.forEach(b => b.classList.remove('ativo'));
@@ -799,7 +726,6 @@ function initBioEventos() {
     });
   });
 
-  // Eventos das Cores
   bioCorBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       bioCorBtns.forEach(b => b.classList.remove('ativo'));
@@ -808,7 +734,6 @@ function initBioEventos() {
     });
   });
 
-  // Eventos do Alinhamento
   bioAlignBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       bioAlignBtns.forEach(b => b.classList.remove('ativo'));
@@ -823,26 +748,21 @@ function initBioEventos() {
         const texto = inputBio.value.trim();
 
         const bioEl = document.querySelector('.mydrops-bio');
-if (bioEl) {
-  bioEl.textContent = texto || 'Sem bio ainda.';
-  
-  // ⚠️ Aplica o estilo no fundo (tela do My Drops) na mesma hora
-  bioEl.style.setProperty('font-family', inputBio.style.fontFamily || '', 'important');
-  bioEl.style.setProperty('color', inputBio.style.color || '', 'important');
-  bioEl.style.setProperty('text-align', inputBio.style.textAlign || '', 'important');
-}
+        if (bioEl) {
+          bioEl.textContent = texto || 'Sem bio ainda.';
+          bioEl.style.setProperty('font-family', inputBio.style.fontFamily || '', 'important');
+          bioEl.style.setProperty('color', inputBio.style.color || '', 'important');
+          bioEl.style.setProperty('text-align', inputBio.style.textAlign || '', 'important');
+        }
 
-window.AuthAdapterNex.salvarBio(texto);
-
-// ⚠️ Salva os estilos usando o adaptador
-window.AuthAdapterNex.salvarBioEstilos(
-  inputBio.style.fontFamily || '',
-  inputBio.style.color || '',
-  inputBio.style.textAlign || ''
-);
+        window.AuthAdapterNex.salvarBio(texto);
+        window.AuthAdapterNex.salvarBioEstilos(
+          inputBio.style.fontFamily || '',
+          inputBio.style.color || '',
+          inputBio.style.textAlign || ''
+        );
 
         if (bioModal) bioModal.classList.remove('active');
-
         window.mostrarToastNex?.('Bio atualizada com sucesso!', 'sucesso');
       } catch (erro) {
         console.error('Erro ao salvar bio:', erro);
@@ -857,7 +777,7 @@ window.AuthAdapterNex.salvarBioEstilos(
     });
   }
 }
-  
+
 // ============================================
 // EDITOR DE SOCIAL
 // ============================================
@@ -903,7 +823,6 @@ function montarLinkSocialNex(tipo, valor) {
 
 function atualizarSocialLinksNex() {
   const social = window.AuthAdapterNex.lerSocial();
-
   const socialBtns = document.querySelectorAll('.mydrops-social-btn');
 
   const configs = [
@@ -914,7 +833,6 @@ function atualizarSocialLinksNex() {
 
   configs.forEach(({ btn, tipo, valor }) => {
     if (!btn) return;
-
     const temValor = String(valor || '').trim() !== '';
     btn.classList.toggle('inactive', !temValor);
 
@@ -977,7 +895,6 @@ function initSocialEventos() {
 
         atualizarSocialLinksNex();
         if (socialModal) socialModal.classList.remove('active');
-
         window.mostrarToastNex?.('Redes sociais atualizadas!', 'sucesso');
       } catch (erro) {
         console.error('Erro ao salvar redes sociais:', erro);
@@ -995,43 +912,38 @@ function initSocialEventos() {
     });
   }
 
-  if (inputInstagram) {
-    inputInstagram.addEventListener('input', verificarMudancasSocialNex);
-  }
-  if (inputTiktok) {
-    inputTiktok.addEventListener('input', verificarMudancasSocialNex);
-  }
-  if (inputWhatsapp) {
-    inputWhatsapp.addEventListener('input', verificarMudancasSocialNex);
-  }
+  if (inputInstagram) inputInstagram.addEventListener('input', verificarMudancasSocialNex);
+  if (inputTiktok) inputTiktok.addEventListener('input', verificarMudancasSocialNex);
+  if (inputWhatsapp) inputWhatsapp.addEventListener('input', verificarMudancasSocialNex);
 }
-    // ============================================
-  // SAIR DA CONTA
   // ============================================
+// SAIR DA CONTA
+// ============================================
 
-  function abrirModalSairContaNex() {
-    const modal = document.getElementById('modalSairContaNex');
-    if (!modal) return;
+function abrirModalSairContaNex() {
+  const modal = document.getElementById('modalSairContaNex');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const painel = document.getElementById('painelControleNex');
+  if (painel) painel.style.display = 'none';
+}
 
-    modal.style.display = 'flex';
+function fecharModalSairContaNex() {
+  const modal = document.getElementById('modalSairContaNex');
+  if (modal) modal.style.display = 'none';
+}
 
-    const painel = document.getElementById('painelControleNex');
-    if (painel) painel.style.display = 'none';
-  }
-
-  function fecharModalSairContaNex() {
-    const modal = document.getElementById('modalSairContaNex');
-    if (modal) modal.style.display = 'none';
-  }
-
-  async function confirmarSairContaNex() {
+async function confirmarSairContaNex() {
   const modal = document.getElementById('modalSairContaNex');
   if (modal) {
     modal.style.transition = 'opacity 0.2s ease';
     modal.style.opacity = '0';
   }
 
-  // ⚠️ Desloga também no Supabase Auth
+  if (typeof window.desativarPush === 'function') {
+    await window.desativarPush();
+  }
+
   try {
     if (window.supabaseClient) {
       await window.supabaseClient.auth.signOut();
@@ -1041,265 +953,248 @@ function initSocialEventos() {
   }
 
   window.AuthAdapterNex.encerrarSessao();
-
   console.log('👋 Usuário deslogado');
 
   setTimeout(() => {
     window.location.href = './onboarding.html?modo=login';
   }, 220);
-  }
-
-  function sairDaContaNex() {
-    abrirModalSairContaNex();
-  }
-
-  // ============================================
-  // INICIALIZAÇÃO DOS EVENTOS (DOMContentLoaded)
-  // ============================================
-
-    document.addEventListener('DOMContentLoaded', () => {
-    initBioEventos();
-    initSocialEventos();
-    atualizarSocialLinksNex();
-
-// ============================================
-// BOTÕES DE SOM E VIBRAÇÃO (feedbackNex)
-// ============================================
-
-const btnToggleSom = document.getElementById('btnToggleSomNex');
-if (btnToggleSom) {
-  btnToggleSom.addEventListener('click', () => {
-    if (!window.feedbackNex) return;
-
-    const ligado = window.feedbackNex.somLigado();
-
-    if (ligado) {
-      window.feedbackNex.desligarSom();
-      btnToggleSom.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-          <line x1="23" y1="9" x2="17" y2="15"></line>
-          <line x1="17" y1="9" x2="23" y2="15"></line>
-        </svg>
-        Sons
-      `;
-      window.mostrarToastNex?.('Sons desativados', 'info');
-    } else {
-      window.feedbackNex.ligarSom();
-      btnToggleSom.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-        </svg>
-        Sons
-      `;
-      window.mostrarToastNex?.('Sons ativados', 'sucesso');
-    }
-  });
 }
 
-const btnToggleVibracao = document.getElementById('btnToggleVibracaoNex');
-if (btnToggleVibracao) {
-  btnToggleVibracao.addEventListener('click', () => {
-    if (!window.feedbackNex) return;
+function sairDaContaNex() {
+  abrirModalSairContaNex();
+}
 
-    const ligado = window.feedbackNex.vibracaoLigada();
+// ============================================
+// INICIALIZAÇÃO DOS EVENTOS (DOMContentLoaded)
+// ============================================
 
-    if (ligado) {
-      window.feedbackNex.desligarVibracao();
-      btnToggleVibracao.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-          <line x1="12" y1="18" x2="12.01" y2="18"></line>
-          <line x1="2" y1="2" x2="22" y2="22"></line>
-        </svg>
-        Vibração
-      `;
-      window.mostrarToastNex?.('Vibração desativada', 'info');
-    } else {
-      window.feedbackNex.ligarVibracao();
-      btnToggleVibracao.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-          <line x1="12" y1="18" x2="12.01" y2="18"></line>
-        </svg>
-        Vibração
-      `;
-      window.mostrarToastNex?.('Vibração ativada', 'sucesso');
+document.addEventListener('DOMContentLoaded', () => {
+  initBioEventos();
+  initSocialEventos();
+  atualizarSocialLinksNex();
 
-      // Vibra uma vez pra confirmar
-      if (navigator.vibrate) {
-        try { navigator.vibrate([60, 40, 60]); } catch (e) {}
+  // ============================================
+  // BOTÕES DE SOM E VIBRAÇÃO (feedbackNex)
+  // ============================================
+
+  const btnToggleSom = document.getElementById('btnToggleSomNex');
+  if (btnToggleSom) {
+    btnToggleSom.addEventListener('click', () => {
+      if (!window.feedbackNex) return;
+      const ligado = window.feedbackNex.somLigado();
+      if (ligado) {
+        window.feedbackNex.desligarSom();
+        btnToggleSom.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg> Sons`;
+        window.mostrarToastNex?.('Sons desativados', 'info');
+      } else {
+        window.feedbackNex.ligarSom();
+        btnToggleSom.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> Sons`;
+        window.mostrarToastNex?.('Sons ativados', 'sucesso');
       }
-    }
-  });
-}
-
-// ============================================
-// ATUALIZA TEXTO DOS BOTÕES AO ABRIR O PAINEL
-// ============================================
-
-function atualizarBotoesSomVibracaoNex() {
-  const btnSom = document.getElementById('btnToggleSomNex');
-  const btnVib = document.getElementById('btnToggleVibracaoNex');
-
-  if (btnSom && window.feedbackNex) {
-    const ligado = window.feedbackNex.somLigado();
-    btnSom.innerHTML = ligado
-      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> Sons`
-      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg> Sons`;
+    });
   }
 
-  if (btnVib && window.feedbackNex) {
-    const ligado = window.feedbackNex.vibracaoLigada();
-    btnVib.innerHTML = ligado
-      ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> Vibração`
-      : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="2" y1="2" x2="22" y2="22"></line></svg> Vibração`;
+  const btnToggleVibracao = document.getElementById('btnToggleVibracaoNex');
+  if (btnToggleVibracao) {
+    btnToggleVibracao.addEventListener('click', () => {
+      if (!window.feedbackNex) return;
+      const ligado = window.feedbackNex.vibracaoLigada();
+      if (ligado) {
+        window.feedbackNex.desligarVibracao();
+        btnToggleVibracao.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="2" y1="2" x2="22" y2="22"></line></svg> Vibração`;
+        window.mostrarToastNex?.('Vibração desativada', 'info');
+      } else {
+        window.feedbackNex.ligarVibracao();
+        btnToggleVibracao.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> Vibração`;
+        window.mostrarToastNex?.('Vibração ativada', 'sucesso');
+        if (navigator.vibrate) { try { navigator.vibrate([60, 40, 60]); } catch (e) {} }
+      }
+    });
   }
-}
 
-window.atualizarBotoesSomVibracaoNex = atualizarBotoesSomVibracaoNex;
+  function atualizarBotoesSomVibracaoNex() {
+    const btnSom = document.getElementById('btnToggleSomNex');
+    const btnVib = document.getElementById('btnToggleVibracaoNex');
 
-// Atualiza sempre que o painel de controle abrir
-const btnMenuGlobal = document.querySelector('.btn-menu-global');
-if (btnMenuGlobal) {
-  btnMenuGlobal.addEventListener('click', () => {
-    setTimeout(atualizarBotoesSomVibracaoNex, 50);
-  });
-}
-
-    // Botão Editar Nome
-const btnEditarNome = document.getElementById('btnEditarNomeNex');
-if (btnEditarNome) {
-  btnEditarNome.addEventListener('click', abrirEditorNomeNex);
-}
-
-const btnSalvarNome = document.getElementById('salvarNomeNex');
-if (btnSalvarNome) {
-  btnSalvarNome.addEventListener('click', salvarNomeNex);
-}
-
-const btnCancelarNome = document.getElementById('cancelarNomeNex');
-if (btnCancelarNome) {
-  btnCancelarNome.addEventListener('click', fecharEditorNomeNex);
-}
-
-const inputNome = document.getElementById('inputNomeNex');
-if (inputNome) {
-  inputNome.addEventListener('input', validarInputNomeNex);
-}
-
-// Fecha modal ao clicar fora
-const modalNome = document.getElementById('nomeModal');
-if (modalNome) {
-  modalNome.addEventListener('click', (e) => {
-    if (e.target === modalNome) fecharEditorNomeNex();
-  });
-}
-    // Fecha modal de confirmação ao clicar fora
-const modalConfirmNome = document.getElementById('confirmNomeModalNex');
-if (modalConfirmNome) {
-  modalConfirmNome.addEventListener('click', (e) => {
-    if (e.target === modalConfirmNome) fecharConfirmNomeNex();
-  });
-}
-    // Botão Limpar Perfil
-const btnLimparPerfil = document.getElementById('btnLimparPerfilNex');
-if (btnLimparPerfil) {
-  btnLimparPerfil.addEventListener('click', abrirConfirmLimparPerfilNex);
-}
-
-// Fecha modal de limpar perfil ao clicar fora
-const modalLimpar = document.getElementById('confirmLimparPerfilModalNex');
-if (modalLimpar) {
-  modalLimpar.addEventListener('click', (e) => {
-    if (e.target === modalLimpar) fecharConfirmLimparPerfilNex();
-  });
-}
-
-// Botões de perfil no painel de controle
-const btnEditarAvatar = document.getElementById('btnEditarAvatarNex');
-    if (btnEditarAvatar) {
-      btnEditarAvatar.addEventListener('click', abrirEditorAvatarNex);
+    if (btnSom && window.feedbackNex) {
+      const ligado = window.feedbackNex.somLigado();
+      btnSom.innerHTML = ligado
+        ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg> Sons`
+        : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg> Sons`;
     }
 
-    const btnEditarCapa = document.getElementById('btnEditarCapaNex');
-    if (btnEditarCapa) {
-      btnEditarCapa.addEventListener('click', abrirEditorCapaNex);
+    if (btnVib && window.feedbackNex) {
+      const ligado = window.feedbackNex.vibracaoLigada();
+      btnVib.innerHTML = ligado
+        ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg> Vibração`
+        : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="2" y1="2" x2="22" y2="22"></line></svg> Vibração`;
     }
+  }
 
-    const btnEditarBio = document.getElementById('btnEditarBioNex');
-    if (btnEditarBio) {
-      btnEditarBio.addEventListener('click', editarBioNex);
-    }
+  window.atualizarBotoesSomVibracaoNex = atualizarBotoesSomVibracaoNex;
 
-    const btnEditarSocial = document.getElementById('btnEditarSocialNex');
-    if (btnEditarSocial) {
-      btnEditarSocial.addEventListener('click', abrirEditorSocialNex);
-    }
+  const btnMenuGlobal = document.querySelector('.btn-menu-global');
+  if (btnMenuGlobal) {
+    btnMenuGlobal.addEventListener('click', () => {
+      setTimeout(atualizarBotoesSomVibracaoNex, 50);
+    });
+  }
+    const btnEditarNome = document.getElementById('btnEditarNomeNex');
+  if (btnEditarNome) btnEditarNome.addEventListener('click', abrirEditorNomeNex);
 
-    // Inputs de arquivo
-    const inputCapa = document.getElementById('inputCapaNex');
-    if (inputCapa) {
-      inputCapa.addEventListener('change', aplicarCapaNex);
-    }
+  const btnSalvarNome = document.getElementById('salvarNomeNex');
+  if (btnSalvarNome) btnSalvarNome.addEventListener('click', salvarNomeNex);
 
-    const inputAvatar = document.getElementById('inputAvatarNex');
-    if (inputAvatar) {
-      inputAvatar.addEventListener('change', aplicarAvatarNex);
-    }
+  const btnCancelarNome = document.getElementById('cancelarNomeNex');
+  if (btnCancelarNome) btnCancelarNome.addEventListener('click', fecharEditorNomeNex);
 
-    // Modal sair
-    const btnCancelarSair = document.getElementById('btnCancelarSairNex');
-    if (btnCancelarSair) {
-      btnCancelarSair.addEventListener('click', fecharModalSairContaNex);
-    }
+  const inputNome = document.getElementById('inputNomeNex');
+  if (inputNome) inputNome.addEventListener('input', validarInputNomeNex);
 
-    const btnConfirmarSair = document.getElementById('btnConfirmarSairNex');
-    if (btnConfirmarSair) {
-      btnConfirmarSair.addEventListener('click', confirmarSairContaNex);
-    }
+  const modalNome = document.getElementById('nomeModal');
+  if (modalNome) {
+    modalNome.addEventListener('click', (e) => {
+      if (e.target === modalNome) fecharEditorNomeNex();
+    });
+  }
 
-    const modalSair = document.getElementById('modalSairContaNex');
-    if (modalSair) {
-      modalSair.addEventListener('click', (e) => {
-        if (e.target === modalSair) fecharModalSairContaNex();
-      });
-    }
-  });
+  const modalConfirmNome = document.getElementById('confirmNomeModalNex');
+  if (modalConfirmNome) {
+    modalConfirmNome.addEventListener('click', (e) => {
+      if (e.target === modalConfirmNome) fecharConfirmNomeNex();
+    });
+  }
+
+  const btnLimparPerfil = document.getElementById('btnLimparPerfilNex');
+  if (btnLimparPerfil) btnLimparPerfil.addEventListener('click', abrirConfirmLimparPerfilNex);
+
+  const modalLimpar = document.getElementById('confirmLimparPerfilModalNex');
+  if (modalLimpar) {
+    modalLimpar.addEventListener('click', (e) => {
+      if (e.target === modalLimpar) fecharConfirmLimparPerfilNex();
+    });
+  }
+
+  const btnEditarAvatar = document.getElementById('btnEditarAvatarNex');
+  if (btnEditarAvatar) btnEditarAvatar.addEventListener('click', abrirEditorAvatarNex);
+
+  const btnEditarCapa = document.getElementById('btnEditarCapaNex');
+  if (btnEditarCapa) btnEditarCapa.addEventListener('click', abrirEditorCapaNex);
+
+  const btnEditarBio = document.getElementById('btnEditarBioNex');
+  if (btnEditarBio) btnEditarBio.addEventListener('click', editarBioNex);
+
+  const btnEditarSocial = document.getElementById('btnEditarSocialNex');
+  if (btnEditarSocial) btnEditarSocial.addEventListener('click', abrirEditorSocialNex);
+
+  const inputCapa = document.getElementById('inputCapaNex');
+  if (inputCapa) inputCapa.addEventListener('change', aplicarCapaNex);
+
+  const inputAvatar = document.getElementById('inputAvatarNex');
+  if (inputAvatar) inputAvatar.addEventListener('change', aplicarAvatarNex);
+
+  const btnCancelarSair = document.getElementById('btnCancelarSairNex');
+  if (btnCancelarSair) btnCancelarSair.addEventListener('click', fecharModalSairContaNex);
+
+  const btnConfirmarSair = document.getElementById('btnConfirmarSairNex');
+  if (btnConfirmarSair) btnConfirmarSair.addEventListener('click', confirmarSairContaNex);
+
+  const modalSair = document.getElementById('modalSairContaNex');
+  if (modalSair) {
+    modalSair.addEventListener('click', (e) => {
+      if (e.target === modalSair) fecharModalSairContaNex();
+    });
+  }
 
   // ============================================
-  // EXPÕE FUNÇÕES GLOBALMENTE
+  // INJEÇÃO DO BOTÃO "EXCLUIR CONTA" (NOVO)
   // ============================================
-  
+  setTimeout(() => {
+    const blocos = document.querySelectorAll('#painelControleNex .controle-bloco-nex');
+    
+    blocos.forEach(bloco => {
+      const h4 = bloco.querySelector('h4');
+      if (h4 && h4.textContent.includes('Sistema')) {
+        
+        if (document.getElementById('btnExcluirContaNex')) return;
 
-  window.abrirEditorNomeNex = abrirEditorNomeNex;
+        const btnExcluir = document.createElement('button');
+        btnExcluir.id = 'btnExcluirContaNex';
+        btnExcluir.type = 'button';
+        btnExcluir.style.color = '#fca5a5';
+        btnExcluir.textContent = '🗑️ Excluir minha conta';
+        
+        btnExcluir.addEventListener('click', async () => {
+          const confirmar = confirm('TEM CERTEZA? Esta ação é irreversível. Suas fotos e dados serão apagados para sempre.');
+          
+          if (confirmar) {
+            const confirmar2 = prompt('Para confirmar, digite a palavra: EXCLUIR');
+            if (confirmar2 !== 'EXCLUIR') {
+              alert('Exclusão cancelada.');
+              return;
+            }
+
+            window.mostrarToastNex?.('Excluindo conta...', 'info');
+
+            try {
+              const { data: { session } } = await window.supabaseClient.auth.getSession();
+              
+              await fetch(`${window.Drops.SUPABASE_URL}/functions/v1/excluir-conta`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              });
+
+              if (window.supabaseClient) {
+                await window.supabaseClient.auth.signOut();
+              }
+              localStorage.clear();
+              window.location.href = './onboarding.html';
+
+            } catch (err) {
+              console.error('Erro ao excluir conta:', err);
+              window.mostrarToastNex?.('Erro ao excluir. Tente novamente.', 'erro');
+            }
+          }
+        });
+
+        bloco.appendChild(btnExcluir);
+      }
+    });
+  }, 1000);
+});
+  // ============================================
+// EXPÕE FUNÇÕES GLOBALMENTE
+// ============================================
+
+window.abrirEditorNomeNex = abrirEditorNomeNex;
 window.fecharEditorNomeNex = fecharEditorNomeNex;
 window.salvarNomeNex = salvarNomeNex;
 window.abrirConfirmNomeNex = abrirConfirmNomeNex;
 window.fecharConfirmNomeNex = fecharConfirmNomeNex;
 window.confirmarSalvarNomeNex = confirmarSalvarNomeNex;
-  window.abrirConfirmLimparPerfilNex = abrirConfirmLimparPerfilNex;
+window.abrirConfirmLimparPerfilNex = abrirConfirmLimparPerfilNex;
 window.fecharConfirmLimparPerfilNex = fecharConfirmLimparPerfilNex;
 window.confirmarLimparPerfilNex = confirmarLimparPerfilNex;
 window.abrirEditorAvatarNex = abrirEditorAvatarNex;
-  window.abrirEditorCapaNex = abrirEditorCapaNex;
-  window.abrirEditorSocialNex = abrirEditorSocialNex;
-  window.editarBioNex = editarBioNex;
-  window.aplicarAvatarNex = aplicarAvatarNex;
-  window.aplicarCapaNex = aplicarCapaNex;
-  window.atualizarSocialLinksNex = atualizarSocialLinksNex;
-  window.montarLinkSocialNex = montarLinkSocialNex;
+window.abrirEditorCapaNex = abrirEditorCapaNex;
+window.abrirEditorSocialNex = abrirEditorSocialNex;
+window.editarBioNex = editarBioNex;
+window.aplicarAvatarNex = aplicarAvatarNex;
+window.aplicarCapaNex = aplicarCapaNex;
+window.atualizarSocialLinksNex = atualizarSocialLinksNex;
+window.montarLinkSocialNex = montarLinkSocialNex;
+window.abrirModalSairContaNex = abrirModalSairContaNex;
+window.fecharModalSairContaNex = fecharModalSairContaNex;
+window.confirmarSairContaNex = confirmarSairContaNex;
+window.sairDaContaNex = sairDaContaNex;
 
-  window.abrirModalSairContaNex = abrirModalSairContaNex;
-  window.fecharModalSairContaNex = fecharModalSairContaNex;
-  window.confirmarSairContaNex = confirmarSairContaNex;
-  window.sairDaContaNex = sairDaContaNex;
+// ============================================
+// DEBUG
+// ============================================
 
-  // ============================================
-  // DEBUG
-  // ============================================
-
-  console.log('🔐 01-auth.js carregado (via adapter)');
+console.log('🔐 01-auth.js carregado (via adapter + sessão real + botão excluir)');
 
 })();

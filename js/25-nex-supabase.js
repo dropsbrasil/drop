@@ -390,12 +390,36 @@ async function apagarPraMimSupabase(mensagemId) {
 }
 
 // ============================================
-// APAGAR PRA TODOS
+// APAGAR PRA TODOS (E APAGAR ARQUIVO DO STORAGE)
 // ============================================
 async function apagarPraTodosSupabase(mensagemId) {
   if (!window.supabaseClient || !mensagemId) return false;
 
   try {
+    // 1. Busca a mensagem para ver se tem mídia salva
+    const { data: msg } = await window.supabaseClient
+      .from('mensagens')
+      .select('media_url')
+      .eq('id', mensagemId)
+      .maybeSingle();
+
+    // 2. Se tiver arquivo, manda apagar do Supabase Storage (bucket 'nex')
+    if (msg && msg.media_url) {
+      try {
+        // Extrai o caminho do arquivo da URL pública
+        const partes = msg.media_url.split('/public/nex/');
+        const arquivo = partes.length > 1 ? partes[1].split('?')[0] : null;
+        
+        if (arquivo) {
+          await window.supabaseClient.storage.from('nex').remove([arquivo]);
+          console.log('🗑️ Mídia do chat removida do Storage.');
+        }
+      } catch (storageErr) {
+        console.warn('Aviso: O arquivo no Storage pode não ter sido apagado:', storageErr);
+      }
+    }
+
+    // 3. Marca a mensagem como apagada no banco de dados (deixa o texto null)
     const { error } = await window.supabaseClient
       .from('mensagens')
       .update({

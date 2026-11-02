@@ -54,7 +54,8 @@ async function uploadMidiaDropsSupabase(dataUrl) {
     const size = blob.size;
 
     // 3) Pede a URL assinada pra Edge Function
-    const supabaseUrl = 'https://sldiecaaplwgjxvfsdnq.supabase.co';
+    // ⚠️ CORRIGIDO: usa a URL global em vez de duplicar hardcoded
+    const supabaseUrl = window.Drops.SUPABASE_URL;
     const endpoint = `${supabaseUrl}/functions/v1/Gerar-url-r2`;
 
     const respostaAssinatura = await fetch(endpoint, {
@@ -71,9 +72,9 @@ async function uploadMidiaDropsSupabase(dataUrl) {
     });
 
     if (!respostaAssinatura.ok) {
-  const textoErro = await respostaAssinatura.text().catch(() => '');
-  console.error('Erro ao pedir URL assinada:', respostaAssinatura.status, textoErro);
-  return null;
+      const textoErro = await respostaAssinatura.text().catch(() => '');
+      console.error('Erro ao pedir URL assinada:', respostaAssinatura.status, textoErro);
+      return null;
     }
 
     const dados = await respostaAssinatura.json();
@@ -116,7 +117,7 @@ async function uploadMidiaDropsSupabase(dataUrl) {
 
       const username = localStorage.getItem('drops_username') || '';
 
-            // ⚠️ Pega a localização atual do autor no momento do post
+      // ⚠️ Pega a localização atual do autor no momento do post
       const autorLat = typeof window.minhaLatitudeAtual === 'number' 
         ? window.minhaLatitudeAtual 
         : null;
@@ -127,18 +128,18 @@ async function uploadMidiaDropsSupabase(dataUrl) {
       const { data, error } = await window.supabaseClient
         .from('publicacoes')
         .insert({
-  autor_id: user.id,
-  autor_username: username,
-  tipo: publicacao.tipo || 'foto',
-  media_url: publicacao.mediaUrl || '',
-  legenda: publicacao.legenda || '',
-  loop: publicacao.loop === true,
-  duracao: publicacao.duracao || '24h',
-  expira_em: publicacao.expiraEm || null,
-  selos: publicacao.selos || null,
-  autor_lat: autorLat,
-  autor_lng: autorLng
-})
+          autor_id: user.id,
+          autor_username: username,
+          tipo: publicacao.tipo || 'foto',
+          media_url: publicacao.mediaUrl || '',
+          legenda: publicacao.legenda || '',
+          loop: publicacao.loop === true,
+          duracao: publicacao.duracao || '24h',
+          expira_em: publicacao.expiraEm || null,
+          selos: publicacao.selos || null,
+          autor_lat: autorLat,
+          autor_lng: autorLng
+        })
         .select()
         .single();
 
@@ -217,355 +218,378 @@ async function uploadMidiaDropsSupabase(dataUrl) {
     }
   }
 
+// ============================================
+// APAGAR PUBLICAÇÃO (E APAGAR DO R2)
+// ============================================
+async function apagarPublicacaoSupabase(id) {
+  if (!window.supabaseClient || !id) return false;
+
+  try {
+    // 1. Pega o link da imagem/vídeo antes de deletar o registro
+    const { data: pub } = await window.supabaseClient
+      .from('publicacoes')
+      .select('media_url')
+      .eq('id', id)
+      .maybeSingle();
+
+    // 2. Se tinha arquivo, manda a Edge Function apagar do R2
+    if (pub && pub.media_url) {
+      try {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        
+        if (session?.access_token) {
+          await fetch(`${window.Drops.SUPABASE_URL}/functions/v1/Apagar-url-r2`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ url: pub.media_url })
+          });
+          console.log('🗑️ Arquivo removido do R2 junto com o drop.');
+        }
+      } catch (r2Err) {
+        console.warn('Aviso: O drop foi apagado, mas o arquivo no R2 pode ter falhado:', r2Err);
+      }
+    }
+
+    // 3. Deleta a linha do banco de dados
+    const { error } = await window.supabaseClient
+      .from('publicacoes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao apagar publicação:', error);
+      return false;
+    }
+
+    console.log('🗑️ Publicação apagada:', id);
+    return true;
+  } catch (erro) {
+    console.error('Erro ao apagar publicação:', erro);
+    return false;
+  }
+}
+
   // ============================================
-  // APAGAR PUBLICAÇÃO
+  // BUSCAR PUBLICAÇÕES DE UM USUÁRIO ESPECÍFICO
   // ============================================
-  async function apagarPublicacaoSupabase(id) {
-    if (!window.supabaseClient || !id) return false;
+  async function buscarDropsDoUsuarioSupabase(usuarioId) {
+    if (!window.supabaseClient || !usuarioId) return [];
 
     try {
-      const { error } = await window.supabaseClient
+      const { data, error } = await window.supabaseClient
         .from('publicacoes')
-        .delete()
-        .eq('id', id);
+        .select('*')
+        .eq('autor_id', usuarioId)
+        .order('criado_em', { ascending: false });
 
       if (error) {
-        console.error('Erro ao apagar publicação:', error);
-        return false;
+        console.error('Erro ao buscar drops do usuário:', error);
+        return [];
       }
 
-      console.log('🗑️ Publicação apagada:', id);
-      return true;
+      // Filtra expiradas e converte pro formato usado no perfil
+      const agora = Date.now();
+
+      return (data || [])
+        .filter((p) => {
+          if (!p.expira_em) return true;
+          return new Date(p.expira_em).getTime() > agora;
+        })
+        .map((p) => ({
+          id: p.id,
+          type: p.tipo === 'video' ? 'video' : 'image',
+          url: p.media_url,
+          legenda: p.legenda || '',
+          criadoEm: new Date(p.criado_em).getTime(),
+          expiraEm: p.expira_em,
+          duracao: p.duracao,
+          selos: p.selos || null,
+
+          // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
+          compartilhado_de_id: p.compartilhado_de_id || null,
+          compartilhado_de_username: p.compartilhado_de_username || '',
+          compartilhado_de_nome: p.compartilhado_de_nome || '',
+          compartilhado_de_avatar: p.compartilhado_de_avatar || ''
+        }));
     } catch (erro) {
-      console.error('Erro ao apagar publicação:', erro);
+      console.error('Erro ao buscar drops do usuário:', erro);
+      return [];
+    }
+  }
+
+  // ============================================
+  // BUSCAR TODOS OS DROPS COM DADOS DO AUTOR
+  // ============================================
+  async function buscarTodosOsDropsComAutor(limite = 50) {
+    if (!window.supabaseClient) return [];
+
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('publicacoes')
+        .select('*')
+        .order('criado_em', { ascending: false })
+        .limit(limite);
+
+      if (error) {
+        console.error('Erro ao buscar drops:', error);
+        return [];
+      }
+
+      const agora = Date.now();
+
+      // Filtra expiradas e converte pro formato de cartão
+      const dropsValidos = (data || []).filter((p) => {
+        if (!p.expira_em) return true;
+        return new Date(p.expira_em).getTime() > agora;
+      });
+
+      // Busca os perfis dos autores de uma vez
+      const idsAutores = [...new Set(dropsValidos.map((p) => p.autor_id))];
+
+      let perfisMap = {};
+
+      if (idsAutores.length) {
+        const { data: perfis } = await window.supabaseClient
+          .from('profiles')
+          .select('id, nome, username, avatar_url, ultima_atividade, lat, lng')
+          .in('id', idsAutores);
+
+        (perfis || []).forEach((p) => {
+          perfisMap[p.id] = p;
+        });
+      }
+
+      // Monta lista final
+      return dropsValidos.map((drop) => {
+        const autor = perfisMap[drop.autor_id] || {};
+
+        return {
+          id: drop.id,
+          mediaUrl: drop.media_url,
+          tipo: drop.tipo === 'video' ? 'video' : 'image',
+          legenda: drop.legenda || '',
+          criadoEm: new Date(drop.criado_em).getTime(),
+          expiraEm: drop.expira_em,
+          duracao: drop.duracao,
+
+          autorId: drop.autor_id,
+          autorUsername: autor.username || drop.autor_username || 'usuario',
+          autorNome: autor.nome || 'Usuário',
+          autorAvatar: autor.avatar_url || null,
+          autorUltimaAtividade: autor.ultima_atividade || null,
+          autorLat: autor.lat || null,
+          autorLng: autor.lng || null,
+          selos: drop.selos || null
+        };
+      });
+    } catch (erro) {
+      console.error('Erro ao buscar drops com autor:', erro);
+      return [];
+    }
+  }
+
+  // ============================================
+  // BUSCAR PERFIS COM DROPS (Nearby otimizado)
+  // ============================================
+  async function buscarPerfisComDropsProximosSupabase(
+    minhaLat,
+    minhaLng,
+    raioKm,
+    limite = 50
+  ) {
+    if (!window.supabaseClient) return [];
+
+    try {
+      const { data, error } = await window.supabaseClient.rpc(
+        'buscar_perfis_com_drops_proximos',
+        {
+          minha_lat: minhaLat,
+          minha_lng: minhaLng,
+          raio_km: raioKm,
+          limite: limite
+        }
+      );
+
+      if (error) {
+        console.warn('Erro ao buscar perfis próximos:', error);
+        return [];
+      }
+
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('Erro ao buscar perfis próximos:', err);
+      return [];
+    }
+  }
+
+  // ============================================
+  // COMPARTILHAR PUBLICAÇÃO
+  // ============================================
+  // Cria uma nova publicação apontando pra original.
+  // Regras:
+  //   - 1 compartilhamento por usuário por publicação
+  //   - Não pode compartilhar próprio drop
+  //   - Mesma URL do Storage (sem duplicar)
+  //   - Mesma validade (expira_em) do original
+  // ============================================
+  async function compartilharPublicacaoSupabase(publicacaoOriginalId) {
+    if (!window.supabaseClient || !publicacaoOriginalId) {
+      return { erro: 'sem_dados' };
+    }
+
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return { erro: 'sem_usuario' };
+
+      // 1) Já compartilhou?
+      const { data: existente } = await window.supabaseClient
+        .from('compartilhamentos')
+        .select('id')
+        .eq('publicacao_original_id', publicacaoOriginalId)
+        .eq('usuario_id', user.id)
+        .maybeSingle();
+
+      if (existente) return { erro: 'ja_compartilhado' };
+
+      // 2) Busca a original
+      const { data: original, error: erroOriginal } = await window.supabaseClient
+        .from('publicacoes')
+        .select('*')
+        .eq('id', publicacaoOriginalId)
+        .maybeSingle();
+
+      if (erroOriginal || !original) return { erro: 'original_nao_encontrado' };
+
+      // 3) Não pode ser o próprio drop
+      if (original.autor_id === user.id) return { erro: 'proprio_drop' };
+
+      // 4) Autor original
+      const { data: autorOriginal } = await window.supabaseClient
+        .from('profiles')
+        .select('username, nome, avatar_url')
+        .eq('id', original.autor_id)
+        .maybeSingle();
+
+      const usernameAtual = localStorage.getItem('drops_username') || '';
+
+      // 5) Cria a nova publicação (compartilhada)
+      const { data: nova, error: erroInsert } = await window.supabaseClient
+        .from('publicacoes')
+        .insert({
+          autor_id: user.id,
+          autor_username: usernameAtual,
+          tipo: original.tipo,
+          media_url: original.media_url,
+          legenda: original.legenda || '',
+          loop: original.loop === true,
+          duracao: original.duracao || '24h',
+          expira_em: original.expira_em,
+          selos: null,
+          compartilhado_de_id: original.id,
+          compartilhado_de_username: autorOriginal?.username || '',
+          compartilhado_de_nome: autorOriginal?.nome || '',
+          compartilhado_de_avatar: autorOriginal?.avatar_url || ''
+        })
+        .select()
+        .single();
+
+      if (erroInsert || !nova) {
+        console.warn('Erro ao criar compartilhamento:', erroInsert);
+        return {
+          erro: 'falha_insert',
+          detalhe: erroInsert?.message || 'sem detalhe',
+          codigo: erroInsert?.code || 'sem codigo'
+        };
+      }
+
+      // 6) Registra na tabela de compartilhamentos
+      const { error: erroReg } = await window.supabaseClient
+        .from('compartilhamentos')
+        .insert({
+          publicacao_original_id: original.id,
+          publicacao_compartilhada_id: nova.id,
+          usuario_id: user.id
+        });
+
+      if (erroReg) {
+        // Rollback
+        await window.supabaseClient.from('publicacoes').delete().eq('id', nova.id);
+        return {
+          erro: 'falha_registro',
+          detalhe: erroReg.message || 'sem detalhe',
+          codigo: erroReg.code || 'sem codigo'
+        };
+      }
+
+      console.log('🔁 Drop compartilhado com sucesso:', nova.id);
+      return { ok: true, publicacao: nova };
+    } catch (err) {
+      console.warn('Erro ao compartilhar (catch):', err);
+      return { erro: 'erro_desconhecido' };
+    }
+  }
+
+  async function jaCompartilhouSupabase(publicacaoOriginalId) {
+    if (!window.supabaseClient || !publicacaoOriginalId) return false;
+
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return false;
+
+      const { data } = await window.supabaseClient
+        .from('compartilhamentos')
+        .select('id')
+        .eq('publicacao_original_id', publicacaoOriginalId)
+        .eq('usuario_id', user.id)
+        .maybeSingle();
+
+      return !!data;
+    } catch (err) {
       return false;
     }
   }
 
   // ============================================
-// BUSCAR PUBLICAÇÕES DE UM USUÁRIO ESPECÍFICO
-// ============================================
-async function buscarDropsDoUsuarioSupabase(usuarioId) {
-  if (!window.supabaseClient || !usuarioId) return [];
+  // FASE 3 — CONTAR COMPARTILHAMENTOS
+  // ============================================
+  async function contarCompartilhamentosSupabase(publicacaoId) {
+    if (!window.supabaseClient || !publicacaoId) return 0;
 
-  try {
-    const { data, error } = await window.supabaseClient
-      .from('publicacoes')
-      .select('*')
-      .eq('autor_id', usuarioId)
-      .order('criado_em', { ascending: false });
+    try {
+      const { count, error } = await window.supabaseClient
+        .from('compartilhamentos')
+        .select('id', { count: 'exact', head: true })
+        .eq('publicacao_original_id', publicacaoId);
 
-    if (error) {
-      console.error('Erro ao buscar drops do usuário:', error);
-      return [];
-    }
-
-    // Filtra expiradas e converte pro formato usado no perfil
-    const agora = Date.now();
-
-    return (data || [])
-      .filter((p) => {
-        if (!p.expira_em) return true;
-        return new Date(p.expira_em).getTime() > agora;
-      })
-            .map((p) => ({
-  id: p.id,
-  type: p.tipo === 'video' ? 'video' : 'image',
-  url: p.media_url,
-  legenda: p.legenda || '',
-  criadoEm: new Date(p.criado_em).getTime(),
-  expiraEm: p.expira_em,
-  duracao: p.duracao,
-  selos: p.selos || null,
-
-  // ⚠️ AJUSTE 1 — dados do autor original (drop compartilhado)
-  compartilhado_de_id: p.compartilhado_de_id || null,
-  compartilhado_de_username: p.compartilhado_de_username || '',
-  compartilhado_de_nome: p.compartilhado_de_nome || '',
-  compartilhado_de_avatar: p.compartilhado_de_avatar || ''
-}));
-  } catch (erro) {
-    console.error('Erro ao buscar drops do usuário:', erro);
-    return [];
-  }
-}
-
-// ============================================
-// BUSCAR TODOS OS DROPS COM DADOS DO AUTOR
-// ============================================
-async function buscarTodosOsDropsComAutor(limite = 50) {
-  if (!window.supabaseClient) return [];
-
-  try {
-    const { data, error } = await window.supabaseClient
-      .from('publicacoes')
-      .select('*')
-      .order('criado_em', { ascending: false })
-      .limit(limite);
-
-    if (error) {
-      console.error('Erro ao buscar drops:', error);
-      return [];
-    }
-
-    const agora = Date.now();
-
-    // Filtra expiradas e converte pro formato de cartão
-    const dropsValidos = (data || []).filter((p) => {
-      if (!p.expira_em) return true;
-      return new Date(p.expira_em).getTime() > agora;
-    });
-
-    // Busca os perfis dos autores de uma vez
-    const idsAutores = [...new Set(dropsValidos.map((p) => p.autor_id))];
-
-    let perfisMap = {};
-
-    if (idsAutores.length) {
-      const { data: perfis } = await window.supabaseClient
-  .from('profiles')
-  .select('id, nome, username, avatar_url, ultima_atividade, lat, lng')
-  .in('id', idsAutores);
-
-      (perfis || []).forEach((p) => {
-        perfisMap[p.id] = p;
-      });
-    }
-
-    // Monta lista final
-    return dropsValidos.map((drop) => {
-      const autor = perfisMap[drop.autor_id] || {};
-
-      return {
-        id: drop.id,
-        mediaUrl: drop.media_url,
-        tipo: drop.tipo === 'video' ? 'video' : 'image',
-        legenda: drop.legenda || '',
-        criadoEm: new Date(drop.criado_em).getTime(),
-        expiraEm: drop.expira_em,
-        duracao: drop.duracao,
-
-            autorId: drop.autor_id,
-  autorUsername: autor.username || drop.autor_username || 'usuario',
-  autorNome: autor.nome || 'Usuário',
-  autorAvatar: autor.avatar_url || null,
-  autorUltimaAtividade: autor.ultima_atividade || null,
-      autorLat: autor.lat || null,
-    autorLng: autor.lng || null,
-    selos: drop.selos || null
-  };
-});
-  } catch (erro) {
-    console.error('Erro ao buscar drops com autor:', erro);
-    return [];
-  }
-}
-// ============================================
-// BUSCAR PERFIS COM DROPS (Nearby otimizado)
-// ============================================
-
-async function buscarPerfisComDropsProximosSupabase(
-  minhaLat,
-  minhaLng,
-  raioKm,
-  limite = 50
-) {
-  if (!window.supabaseClient) return [];
-
-  try {
-    const { data, error } = await window.supabaseClient.rpc(
-      'buscar_perfis_com_drops_proximos',
-      {
-        minha_lat: minhaLat,
-        minha_lng: minhaLng,
-        raio_km: raioKm,
-        limite: limite
+      if (error) {
+        console.warn('Erro ao contar compartilhamentos:', error);
+        return 0;
       }
-    );
 
-    if (error) {
-      console.warn('Erro ao buscar perfis próximos:', error);
-      return [];
-    }
-
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.warn('Erro ao buscar perfis próximos:', err);
-    return [];
-  }
-}
-
-// ============================================
-// COMPARTILHAR PUBLICAÇÃO
-// ============================================
-// Cria uma nova publicação apontando pra original.
-// Regras:
-//   - 1 compartilhamento por usuário por publicação
-//   - Não pode compartilhar próprio drop
-//   - Mesma URL do Storage (sem duplicar)
-//   - Mesma validade (expira_em) do original
-// ============================================
-
-async function compartilharPublicacaoSupabase(publicacaoOriginalId) {
-  if (!window.supabaseClient || !publicacaoOriginalId) {
-    return { erro: 'sem_dados' };
-  }
-
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return { erro: 'sem_usuario' };
-
-    // 1) Já compartilhou?
-    const { data: existente } = await window.supabaseClient
-      .from('compartilhamentos')
-      .select('id')
-      .eq('publicacao_original_id', publicacaoOriginalId)
-      .eq('usuario_id', user.id)
-      .maybeSingle();
-
-    if (existente) return { erro: 'ja_compartilhado' };
-
-    // 2) Busca a original
-    const { data: original, error: erroOriginal } = await window.supabaseClient
-      .from('publicacoes')
-      .select('*')
-      .eq('id', publicacaoOriginalId)
-      .maybeSingle();
-
-    if (erroOriginal || !original) return { erro: 'original_nao_encontrado' };
-
-    // 3) Não pode ser o próprio drop
-    if (original.autor_id === user.id) return { erro: 'proprio_drop' };
-
-    // 4) Autor original
-    const { data: autorOriginal } = await window.supabaseClient
-      .from('profiles')
-      .select('username, nome, avatar_url')
-      .eq('id', original.autor_id)
-      .maybeSingle();
-
-    const usernameAtual = localStorage.getItem('drops_username') || '';
-
-    // 5) Cria a nova publicação (compartilhada)
-    const { data: nova, error: erroInsert } = await window.supabaseClient
-      .from('publicacoes')
-      .insert({
-        autor_id: user.id,
-        autor_username: usernameAtual,
-        tipo: original.tipo,
-        media_url: original.media_url,
-        legenda: original.legenda || '',
-        loop: original.loop === true,
-        duracao: original.duracao || '24h',
-        expira_em: original.expira_em,
-        selos: null,
-        compartilhado_de_id: original.id,
-        compartilhado_de_username: autorOriginal?.username || '',
-        compartilhado_de_nome: autorOriginal?.nome || '',
-        compartilhado_de_avatar: autorOriginal?.avatar_url || ''
-      })
-      .select()
-      .single();
-
-    if (erroInsert || !nova) {
-  console.warn('Erro ao criar compartilhamento:', erroInsert);
-  return {
-    erro: 'falha_insert',
-    detalhe: erroInsert?.message || 'sem detalhe',
-    codigo: erroInsert?.code || 'sem codigo'
-  };
-    }
-
-    // 6) Registra na tabela de compartilhamentos
-    const { error: erroReg } = await window.supabaseClient
-      .from('compartilhamentos')
-      .insert({
-        publicacao_original_id: original.id,
-        publicacao_compartilhada_id: nova.id,
-        usuario_id: user.id
-      });
-
-    if (erroReg) {
-  // Rollback
-  await window.supabaseClient.from('publicacoes').delete().eq('id', nova.id);
-  return {
-    erro: 'falha_registro',
-    detalhe: erroReg.message || 'sem detalhe',
-    codigo: erroReg.code || 'sem codigo'
-  };
-    }
-
-    console.log('🔁 Drop compartilhado com sucesso:', nova.id);
-    return { ok: true, publicacao: nova };
-  } catch (err) {
-    console.warn('Erro ao compartilhar (catch):', err);
-    return { erro: 'erro_desconhecido' };
-  }
-}
-
-async function jaCompartilhouSupabase(publicacaoOriginalId) {
-  if (!window.supabaseClient || !publicacaoOriginalId) return false;
-
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return false;
-
-    const { data } = await window.supabaseClient
-      .from('compartilhamentos')
-      .select('id')
-      .eq('publicacao_original_id', publicacaoOriginalId)
-      .eq('usuario_id', user.id)
-      .maybeSingle();
-
-    return !!data;
-  } catch (err) {
-    return false;
-  }
-}
-
-// ============================================
-// FASE 3 — CONTAR COMPARTILHAMENTOS
-// ============================================
-// Retorna o total de compartilhamentos de uma publicação.
-// Como cada usuário só compartilha 1x, o total = pessoas únicas.
-
-async function contarCompartilhamentosSupabase(publicacaoId) {
-  if (!window.supabaseClient || !publicacaoId) return 0;
-
-  try {
-    const { count, error } = await window.supabaseClient
-      .from('compartilhamentos')
-      .select('id', { count: 'exact', head: true })
-      .eq('publicacao_original_id', publicacaoId);
-
-    if (error) {
-      console.warn('Erro ao contar compartilhamentos:', error);
+      return count || 0;
+    } catch (err) {
+      console.warn('Erro ao contar compartilhamentos:', err);
       return 0;
     }
-
-    return count || 0;
-  } catch (err) {
-    console.warn('Erro ao contar compartilhamentos:', err);
-    return 0;
   }
-}
 
-// ============================================
-// EXPÕE GLOBALMENTE
-// ============================================
-
-window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
-window.buscarPerfisComDropsProximosSupabase =
-  buscarPerfisComDropsProximosSupabase;
-window.criarPublicacaoSupabase = criarPublicacaoSupabase;
-window.buscarMinhasPublicacoesSupabase = buscarMinhasPublicacoesSupabase;
-window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;
-window.buscarDropsDoUsuarioSupabase = buscarDropsDoUsuarioSupabase;
-window.buscarTodosOsDropsComAutor = buscarTodosOsDropsComAutor;
-window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
-window.compartilharPublicacaoSupabase = compartilharPublicacaoSupabase;
-window.jaCompartilhouSupabase = jaCompartilhouSupabase;
-window.contarCompartilhamentosSupabase = contarCompartilhamentosSupabase;
+  // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
+  window.uploadMidiaDropsSupabase = uploadMidiaDropsSupabase;
+  window.buscarPerfisComDropsProximosSupabase = buscarPerfisComDropsProximosSupabase;
+  window.criarPublicacaoSupabase = criarPublicacaoSupabase;
+  window.buscarMinhasPublicacoesSupabase = buscarMinhasPublicacoesSupabase;
+  window.buscarTodasPublicacoesSupabase = buscarTodasPublicacoesSupabase;
+  window.buscarDropsDoUsuarioSupabase = buscarDropsDoUsuarioSupabase;
+  window.buscarTodosOsDropsComAutor = buscarTodosOsDropsComAutor;
+  window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
+  window.compartilharPublicacaoSupabase = compartilharPublicacaoSupabase;
+  window.jaCompartilhouSupabase = jaCompartilhouSupabase;
+  window.contarCompartilhamentosSupabase = contarCompartilhamentosSupabase;
   
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();

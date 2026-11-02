@@ -330,82 +330,111 @@
   }
 
   async function apagarChatNex(username) {
-    if (!username) return;
+  if (!username) return;
 
-    window.mostrarToastNex?.('Apagando conversa...', 'info');
+  window.mostrarToastNex?.('Apagando conversa...', 'info');
 
-    try {
-      if (window.supabaseClient) {
-        try {
-          const { data: { user } } =
-            await window.supabaseClient.auth.getUser();
+  try {
+    if (window.supabaseClient) {
+      try {
+        const { data: { user } } =
+          await window.supabaseClient.auth.getUser();
 
-          if (user) {
-            const { data: perfilOutro } = await window.supabaseClient
-              .from('profiles')
+        if (user) {
+          const { data: perfilOutro } = await window.supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('username', username)
+            .maybeSingle();
+
+          if (perfilOutro?.id) {
+            const { data: conversas } = await window.supabaseClient
+              .from('conversas')
               .select('id')
-              .eq('username', username)
-              .maybeSingle();
+              .or(
+                `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
+              );
 
-            if (perfilOutro?.id) {
-              const { data: conversas } = await window.supabaseClient
-                .from('conversas')
-                .select('id')
-                .or(
-                  `and(user_a_id.eq.${user.id},user_b_id.eq.${perfilOutro.id}),and(user_a_id.eq.${perfilOutro.id},user_b_id.eq.${user.id})`
-                );
+            if (Array.isArray(conversas) && conversas.length) {
+              const idsConversas = conversas.map((c) => c.id);
 
-              if (Array.isArray(conversas) && conversas.length) {
-                const idsConversas = conversas.map((c) => c.id);
+              // ⚠️ NOVO: Buscar as mídias para apagar do Storage antes de deletar as mensagens
+              const { data: mensagensComMidia } = await window.supabaseClient
+                .from('mensagens')
+                .select('media_url')
+                .in('conversa_id', idsConversas)
+                .not('media_url', 'is', null);
 
-                await window.supabaseClient
-                  .from('mensagens')
-                  .delete()
-                  .in('conversa_id', idsConversas);
+              if (mensagensComMidia && mensagensComMidia.length > 0) {
+                const arquivosParaApagar = [];
+                
+                mensagensComMidia.forEach((msg) => {
+                  if (msg.media_url) {
+                    const partes = msg.media_url.split('/public/nex/');
+                    const arquivo = partes.length > 1 ? partes[1].split('?')[0] : null;
+                    if (arquivo) arquivosParaApagar.push(arquivo);
+                  }
+                });
 
-                await window.supabaseClient
-                  .from('conversas')
-                  .delete()
-                  .in('id', idsConversas);
-
-                console.log(
-                  `🗑️ ${idsConversas.length} conversa(s) apagada(s)`
-                );
+                if (arquivosParaApagar.length > 0) {
+                  await window.supabaseClient.storage
+                    .from('nex')
+                    .remove(arquivosParaApagar);
+                  console.log(`🗑️ ${arquivosParaApagar.length} mídias do chat apagadas do Storage.`);
+                }
               }
+
+              // Deleta as mensagens do banco
+              await window.supabaseClient
+                .from('mensagens')
+                .delete()
+                .in('conversa_id', idsConversas);
+
+              // Deleta a conversa do banco
+              await window.supabaseClient
+                .from('conversas')
+                .delete()
+                .in('id', idsConversas);
+
+              console.log(
+                `🗑️ ${idsConversas.length} conversa(s) e mídias apagada(s)`
+              );
             }
           }
-        } catch (err) {
-          console.warn('Erro ao apagar no Supabase:', err);
         }
+      } catch (err) {
+        console.warn('Erro ao apagar no Supabase:', err);
       }
-
-      if (window.conversas && window.conversas[username]) {
-        delete window.conversas[username];
-      }
-
-      if (window.__convIdsNex) delete window.__convIdsNex[username];
-
-      const card =
-        typeof window.obterCardConversaNex === 'function'
-          ? window.obterCardConversaNex(username)
-          : document.querySelector(`.nex-chat[data-chat="${username}"]`);
-
-      if (card) card.remove();
-
-      if (typeof window.voltarChatNex === 'function') {
-        window.voltarChatNex();
-      }
-
-      if (typeof window.atualizarAbaNaoLidasNex === 'function') {
-        window.atualizarAbaNaoLidasNex();
-      }
-
-      window.mostrarToastNex?.('Conversa apagada.', 'sucesso');
-    } catch (err) {
-      console.error('Erro ao apagar chat:', err);
-      window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
     }
+
+    if (window.conversas && window.conversas[username]) {
+      delete window.conversas[username];
+    }
+
+    if (window.__convIdsNex) delete window.__convIdsNex[username];
+
+    const card =
+      typeof window.obterCardConversaNex === 'function'
+        ? window.obterCardConversaNex(username)
+        : document.querySelector(`.nex-chat[data-chat="${username}"]`);
+
+    if (card) card.remove();
+
+    if (typeof window.voltarChatNex === 'function') {
+      window.voltarChatNex();
+    }
+
+    if (typeof window.atualizarAbaNaoLidasNex === 'function') {
+      window.atualizarAbaNaoLidasNex();
+    }
+
+    window.mostrarToastNex?.('Conversa apagada.', 'sucesso');
+  } catch (err) {
+    console.error('Erro ao apagar chat:', err);
+    window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
   }
+  }
+  
   // ============================================
 // VER MÍDIAS COMPARTILHADAS
 // ============================================
@@ -2074,68 +2103,80 @@ function atualizarPreviewStackNex() {
   // ============================================
 
   function abrirMenuMsgNex(botao, msgId) {
-    const conversaAtual = Drops.estado.conversaAtual;
-    const lista = conversas[conversaAtual] || [];
-    const msg = lista.find((m) => m.id === msgId);
+  const conversaAtual = Drops.estado.conversaAtual;
+  const lista = conversas[conversaAtual] || [];
+  const msg = lista.find((m) => m.id === msgId);
 
-    if (!msg) return;
+  if (!msg) return;
 
-    mensagemSelecionadaNex = msg;
+  mensagemSelecionadaNex = msg;
 
-    const menu = document.getElementById('msgMenuNex');
-    if (!menu) return;
+  const menu = document.getElementById('msgMenuNex');
+  if (!menu) return;
 
-    const lado = msg.side === 'right' ? 'right' : 'left';
+  const lado = msg.side === 'right' ? 'right' : 'left';
 
-    menu.innerHTML =
-      lado === 'left'
-        ? `
-      <button type="button" onclick="acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        Responder
-      </button>
-      <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()" style="display:flex; align-items:center; gap:10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        Apagar pra mim
-      </button>
-      <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
-    `
-        : `
-      <button type="button" onclick="window.acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        Responder
-      </button>
-      <button type="button" onclick="window.acaoReeditarNex()" style="display:flex; align-items:center; gap:10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <path d="M12 20h9"></path>
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-        </svg>
-        Reeditar
-      </button>
-      <button type="button" class="danger" onclick="window.acaoApagarMsgNex()" style="display:flex; align-items:center; gap:10px;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        Apagar para todos
-      </button>
-      <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
-    `;
+  // Pega o nome exibido e o ID da mensagem para passar para a denúncia
+  const nomeExibido = (msg.nome || 'Usuário').replace(/'/g, "\\'");
+  const idMensagem = msg._supabaseId || msg.id;
 
-    menu.style.display = 'flex';
-    menu.style.visibility = 'visible';
-    menu.style.opacity = '1';
-    menu.style.pointerEvents = 'auto';
-    menu.style.left = '50%';
-    menu.style.top = '50%';
-    menu.style.transform = 'translate(-50%, -50%)';
+  menu.innerHTML =
+    lado === 'left'
+      ? `
+    <button type="button" onclick="acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      Responder
+    </button>
+    <button type="button" class="danger" onclick="window.acaoApagarPraMimNex()" style="display:flex; align-items:center; gap:10px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      Apagar pra mim
+    </button>
+    <button type="button" class="danger" onclick="event.stopPropagation(); window.abrirModalDenunciaNex('${nomeExibido}', '${conversaAtual}', '${idMensagem}'); window.fecharMenuMsgNex();" style="display:flex; align-items:center; gap:10px; color: #f59e0b;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      Denunciar
+    </button>
+    <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
+  `
+      : `
+    <button type="button" onclick="window.acaoResponderNex()" style="display:flex; align-items:center; gap:10px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      Responder
+    </button>
+    <button type="button" onclick="window.acaoReeditarNex()" style="display:flex; align-items:center; gap:10px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <path d="M12 20h9"></path>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+      </svg>
+      Reeditar
+    </button>
+    <button type="button" class="danger" onclick="window.acaoApagarMsgNex()" style="display:flex; align-items:center; gap:10px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      Apagar para todos
+    </button>
+    <button type="button" class="cancelar" onclick="window.fecharMenuMsgNex()">Cancelar</button>
+  `;
+
+  menu.style.display = 'flex';
+  menu.style.visibility = 'visible';
+  menu.style.opacity = '1';
+  menu.style.pointerEvents = 'auto';
+  menu.style.left = '50%';
+  menu.style.top = '50%';
+  menu.style.transform = 'translate(-50%, -50%)';
   }
 
   function fecharMenuMsgNex() {

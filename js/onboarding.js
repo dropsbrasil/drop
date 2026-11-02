@@ -124,22 +124,8 @@
   }
 
   async function onbIrParaEmail() {
-  // ⚠️ Garante que não há sessão ativa antes de novo login
-  if (window.supabaseClient) {
-    try {
-      await window.supabaseClient.auth.signOut();
-      console.log('🧹 Sessão limpa ao entrar em modo login');
-    } catch (err) {
-      console.warn('Erro ao limpar sessão:', err);
-    }
-  }
-
-  // Limpa dados de sessão do localStorage
-  localStorage.removeItem('drops_logado');
-  localStorage.removeItem('drops_email_login');
-
-  historicoTelas.length = 0;
-  onbIrPara('email', false);
+    historicoTelas.length = 0;
+    onbIrPara('email', false);
 
     setTimeout(() => {
       const input = document.getElementById('onbInputEmailGeral');
@@ -181,49 +167,41 @@
   }
 
   /* ============================================
-     ESTADO INICIAL
+     ESTADO INICIAL (CORRIGIDO)
   ============================================ */
   async function onbVerificarEstadoInicial() {
-  const jaCadastrado = localStorage.getItem(CHAVE_CADASTRO) === 'true';
-  const logado = localStorage.getItem('drops_logado') === 'true';
-  const params = new URLSearchParams(window.location.search);
-  const modoLogin = params.get('modo') === 'login';
+    const params = new URLSearchParams(window.location.search);
+    const modoLogin = params.get('modo') === 'login';
 
-  console.log('🔍 Estado inicial:', { jaCadastrado, logado, modoLogin });
-
-  // ⚠️ Se veio em modo login, LIMPA TUDO do Supabase
-  if (modoLogin && window.supabaseClient) {
-    try {
-      await window.supabaseClient.auth.signOut();
-      console.log('🧹 Sessão do Supabase limpa (modo login)');
-    } catch (err) {
-      console.warn('Erro ao deslogar:', err);
+    // ⚠️ CORREÇÃO: Fonte de verdade é o Supabase, não o localStorage
+    let temSessao = false;
+    if (window.supabaseClient) {
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
+      temSessao = !!session;
     }
 
-    localStorage.removeItem('drops_logado');
-    localStorage.removeItem('drops_username');
-    localStorage.removeItem('drops_nome');
-  }
+    if (temSessao) {
+      onbIrParaApp();
+      return;
+    }
 
-  if (jaCadastrado && logado) {
-    onbIrParaApp();
-    return;
-  }
+    const jaCadastrado = localStorage.getItem(CHAVE_CADASTRO) === 'true';
 
-  if (jaCadastrado && !logado) {
-    if (modoLogin) {
+    if (jaCadastrado && modoLogin) {
       onbIrParaEmail();
       return;
     }
-    onbIrPara('escolha', false);
-    return;
-  }
 
-  onbIrPara('splash', false);
+    if (jaCadastrado) {
+      onbIrPara('escolha', false);
+      return;
+    }
 
-  setTimeout(() => {
-    onbIrPara('carrossel');
-  }, 2800);
+    onbIrPara('splash', false);
+
+    setTimeout(() => {
+      onbIrPara('carrossel');
+    }, 2800);
   }
 
   /* ============================================
@@ -307,326 +285,322 @@
       }
     }, { passive: true });
   }
-
   /* ============================================
-     DOMÍNIOS BLOQUEADOS
-  ============================================ */
-  const DOMINIOS_BLOQUEADOS = [
-    'temp-mail.org',
-    'tempmail.com',
-    '10minutemail.com',
-    '10minutemail.net',
-    'guerrillamail.com',
-    'guerrillamail.net',
-    'mailinator.com',
-    'yopmail.com',
-    'throwawaymail.com',
-    'fakeinbox.com',
-    'sharklasers.com',
-    'trashmail.com',
-    'mytemp.email',
-    'tempinbox.com',
-    'maildrop.cc',
-    'getnada.com'
-  ];
+   DOMÍNIOS BLOQUEADOS
+============================================ */
+const DOMINIOS_BLOQUEADOS = [
+  'temp-mail.org',
+  'tempmail.com',
+  '10minutemail.com',
+  '10minutemail.net',
+  'guerrillamail.com',
+  'guerrillamail.net',
+  'mailinator.com',
+  'yopmail.com',
+  'throwawaymail.com',
+  'fakeinbox.com',
+  'sharklasers.com',
+  'trashmail.com',
+  'mytemp.email',
+  'tempinbox.com',
+  'maildrop.cc',
+  'getnada.com'
+];
 
-  /* ============================================
-     VALIDAÇÕES
-  ============================================ */
-  function onbContarEmojis(texto) {
-    if (!texto) return 0;
+/* ============================================
+   VALIDAÇÕES
+============================================ */
+function onbContarEmojis(texto) {
+  if (!texto) return 0;
 
-    try {
-      if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-        const segmenter = new Intl.Segmenter('pt-BR', { granularity: 'grapheme' });
-        let total = 0;
-        for (const { segment } of segmenter.segment(texto)) {
-          if (/\p{Extended_Pictographic}/u.test(segment)) total++;
-        }
-        return total;
+  try {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter('pt-BR', { granularity: 'grapheme' });
+      let total = 0;
+      for (const { segment } of segmenter.segment(texto)) {
+        if (/\p{Extended_Pictographic}/u.test(segment)) total++;
       }
-    } catch (e) {}
-
-    const matches = texto.match(/\p{Extended_Pictographic}/gu);
-    return matches ? matches.length : 0;
-  }
-
-  function onbValidarNome(valor) {
-    const nome = String(valor || '').trim();
-
-    if (!nome) return { ok: false, msg: 'Digite seu nome.' };
-    if (nome.length < 2) return { ok: false, msg: 'Nome muito curto.' };
-
-    const emojis = onbContarEmojis(nome);
-    if (emojis > 2) return { ok: false, msg: 'Máximo 2 emojis no nome.' };
-
-    const semEmoji = nome.replace(/\p{Extended_Pictographic}/gu, '').trim();
-
-    if (!/^[\p{L}\p{N}\s]+$/u.test(semEmoji)) {
-      return { ok: false, msg: 'Use apenas letras, números e espaço.' };
+      return total;
     }
+  } catch (e) {}
 
-    if (/\s{2,}/.test(semEmoji)) {
-      return { ok: false, msg: 'Evite espaços duplos.' };
-    }
-
-    const palavras = semEmoji.split(/\s+/).filter(Boolean);
-    if (palavras.length > 3) {
-      return { ok: false, msg: 'Máximo 3 palavras.' };
-    }
-
-    return { ok: true, msg: 'Nome válido.' };
-  }
-
-  function onbAplicarMascaraData(valor) {
-    const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
-
-    let resultado = '';
-    if (digitos.length <= 2) {
-      resultado = digitos;
-    } else if (digitos.length <= 4) {
-      resultado = digitos.slice(0, 2) + ' / ' + digitos.slice(2);
-    } else {
-      resultado =
-        digitos.slice(0, 2) +
-        ' / ' +
-        digitos.slice(2, 4) +
-        ' / ' +
-        digitos.slice(4);
-    }
-
-    return resultado;
-  }
-
-  function onbValidarNascimento(valor) {
-    const digitos = String(valor || '').replace(/\D/g, '');
-
-    if (digitos.length !== 8) {
-      return { ok: false, msg: 'Digite a data completa (DD/MM/AAAA).' };
-    }
-
-    const dia = Number(digitos.slice(0, 2));
-    const mes = Number(digitos.slice(2, 4));
-    const ano = Number(digitos.slice(4));
-
-    if (mes < 1 || mes > 12) {
-      return { ok: false, msg: 'Mês inválido.' };
-    }
-    if (dia < 1 || dia > 31) {
-      return { ok: false, msg: 'Dia inválido.' };
-    }
-
-    const data = new Date(ano, mes - 1, dia);
-
-    if (
-      data.getFullYear() !== ano ||
-      data.getMonth() !== mes - 1 ||
-      data.getDate() !== dia
-    ) {
-      return { ok: false, msg: 'Data inválida.' };
-    }
-
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - ano;
-    const mesAniversario = mes - 1;
-    const diaAniversario = dia;
-
-    if (
-      hoje.getMonth() < mesAniversario ||
-      (hoje.getMonth() === mesAniversario && hoje.getDate() < diaAniversario)
-    ) {
-      idade--;
-    }
-
-    if (idade < 15) {
-      return { ok: false, msg: 'O Drops é para maiores de 15 anos.' };
-    }
-
-    if (idade > 120) {
-      return { ok: false, msg: 'Data inválida.' };
-    }
-
-    return { ok: true, msg: 'Data válida.' };
-  }
-
-  function onbValidarEmail(valor) {
-    const email = String(valor || '').trim().toLowerCase();
-
-    if (!email) return { ok: false, msg: 'Digite seu e-mail.' };
-
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!regex.test(email)) {
-      return { ok: false, msg: 'Digite um e-mail válido.' };
-    }
-
-    const dominio = email.split('@')[1] || '';
-    if (DOMINIOS_BLOQUEADOS.includes(dominio)) {
-      return { ok: false, msg: 'E-mails temporários não são aceitos.' };
-    }
-
-    return { ok: true, msg: 'E-mail válido.' };
-  }
-
-  function onbAtualizarCampo(input, ajuda, resultado) {
-    if (!input || !ajuda) return;
-
-    input.classList.remove('onb-input-erro', 'onb-input-ok');
-    ajuda.classList.remove('onb-ajuda-erro', 'onb-ajuda-ok');
-
-    if (resultado.ok) {
-      input.classList.add('onb-input-ok');
-      return;
-    }
-
-    if (input.value.trim().length > 0) {
-      input.classList.add('onb-input-erro');
-      ajuda.classList.add('onb-ajuda-erro');
-    }
-  }
-
-  /* ============================================
-     TELA DE EMAIL
-  ============================================ */
-  function onbConfigurarEmail() {
-    const input = document.getElementById('onbInputEmailGeral');
-    const btn = document.getElementById('onbBtnEmailGeral');
-
-    if (!input || !btn) return;
-
-    input.removeEventListener('input', onbHandlerEmailInput);
-    input.addEventListener('input', onbHandlerEmailInput);
-  }
-
-  function onbHandlerEmailInput() {
-    const input = document.getElementById('onbInputEmailGeral');
-    const ajuda = document.getElementById('onbAjudaEmailGeral');
-    const btn = document.getElementById('onbBtnEmailGeral');
-
-    if (!input || !ajuda || !btn) return;
-
-    input.value = input.value.toLowerCase().replace(/\s/g, '');
-
-    const email = input.value.trim();
-
-    input.classList.remove('onb-input-erro', 'onb-input-ok');
-    ajuda.classList.remove('onb-ajuda-erro', 'onb-ajuda-ok');
-
-    if (!email) {
-      ajuda.textContent = '';
-      btn.disabled = true;
-      btn.classList.add('onb-btn-desabilitado');
-      return;
-    }
-
-    const resultado = onbValidarEmail(email);
-
-    if (!resultado.ok) {
-      input.classList.add('onb-input-erro');
-      ajuda.textContent = resultado.msg;
-      ajuda.classList.add('onb-ajuda-erro');
-      btn.disabled = true;
-      btn.classList.add('onb-btn-desabilitado');
-      return;
-    }
-
-    input.classList.add('onb-input-ok');
-    ajuda.textContent = '✅ E-mail válido.';
-    ajuda.classList.add('onb-ajuda-ok');
-    btn.disabled = false;
-    btn.classList.remove('onb-btn-desabilitado');
-  }
-
-  async function onbContinuarComEmail() {
-    const input = document.getElementById('onbInputEmailGeral');
-    if (!input) return;
-
-    const email = input.value.trim().toLowerCase();
-
-    if (!onbValidarEmail(email).ok) return;
-
-    if (!window.supabaseClient) {
-      alert('Conexão com o servidor não disponível. Tente novamente.');
-      return;
-    }
-
-    const btn = document.getElementById('onbBtnEmailGeral');
-    const textoOriginal = btn?.textContent;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Verificando...';
-    }
-
-    try {
-      localStorage.setItem('drops_email_temp', email);
-localStorage.setItem('drops_email', email);
-
-// ⚠️ Desloga TUDO antes de novo login
-try {
-  await window.supabaseClient.auth.signOut();
-  console.log('🧹 Sessão antiga limpa');
-} catch (signOutErr) {
-  console.warn('Erro ao limpar sessão:', signOutErr);
+  const matches = texto.match(/\p{Extended_Pictographic}/gu);
+  return matches ? matches.length : 0;
 }
 
-const { data: existe, error: erroCheck } = await window.supabaseClient
-  .rpc('email_existe', { email_busca: email });
-      if (erroCheck) throw erroCheck;
+function onbValidarNome(valor) {
+  const nome = String(valor || '').trim();
 
-      if (existe) {
-        console.log('🔓 Email já cadastrado. Modo LOGIN.');
+  if (!nome) return { ok: false, msg: 'Digite seu nome.' };
+  if (nome.length < 2) return { ok: false, msg: 'Nome muito curto.' };
 
-        const { error: erroOtp } = await window.supabaseClient.auth.signInWithOtp({
-          email: email,
-          options: { shouldCreateUser: false }
-        });
+  const emojis = onbContarEmojis(nome);
+  if (emojis > 2) return { ok: false, msg: 'Máximo 2 emojis no nome.' };
 
-        if (erroOtp) throw erroOtp;
+  const semEmoji = nome.replace(/\p{Extended_Pictographic}/gu, '').trim();
 
-        localStorage.setItem('drops_codigo_modo', 'login');
-        localStorage.setItem('drops_email_login', email);
+  if (!/^[\p{L}\p{N}\s]+$/u.test(semEmoji)) {
+    return { ok: false, msg: 'Use apenas letras, números e espaço.' };
+  }
 
-        onbIrPara('verificacao');
-      } else {
-        console.log('🆕 Email novo. Modo CADASTRO.');
+  if (/\s{2,}/.test(semEmoji)) {
+    return { ok: false, msg: 'Evite espaços duplos.' };
+  }
 
-        const chavesLimpar = [
-          'drops_nome', 'drops_username',
-          'drops_termos_versao', 'drops_termos_aceito_em',
-          'drops_lgpd_versao', 'drops_lgpd_aceito_em',
-          'drops_dados_aceito_em', 'drops_cadastro_em',
-          'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
-          'mydropsDesconectadosNex', 'mydropsAdeptosNex',
-          'mydropsSouAdeptoDeNex',
-          'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
-        ];
+  const palavras = semEmoji.split(/\s+/).filter(Boolean);
+  if (palavras.length > 3) {
+    return { ok: false, msg: 'Máximo 3 palavras.' };
+  }
 
-        chavesLimpar.forEach((k) => localStorage.removeItem(k));
+  return { ok: true, msg: 'Nome válido.' };
+}
 
-        const prefixosLimpar = [
-          'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
-          'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
-          'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
-        ];
+function onbAplicarMascaraData(valor) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 8);
 
-        Object.keys(localStorage).forEach((k) => {
-          if (prefixosLimpar.some((p) => k.startsWith(p))) {
-            localStorage.removeItem(k);
-          }
-        });
+  let resultado = '';
+  if (digitos.length <= 2) {
+    resultado = digitos;
+  } else if (digitos.length <= 4) {
+    resultado = digitos.slice(0, 2) + ' / ' + digitos.slice(2);
+  } else {
+    resultado =
+      digitos.slice(0, 2) +
+      ' / ' +
+      digitos.slice(2, 4) +
+      ' / ' +
+      digitos.slice(4);
+  }
 
-        localStorage.setItem('drops_codigo_modo', 'cadastro');
-        onbIrPara('cadastro');
-      }
-    } catch (erro) {
-      console.error('Erro ao verificar email:', erro);
-      alert('Não foi possível verificar o email. Tente novamente.');
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = textoOriginal || 'Continuar →';
-      }
+  return resultado;
+}
+
+function onbValidarNascimento(valor) {
+  const digitos = String(valor || '').replace(/\D/g, '');
+
+  if (digitos.length !== 8) {
+    return { ok: false, msg: 'Digite a data completa (DD/MM/AAAA).' };
+  }
+
+  const dia = Number(digitos.slice(0, 2));
+  const mes = Number(digitos.slice(2, 4));
+  const ano = Number(digitos.slice(4));
+
+  if (mes < 1 || mes > 12) {
+    return { ok: false, msg: 'Mês inválido.' };
+  }
+  if (dia < 1 || dia > 31) {
+    return { ok: false, msg: 'Dia inválido.' };
+  }
+
+  const data = new Date(ano, mes - 1, dia);
+
+  if (
+    data.getFullYear() !== ano ||
+    data.getMonth() !== mes - 1 ||
+    data.getDate() !== dia
+  ) {
+    return { ok: false, msg: 'Data inválida.' };
+  }
+
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - ano;
+  const mesAniversario = mes - 1;
+  const diaAniversario = dia;
+
+  if (
+    hoje.getMonth() < mesAniversario ||
+    (hoje.getMonth() === mesAniversario && hoje.getDate() < diaAniversario)
+  ) {
+    idade--;
+  }
+
+  if (idade < 15) {
+    return { ok: false, msg: 'O Drops é para maiores de 15 anos.' };
+  }
+
+  if (idade > 120) {
+    return { ok: false, msg: 'Data inválida.' };
+  }
+
+  return { ok: true, msg: 'Data válida.' };
+}
+
+function onbValidarEmail(valor) {
+  const email = String(valor || '').trim().toLowerCase();
+
+  if (!email) return { ok: false, msg: 'Digite seu e-mail.' };
+
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!regex.test(email)) {
+    return { ok: false, msg: 'Digite um e-mail válido.' };
+  }
+
+  const dominio = email.split('@')[1] || '';
+  if (DOMINIOS_BLOQUEADOS.includes(dominio)) {
+    return { ok: false, msg: 'E-mails temporários não são aceitos.' };
+  }
+
+  return { ok: true, msg: 'E-mail válido.' };
+}
+
+function onbAtualizarCampo(input, ajuda, resultado) {
+  if (!input || !ajuda) return;
+
+  input.classList.remove('onb-input-erro', 'onb-input-ok');
+  ajuda.classList.remove('onb-ajuda-erro', 'onb-ajuda-ok');
+
+  if (resultado.ok) {
+    input.classList.add('onb-input-ok');
+    return;
+  }
+
+  if (input.value.trim().length > 0) {
+    input.classList.add('onb-input-erro');
+    ajuda.classList.add('onb-ajuda-erro');
+  }
+}
+
+/* ============================================
+   TELA DE EMAIL
+============================================ */
+function onbConfigurarEmail() {
+  const input = document.getElementById('onbInputEmailGeral');
+  const btn = document.getElementById('onbBtnEmailGeral');
+
+  if (!input || !btn) return;
+
+  input.removeEventListener('input', onbHandlerEmailInput);
+  input.addEventListener('input', onbHandlerEmailInput);
+}
+
+function onbHandlerEmailInput() {
+  const input = document.getElementById('onbInputEmailGeral');
+  const ajuda = document.getElementById('onbAjudaEmailGeral');
+  const btn = document.getElementById('onbBtnEmailGeral');
+
+  if (!input || !ajuda || !btn) return;
+
+  input.value = input.value.toLowerCase().replace(/\s/g, '');
+
+  const email = input.value.trim();
+
+  input.classList.remove('onb-input-erro', 'onb-input-ok');
+  ajuda.classList.remove('onb-ajuda-erro', 'onb-ajuda-ok');
+
+  if (!email) {
+    ajuda.textContent = '';
+    btn.disabled = true;
+    btn.classList.add('onb-btn-desabilitado');
+    return;
+  }
+
+  const resultado = onbValidarEmail(email);
+
+  if (!resultado.ok) {
+    input.classList.add('onb-input-erro');
+    ajuda.textContent = resultado.msg;
+    ajuda.classList.add('onb-ajuda-erro');
+    btn.disabled = true;
+    btn.classList.add('onb-btn-desabilitado');
+    return;
+  }
+
+  input.classList.add('onb-input-ok');
+  ajuda.textContent = '✅ E-mail válido.';
+  ajuda.classList.add('onb-ajuda-ok');
+  btn.disabled = false;
+  btn.classList.remove('onb-btn-desabilitado');
+}
+
+async function onbContinuarComEmail() {
+  const input = document.getElementById('onbInputEmailGeral');
+  if (!input) return;
+
+  const email = input.value.trim().toLowerCase();
+
+  if (!onbValidarEmail(email).ok) return;
+
+  if (!window.supabaseClient) {
+    alert('Conexão com o servidor não disponível. Tente novamente.');
+    return;
+  }
+
+  const btn = document.getElementById('onbBtnEmailGeral');
+  const textoOriginal = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+  }
+
+  try {
+    localStorage.setItem('drops_email_temp', email);
+    localStorage.setItem('drops_email', email);
+
+    // ⚠️ CORREÇÃO CRÍTICA: Removido o signOut() forçado daqui!
+    // Ele estava deslogando o usuário antes de verificar o e-mail.
+    // O Supabase Auth lida com múltiplos logins naturalmente.
+
+    const { data: existe, error: erroCheck } = await window.supabaseClient
+      .rpc('email_existe', { email_busca: email });
+    
+    if (erroCheck) throw erroCheck;
+
+    if (existe) {
+      console.log('🔓 Email já cadastrado. Modo LOGIN.');
+
+      const { error: erroOtp } = await window.supabaseClient.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: false }
+      });
+
+      if (erroOtp) throw erroOtp;
+
+      localStorage.setItem('drops_codigo_modo', 'login');
+      localStorage.setItem('drops_email_login', email);
+
+      onbIrPara('verificacao');
+    } else {
+      console.log('🆕 Email novo. Modo CADASTRO.');
+
+      const chavesLimpar = [
+        'drops_nome', 'drops_username',
+        'drops_termos_versao', 'drops_termos_aceito_em',
+        'drops_lgpd_versao', 'drops_lgpd_aceito_em',
+        'drops_dados_aceito_em', 'drops_cadastro_em',
+        'mydropsPublicacoesMyDropsNex', 'mydropsConectadosNex',
+        'mydropsDesconectadosNex', 'mydropsAdeptosNex',
+        'mydropsSouAdeptoDeNex',
+        'mydropsInteracoesRecebidasNex', 'mydropsInteracoesEnviadasNex'
+      ];
+
+      chavesLimpar.forEach((k) => localStorage.removeItem(k));
+
+      const prefixosLimpar = [
+        'mydropsAvatar_', 'mydropsCover_', 'mydropsBio_',
+        'mydropsSocialInstagram_', 'mydropsSocialTiktok_',
+        'mydropsSocialWhatsapp_', 'dropsNomeMudancaEm_'
+      ];
+
+      Object.keys(localStorage).forEach((k) => {
+        if (prefixosLimpar.some((p) => k.startsWith(p))) {
+          localStorage.removeItem(k);
+        }
+      });
+
+      localStorage.setItem('drops_codigo_modo', 'cadastro');
+      onbIrPara('cadastro');
+    }
+  } catch (erro) {
+    console.error('Erro ao verificar email:', erro);
+    alert('Não foi possível verificar o email. Tente novamente.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = textoOriginal || 'Continuar →';
     }
   }
+}
   /* ============================================
    TELA DE CADASTRO
 ============================================ */
@@ -739,6 +713,7 @@ async function onbFinalizarCadastro() {
     localStorage.setItem('drops_email', email);
     localStorage.setItem('drops_email_temp', email);
 
+    // ⚠️ CORREÇÃO: Tempo padronizado para 10 minutos (600.000 ms)
     localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
     localStorage.setItem('drops_codigo_tentativas', '0');
     localStorage.setItem('drops_codigo_modo', 'cadastro');
@@ -787,7 +762,8 @@ function onbIniciarTelaVerificacao() {
   const erroEl = document.getElementById('onbVerificaErro');
   if (erroEl) erroEl.textContent = '';
 
-  localStorage.setItem('drops_codigo_expira', String(Date.now() + 60 * 60 * 1000));
+  // ⚠️ CORREÇÃO: Tempo padronizado para 10 minutos (600.000 ms)
+  localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
   onbConfigurarCodigoInputs();
   onbIniciarTimerExpiracao();
   onbIniciarTimerReenviar();
@@ -879,7 +855,8 @@ function onbConfigurarCodigoInputs() {
     });
   });
 }
-  function onbAtualizarBotaoVerifica() {
+
+function onbAtualizarBotaoVerifica() {
   const inputs = document.querySelectorAll('.onb-codigo-input');
   const btn = document.getElementById('onbBtnVerifica');
   if (!btn) return;
@@ -962,411 +939,375 @@ function onbIniciarTimerReenviar() {
     }
   }, 1000);
 }
-  async function onbReenviarCodigo() {
-  const email = localStorage.getItem('drops_email_temp') ||
-                localStorage.getItem('drops_email') ||
-                localStorage.getItem('drops_email_login') || '';
+    async function onbReenviarCodigo() {
+    const email = localStorage.getItem('drops_email_temp') ||
+                  localStorage.getItem('drops_email') ||
+                  localStorage.getItem('drops_email_login') || '';
 
-  if (!email) {
-    onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
-    return;
-  }
+    if (!email) {
+      onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
+      return;
+    }
 
-  if (!window.supabaseClient) {
-    onbMostrarErroVerifica('Sem conexão com o servidor.');
-    return;
-  }
+    if (!window.supabaseClient) {
+      onbMostrarErroVerifica('Sem conexão com o servidor.');
+      return;
+    }
 
-  const btn = document.getElementById('onbVerificaReenviar');
-  const textoOriginal = btn?.textContent;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Enviando...';
-  }
-
-  try {
-    const { error } = await window.supabaseClient.auth.signInWithOtp({
-      email: email,
-      options: { shouldCreateUser: true }
-    });
-
-    if (error) throw error;
-
-    localStorage.setItem('drops_codigo_expira', String(Date.now() + 60 * 60 * 1000));
-    localStorage.setItem('drops_codigo_tentativas', '0');
-
-    console.log('📧 Novo código enviado para:', email);
-
-    document.querySelectorAll('.onb-codigo-input').forEach((el) => {
-      el.value = '';
-      el.classList.remove('onb-codigo-preenchido', 'onb-codigo-erro');
-    });
-
-    onbMostrarErroVerifica('');
-    onbIniciarTimerExpiracao();
-    onbIniciarTimerReenviar();
-    onbAtualizarBotaoVerifica();
-
-    setTimeout(() => {
-      document.getElementById('onbCodigoInput0')?.focus();
-    }, 100);
-  } catch (erro) {
-    console.error('Erro ao reenviar código:', erro);
-    onbMostrarErroVerifica('Não foi possível reenviar. Tente novamente.');
-  } finally {
+    const btn = document.getElementById('onbVerificaReenviar');
+    const textoOriginal = btn?.textContent;
     if (btn) {
-      btn.disabled = false;
-      btn.textContent = textoOriginal || 'Reenviar';
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
     }
-  }
-}
 
-function onbMostrarErroVerifica(mensagem) {
-  const el = document.getElementById('onbVerificaErro');
-  if (el) el.textContent = mensagem;
-}
-  async function onbConfirmarCodigo() {
-  const inputs = document.querySelectorAll('.onb-codigo-input');
-  let codigoDigitado = '';
+    try {
+      const { error } = await window.supabaseClient.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: true }
+      });
 
-  inputs.forEach((inp) => {
-    codigoDigitado += inp.value.trim();
-  });
+      if (error) throw error;
 
-  const tentativas = Number(localStorage.getItem('drops_codigo_tentativas') || '0');
-  const modo = localStorage.getItem('drops_codigo_modo') || 'cadastro';
+      // ⚠️ CORREÇÃO: Tempo padronizado para 10 minutos (600.000 ms)
+      localStorage.setItem('drops_codigo_expira', String(Date.now() + 10 * 60 * 1000));
+      localStorage.setItem('drops_codigo_tentativas', '0');
 
-  if (tentativas >= 3) {
-    onbMostrarErroVerifica('Muitas tentativas. Aguarde 5 minutos.');
-    return;
-  }
+      console.log('📧 Novo código enviado para:', email);
 
-  if (!window.supabaseClient) {
-    onbMostrarErroVerifica('Sem conexão com o servidor.');
-    return;
-  }
+      document.querySelectorAll('.onb-codigo-input').forEach((el) => {
+        el.value = '';
+        el.classList.remove('onb-codigo-preenchido', 'onb-codigo-erro');
+      });
 
-  const email = localStorage.getItem('drops_email_temp') ||
-                localStorage.getItem('drops_email') ||
-                localStorage.getItem('drops_email_login') || '';
+      onbMostrarErroVerifica('');
+      onbIniciarTimerExpiracao();
+      onbIniciarTimerReenviar();
+      onbAtualizarBotaoVerifica();
 
-  if (!email) {
-    onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
-    return;
-  }
-
-  let data = null;
-  let error = null;
-
-  const tiposParaTentar = ['email', 'magiclink', 'signup'];
-  for (const tipo of tiposParaTentar) {
-    const resultado = await window.supabaseClient.auth.verifyOtp({
-      email: email,
-      token: codigoDigitado,
-      type: tipo
-    });
-    if (!resultado.error) {
-      data = resultado.data;
-      error = null;
-      break;
-    }
-    error = resultado.error;
-  }
-
-  if (!error && data && data.user) {
-    console.log('✅ Código confirmado. Modo:', modo);
-    localStorage.setItem('drops_codigo_verificado', 'true');
-    localStorage.setItem('drops_codigo_tentativas', '0');
-
-    if (modo === 'login') {
-      console.log('🔓 Login confirmado. Marcando como logado...');
-
-      localStorage.setItem('drops_logado', 'true');
-      localStorage.setItem(CHAVE_CADASTRO, 'true');
-      localStorage.setItem('drops_ultimo_login', new Date().toISOString());
-
-      if (!localStorage.getItem('drops_nome')) {
-        localStorage.setItem('drops_nome', 'Usuário');
+      setTimeout(() => {
+        document.getElementById('onbCodigoInput0')?.focus();
+      }, 100);
+    } catch (erro) {
+      console.error('Erro ao reenviar código:', erro);
+      onbMostrarErroVerifica('Não foi possível reenviar. Tente novamente.');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal || 'Reenviar';
       }
-
-      localStorage.removeItem('drops_codigo_modo');
-      localStorage.removeItem('drops_email_login');
-
-      onbIrParaApp();
-    } else {
-      console.log('🆕 Cadastro confirmado. Indo pra tela de @ID...');
-
-      localStorage.removeItem('drops_codigo_modo');
-
-      onbIrPara('username');
     }
-  } else {
-    const novas = tentativas + 1;
-    localStorage.setItem('drops_codigo_tentativas', String(novas));
+  }
+
+  function onbMostrarErroVerifica(mensagem) {
+    const el = document.getElementById('onbVerificaErro');
+    if (el) el.textContent = mensagem;
+  }
+
+  async function onbConfirmarCodigo() {
+    const inputs = document.querySelectorAll('.onb-codigo-input');
+    let codigoDigitado = '';
 
     inputs.forEach((inp) => {
-      inp.classList.add('onb-codigo-erro');
+      codigoDigitado += inp.value.trim();
     });
 
-    if (novas >= 3) {
+    const tentativas = Number(localStorage.getItem('drops_codigo_tentativas') || '0');
+    const modo = localStorage.getItem('drops_codigo_modo') || 'cadastro';
+
+    if (tentativas >= 3) {
       onbMostrarErroVerifica('Muitas tentativas. Aguarde 5 minutos.');
+      return;
+    }
 
-      setTimeout(() => {
-        localStorage.setItem('drops_codigo_tentativas', '0');
-        inputs.forEach((inp) => inp.classList.remove('onb-codigo-erro'));
-        onbMostrarErroVerifica('');
-      }, 5 * 60 * 1000);
+    if (!window.supabaseClient) {
+      onbMostrarErroVerifica('Sem conexão com o servidor.');
+      return;
+    }
+
+    const email = localStorage.getItem('drops_email_temp') ||
+                  localStorage.getItem('drops_email') ||
+                  localStorage.getItem('drops_email_login') || '';
+
+    if (!email) {
+      onbMostrarErroVerifica('Email não encontrado. Volte e tente novamente.');
+      return;
+    }
+
+    let data = null;
+    let error = null;
+
+    const tiposParaTentar = ['email', 'magiclink', 'signup'];
+    for (const tipo of tiposParaTentar) {
+      const resultado = await window.supabaseClient.auth.verifyOtp({
+        email: email,
+        token: codigoDigitado,
+        type: tipo
+      });
+      if (!resultado.error) {
+        data = resultado.data;
+        error = null;
+        break;
+      }
+      error = resultado.error;
+    }
+
+    if (!error && data && data.user) {
+      console.log('✅ Código confirmado. Modo:', modo);
+      localStorage.setItem('drops_codigo_verificado', 'true');
+      localStorage.setItem('drops_codigo_tentativas', '0');
+
+      if (modo === 'login') {
+        console.log('🔓 Login confirmado. Marcando como logado...');
+
+        localStorage.setItem('drops_logado', 'true');
+        localStorage.setItem(CHAVE_CADASTRO, 'true');
+        localStorage.setItem('drops_ultimo_login', new Date().toISOString());
+
+        if (!localStorage.getItem('drops_nome')) {
+          localStorage.setItem('drops_nome', 'Usuário');
+        }
+
+        localStorage.removeItem('drops_codigo_modo');
+        localStorage.removeItem('drops_email_login');
+
+        onbIrParaApp();
+      } else {
+        console.log('🆕 Cadastro confirmado. Indo pra tela de @ID...');
+        localStorage.removeItem('drops_codigo_modo');
+        onbIrPara('username');
+      }
     } else {
-      onbMostrarErroVerifica(`Código incorreto. Tentativa ${novas} de 3.`);
+      const novas = tentativas + 1;
+      localStorage.setItem('drops_codigo_tentativas', String(novas));
 
-      setTimeout(() => {
-        inputs.forEach((inp) => {
-          inp.classList.remove('onb-codigo-erro');
-        });
-      }, 800);
+      inputs.forEach((inp) => {
+        inp.classList.add('onb-codigo-erro');
+      });
+
+      if (novas >= 3) {
+        onbMostrarErroVerifica('Muitas tentativas. Aguarde 5 minutos.');
+
+        setTimeout(() => {
+          localStorage.setItem('drops_codigo_tentativas', '0');
+          inputs.forEach((inp) => inp.classList.remove('onb-codigo-erro'));
+          onbMostrarErroVerifica('');
+        }, 5 * 60 * 1000);
+      } else {
+        onbMostrarErroVerifica(`Código incorreto. Tentativa ${novas} de 3.`);
+
+        setTimeout(() => {
+          inputs.forEach((inp) => {
+            inp.classList.remove('onb-codigo-erro');
+          });
+        }, 800);
+      }
     }
   }
-  }
+
   /* ============================================
-   TELA DE USERNAME
-============================================ */
-const USERNAMES_RESERVADOS = [
-  'admin',
-  'drops',
-  'dropsapp',
-  'suporte',
-  'contato',
-  'oficial',
-  'equipe',
-  'moderador',
-  'root',
-  'sistema',
-  'ajuda',
-  'help',
-  'sobre',
-  'perfil',
-  'conta',
-  'config'
-];
-
-function onbValidarFormatoUsername(valor) {
-  const user = String(valor || '').toLowerCase().trim();
-
-  if (!user) {
-    return { ok: false, msg: '' };
-  }
-
-  if (user.length < 3) {
-    return { ok: false, msg: 'Mínimo 3 caracteres.' };
-  }
-
-  if (user.length > 20) {
-    return { ok: false, msg: 'Máximo 20 caracteres.' };
-  }
-
-  if (!/^[a-z0-9]+$/.test(user)) {
-    return { ok: false, msg: 'Só letras minúsculas e números.' };
-  }
-
-  return { ok: true, msg: '' };
-}
-
-async function onbVerificarDisponibilidade(user) {
-  const nomeLimpo = String(user || '').toLowerCase().trim();
-  if (!nomeLimpo) return false;
-
-  // 1. Bloqueia nomes reservados
-  if (USERNAMES_RESERVADOS.includes(nomeLimpo)) {
-    return false;
-  }
-
-  // 2. Consulta o Supabase
-  if (!window.supabaseClient) {
-    console.warn('⚠️ Supabase não disponível pra verificar @');
-    return true;
-  }
-
-  try {
-    const { data, error } = await window.supabaseClient.rpc(
-      'username_disponivel',
-      { username_busca: nomeLimpo }
-    );
-
-    if (error) {
-      console.warn('Erro ao verificar username:', error);
-      return false;
-    }
-
-    return data === true;
-  } catch (err) {
-    console.warn('Erro ao verificar username:', err);
-    return false;
-  }
-}
-
-function onbGerarSugestoes(base) {
-  const sugestoes = [];
-  const baseLimpa = base.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'user';
-
-  const ano = new Date().getFullYear();
-
-  const tentativas = [
-    baseLimpa + '1',
-    baseLimpa + '2',
-    baseLimpa + ano,
-    baseLimpa + 'br',
-    baseLimpa + 'oficial'
+     TELA DE USERNAME
+  ============================================ */
+  const USERNAMES_RESERVADOS = [
+    'admin', 'drops', 'dropsapp', 'suporte', 'contato', 'oficial',
+    'equipe', 'moderador', 'root', 'sistema', 'ajuda', 'help',
+    'sobre', 'perfil', 'conta', 'config'
   ];
 
-  for (const tentativa of tentativas) {
-    if (sugestoes.length >= 4) break;
-    if (!USERNAMES_RESERVADOS.includes(tentativa) && tentativa.length <= 20) {
-      sugestoes.push(tentativa);
+  function onbValidarFormatoUsername(valor) {
+    const user = String(valor || '').toLowerCase().trim();
+    if (!user) return { ok: false, msg: '' };
+    if (user.length < 3) return { ok: false, msg: 'Mínimo 3 caracteres.' };
+    if (user.length > 20) return { ok: false, msg: 'Máximo 20 caracteres.' };
+    if (!/^[a-z0-9]+$/.test(user)) return { ok: false, msg: 'Só letras minúsculas e números.' };
+    return { ok: true, msg: '' };
+  }
+
+  async function onbVerificarDisponibilidade(user) {
+    const nomeLimpo = String(user || '').toLowerCase().trim();
+    if (!nomeLimpo) return false;
+
+    if (USERNAMES_RESERVADOS.includes(nomeLimpo)) return false;
+
+    if (!window.supabaseClient) {
+      console.warn('⚠️ Supabase não disponível pra verificar @');
+      return true;
+    }
+
+    try {
+      const { data, error } = await window.supabaseClient.rpc(
+        'username_disponivel',
+        { username_busca: nomeLimpo }
+      );
+
+      if (error) {
+        console.warn('Erro ao verificar username:', error);
+        return false;
+      }
+      return data === true;
+    } catch (err) {
+      console.warn('Erro ao verificar username:', err);
+      return false;
     }
   }
 
-  let contador = 3;
-  while (sugestoes.length < 4 && contador < 100) {
-    const candidato = baseLimpa + contador;
-    if (!USERNAMES_RESERVADOS.includes(candidato) && candidato.length <= 20) {
-      sugestoes.push(candidato);
+  function onbGerarSugestoes(base) {
+    const sugestoes = [];
+    const baseLimpa = base.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'user';
+    const ano = new Date().getFullYear();
+
+    const tentativas = [
+      baseLimpa + '1',
+      baseLimpa + '2',
+      baseLimpa + ano,
+      baseLimpa + 'br',
+      baseLimpa + 'oficial'
+    ];
+
+    for (const tentativa of tentativas) {
+      if (sugestoes.length >= 4) break;
+      if (!USERNAMES_RESERVADOS.includes(tentativa) && tentativa.length <= 20) {
+        sugestoes.push(tentativa);
+      }
     }
-    contador++;
+
+    let contador = 3;
+    while (sugestoes.length < 4 && contador < 100) {
+      const candidato = baseLimpa + contador;
+      if (!USERNAMES_RESERVADOS.includes(candidato) && candidato.length <= 20) {
+        sugestoes.push(candidato);
+      }
+      contador++;
+    }
+
+    return sugestoes.slice(0, 4);
   }
 
-  return sugestoes.slice(0, 4);
-}
-
-function onbAplicarSugestao(user) {
-  const input = document.getElementById('onbInputUser');
-  if (!input) return;
-
-  input.value = user;
-  onbVerificarUsername();
-  input.focus();
-}
-
-let timeoutVerificacaoUser = null;
-
-function onbVerificarUsername() {
-  const input = document.getElementById('onbInputUser');
-  const wrap = document.getElementById('onbUserWrap');
-  const status = document.getElementById('onbUserStatus');
-  const sugestoesWrap = document.getElementById('onbUserSugestoesWrap');
-  const sugestoesEl = document.getElementById('onbUserSugestoes');
-  const btn = document.getElementById('onbBtnUser');
-
-  if (!input || !wrap || !status || !btn) return;
-
-  input.value = input.value.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-  const user = input.value;
-
-  wrap.classList.remove('onb-input-user-ok', 'onb-input-user-erro');
-  status.classList.remove('onb-status-ok', 'onb-status-erro', 'onb-status-checando');
-  if (sugestoesWrap) sugestoesWrap.style.display = 'none';
-
-  if (!user) {
-    status.textContent = '';
-    btn.disabled = true;
-    btn.classList.add('onb-btn-desabilitado');
-    return;
+  function onbAplicarSugestao(user) {
+    const input = document.getElementById('onbInputUser');
+    if (!input) return;
+    input.value = user;
+    onbVerificarUsername();
+    input.focus();
   }
 
-  const formato = onbValidarFormatoUsername(user);
+  let timeoutVerificacaoUser = null;
 
-  if (!formato.ok) {
-    wrap.classList.add('onb-input-user-erro');
-    status.textContent = formato.msg;
-    status.classList.add('onb-status-erro');
-    btn.disabled = true;
-    btn.classList.add('onb-btn-desabilitado');
-    return;
-  }
+  function onbVerificarUsername() {
+    const input = document.getElementById('onbInputUser');
+    const wrap = document.getElementById('onbUserWrap');
+    const status = document.getElementById('onbUserStatus');
+    const sugestoesWrap = document.getElementById('onbUserSugestoesWrap');
+    const sugestoesEl = document.getElementById('onbUserSugestoes');
+    const btn = document.getElementById('onbBtnUser');
 
-  if (timeoutVerificacaoUser) clearTimeout(timeoutVerificacaoUser);
+    if (!input || !wrap || !status || !btn) return;
 
-  status.textContent = '⏳ Verificando disponibilidade...';
-  status.classList.add('onb-status-checando');
-  btn.disabled = true;
-  btn.classList.add('onb-btn-desabilitado');
+    input.value = input.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const user = input.value;
 
-  timeoutVerificacaoUser = setTimeout(async () => {
-    const disponivel = await onbVerificarDisponibilidade(user);
+    wrap.classList.remove('onb-input-user-ok', 'onb-input-user-erro');
+    status.classList.remove('onb-status-ok', 'onb-status-erro', 'onb-status-checando');
+    if (sugestoesWrap) sugestoesWrap.style.display = 'none';
 
-    if (disponivel) {
-      wrap.classList.add('onb-input-user-ok');
-      status.textContent = `✅ @${user} está disponível`;
-      status.classList.add('onb-status-ok');
-      btn.disabled = false;
-      btn.classList.remove('onb-btn-desabilitado');
-    } else {
+    if (!user) {
+      status.textContent = '';
+      btn.disabled = true;
+      btn.classList.add('onb-btn-desabilitado');
+      return;
+    }
+
+    const formato = onbValidarFormatoUsername(user);
+
+    if (!formato.ok) {
       wrap.classList.add('onb-input-user-erro');
-      status.textContent = `❌ @${user} já está em uso`;
+      status.textContent = formato.msg;
       status.classList.add('onb-status-erro');
       btn.disabled = true;
       btn.classList.add('onb-btn-desabilitado');
+      return;
+    }
 
-      const sugestoes = onbGerarSugestoes(user);
+    if (timeoutVerificacaoUser) clearTimeout(timeoutVerificacaoUser);
 
-      if (sugestoes.length && sugestoesWrap && sugestoesEl) {
-        sugestoesEl.innerHTML = '';
-        sugestoes.forEach((sug) => {
-          const btnSug = document.createElement('button');
-          btnSug.type = 'button';
-          btnSug.className = 'onb-user-sugestao-btn';
-          btnSug.textContent = '@' + sug;
-          btnSug.addEventListener('click', () => onbAplicarSugestao(sug));
-          sugestoesEl.appendChild(btnSug);
-        });
-        sugestoesWrap.style.display = 'block';
+    status.textContent = '⏳ Verificando disponibilidade...';
+    status.classList.add('onb-status-checando');
+    btn.disabled = true;
+    btn.classList.add('onb-btn-desabilitado');
+
+    timeoutVerificacaoUser = setTimeout(async () => {
+      const disponivel = await onbVerificarDisponibilidade(user);
+
+      if (disponivel) {
+        wrap.classList.add('onb-input-user-ok');
+        status.textContent = `✅ @${user} está disponível`;
+        status.classList.add('onb-status-ok');
+        btn.disabled = false;
+        btn.classList.remove('onb-btn-desabilitado');
+      } else {
+        wrap.classList.add('onb-input-user-erro');
+        status.textContent = `❌ @${user} já está em uso`;
+        status.classList.add('onb-status-erro');
+        btn.disabled = true;
+        btn.classList.add('onb-btn-desabilitado');
+
+        const sugestoes = onbGerarSugestoes(user);
+
+        if (sugestoes.length && sugestoesWrap && sugestoesEl) {
+          sugestoesEl.innerHTML = '';
+          sugestoes.forEach((sug) => {
+            const btnSug = document.createElement('button');
+            btnSug.type = 'button';
+            btnSug.className = 'onb-user-sugestao-btn';
+            btnSug.textContent = '@' + sug;
+            btnSug.addEventListener('click', () => onbAplicarSugestao(sug));
+            sugestoesEl.appendChild(btnSug);
+          });
+          sugestoesWrap.style.display = 'block';
+        }
       }
-    }
-  }, 400);
-}
-
-function onbConfigurarUsername() {
-  const input = document.getElementById('onbInputUser');
-  if (!input) return;
-
-  input.removeEventListener('input', onbVerificarUsername);
-  input.addEventListener('input', onbVerificarUsername);
-}
-
-async function onbFinalizarUsername() {
-  const input = document.getElementById('onbInputUser');
-  if (!input) return;
-
-  const user = input.value.toLowerCase().trim();
-
-  if (!onbValidarFormatoUsername(user).ok) return;
-
-  const disponivel = await onbVerificarDisponibilidade(user);
-
-  if (!disponivel) {
-    const status = document.getElementById('onbUserStatus');
-    if (status) {
-      status.textContent = `❌ @${user} já está em uso`;
-      status.className = 'onb-status-erro';
-    }
-    return;
+    }, 400);
   }
 
-  localStorage.setItem('drops_username', user);
-  console.log('✅ Username salvo:', user);
+  function onbConfigurarUsername() {
+    const input = document.getElementById('onbInputUser');
+    if (!input) return;
+    input.removeEventListener('input', onbVerificarUsername);
+    input.addEventListener('input', onbVerificarUsername);
+  }
 
-  onbIrPara('lgpd');
-}
-    /* ============================================
+  async function onbFinalizarUsername() {
+    const input = document.getElementById('onbInputUser');
+    if (!input) return;
+
+    const user = input.value.toLowerCase().trim();
+    if (!onbValidarFormatoUsername(user).ok) return;
+
+    const disponivel = await onbVerificarDisponibilidade(user);
+
+    if (!disponivel) {
+      const status = document.getElementById('onbUserStatus');
+      if (status) {
+        status.textContent = `❌ @${user} já está em uso`;
+        status.className = 'onb-status-erro';
+      }
+      return;
+    }
+
+    localStorage.setItem('drops_username', user);
+    console.log('✅ Username salvo:', user);
+
+    onbIrPara('lgpd');
+  }
+
+  /* ============================================
      TELA DE LGPD
   ============================================ */
   const DOC_TERMOS = `
     <h4>1. Aceitação dos termos</h4>
     <p>Ao criar uma conta e usar o Drops, você concorda em cumprir estes Termos de Uso e todas as leis aplicáveis. Se não concordar, não use o app.</p>
-
     <h4>2. Sua conta</h4>
     <p>Você é responsável por manter suas credenciais seguras. Você deve ter pelo menos 15 anos para usar o Drops. Se for menor de 18 anos, deve ter consentimento dos pais ou responsáveis.</p>
-
     <h4>3. Uso permitido</h4>
     <p>Você concorda em não usar o Drops para:</p>
     <ul>
@@ -1376,16 +1317,12 @@ async function onbFinalizarUsername() {
       <li>Tentar acessar contas de outras pessoas</li>
       <li>Usar bots ou ferramentas automatizadas não autorizadas</li>
     </ul>
-
     <h4>4. Conteúdo que você publica</h4>
     <p>Você mantém os direitos sobre o que publica no Drops. Ao publicar, você nos concede uma licença para exibir, distribuir e armazenar o conteúdo dentro do app, respeitando suas configurações de privacidade.</p>
-
     <h4>5. Suspensão e encerramento</h4>
     <p>Podemos suspender ou encerrar sua conta a qualquer momento, caso você viole estes termos. Você também pode excluir sua conta a qualquer momento.</p>
-
     <h4>6. Alterações nos termos</h4>
     <p>Podemos atualizar estes termos periodicamente. Vamos avisar você sobre mudanças importantes antes que entrem em vigor.</p>
-
     <p style="margin-top: 16px; font-style: italic; opacity: .7;">Última atualização: versão 1.0</p>
   `;
 
@@ -1398,7 +1335,6 @@ async function onbFinalizarUsername() {
       <li>Localização aproximada (para mostrar pessoas próximas)</li>
       <li>Conteúdo que você publica (fotos, vídeos, mensagens)</li>
     </ul>
-
     <h4>2. Como usamos seus dados</h4>
     <p>Usamos seus dados para:</p>
     <ul>
@@ -1408,7 +1344,6 @@ async function onbFinalizarUsername() {
       <li>Enviar códigos de segurança</li>
       <li>Melhorar a experiência do app</li>
     </ul>
-
     <h4>3. Seus direitos (LGPD)</h4>
     <p>Conforme a Lei Geral de Proteção de Dados (LGPD), você tem direito a:</p>
     <ul>
@@ -1418,16 +1353,12 @@ async function onbFinalizarUsername() {
       <li>Revogar o consentimento</li>
       <li>Solicitar a portabilidade dos dados</li>
     </ul>
-
     <h4>4. Compartilhamento</h4>
     <p>Não vendemos seus dados. Compartilhamos apenas com prestadores de serviço essenciais (como servidores), sempre com contratos de confidencialidade.</p>
-
     <h4>5. Segurança</h4>
     <p>Usamos criptografia e outras medidas para proteger seus dados. Mesmo assim, nenhum sistema é 100% seguro — avise-nos imediatamente se suspeitar de acesso indevido.</p>
-
     <h4>6. Encarregado de Dados (DPO)</h4>
     <p>Para exercer seus direitos ou tirar dúvidas sobre privacidade, entre em contato pelo e-mail: <strong>dpo@drops.app</strong></p>
-
     <p style="margin-top: 16px; font-style: italic; opacity: .7;">Última atualização: versão 1.0</p>
   `;
 
@@ -1458,20 +1389,15 @@ async function onbFinalizarUsername() {
   document.addEventListener('click', (e) => {
     const modal = document.getElementById('onbModalDoc');
     if (!modal || modal.style.display === 'none') return;
-
-    if (e.target === modal) {
-      onbFecharModalTermos();
-    }
+    if (e.target === modal) onbFecharModalTermos();
   });
 
   function onbConfigurarLgpd() {
     const checkboxes = document.querySelectorAll('.onb-lgpd-checkbox');
-
     checkboxes.forEach((cb) => {
       cb.removeEventListener('change', onbAtualizarBotaoLgpd);
       cb.addEventListener('change', onbAtualizarBotaoLgpd);
     });
-
     onbAtualizarBotaoLgpd();
   }
 
@@ -1503,13 +1429,10 @@ async function onbFinalizarUsername() {
     if (!termos.checked || !privacidade.checked || !dados.checked) return;
 
     const agora = new Date().toISOString();
-
     localStorage.setItem('drops_termos_versao', '1.0');
     localStorage.setItem('drops_termos_aceito_em', agora);
-
     localStorage.setItem('drops_lgpd_versao', '1.0');
     localStorage.setItem('drops_lgpd_aceito_em', agora);
-
     localStorage.setItem('drops_dados_aceito_em', agora);
 
     console.log('✅ Consentimento registrado em', agora);

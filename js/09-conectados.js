@@ -560,7 +560,16 @@ async function confirmarBloqueioPerfilNex() {
 
   const perfilBloqueado = Drops.estado.perfilBloquearAtual;
 
-  // ⚠️ Salva no Supabase ANTES do setTimeout (não perde o valor)
+  // ⚠️ NOVO: Apaga o histórico de conversa e as mídias do Storage imediatamente
+  if (perfilBloqueado && typeof apagarChatNex === 'function') {
+    try {
+      await apagarChatNex(perfilBloqueado);
+    } catch (err) {
+      console.warn('Erro ao apagar chat no bloqueio:', err);
+    }
+  }
+
+  // Salva no Supabase ANTES do setTimeout (não perde o valor)
   if (perfilBloqueado && window.BloqueadosAdapterNex?.adicionarBloqueadoSupabase) {
     try {
       await window.BloqueadosAdapterNex.adicionarBloqueadoSupabase(perfilBloqueado);
@@ -575,7 +584,7 @@ async function confirmarBloqueioPerfilNex() {
     if (perfilBloqueado) {
       perfisBloqueadosNex.add(perfilBloqueado);
 
-      // ⚠️ Atualiza o cache do adapter
+      // Atualiza o cache do adapter
       if (window.BloqueadosAdapterNex?.salvarBloqueados) {
         window.BloqueadosAdapterNex.salvarBloqueados(perfisBloqueadosNex);
       }

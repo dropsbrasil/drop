@@ -17,13 +17,13 @@
     console.log('🚀 Inicializando Drops...');
 
     // ============================================
-// SERVICE WORKER (PWA)
-// ============================================
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log('📱 PWA: Service Worker registrado'))
-    .catch((err) => console.warn('PWA: SW falhou', err));
-}
+    // SERVICE WORKER (PWA)
+    // ============================================
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('📱 PWA: Service Worker registrado'))
+        .catch((err) => console.warn('PWA: SW falhou', err));
+    }
 
     // ============================================
     // 1. INICIALIZA SISTEMA DE ADEPTOS
@@ -37,135 +37,110 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
       calcularAdeptosNex();
     }
 
-   if (typeof calcularAdeptosEnviadosNex === 'function') {
-  calcularAdeptosEnviadosNex().catch((err) =>
-    console.warn('Erro ao calcular adeptos enviados:', err)
-  );
-   }
+    if (typeof calcularAdeptosEnviadosNex === 'function') {
+      calcularAdeptosEnviadosNex().catch((err) =>
+        console.warn('Erro ao calcular adeptos enviados:', err)
+      );
+    }
 
     console.log('👑 Sistema de adeptos inicializado');
 
     // ============================================
-// 1.5. RENDERIZA OS CARDS INICIAIS DAS CONVERSAS
-// ============================================
+    // 1.5. RENDERIZA OS CARDS INICIAIS DAS CONVERSAS
+    // ============================================
 
-// ============================================
-// 1.5. RENDERIZA OS CARDS INICIAIS DAS CONVERSAS
-// ============================================
+    if (typeof sincronizarCardsNexSupabase === 'function') {
+      setTimeout(async () => {
+        await sincronizarCardsNexSupabase();
 
-// ⚠️ Sincroniza conversas reais do Supabase (em background)
-if (typeof sincronizarCardsNexSupabase === 'function') {
-  setTimeout(async () => {
-    await sincronizarCardsNexSupabase();
+        setTimeout(() => {
+          const listaNaoLidas = document.getElementById('nex-naolidas');
+          const temNaoLidas =
+            listaNaoLidas &&
+            listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
 
-    // ⚠️ Abre a aba correta DEPOIS de sincronizar
-    setTimeout(() => {
-      const listaNaoLidas = document.getElementById('nex-naolidas');
-      const temNaoLidas =
-        listaNaoLidas &&
-        listaNaoLidas.querySelectorAll('.nex-chat').length > 0;
+          if (typeof mostrarNexTab === 'function') {
+            if (temNaoLidas) {
+              mostrarNexTab('naolidas');
+            } else {
+              mostrarNexTab('geral');
+            }
+          }
 
-      if (typeof mostrarNexTab === 'function') {
-        if (temNaoLidas) {
-          mostrarNexTab('naolidas');
-        } else {
-          mostrarNexTab('geral');
-        }
-      }
+          if (typeof window.atualizarAbaNaoLidasNex === 'function') {
+            window.atualizarAbaNaoLidasNex();
+          }
+        }, 200);
 
-      // ⚠️ Atualiza visibilidade da aba (esconde se vazia)
-      if (typeof window.atualizarAbaNaoLidasNex === 'function') {
-        window.atualizarAbaNaoLidasNex();
-      }
-    }, 200);
+        console.log('💬 Cards do Supabase sincronizados');
+      }, 1500);
+    }
 
-    console.log('💬 Cards do Supabase sincronizados');
-  }, 1500);
-}
+    if (typeof iniciarRealtimeNexSupabase === 'function') {
+      setTimeout(() => {
+        iniciarRealtimeNexSupabase();
+      }, 2000);
+    }
 
-// ⚠️ Inicia o Realtime do NEX
-if (typeof iniciarRealtimeNexSupabase === 'function') {
-  setTimeout(() => {
-    iniciarRealtimeNexSupabase();
-  }, 2000);
-}
+    if (typeof carregarSilenciadosSupabase === 'function') {
+      setTimeout(() => {
+        carregarSilenciadosSupabase();
+      }, 2500);
+    }
 
-// ⚠️ Carrega a lista de quem EU silenciei e de quem ME silenciou
-if (typeof carregarSilenciadosSupabase === 'function') {
-  setTimeout(() => {
-    carregarSilenciadosSupabase();
-  }, 2500);
-}
+    if (typeof iniciarRealtimeSilenciadosNex === 'function') {
+      setTimeout(() => {
+        iniciarRealtimeSilenciadosNex();
+      }, 2800);
+    }
 
-// ⚠️ Ativa o Realtime dos silenciados:
-//    - Quando ALGUÉM me silencia/desilencia → UI atualiza na hora
-//    - Quando EU silencio/desilencia alguém → lista em memória atualiza
-//    - Se estou no chat da pessoa → botão de enviar troca pro cadeado na hora
-if (typeof iniciarRealtimeSilenciadosNex === 'function') {
-  setTimeout(() => {
-    iniciarRealtimeSilenciadosNex();
-  }, 2800);
-}
+    if (typeof iniciarRealtimePresencaNex === 'function') {
+      setTimeout(() => {
+        iniciarRealtimePresencaNex();
+      }, 3000);
+    }
 
-// ⚠️ Ativa o Realtime de presença (Online/Offline):
-//    - Ouve a tabela profiles e avisa a tela na hora
-//    - Elimina a necessidade de perguntar "quem está online?" toda hora
-if (typeof iniciarRealtimePresencaNex === 'function') {
-  setTimeout(() => {
-    iniciarRealtimePresencaNex();
-  }, 3000);
-}
+    if (typeof iniciarRealtimeReacoesMidiaNex === 'function') {
+      setTimeout(() => {
+        iniciarRealtimeReacoesMidiaNex();
+      }, 2500);
+    }
 
-// ⚠️ Inicia o Realtime das reações de mídia
-if (typeof iniciarRealtimeReacoesMidiaNex === 'function') {
-  setTimeout(() => {
-    iniciarRealtimeReacoesMidiaNex();
-  }, 2500);
-}
+    if (typeof window.atualizarContadorMeuMuralNex === 'function') {
+      setTimeout(() => {
+        window.atualizarContadorMeuMuralNex();
+      }, 3000);
+    }
 
-// ⚠️ Atualiza contador do mural
-if (typeof window.atualizarContadorMeuMuralNex === 'function') {
-  setTimeout(() => {
-    window.atualizarContadorMeuMuralNex();
-  }, 3000);
-}
-
-// ⚠️ Pede permissão pra enviar notificações
-if (typeof pedirPermissaoNotificacaoNex === 'function') {
-  setTimeout(() => {
-    pedirPermissaoNotificacaoNex();
-  }, 3000);
-}
+    if (typeof pedirPermissaoNotificacaoNex === 'function') {
+      setTimeout(() => {
+        pedirPermissaoNotificacaoNex();
+      }, 3000);
+    }
 
     // ============================================
-// 2. MOSTRA A TELA INICIAL (restaura a última)
-// ============================================
+    // 2. MOSTRA A TELA INICIAL (restaura a última)
+    // ============================================
 
-if (typeof mostrarTela === 'function') {
-  let telaSalva = 'mydrops';
+    if (typeof mostrarTela === 'function') {
+      let telaSalva = 'mydrops';
 
-  try {
-    const salva = localStorage.getItem('drops_tela_atual');
-    if (salva && ['mydrops', 'nearby', 'nex'].includes(salva)) {
-      telaSalva = salva;
+      try {
+        const salva = localStorage.getItem('drops_tela_atual');
+        if (salva && ['mydrops', 'nearby', 'nex'].includes(salva)) {
+          telaSalva = salva;
+        }
+      } catch (e) {}
+
+      const mapaTabs = { mydrops: 0, nearby: 1, nex: 2 };
+      const index = mapaTabs[telaSalva] ?? 0;
+
+      mostrarTela(telaSalva, index);
     }
-  } catch (e) {}
-
-  const mapaTabs = { mydrops: 0, nearby: 1, nex: 2 };
-  const index = mapaTabs[telaSalva] ?? 0;
-
-  mostrarTela(telaSalva, index);
-}
-
-    // ⚠️ NÃO abre aba ainda — espera sincronizar os cards
-// A aba correta é escolhida em atualizarAbaInicialNex()
-    
-// ============================================
+    // ============================================
 // 3. SINCRONIZA E RENDERIZA CONECTADOS
 // ============================================
 
-// ⚠️ Primeiro: sincroniza localStorage → Supabase
-// Depois: carrega do Supabase pro localStorage (pega de outros aparelhos)
 if (window.ConectadosAdapterNex?.sincronizarConectadosSupabase) {
   setTimeout(async () => {
     await window.ConectadosAdapterNex.sincronizarConectadosSupabase();
@@ -181,109 +156,83 @@ if (window.ConectadosAdapterNex?.sincronizarConectadosSupabase) {
   }
 }
 
-// ⚠️ Verifica visibilidade da aba "Não lidas" após carregar
 setTimeout(() => {
   if (typeof window.atualizarAbaNaoLidasNex === 'function') {
     window.atualizarAbaNaoLidasNex();
   }
 }, 1500);
 
-    if (typeof renderizarPublicacoesNearbyNex === 'function') {
-      renderizarPublicacoesNearbyNex();
-    }
+if (typeof renderizarPublicacoesNearbyNex === 'function') {
+  renderizarPublicacoesNearbyNex();
+}
 
-    if (typeof renderizarDesconectadosMyDropsNex === 'function') {
-      renderizarDesconectadosMyDropsNex();
-    }
+if (typeof renderizarDesconectadosMyDropsNex === 'function') {
+  renderizarDesconectadosMyDropsNex();
+}
 
-    if (typeof renderizarPublicacoesMyDropsNex === 'function') {
-      renderizarPublicacoesMyDropsNex();
-    }
-
+if (typeof renderizarPublicacoesMyDropsNex === 'function') {
+  renderizarPublicacoesMyDropsNex();
+}
 
 // ============================================
 // 4. AUTO-LIMPEZA DE CONVERSAS (a cada 10 min)
 // ============================================
 
-    
 if (typeof executarAutoLimpezaNex === 'function') {
   executarAutoLimpezaNex();
   setInterval(executarAutoLimpezaNex, 10 * 60 * 1000);
 }
 
-// ============================================
-// 4.5. AUTO-LIMPEZA DE REAÇÕES EXPIRADAS
-// ============================================
-
 if (typeof limparReacoesExpiradasNex === 'function') {
   limparReacoesExpiradasNex();
-  // Roda a cada 6 horas (reações com 30 dias de validade
-  // não precisam ser limpas com frequência)
   setInterval(limparReacoesExpiradasNex, 6 * 60 * 60 * 1000);
 }
-
-// ============================================
-// 4.6. ATUALIZA MÉTRICA DE INTERAÇÕES
-// ============================================
 
 if (typeof window.atualizarMetricaInteracoesMyDropsNex === 'function') {
   window.atualizarMetricaInteracoesMyDropsNex();
 }
 
-// ============================================
-// MÉTRICA DE VISITAS (stub — backend futuro)
-// ============================================
-
 if (typeof window.atualizarContadorVisitasNex === 'function') {
   window.atualizarContadorVisitasNex();
 }
-    
-    
 
-    // ============================================
-    // 5. LOCALIZAÇÃO (weatherLocation)
-    // ============================================
+// ============================================
+// 5. LOCALIZAÇÃO (weatherLocation)
+// ============================================
 
-    const weatherLocationEl = document.getElementById('weatherLocation');
+const weatherLocationEl = document.getElementById('weatherLocation');
 
-    async function reverseGeocodeExact(lat, lon) {
-      const url =
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
+async function reverseGeocodeExact(lat, lon) {
+  const url =
+    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&addressdetails=1`;
 
-      const res = await fetch(url, {
-        headers: { Accept: 'application/json' }
-      });
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' }
+  });
 
-      if (!res.ok) throw new Error('Falha ao buscar endereço');
+  if (!res.ok) throw new Error('Falha ao buscar endereço');
 
-      const data = await res.json();
-      const a = data.address || {};
+  const data = await res.json();
+  const a = data.address || {};
 
-      const rua = a.road || a.pedestrian || a.footway || '';
-      const numero = a.house_number || '';
-      const bairro = a.suburb || a.neighbourhood || a.quarter || '';
-      const cidade = a.city || a.town || a.village || a.municipality || '';
-      const estado = a.state || '';
-      const pais = a.country || '';
+  const rua = a.road || a.pedestrian || a.footway || '';
+  const numero = a.house_number || '';
+  const bairro = a.suburb || a.neighbourhood || a.quarter || '';
+  const cidade = a.city || a.town || a.village || a.municipality || '';
+  const estado = a.state || '';
+  const pais = a.country || '';
 
-      const linha1 = [rua, numero].filter(Boolean).join(', ');
-      const linha2 = [bairro, cidade, estado].filter(Boolean).join(' • ');
+  const linha1 = [rua, numero].filter(Boolean).join(', ');
+  const linha2 = [bairro, cidade, estado].filter(Boolean).join(' • ');
 
-      return (
-        [linha1, linha2, pais].filter(Boolean).join(' • ') ||
-        'Localização indisponível'
-      );
-    }
+  return (
+    [linha1, linha2, pais].filter(Boolean).join(' • ') ||
+    'Localização indisponível'
+  );
+}
 
 if (weatherLocationEl) {
   weatherLocationEl.textContent = 'Buscando localização...';
-
-  // ============================================
-  // GPS INTELIGENTE (Local-First)
-  // ============================================
-  // ⚠️ Nada de salvar no Supabase a cada minuto.
-  // A localização é guardada só na memória do celular.
-  // O Nearby usa o cache local e o Realtime para economizar cota.
 
   const atualizarLocalizacaoNex = () => {
     navigator.geolocation.getCurrentPosition(
@@ -292,16 +241,13 @@ if (weatherLocationEl) {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
 
-          // ⚠️ Guarda apenas em memória (o 11-nearby.js usa pra calcular)
           window.minhaLatitudeAtual = lat;
           window.minhaLongitudeAtual = lng;
 
-          // ⚠️ Re-renderiza o Nearby (o cache decide se busca ou não)
           if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
             window.renderizarPublicacoesNearbyNex();
           }
 
-          // Tenta pegar o endereço pra mostrar no MyDrops
           let address = null;
           try {
             address = await Promise.race([
@@ -336,15 +282,7 @@ if (weatherLocationEl) {
     );
   };
 
-  // ⚠️ Chama uma vez ao abrir
   atualizarLocalizacaoNex();
-
-  // ============================================
-  // WATCH POSITION (Monitoramento Inteligente)
-  // ============================================
-  // ⚠️ Em vez de perguntar de minuto em minuto, o navegador
-  // nos avisa quando o usuário realmente se move. Isso economiza
-  // bateria e evita atualizações desnecessárias.
 
   if (navigator.geolocation.watchPosition) {
     navigator.geolocation.watchPosition(
@@ -352,11 +290,9 @@ if (weatherLocationEl) {
         const novaLat = pos.coords.latitude;
         const novaLng = pos.coords.longitude;
 
-        // Atualiza as variáveis globais
         window.minhaLatitudeAtual = novaLat;
         window.minhaLongitudeAtual = novaLng;
 
-        // Chama a renderização (o cache do 11-nearby decide se busca)
         if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
           window.renderizarPublicacoesNearbyNex();
         }
@@ -368,30 +304,27 @@ if (weatherLocationEl) {
         enableHighAccuracy: true,
         timeout: 30000,
         maximumAge: 60000,
-        distanceFilter: 500 // Só dispara quando mover 500m
+        distanceFilter: 500
       }
     );
   }
 }
-
     // ============================================
-    // 6. DESSELEÇÃO AUTOMÁTICA (editor)
-    // ============================================
+// 6. DESSELEÇÃO AUTOMÁTICA (editor)
+// ============================================
 
-    document.addEventListener(
+document.addEventListener(
   'pointerdown',
   (e) => {
-  // ⚠️ Se o editor de Notas estiver aberto, deixa o 29-notas cuidar
-  const notasEditor = document.getElementById('notasEditorNex');
-  if (notasEditor && notasEditor.classList.contains('aberto')) {
-    return;
-  }
+    const notasEditor = document.getElementById('notasEditorNex');
+    if (notasEditor && notasEditor.classList.contains('aberto')) {
+      return;
+    }
 
-  // ⚠️ Se o editor de Foto estiver aberto, deixa o 30-foto cuidar
-  const fotoEditor = document.getElementById('fotoEditorNex');
-  if (fotoEditor && fotoEditor.classList.contains('aberto')) {
-    return;
-  }
+    const fotoEditor = document.getElementById('fotoEditorNex');
+    if (fotoEditor && fotoEditor.classList.contains('aberto')) {
+      return;
+    }
 
     const dentroDoTexto = e.target.closest('.video-editor-text-mydrops-nex');
     const dentroDaFoto = e.target.closest('.video-editor-photo-mydrops-nex');
@@ -433,33 +366,32 @@ if (weatherLocationEl) {
   true
 );
 
-    // ============================================
-    // 7. CONTADOR DE LEGENDA DO VÍDEO
-    // ============================================
+// ============================================
+// 7. CONTADOR DE LEGENDA DO VÍDEO
+// ============================================
 
-    const legendaVideoInput = document.getElementById('legendaVideoMyDropsInput');
-    const legendaVideoContador = document.getElementById(
-      'legendaVideoContadorMyDrops'
-    );
+const legendaVideoInput = document.getElementById('legendaVideoMyDropsInput');
+const legendaVideoContador = document.getElementById(
+  'legendaVideoContadorMyDrops'
+);
 
-    if (legendaVideoInput && legendaVideoContador) {
-      legendaVideoInput.addEventListener('input', () => {
-        const len = legendaVideoInput.value.length;
-        legendaVideoContador.textContent = `${len}/500`;
-      });
-    }
+if (legendaVideoInput && legendaVideoContador) {
+  legendaVideoInput.addEventListener('input', () => {
+    const len = legendaVideoInput.value.length;
+    legendaVideoContador.textContent = `${len}/500`;
+  });
+}
 
-    // ============================================
-    // 8. MENU FOTO / VÍDEO MY DROPS
-    // ============================================
+// ============================================
+// 8. MENU FOTO / VÍDEO MY DROPS
+// ============================================
 
-    let menuFotoVideoAtivo = null;
+let menuFotoVideoAtivo = null;
 
-    function criarMenuFotoVideoMyDrops(tipo) {
+function criarMenuFotoVideoMyDrops(tipo) {
   let menu = document.getElementById('mydropsMediaMenu');
   let overlay = document.getElementById('mydropsMediaOverlay');
 
-  // Cria o overlay se não existir
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'mydropsMediaOverlay';
@@ -539,13 +471,12 @@ if (weatherLocationEl) {
     });
   }
 
-  // ⚠️ Ativa o fundo desfocado e mostra o menu
   if (overlay) overlay.classList.add('aberto');
   menu.style.display = 'flex';
   menuFotoVideoAtivo = tipo;
-    }
+}
 
-    function fecharMenuFotoVideoMyDrops() {
+function fecharMenuFotoVideoMyDrops() {
   const menu = document.getElementById('mydropsMediaMenu');
   const overlay = document.getElementById('mydropsMediaOverlay');
   
@@ -553,9 +484,11 @@ if (weatherLocationEl) {
   if (overlay) overlay.classList.remove('aberto');
   
   menuFotoVideoAtivo = null;
-    }
+}
+        // ============================================
+    // 9. INPUTS ESCONDIDOS PARA GALERIA
+    // ============================================
 
-    // Inputs escondidos para galeria
     if (!document.getElementById('mydropsGalleryVideoInput')) {
       const videoInput = document.createElement('input');
       videoInput.type = 'file';
@@ -600,7 +533,6 @@ if (weatherLocationEl) {
       });
     }
 
-    // Fecha o menu ao clicar fora
     document.addEventListener('click', (e) => {
       const menu = document.getElementById('mydropsMediaMenu');
       if (menu && menu.style.display === 'flex') {
@@ -615,7 +547,7 @@ if (weatherLocationEl) {
     });
 
     // ============================================
-    // 9. BOTÕES FOTO E VÍDEO DO MY DROPS (menu)
+    // 10. BOTÕES FOTO E VÍDEO DO MY DROPS (menu)
     // ============================================
 
     setTimeout(() => {
@@ -643,241 +575,387 @@ if (weatherLocationEl) {
     }, 500);
 
     // ============================================
-  // SYNC GERAL DE SEGURANÇA (ao voltar ao app ou reconectar)
+    // SYNC GERAL DE SEGURANÇA
+    // ============================================
+    const executarSyncGeralNex = () => {
+      console.log('🔄 Sync Geral: atualizando dados em background...');
+      
+      if (typeof window.sincronizarPerfilSupabase === 'function') {
+        window.sincronizarPerfilSupabase().catch(() => {});
+      }
+
+      if (typeof window.atualizarMetricaInteracoesMyDropsNex === 'function') {
+        window.atualizarMetricaInteracoesMyDropsNex();
+      }
+      if (typeof window.atualizarContadorVisitasNex === 'function') {
+        window.atualizarContadorVisitasNex();
+      }
+
+      if (typeof window.sincronizarPublicacoesSupabase === 'function') {
+        window.sincronizarPublicacoesSupabase();
+      }
+
+      if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
+        window.renderizarPublicacoesNearbyNex();
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      executarSyncGeralNex();
+    });
+
+    window.addEventListener('online', () => {
+      executarSyncGeralNex();
+    });
+
+    console.log('✅ Drops inicializado com sucesso!');
+  });
+
   // ============================================
-  const executarSyncGeralNex = () => {
-    console.log('🔄 Sync Geral: atualizando dados em background...');
+  // TRAVA SCROLL DO BODY QUANDO EDITOR ABRIR
+  // ============================================
+
+  function ajustarAlturaEditorNex() {
+    const altura = window.innerHeight;
+
+    const fotoEditor = document.getElementById('fotoEditorMyDropsNex');
+    const videoEditor = document.getElementById('videoEditorMyDropsNex');
+
+    [fotoEditor, videoEditor].forEach((editor) => {
+      if (!editor) return;
+      if (editor.style.display !== 'flex') return;
+
+      editor.style.setProperty('height', altura + 'px', 'important');
+      editor.style.setProperty('max-height', altura + 'px', 'important');
+      editor.style.setProperty('top', '0', 'important');
+      editor.style.setProperty('bottom', 'auto', 'important');
+    });
+  }
+
+  function ajustarLegendaNex() {
+    const fotoEditor = document.getElementById('fotoEditorMyDropsNex');
+    const videoEditor = document.getElementById('videoEditorMyDropsNex');
+
+    [fotoEditor, videoEditor].forEach((editor) => {
+      if (!editor) return;
+      if (editor.style.display !== 'flex') return;
+
+      const legenda = editor.querySelector(
+        '.foto-editor-legenda-row-mydrops-nex, .video-editor-legenda-row-mydrops-nex'
+      );
+      if (!legenda) return;
+
+      legenda.style.setProperty('position', 'absolute', 'important');
+      legenda.style.setProperty('bottom', '12px', 'important');
+      legenda.style.setProperty('left', '12px', 'important');
+      legenda.style.setProperty('right', '12px', 'important');
+      legenda.style.setProperty('z-index', '100000', 'important');
+    });
+  }
+
+  // ============================================
+  // DETECTA EDITOR/VIEWER/MODAL ABERTO
+  // ============================================
+
+  function atualizarClassesBodyNex() {
+    // 1. EDITOR ABERTO?
+    const fotoEditor = document.getElementById('fotoEditorMyDropsNex');
+    const videoEditor = document.getElementById('videoEditorMyDropsNex');
+
+    const fotoAberto = fotoEditor && fotoEditor.style.display === 'flex';
+    const videoAberto = videoEditor && videoEditor.style.display === 'flex';
     
-    // 1. Atualiza o perfil do próprio usuário
-    if (typeof window.sincronizarPerfilSupabase === 'function') {
-      window.sincronizarPerfilSupabase().catch(() => {});
+    // ⚠️ Checa os novos editores (Notas, Foto, Vídeo)
+    const notasNovoAberto = document.getElementById('notasEditorNex')?.classList.contains('aberto');
+    const fotoNovoAberto = document.getElementById('fotoEditorNex')?.classList.contains('aberto');
+    const videoNovoAberto = document.getElementById('videoEditorNex')?.classList.contains('aberto');
+
+    if (fotoAberto || videoAberto || notasNovoAberto || fotoNovoAberto || videoNovoAberto) {
+      document.body.classList.add('editor-aberto');
+      setTimeout(ajustarAlturaEditorNex, 50);
+      setTimeout(ajustarLegendaNex, 100);
+    } else {
+      document.body.classList.remove('editor-aberto');
     }
 
-    // 2. Atualiza as métricas (interações e visitas)
-    if (typeof window.atualizarMetricaInteracoesMyDropsNex === 'function') {
-      window.atualizarMetricaInteracoesMyDropsNex();
-    }
-    if (typeof window.atualizarContadorVisitasNex === 'function') {
-      window.atualizarContadorVisitasNex();
-    }
+    // 2. VIEWER DE PUBLICAÇÃO / MÍDIA ABERTO?
+    const viewerPub = document.querySelector('.mydrops-publication-viewer');
+    const viewerNearby = document.querySelector('.nearby-drop-viewer');
+    const viewerMidia = document.querySelector('.nex-midia-viewer');
 
-    // 3. Atualiza as publicações do MyDrops
-    if (typeof window.sincronizarPublicacoesSupabase === 'function') {
-      window.sincronizarPublicacoesSupabase();
-    }
+    const algumViewer = !!(viewerPub || viewerNearby || viewerMidia);
 
-    // 4. Atualiza o feed do Nearby
-    if (typeof window.renderizarPublicacoesNearbyNex === 'function') {
-      window.renderizarPublicacoesNearbyNex();
-    }
-  };
-
-  // ⚠️ Quando o usuário volta para o app (tela desligou, trocou de aba, etc.)
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) return;
-    executarSyncGeralNex();
-  });
-
-  // ⚠️ Quando a internet volta
-  window.addEventListener('online', () => {
-    executarSyncGeralNex();
-  });
-
-  console.log('✅ Drops inicializado com sucesso!');
-});
-
-  // ============================================
-// TRAVA SCROLL DO BODY QUANDO EDITOR ABRIR
-// E FORÇA ALTURA REAL DO EDITOR
-// ============================================
-
-function ajustarAlturaEditorNex() {
-  const altura = window.innerHeight;
-
-  const fotoEditor = document.getElementById('fotoEditorMyDropsNex');
-  const videoEditor = document.getElementById('videoEditorMyDropsNex');
-
-  [fotoEditor, videoEditor].forEach((editor) => {
-    if (!editor) return;
-    if (editor.style.display !== 'flex') return;
-
-    editor.style.setProperty('height', altura + 'px', 'important');
-    editor.style.setProperty('max-height', altura + 'px', 'important');
-    editor.style.setProperty('top', '0', 'important');
-    editor.style.setProperty('bottom', 'auto', 'important');
-  });
-}
-
-function ajustarLegendaNex() {
-  const fotoEditor = document.getElementById('fotoEditorMyDropsNex');
-  const videoEditor = document.getElementById('videoEditorMyDropsNex');
-
-  [fotoEditor, videoEditor].forEach((editor) => {
-    if (!editor) return;
-    if (editor.style.display !== 'flex') return;
-
-    const legenda = editor.querySelector(
-      '.foto-editor-legenda-row-mydrops-nex, .video-editor-legenda-row-mydrops-nex'
-    );
-    if (!legenda) return;
-
-    legenda.style.setProperty('position', 'absolute', 'important');
-    legenda.style.setProperty('bottom', '12px', 'important');
-    legenda.style.setProperty('left', '12px', 'important');
-    legenda.style.setProperty('right', '12px', 'important');
-    legenda.style.setProperty('z-index', '100000', 'important');
-  });
-}
-
-// ============================================
-// DETECTA EDITOR/VIEWER/MODAL ABERTO
-// ============================================
-
-function atualizarClassesBodyNex() {
-  // 1. EDITOR ABERTO?
-  const fotoEditor = document.getElementById('fotoEditorMyDropsNex');
-  const videoEditor = document.getElementById('videoEditorMyDropsNex');
-
-  const fotoAberto = fotoEditor && fotoEditor.style.display === 'flex';
-  const videoAberto = videoEditor && videoEditor.style.display === 'flex';
-
-  if (fotoAberto || videoAberto) {
-    document.body.classList.add('editor-aberto');
-    setTimeout(ajustarAlturaEditorNex, 50);
-    setTimeout(ajustarLegendaNex, 100);
-  } else {
-    document.body.classList.remove('editor-aberto');
-  }
-
-  // 2. VIEWER DE PUBLICAÇÃO / MÍDIA ABERTO?
-  const viewerPub = document.querySelector('.mydrops-publication-viewer');
-  const viewerNearby = document.querySelector('.nearby-drop-viewer');
-  const viewerMidia = document.querySelector('.nex-midia-viewer');
-
-  const algumViewer = !!(viewerPub || viewerNearby || viewerMidia);
-
-  if (algumViewer) {
-    document.body.classList.add('viewer-aberto');
-  } else {
-    document.body.classList.remove('viewer-aberto');
-  }
-
-  // 3. MODAL ABERTO?
-  const modais = [
-    'modalFundoMyDropsNex',
-    'modalDuracaoPublicacaoMyDropsNex'
-  ];
-
-  const algumModalAberto = modais.some((id) => {
-    const m = document.getElementById(id);
-    return m && !m.classList.contains('hidden');
-  });
-
-  if (algumModalAberto) {
-    document.body.classList.add('modal-aberto');
-  } else {
-    document.body.classList.remove('modal-aberto');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Roda uma vez no início
-  atualizarClassesBodyNex();
-
-// ⚠️ REMOVIDO: O setInterval foi desativado na Fase 1 de estabilização.
-// Ele consumia memória à toa. O app agora só atualiza o body quando necessário.
-// setInterval(atualizarClassesBodyNex, 1500);
-  // Reajusta quando a tela mudar
-  window.addEventListener('resize', () => {
-    ajustarAlturaEditorNex();
-    ajustarLegendaNex();
-  });
-
-  window.addEventListener('orientationchange', () => {
-    setTimeout(ajustarAlturaEditorNex, 300);
-    setTimeout(ajustarLegendaNex, 350);
-  });
-});
-
-// ============================================
-// FECHAR MODAIS AO CLICAR FORA
-// ============================================
-
-document.addEventListener(
-  'click',
-  (e) => {
-    const modalFundo = document.getElementById('modalFundoMyDropsNex');
-    if (
-      modalFundo &&
-      !modalFundo.classList.contains('hidden') &&
-      e.target === modalFundo
-    ) {
-      if (typeof window.fecharModalFundoMyDropsNex === 'function') {
-        window.fecharModalFundoMyDropsNex();
-      }
-      return;
+    if (algumViewer) {
+      document.body.classList.add('viewer-aberto');
+    } else {
+      document.body.classList.remove('viewer-aberto');
     }
 
-    const modalDuracao = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
-    if (
-      modalDuracao &&
-      !modalDuracao.classList.contains('hidden') &&
-      e.target === modalDuracao
-    ) {
-      if (typeof window.fecharModalDuracaoPublicacaoMyDropsNex === 'function') {
-        window.fecharModalDuracaoPublicacaoMyDropsNex();
-      }
-      return;
-    }
-  },
-  true
-);
-
-  // ============================================
-// BLOQUEIA CLIQUES FORA DO MODAL QUANDO ABERTO
-// ⚠️ CORREÇÃO iOS: no WebKit, e.target às vezes chega como
-//    nó de texto ou filho interno do botão — e o m.contains()
-//    falha. Isso matava cliques legítimos no botão "Concluir".
-//    Agora sobe a árvore manualmente até achar o modal.
-// ============================================
-
-document.addEventListener(
-  'click',
-  (e) => {
-    const modaisAbertos = [
+    // 3. MODAL ABERTO?
+    const modais = [
       'modalFundoMyDropsNex',
       'modalDuracaoPublicacaoMyDropsNex'
-    ].filter((id) => {
+    ];
+
+    const algumModalAberto = modais.some((id) => {
       const m = document.getElementById(id);
       return m && !m.classList.contains('hidden');
     });
 
-    if (!modaisAbertos.length) return;
+    if (algumModalAberto) {
+      document.body.classList.add('modal-aberto');
+    } else {
+      document.body.classList.remove('modal-aberto');
+    }
+  }
 
-    const clicouDentroDeAlgum = modaisAbertos.some((id) => {
-      const m = document.getElementById(id);
-      if (!m) return false;
+  document.addEventListener('DOMContentLoaded', () => {
+    // Roda uma vez no início
+    atualizarClassesBodyNex();
 
-      // Tentativa 1: contains direto
-      if (m.contains(e.target)) return true;
+    // ⚠️ CORREÇÃO CRÍTICA: Adicionado setInterval de volta!
+    // Sem ele, a tabbar não sumia quando os editores ou viewers abriam.
+    setInterval(atualizarClassesBodyNex, 1000);
 
-      // Tentativa 2: sobe a árvore manualmente
-      let atual = e.target;
-      while (atual && atual !== document.body) {
-        if (atual === m) return true;
-        atual = atual.parentNode;
-      }
-
-      return false;
+    window.addEventListener('resize', () => {
+      ajustarAlturaEditorNex();
+      ajustarLegendaNex();
     });
 
-    if (!clicouDentroDeAlgum) {
-      e.stopPropagation();
-      e.preventDefault();
+    window.addEventListener('orientationchange', () => {
+      setTimeout(ajustarAlturaEditorNex, 300);
+      setTimeout(ajustarLegendaNex, 350);
+    });
+  });
+
+  // ============================================
+  // FECHAR MODAIS AO CLICAR FORA
+  // ============================================
+
+  document.addEventListener(
+    'click',
+    (e) => {
+      const modalFundo = document.getElementById('modalFundoMyDropsNex');
+      if (
+        modalFundo &&
+        !modalFundo.classList.contains('hidden') &&
+        e.target === modalFundo
+      ) {
+        if (typeof window.fecharModalFundoMyDropsNex === 'function') {
+          window.fecharModalFundoMyDropsNex();
+        }
+        return;
+      }
+
+      const modalDuracao = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
+      if (
+        modalDuracao &&
+        !modalDuracao.classList.contains('hidden') &&
+        e.target === modalDuracao
+      ) {
+        if (typeof window.fecharModalDuracaoPublicacaoMyDropsNex === 'function') {
+          window.fecharModalDuracaoPublicacaoMyDropsNex();
+        }
+        return;
+      }
+    },
+    true
+  );
+
+  // ============================================
+  // BLOQUEIA CLIQUES FORA DO MODAL QUANDO ABERTO
+  // ============================================
+
+  document.addEventListener(
+    'click',
+    (e) => {
+      const modaisAbertos = [
+        'modalFundoMyDropsNex',
+        'modalDuracaoPublicacaoMyDropsNex'
+      ].filter((id) => {
+        const m = document.getElementById(id);
+        return m && !m.classList.contains('hidden');
+      });
+
+      if (!modaisAbertos.length) return;
+
+      const clicouDentroDeAlgum = modaisAbertos.some((id) => {
+        const m = document.getElementById(id);
+        if (!m) return false;
+
+        if (m.contains(e.target)) return true;
+
+        let atual = e.target;
+        while (atual && atual !== document.body) {
+          if (atual === m) return true;
+          atual = atual.parentNode;
+        }
+
+        return false;
+      });
+
+      if (!clicouDentroDeAlgum) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    },
+    true
+  );
+
+// ============================================
+// PAINEL DE ADMINISTRAÇÃO (GATILHO SECRETO)
+// ============================================
+
+let cliquesAdminNex = 0;
+let timerCliquesAdminNex = null;
+
+document.addEventListener('click', (e) => {
+  // Verifica se clicou no @username do próprio perfil
+  const elUsername = e.target.closest('#mydropsUsername');
+  if (!elUsername) return;
+
+  cliquesAdminNex++;
+
+  if (timerCliquesAdminNex) clearTimeout(timerCliquesAdminNex);
+  
+  // Reseta os cliques depois de 1.5 segundos
+  timerCliquesAdminNex = setTimeout(() => {
+    cliquesAdminNex = 0;
+  }, 1500);
+
+  // Se clicou 5 vezes
+  if (cliquesAdminNex >= 5) {
+    cliquesAdminNex = 0;
+    abrirPainelAdminNex();
+  }
+});
+
+async function abrirPainelAdminNex() {
+  const meuUser = String(window.Drops?.usernameAtual || '').toLowerCase();
+  
+  // Segurança extra: só abre se for o dropbrasil
+  if (meuUser !== 'dropbrasil') {
+    console.log('Acesso admin negado.');
+    return;
+  }
+
+  // Cria o modal
+  let modal = document.getElementById('modalAdminNex');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalAdminNex';
+    modal.style.cssText = 'position:fixed; inset:0; background:#0f172a; z-index:2147483647; display:flex; flex-direction:column; padding:20px; color:#fff;';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+      <h2 style="font-size: 20px; font-weight: 900;">🛡️ Painel Admin</h2>
+      <button type="button" onclick="document.getElementById('modalAdminNex').remove()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Fechar ✕</button>
+    </div>
+    <div id="listaDenunciasAdmin" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px;">
+      <div style="text-align:center; padding:20px; color:#94a3b8;">Carregando denúncias...</div>
+    </div>
+  `;
+
+  try {
+    const { data: denuncias, error } = await window.supabaseClient
+  .rpc('listar_denuncias_admin');
+
+    const container = document.getElementById('listaDenunciasAdmin');
+
+    if (error) throw error;
+
+    if (!denuncias || denuncias.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:20px; color:#22c55e; font-weight:bold;">Nenhuma denúncia pendente. Tudo limpo!</div>';
+      return;
     }
-  },
-  true
-);
+
+    container.innerHTML = '';
+
+    for (const d of denuncias) {
+      // Busca os nomes de quem denunciou
+      const { data: perfilDenunciante } = await window.supabaseClient
+        .from('profiles')
+        .select('username, nome')
+        .eq('id', d.denunciante_id)
+        .maybeSingle();
+
+      const nomeDenunciante = perfilDenunciante?.nome || 'Desconhecido';
+
+      const card = document.createElement('div');
+      card.style.cssText = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px;';
+      
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <strong style="color:#f87171;">Alvo: @${d.denunciado_username}</strong>
+          <small style="color:#94a3b8;">${new Date(d.criado_em).toLocaleString('pt-BR')}</small>
+        </div>
+        <div style="font-size:13px; margin-bottom:4px;"><b>Motivo:</b> ${d.motivo}</div>
+        ${d.detalhes ? `<div style="font-size:13px; margin-bottom:8px; color:#cbd5e1;"><b>Relato:</b> "${d.detalhes}"</div>` : ''}
+        <div style="font-size:12px; margin-bottom:12px; color:#94a3b8;">Denunciado por: ${nomeDenunciante}</div>
+        
+        <button type="button" class="btn-banir-admin" data-id="${d.denunciado_id}" data-denuncia="${d.id}" style="background:#dc2626; color:#fff; border:none; padding:10px; border-radius:8px; font-weight:bold; width:100%; cursor:pointer;">
+          BANIR E EXCLUIR CONTA
+        </button>
+      `;
+
+      container.appendChild(card);
+    }
+
+    // Evento dos botões de banir
+    container.querySelectorAll('.btn-banir-admin').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const confirmar = confirm('Tem certeza que deseja BANIR este usuário? A conta e todas as mídias serão apagadas permanentemente.');
+        if (!confirmar) return;
+
+        const targetId = btn.dataset.id;
+        const denunciaId = btn.dataset.denuncia;
+
+        btn.textContent = 'Banindo...';
+        btn.disabled = true;
+
+        try {
+          const { data: { session } } = await window.supabaseClient.auth.getSession();
+          
+          // Chama a Edge Function
+          const res = await fetch(`${window.Drops.SUPABASE_URL}/functions/v1/admin-banir-conta`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ target_user_id: targetId })
+          });
+
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Erro ao banir');
+
+          // Marca a denúncia como resolvida
+          await window.supabaseClient
+            .from('denuncias')
+            .update({ status: 'resolvido' })
+            .eq('id', denunciaId);
+
+          alert('Usuário banido com sucesso!');
+          btn.closest('div').remove(); // Remove o card da tela
+
+        } catch (err) {
+          console.error('Erro ao banir:', err);
+          alert('Erro ao banir: ' + err.message);
+          btn.textContent = 'BANIR E EXCLUIR CONTA';
+          btn.disabled = false;
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('listaDenunciasAdmin').innerHTML = `<div style="color:#f87171; text-align:center;">Erro ao carregar denúncias.</div>`;
+  }
+}
+  
   console.log('🎯 14-init.js carregado');
 
 })();

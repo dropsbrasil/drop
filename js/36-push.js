@@ -11,9 +11,6 @@
   // ============================================
   // CHAVE PÚBLICA VAPID
   // ============================================
-  // ⚠️ Vai ser preenchida na Parte 3
-  // (quando gerar o par de chaves VAPID)
-  
   const VAPID_PUBLIC_KEY = 'BHFrRdKWoVcnKvxrrdFgNPSBE4QSacMP91zAiG0FW3psKRHp1R2kZPDr0Xu0vvq7jl9ooG736ofwuuT1iXTOAl8';
 
   // ============================================
@@ -89,11 +86,6 @@
       if (subscription) return subscription;
 
       // Cria uma nova
-      if (VAPID_PUBLIC_KEY === 'COLE_AQUI_DEPOIS') {
-        console.warn('⚠️ VAPID key não configurada ainda');
-        return null;
-      }
-
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -177,18 +169,48 @@
   }
 
   // ============================================
+  // DESATIVAR PUSH (NOVO)
+  // ============================================
+  // Chamado no logout para limpar o banco e o navegador.
+
+  async function desativarPush() {
+    if (!suportaPush()) return;
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) return;
+
+      // 1. Remove do banco de dados
+      if (window.supabaseClient) {
+        await window.supabaseClient
+          .from('push_subscriptions')
+          .delete()
+          .eq('endpoint', subscription.endpoint);
+      }
+
+      // 2. Cancela no navegador
+      await subscription.unsubscribe();
+      console.log('🔕 Push desativado com sucesso');
+    } catch (err) {
+      console.warn('Erro ao desativar push:', err);
+    }
+  }
+
+  // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
 
   window.ativarPush = ativarPush;
   window.suportaPush = suportaPush;
+  window.desativarPush = desativarPush;
 
   // ============================================
   // INICIALIZAÇÃO (aguarda login)
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Aguarda 5s pra ter certeza que o usuário tá logado
     setTimeout(() => {
       if (!suportaPush()) return;
 
@@ -199,6 +221,6 @@
     }, 5000);
   });
 
-  console.log('🔔 32-push.js carregado');
+  console.log('🔔 32-push.js carregado (com desativarPush)');
 
 })();
