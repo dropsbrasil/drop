@@ -19,6 +19,7 @@ html, body {
 }
 
 body {
+  /* ⚠️ CORREÇÃO: Devolvido o padding para o conteúdo não ficar preso atrás da tabbar */
   padding-bottom: 72px;
 }
 
@@ -47,7 +48,8 @@ img {
 
 .screen {
   display: none;
-  min-height: 100vh;
+  /* ⚠️ CORREÇÃO: 100dvh resolve o bug da barra do navegador mobile */
+  min-height: 100dvh; 
   background: #050b18;
   padding: 18px 8px 95px;
 }
@@ -128,8 +130,8 @@ img {
   transform: translateX(-50%);
   width: calc(100% - 32px);
   max-width: 600px;
-  height: 58px; /* ⚠️ Altura reduzida de 72px para 58px */
-  background: rgba(15, 23, 42, 0.45);
+  height: 58px;
+  background: rgba(15, 23, 42, 0.75); /* Fallback mais escuro para Android sem blur */
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -140,7 +142,7 @@ img {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 4px 12px; /* ⚠️ Padding vertical reduzido (0 vira 4px, horizontal continua 12px) */
+  padding: 4px 12px;
   z-index: 999999;
   box-sizing: border-box;
 }
@@ -151,8 +153,8 @@ img {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px; /* ⚠️ Gap entre ícone e texto reduzido de 4px para 2px */
-  height: 48px; /* ⚠️ Altura do botão reduzida de 56px para 48px */
+  gap: 2px;
+  height: 48px;
   min-width: 0;
   border: none;
   background: transparent;
@@ -170,7 +172,7 @@ img {
 }
 
 .tab svg {
-  width: 22px; /* ⚠️ Mantido o tamanho original */
+  width: 22px;
   height: 22px;
   stroke-width: 2;
   display: block;
@@ -179,7 +181,7 @@ img {
 }
 
 .tab span {
-  font-size: 11px; /* ⚠️ Mantido o tamanho original */
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.3px;
   line-height: 1;

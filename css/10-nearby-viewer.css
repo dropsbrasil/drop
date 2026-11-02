@@ -1,13 +1,7 @@
 /* ============================================
    10-NEARBY-VIEWER.CSS
    Viewer de publicação (drops do Nearby e Conectados)
-
-   ⚠️ CORREÇÕES CHROME MOBILE APLICADAS:
-   - touch-action: pan-x (preserva inércia horizontal)
-   - will-change: transform no shell (evita reflow)
-   - contain: layout style no palco (evita clip-path recalc)
-   - contain: paint no papel e mídia (evita repaint)
-   - backface-visibility: hidden (promove a layer)
+   Layout unificado e otimizado para Mobile
 ============================================ */
 
 .nearby-drop-viewer {
@@ -17,28 +11,10 @@
   overflow: hidden;
   background: #050b18;
   box-sizing: border-box;
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     'pan-x' preserva o momentum horizontal nativo do Chrome
-     (quando o gesto é cancelado pelo JS) e libera o vertical
-     pro JS controlar. 'none' mataria toda a inércia. */
-  touch-action: pan-x;
+  touch-action: pan-x; /* Permite swipe horizontal nativo */
   overscroll-behavior: contain;
   user-select: none;
   -webkit-user-select: none;
-}
-
-.nearby-drop-viewer .nearby-drop-media-wrap {
-  touch-action: none;
-}
-
-.nearby-drop-viewer .nearby-drop-arrow,
-.nearby-drop-viewer .nearby-drop-nav,
-.nearby-drop-viewer .nearby-drop-close,
-.nearby-drop-viewer .nearby-drop-comment-box,
-.nearby-drop-viewer .nearby-drop-footer,
-.nearby-drop-viewer .nearby-drop-profile-btn {
-  touch-action: manipulation;
 }
 
 .nearby-drop-bg {
@@ -50,398 +26,6 @@
     linear-gradient(180deg, rgba(5,11,24,.76), rgba(5,11,24,.94));
   pointer-events: none;
 }
-
-.nearby-drop-shell {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 100dvh;
-}
-
-/* ============================================
-   TOPBAR DO VIEWER
-============================================ */
-
-.nearby-drop-topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 14px;
-  box-sizing: border-box;
-  background: rgba(255,255,255,.08);
-  min-height: 64px;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255,255,255,.08);
-  box-shadow:
-    0 6px 24px rgba(0,0,0,.12),
-    inset 0 1px 0 rgba(255,255,255,.12);
-  border-radius: 0 0 14px 14px;
-}
-
-.nearby-drop-user {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.nearby-drop-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #1f2937;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 900;
-  flex-shrink: 0;
-}
-
-.nearby-drop-user-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 0;
-}
-
-.nearby-drop-user-meta strong {
-  color: #fff;
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.2px;
-}
-
-.nearby-drop-user-meta span {
-  color: rgba(255,255,255,.86);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.nearby-drop-user-meta small {
-  color: rgba(255,255,255,.68);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.1;
-}
-
-.nearby-drop-top-right {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.nearby-drop-close {
-  width: 70px;
-  height: 36px;
-  min-width: 70px;
-  border: 1px solid rgba(0,0,0,.45);
-  border-radius: 999px;
-  background: #2d8cff;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0 14px;
-  box-shadow: none;
-}
-
-.nearby-drop-counter {
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-/* ============================================
-   MÍDIA
-============================================ */
-
-.nearby-drop-media-wrap {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 0 124px;
-  box-sizing: border-box;
-}
-
-.nearby-drop-media {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nearby-drop-media img,
-.nearby-drop-media video {
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-/* ============================================
-   SETAS LATERAIS
-============================================ */
-
-.nearby-drop-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 25;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255,255,255,.08);
-  color: #fff;
-  font-size: 28px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.nearby-drop-arrow-left {
-  left: 10px;
-}
-
-.nearby-drop-arrow-right {
-  right: 10px;
-}
-
-/* ============================================
-   NAVEGAÇÃO VERTICAL (PERFIL ANTERIOR/PRÓXIMO)
-============================================ */
-
-.nearby-drop-nav {
-  position: absolute;
-  right: 16px;
-  z-index: 25;
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255,255,255,.08);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.nearby-drop-nav-up {
-  top: 96px;
-}
-
-.nearby-drop-nav-down {
-  bottom: 142px;
-}
-
-.nearby-drop-arrow:disabled,
-.nearby-drop-nav:disabled {
-  opacity: .28;
-  pointer-events: none;
-}
-
-/* ============================================
-   RODAPÉ DO VIEWER
-============================================ */
-
-.nearby-drop-footer {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.nearby-drop-footer-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.nearby-drop-views {
-  color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  flex-shrink: 0;
-  min-width: 88px;
-}
-
-.nearby-drop-footer-right {
-  display: none;
-}
-
-/* ============================================
-   STATS DE REAÇÃO
-============================================ */
-
-.nearby-drop-left-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.nearby-drop-reactions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nearby-drop-reaction-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.78);
-  border: 1px solid rgba(0,0,0,.08);
-  color: #111827;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.msg-drop-reaction-stats {
-  margin-top: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.78);
-  border: 1px solid rgba(0,0,0,.08);
-  color: #111827;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-/* ============================================
-   BOTÃO VISITAR PERFIL
-============================================ */
-
-.nearby-drop-profile-btn {
-  border: none;
-  border-radius: 14px;
-  background: #fff;
-  color: #111;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 8px 12px;
-  flex-shrink: 0;
-}
-
-/* ============================================
-   CAIXA DE COMENTÁRIO
-============================================ */
-
-.nearby-drop-comment-box {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 22px;
-  background: rgba(13,20,36,.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 30px rgba(0,0,0,.35);
-  box-sizing: border-box;
-  border: 1px solid rgba(255,255,255,.14);
-}
-
-.nearby-drop-comment-input {
-  flex: 1;
-  min-width: 0;
-  min-height: 42px;
-  border: none;
-  outline: none;
-  background: #fff;
-  border-radius: 16px;
-  color: #111;
-  font-size: 15px;
-  font-weight: 500;
-  padding: 10px 14px;
-}
-
-.nearby-drop-comment-input::placeholder {
-  color: rgba(0,0,0,.45);
-}
-
-/* ============================================
-   BOTÕES DE REAÇÃO E ENVIAR
-============================================ */
-
-.nearby-drop-reaction,
-.nearby-drop-send {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #fff;
-}
-
-.nearby-drop-reaction {
-  background: rgba(255,255,255,.08);
-  font-size: 20px;
-}
-
-.nearby-drop-send {
-  background: #9aa4b2;
-  font-size: 18px;
-  font-weight: 800;
-  transition: .18s ease;
-}
-
-.nearby-drop-send.is-active {
-  background: linear-gradient(135deg,#74b9ff,#4d96ff);
-  box-shadow: 0 8px 18px rgba(77,150,255,.28);
-}
-
-.nearby-drop-send:disabled {
-  opacity: .65;
-  cursor: not-allowed;
-}
-
-/* ============================================
-   VIEWER DO NEARBY — LAYOUT NOVO
-   (palco + papel + topbar + rodapé + stats)
-   Sobrescreve os estilos antigos acima
-============================================ */
 
 /* ============================================
    SHELL PRINCIPAL
@@ -457,17 +41,9 @@
   padding: 12px;
   gap: 8px;
   box-sizing: border-box;
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     Promove o shell a composite layer dedicada. Sem isso, o
-     Chrome recria o layer a cada frame durante o translateY
-     do drag → travamento visível. */
   will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-
-  /* ⚠️ Reforça o touch-action (herda do viewer, mas
-     garante caso o shell seja movido pra outro pai) */
   touch-action: pan-x;
 }
 
@@ -503,7 +79,6 @@
   line-height: 1;
 }
 
-/* Força avatar e meta a alinhar */
 .nearby-drop-viewer .nearby-drop-user {
   display: flex;
   align-items: center;
@@ -571,7 +146,6 @@
   display: block;
 }
 
-/* Botão Voltar */
 .nearby-drop-viewer .nearby-drop-close {
   width: 36px;
   height: 36px;
@@ -587,9 +161,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow:
-    0 4px 12px rgba(47, 140, 255, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(47, 140, 255, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: filter 0.15s ease, transform 0.12s ease;
 }
 
@@ -599,7 +171,7 @@
 }
 
 /* ============================================
-   PALCO + PAPEL
+   PALCO + PAPEL (Mídia Principal)
 ============================================ */
 
 .nearby-drop-viewer .nearby-pub-palco {
@@ -609,11 +181,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     Evita que o Chrome recalcule o clip-path do papel a cada
-     frame durante o drag. O palco não precisa de overflow
-     controlado — o papel já faz isso. */
   contain: layout style;
   touch-action: pan-x;
 }
@@ -628,19 +195,10 @@
   background: #000000;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     'paint' isola o pintor do papel do resto da árvore.
-     Sem isso, o Chrome recalcula o border-radius clip a
-     cada frame durante o drag do 38-*.js. */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   contain: paint;
 }
 
-/* Item de mídia (com animação) */
 .nearby-drop-viewer .nearby-pub-midia-item {
   position: absolute;
   inset: 0;
@@ -649,10 +207,6 @@
   will-change: transform, opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     Contém a imagem/vídeo no seu próprio layer pra não
-     forçar reflow do shell durante a animação do 38-*.js. */
   contain: paint;
   transform: translateZ(0);
 }
@@ -669,16 +223,11 @@
 
 .nearby-drop-viewer .nearby-pub-midia-item video {
   background: #000;
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     Sem isso, o vídeo captura o gesto horizontal e o swipe
-     do app nunca dispara. 'pan-x' libera o horizontal pro
-     navegador e deixa o JS controlar o vertical. */
   touch-action: pan-x;
 }
 
 /* ============================================
-   SETAS VERTICAIS (sobe/desce perfil)
+   NAVEGAÇÃO VERTICAL (Perfil Anterior/Próximo)
 ============================================ */
 
 .nearby-drop-viewer .nearby-drop-nav {
@@ -709,371 +258,12 @@
   filter: brightness(1.15);
 }
 
-.nearby-drop-viewer .nearby-drop-nav-up {
-  top: 12px;
-}
-
-.nearby-drop-viewer .nearby-drop-nav-down {
-  bottom: 12px;
-}
-
-.nearby-drop-viewer .nearby-drop-nav:disabled {
-  opacity: 0.28;
-  pointer-events: none;
-}
+.nearby-drop-viewer .nearby-drop-nav-up { top: 12px; }
+.nearby-drop-viewer .nearby-drop-nav-down { bottom: 12px; }
+.nearby-drop-viewer .nearby-drop-nav:disabled { opacity: 0.28; pointer-events: none; }
 
 /* ============================================
-   RODAPÉ — SETAS + COMMENT BOX
-============================================ */
-
-.nearby-drop-viewer .nearby-pub-rodape {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 0;
-
-  /* ⚠️ CORREÇÃO CHROME MOBILE:
-     O rodapé NÃO deve bloquear o scroll vertical — só os
-     botões internos (via touch-action: manipulation).
-     Sem isso, o Chrome trata o toque no rodapé como
-     "interativo" e bloqueia o pan. */
-  touch-action: pan-x;
-}
-
-/* Setas horizontais (trocam drop) */
-.nearby-drop-viewer .nearby-drop-arrow {
-  position: relative;
-  top: auto;
-  transform: none;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(47, 140, 255, 0.85);
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: filter 0.15s ease, transform 0.12s ease;
-  -webkit-tap-highlight-color: transparent;
-  padding: 0;
-  line-height: 1;
-  box-shadow:
-    0 6px 16px rgba(47, 140, 255, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  flex-shrink: 0;
-}
-
-.nearby-drop-viewer .nearby-drop-arrow:active {
-  transform: scale(0.92);
-  filter: brightness(1.08);
-}
-
-.nearby-drop-viewer .nearby-drop-arrow:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  transform: none;
-  filter: none;
-}
-
-/* Comment box */
-.nearby-drop-viewer .nearby-drop-comment-box {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 22px;
-  background: rgba(13, 20, 36, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-  box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.nearby-drop-viewer .nearby-drop-comment-input {
-  flex: 1;
-  min-width: 0;
-  min-height: 38px;
-  border: none;
-  outline: none;
-  background: #ffffff;
-  border-radius: 14px;
-  color: #111827;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 8px 12px;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.nearby-drop-viewer .nearby-drop-comment-input::placeholder {
-  color: rgba(0, 0, 0, 0.45);
-}
-
-/* Botões de reação e enviar */
-.nearby-drop-viewer .nearby-drop-reaction,
-.nearby-drop-viewer .nearby-drop-send {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #ffffff;
-  padding: 0;
-  transition: filter 0.15s ease, transform 0.12s ease;
-}
-
-.nearby-drop-viewer .nearby-drop-reaction {
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 18px;
-}
-
-.nearby-drop-viewer .nearby-drop-reaction:active {
-  transform: scale(0.9);
-  filter: brightness(1.15);
-}
-
-.nearby-drop-viewer .nearby-drop-send {
-  background: #2563eb;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-  font-size: 16px;
-  font-weight: 800;
-  opacity: 1;
-  filter: none;
-}
-
-.nearby-drop-viewer .nearby-drop-send.is-active {
-  background: #2563eb;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
-}
-
-.nearby-drop-viewer .nearby-drop-send:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-/* ============================================
-   ÍCONES DO BOTÃO SWAP (COMPARTILHAR ↔ ENVIAR)
-============================================ */
-
-.nearby-drop-viewer .nearby-drop-send {
-  position: relative;
-}
-
-.nearby-drop-viewer .nearby-drop-send svg {
-  width: 20px;
-  height: 20px;
-  display: block;
-  pointer-events: none;
-}
-
-.nearby-drop-viewer .nearby-drop-send .nearby-icone-share {
-  display: block;
-}
-
-.nearby-drop-viewer .nearby-drop-send .nearby-icone-share-check {
-  display: none;
-}
-
-.nearby-drop-viewer .nearby-drop-send .nearby-icone-send {
-  display: none;
-  font-size: 18px;
-  line-height: 1;
-  font-weight: 800;
-  pointer-events: none;
-}
-
-/* Quando input tem texto → mostra enviar */
-.nearby-drop-viewer
-  .nearby-drop-comment-box.input-com-texto
-  .nearby-drop-send
-  .nearby-icone-share,
-.nearby-drop-viewer
-  .nearby-drop-comment-box.input-com-texto
-  .nearby-drop-send
-  .nearby-icone-share-check {
-  display: none;
-}
-
-.nearby-drop-viewer
-  .nearby-drop-comment-box.input-com-texto
-  .nearby-drop-send
-  .nearby-icone-send {
-  display: block;
-}
-
-/* Quando já compartilhou → mostra check */
-.nearby-drop-viewer
-  .nearby-drop-send.ja-compartilhado
-  .nearby-icone-share {
-  display: none;
-}
-
-.nearby-drop-viewer
-  .nearby-drop-send.ja-compartilhado
-  .nearby-icone-share-check {
-  display: block;
-}
-
-/* Botão CINZA quando já compartilhou (inativo) */
-.nearby-drop-viewer .nearby-drop-send.ja-compartilhado {
-  background: #9aa4b2;
-  box-shadow: none;
-  pointer-events: none;
-  opacity: 1;
-}
-
-/* Check AZUL dentro do ícone (mesma cor do azul do app) */
-.nearby-drop-viewer
-  .nearby-drop-send.ja-compartilhado
-  .nearby-check-azul {
-  stroke: #2563eb;
-  stroke-width: 2.5;
-}
-
-.nearby-drop-viewer
-  .nearby-drop-comment-box.input-com-texto
-  .nearby-drop-send.ja-compartilhado {
-  background: #2563eb;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
-  pointer-events: auto;
-  opacity: 1;
-}
-
-/* Cor ativa (azul) quando tem texto OU quando já compartilhou */
-.nearby-drop-viewer .nearby-drop-send.is-active {
-  background: #2563eb;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
-  opacity: 1;
-  filter: none;
-}
-
-/* ============================================
-   STATS + VISITAR PERFIL
-============================================ */
-
-.nearby-drop-viewer .nearby-pub-stats-row {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 2px 4px 0;
-}
-
-.nearby-drop-viewer .nearby-pub-stats-lista {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-.nearby-drop-viewer .nearby-drop-views {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 800;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  min-width: 0;
-}
-
-.nearby-drop-viewer .nearby-drop-reactions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nearby-drop-viewer .nearby-drop-reaction-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* Cápsula de compartilhamento — mesma pílula, com ícone SVG */
-.nearby-drop-viewer .nearby-drop-share-capsula {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.nearby-drop-viewer .nearby-drop-share-capsula svg {
-  width: 14px;
-  height: 14px;
-  display: block;
-}
-
-/* Botão Visitar perfil */
-.nearby-drop-viewer .nearby-drop-profile-btn {
-  border: none;
-  border-radius: 14px;
-  background: #ffffff;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 10px 14px;
-  flex-shrink: 0;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-  transition: filter 0.15s ease, transform 0.12s ease;
-}
-
-.nearby-drop-viewer .nearby-drop-profile-btn:active {
-  transform: scale(0.96);
-  filter: brightness(0.96);
-}
-
-/* ============================================
-   BARRA TOPO — expandir + cápsula de autor
-   (drop compartilhado)
+   BARRA TOPO DA MÍDIA (Expandir e Cápsula)
 ============================================ */
 
 .nearby-drop-viewer .nearby-pub-barra-topo {
@@ -1092,19 +282,37 @@
   pointer-events: auto;
 }
 
-.nearby-drop-viewer .nearby-pub-barra-topo .nearby-drop-expandir {
+.nearby-drop-viewer .nearby-drop-expandir {
   position: static !important;
-  top: auto !important;
-  left: auto !important;
-  z-index: auto !important;
   flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ============================================
-   CÁPSULA DE AUTOR (drop compartilhado)
-   Vidro fosco + borda fina preta + texto branco
-============================================ */
+.nearby-drop-viewer .nearby-drop-expandir:active {
+  transform: scale(0.92);
+  background: rgba(0, 0, 0, 0.4);
+}
 
+/* Cápsula de Autor (Compartilhamento) */
 .nearby-drop-viewer .nearby-pub-capsula-autor {
   display: inline-flex;
   align-items: center;
@@ -1113,17 +321,11 @@
   padding: 0 12px 0 4px;
   border-radius: 999px;
   max-width: calc(100% - 60px);
-
-  /* Vidro molhado — bem translúcido */
   background: rgba(15, 23, 42, 0.28);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   border: 1px solid rgba(255, 255, 255, 0.18);
-
-  box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   color: #ffffff;
   box-sizing: border-box;
   overflow: hidden;
@@ -1197,143 +399,55 @@
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
 }
 
-/* ============================================
-   BOTÃO EXPANDIR (canto superior esquerdo da mídia)
-   Efeito vidro escuro + borda branca fina
-============================================ */
-
-.nearby-drop-expandir {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 20;
-
-  width: 42px;
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Vidro escuro translúcido */
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-
-  /* Borda branca fina */
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 12px;
-
-  color: #ffffff;
-  font-size: 20px;
-  line-height: 1;
-  font-weight: 900;
-
-  cursor: pointer;
-  transition: all 0.18s ease;
-  -webkit-tap-highlight-color: transparent;
-
-  box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.nearby-drop-expandir:active {
-  transform: scale(0.92);
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.nearby-drop-expandir:hover {
-  background: rgba(0, 0, 0, 0.35);
-}
-
-/* ============================================
-   CÁPSULA DE LEGENDA NO NEARBY
-   Efeito Vidro Embaçado + Texto Preto
-   Aparece sobreposta na mídia (parte inferior)
-============================================ */
-
-.nearby-pub-palco {
-  position: relative;
-}
-
-/* Cápsula (estado normal) — mais fina e transparente */
-.nearby-pub-legenda {
+/* Cápsula de Legenda */
+.nearby-drop-viewer .nearby-pub-legenda {
   position: absolute;
   left: 12px;
   right: 12px;
   bottom: 12px;
   z-index: 15;
-
   display: none;
   flex-direction: column;
   gap: 4px;
-
   padding: 8px 12px;
-
-  /* Vidro embaçado — mais transparente */
   background: rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 14px;
-
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   box-sizing: border-box;
   pointer-events: auto;
 }
 
-/* Texto da legenda (estado normal = 2 linhas) */
-.nearby-pub-legenda-texto {
+.nearby-drop-viewer .nearby-pub-legenda-texto {
   font-size: 13px;
   line-height: 1.4;
   font-weight: 600;
   color: #111827;
   margin: 0;
   padding: 0;
-
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-
   transition: all 0.25s ease;
   word-break: break-word;
 }
 
-/* Estado expandido = 5 linhas visíveis + scroll interno */
-.nearby-pub-legenda-texto.expandido {
+.nearby-drop-viewer .nearby-pub-legenda-texto.expandido {
   display: block;
   -webkit-line-clamp: unset;
   overflow-y: auto;
   overflow-x: hidden;
-
   max-height: calc(13px * 1.4 * 5);
   padding-right: 6px;
-
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
 
-/* Scrollbar discreta no estado expandido */
-.nearby-pub-legenda-texto.expandido::-webkit-scrollbar {
-  width: 4px;
-}
-
-.nearby-pub-legenda-texto.expandido::-webkit-scrollbar-thumb {
-  background: rgba(37, 99, 235, 0.4);
-  border-radius: 999px;
-}
-
-/* Botão "Ver mais" / "Ver menos" */
-.nearby-pub-legenda-ver-mais {
+.nearby-drop-viewer .nearby-pub-legenda-ver-mais {
   display: none;
   background: none;
   border: none;
@@ -1344,220 +458,206 @@
   cursor: pointer;
   text-align: left;
   align-self: flex-start;
-  -webkit-tap-highlight-color: transparent;
 }
 
-.nearby-pub-legenda-ver-mais.visivel {
+.nearby-drop-viewer .nearby-pub-legenda-ver-mais.visivel {
   display: block;
 }
 
-.nearby-pub-legenda-ver-mais:active {
-  opacity: 0.6;
-}
-
 /* ============================================
-   MODO COMENTÁRIO — FOCO TOTAL
-   ============================================ */
+   RODAPÉ E INPUT DE COMENTÁRIO
+============================================ */
 
-/* Transição suave do rodapé ao entrar/sair do modo */
-.nearby-pub-rodape {
-  transition: all 0.2s ease;
-}
-
-/* ⚠️ Quando o modo comentário está ativo, o campo ocupa tudo */
-.nearby-drop-comment-box.comentario-focado {
-  flex: 1;
-  width: 100%;
-}
-
-/* ⚠️ Campo expandido em 3 linhas com scroll interno */
-.nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input {
-  flex: 1;
-  min-height: 3.6em;
-  max-height: 3.6em;
-  padding: 10px 14px;
-  font-size: 14px;
-  line-height: 1.2;
-  overflow-y: auto;
-  overflow-x: hidden;
-  resize: none;
-  white-space: pre-wrap;
-  word-break: break-word;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-/* ⚠️ Botão enviar fica maior e alinhado embaixo */
-.nearby-drop-comment-box.comentario-focado .nearby-drop-send {
-  width: 46px;
-  height: 46px;
+.nearby-drop-viewer .nearby-pub-rodape {
   flex-shrink: 0;
-  align-self: flex-end;
-}
-
-/* ⚠️ Scrollbar discreta no campo em modo foco */
-.nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input::-webkit-scrollbar {
-  width: 4px;
-}
-
-.nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input::-webkit-scrollbar-thumb {
-  background: rgba(37, 99, 235, 0.35);
-  border-radius: 999px;
-}
-
-/* ============================================
-   AJUSTES FINOS — CAMPO DE COMENTÁRIO
-   ============================================ */
-
-/* ⚠️ Garante que o rodapé não quebre em telas pequenas */
-.nearby-pub-rodape {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 0;
+  touch-action: pan-x;
+  transition: all 0.2s ease;
   width: 100%;
   box-sizing: border-box;
 }
 
-/* ⚠️ Alinha o botão enviar com o campo em modo normal */
-.nearby-drop-comment-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.nearby-drop-viewer .nearby-drop-comment-box {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 22px;
+  background: rgba(13, 20, 36, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   transition: all 0.2s ease;
 }
 
-/* ⚠️ Campo normal (1 linha) */
-.nearby-drop-comment-input {
+.nearby-drop-viewer .nearby-drop-comment-input {
   flex: 1;
   min-width: 0;
-  min-height: 42px;
-  max-height: 42px;
-  padding: 10px 14px;
+  min-height: 38px;
+  max-height: 38px;
   border: none;
   outline: none;
-  border-radius: 999px;
   background: #ffffff;
+  border-radius: 14px;
   color: #111827;
   font-size: 14px;
-  line-height: 1.3;
+  font-weight: 500;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   resize: none;
   overflow-y: hidden;
-  overflow-x: hidden;
-  font-family: inherit;
-  box-sizing: border-box;
 }
 
-.nearby-drop-comment-input::placeholder {
-  color: #94a3b8;
+.nearby-drop-viewer .nearby-drop-comment-input::placeholder {
+  color: rgba(0, 0, 0, 0.45);
 }
 
-/* ⚠️ Botões de reação (❤️ 💔) */
-.nearby-drop-reaction {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 50%;
+/* Quando focado (teclado aberto), expande um pouco */
+.nearby-drop-viewer .nearby-drop-comment-box.comentario-focado {
+  flex: 1;
+}
+.nearby-drop-viewer .nearby-drop-comment-box.comentario-focado .nearby-drop-comment-input {
+  min-height: 3.6em;
+  max-height: 3.6em;
+  overflow-y: auto;
+  border-radius: 16px;
+}
+
+/* Botões de Reação e Enviar */
+.nearby-drop-viewer .nearby-drop-reaction,
+.nearby-drop-viewer .nearby-drop-send {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  flex-shrink: 0;
   border: none;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: 18px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.15s ease;
+  color: #ffffff;
+  padding: 0;
+  transition: filter 0.15s ease, transform 0.12s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.nearby-drop-reaction:active {
-  transform: scale(0.92);
+.nearby-drop-viewer .nearby-drop-reaction {
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 18px;
 }
 
-.nearby-drop-reaction.ativo {
+.nearby-drop-viewer .nearby-drop-reaction.ativo {
   background: rgba(37, 99, 235, 0.35);
 }
 
-/* ⚠️ Botão enviar */
-.nearby-drop-send {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 50%;
-  border: none;
+.nearby-drop-viewer .nearby-drop-send {
   background: #2563eb;
-  color: #ffffff;
-  font-size: 18px;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Ícones SVG do botão Enviar */
+.nearby-drop-viewer .nearby-drop-send svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  pointer-events: none;
+}
+.nearby-drop-viewer .nearby-drop-send .nearby-icone-share { display: block; }
+.nearby-drop-viewer .nearby-drop-send .nearby-icone-share-check { display: none; }
+.nearby-drop-viewer .nearby-drop-send .nearby-icone-send { display: none; }
+
+.nearby-drop-viewer .nearby-drop-comment-box.input-com-texto .nearby-drop-send .nearby-icone-share,
+.nearby-drop-viewer .nearby-drop-comment-box.input-com-texto .nearby-drop-send .nearby-icone-share-check {
+  display: none;
+}
+.nearby-drop-viewer .nearby-drop-comment-box.input-com-texto .nearby-drop-send .nearby-icone-send {
+  display: block;
+}
+.nearby-drop-viewer .nearby-drop-send.ja-compartilhado .nearby-icone-share { display: none; }
+.nearby-drop-viewer .nearby-drop-send.ja-compartilhado .nearby-icone-share-check { display: block; }
+
+/* ============================================
+   STATS E VISITAR PERFIL
+============================================ */
+
+.nearby-drop-viewer .nearby-pub-stats-row {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  opacity: 0.5;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 0;
 }
 
-.nearby-drop-send.is-active {
-  opacity: 1;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+.nearby-drop-viewer .nearby-pub-stats-lista {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
-.nearby-drop-send:active {
-  transform: scale(0.92);
-}
-
-/* ⚠️ Setas laterais (← →) */
-.nearby-drop-arrow {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 50%;
-  border: none;
+.nearby-drop-viewer .nearby-drop-views,
+.nearby-drop-viewer .nearby-drop-reaction-count,
+.nearby-drop-viewer .nearby-drop-share-capsula {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  min-width: 0;
+  line-height: 1;
+}
+
+.nearby-drop-viewer .nearby-drop-profile-btn {
+  border: none;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 14px;
   flex-shrink: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  transition: filter 0.15s ease, transform 0.12s ease;
 }
 
-.nearby-drop-arrow:active {
-  transform: scale(0.92);
-}
-
-.nearby-drop-arrow:disabled {
-  opacity: 0.3;
-  pointer-events: none;
+.nearby-drop-viewer .nearby-drop-profile-btn:active {
+  transform: scale(0.96);
+  filter: brightness(0.96);
 }
 
 /* ============================================
-   MODO EXPANDIDO — TELA CHEIA (FOCO TOTAL)
-   ============================================ */
+   MODO EXPANDIDO (TELA CHEIA)
+============================================ */
 
-/* ⚠️ Esconde topbar, rodapé e stats quando expandido */
 .nearby-drop-viewer.modo-expandido .nearby-pub-topbar,
 .nearby-drop-viewer.modo-expandido .nearby-pub-rodape,
-.nearby-drop-viewer.modo-expandido .nearby-pub-stats-row {
-  display: none !important;
-}
-
-/* ⚠️ Esconde a cápsula de legenda quando expandido */
-.nearby-drop-viewer.modo-expandido .nearby-pub-legenda {
-  display: none !important;
-}
-
-/* ⚠️ Esconde as setas de navegação vertical */
+.nearby-drop-viewer.modo-expandido .nearby-pub-stats-row,
+.nearby-drop-viewer.modo-expandido .nearby-pub-legenda,
 .nearby-drop-viewer.modo-expandido .nearby-drop-nav {
   display: none !important;
 }
 
-/* ⚠️ O palco ocupa a tela toda */
 .nearby-drop-viewer.modo-expandido .nearby-pub-palco {
   position: fixed;
   inset: 0;
@@ -1565,7 +665,6 @@
   background: #000;
 }
 
-/* ⚠️ O papel (mídia) ocupa a tela toda */
 .nearby-drop-viewer.modo-expandido .nearby-pub-papel {
   width: 100%;
   height: 100%;
@@ -1576,7 +675,6 @@
   background: #000;
 }
 
-/* ⚠️ A mídia se ajusta (contain) para caber na tela */
 .nearby-drop-viewer.modo-expandido .nearby-pub-papel img,
 .nearby-drop-viewer.modo-expandido .nearby-pub-papel video,
 .nearby-drop-viewer.modo-expandido .nearby-pub-midia-item,
@@ -1590,7 +688,6 @@
   max-height: 100%;
 }
 
-/* ⚠️ O botão expandir fica por cima de tudo */
 .nearby-drop-viewer.modo-expandido .nearby-drop-expandir {
   position: fixed;
   top: 16px;
@@ -1598,7 +695,6 @@
   z-index: 100000;
 }
 
-/* ⚠️ O shell perde o limite de altura quando expandido */
 .nearby-drop-viewer.modo-expandido .nearby-pub-shell {
   max-height: none;
   height: 100%;
@@ -1606,8 +702,7 @@
 }
 
 /* ============================================
-   PREVIEW DO SCROLL CONTÍNUO (38-*.js)
-   Promove a layer própria durante o drag
+   PREVIEW DO SCROLL CONTÍNUO E OVERLAY DE SWIPE
 ============================================ */
 
 .nearby-scroll-preview-nex {
@@ -1617,80 +712,6 @@
   -webkit-backface-visibility: hidden;
 }
 
-/* ============================================
-   BALÃO DE LIMITE — "Você já viu tudo por aqui"
-   Aparece quando tenta rolar além do último
-   (ou antes do primeiro) perfil.
-============================================ */
-
-.nearby-limite-balao-nex {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.8);
-  z-index: 2147483647;
-
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 24px 18px 20px;
-  max-width: calc(100vw - 40px);
-  box-sizing: border-box;
-
-  border-radius: 22px;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(96, 165, 250, 0.15) inset;
-
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  opacity: 0;
-  pointer-events: none;
-
-  transition:
-    opacity 0.3s ease,
-    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.nearby-limite-balao-nex.visivel {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
-.nearby-limite-balao-icone {
-  font-size: 34px;
-  line-height: 1;
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 8px rgba(96, 165, 250, 0.5));
-}
-
-.nearby-limite-balao-texto {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: #cbd5e1;
-  text-align: left;
-}
-
-.nearby-limite-balao-texto strong {
-  display: block;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 800;
-  margin-bottom: 3px;
-  letter-spacing: -0.2px;
-}
-
-/* ============================================
-   OVERLAY INVISÍVEL DE SWIPE NO VÍDEO
-   Permite que o swipe horizontal funcione
-   mesmo tocando no vídeo.
-============================================ */
-
 .video-overlay-swipe-nex {
   position: absolute;
   inset: 0;
@@ -1698,13 +719,8 @@
   background: transparent;
   pointer-events: auto;
   cursor: pointer;
-  /* NÃO define touch-action aqui: o touch-action vem do
-     .nearby-pub-midia-item > video (pan-x). */
 }
 
-/* ⚠️ No modo expandido (tela cheia), o overlay DESAPARECE
-   pra o usuário conseguir usar os controles nativos do vídeo
-   (barra de progresso, fullscreen, volume). */
 .nearby-drop-viewer.modo-expandido .video-overlay-swipe-nex {
   display: none !important;
   pointer-events: none !important;

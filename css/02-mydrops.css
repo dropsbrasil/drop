@@ -37,7 +37,6 @@
    AVISO DE NOVO PERFIL (CAPA)
    ============================================ */
 
-/* Classe que o JS vai adicionar se não houver capa */
 .mydrops-cover.sem-foto {
   background: linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4, #3b82f6, #7c3aed);
   background-size: 300% 300%;
@@ -68,8 +67,8 @@
   animation: flutuarAviso 4s ease-in-out infinite;
   
   position: absolute;
-  top: 80px; /* Desceu para ficar abaixo do botão sanduíche */
-  right: 16px; /* Alinhado à direita */
+  top: 80px;
+  right: 16px;
   left: auto;
   z-index: 50;
   box-sizing: border-box;
@@ -149,7 +148,7 @@
 }
 
 .mydrops-avatar {
-  position: relative; /* ⚠️ Impede a imagem de vazar para a tela toda */
+  position: relative;
   width: 132px;
   height: 132px;
   border-radius: 32px;
@@ -176,10 +175,6 @@
   display: block;
   z-index: 101;
 }
-
-/* ============================================
-   NOME
-============================================ */
 
 .mydrops-name-wrap {
   flex: 1;
@@ -215,7 +210,6 @@
   text-align: left;
   margin-bottom: 12px;
 }
-
 /* ============================================
    CÁPSULA DE STATS (VIDRO FOSCO)
 ============================================ */
@@ -316,6 +310,7 @@
   letter-spacing: 0.2px;
   text-transform: uppercase;
 }
+
 /* ============================================
    BIO
 ============================================ */
@@ -345,23 +340,18 @@
   min-height: 110px;
   margin-top: 18px;
   padding: 18px 20px;
-
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   overflow: hidden;
-
-  /* ⚠️ Imagem de fundo + camada escura por cima */
   background-image:
     linear-gradient(90deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.35) 60%, rgba(0, 0, 0, 0.55) 100%),
     url('../assets/mural.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
   color: #fff;
   text-align: left;
   cursor: pointer;
-
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   transition: transform 0.15s ease, filter 0.18s ease;
   -webkit-tap-highlight-color: transparent;
@@ -403,16 +393,6 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
 }
 
-.mydrops-mural-card-seta {
-  font-size: 18px;
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-/* ============================================
-   MURAL
-============================================ */
-
 .mydrops-mural {
   width: 100%;
   margin-top: 16px;
@@ -441,7 +421,6 @@
   white-space: pre-line;
   text-shadow: 0 1px 4px rgba(0,0,0,.35);
 }
-
 /* ============================================
    TABS
 ============================================ */
@@ -532,9 +511,27 @@
   border: 1px solid rgba(255,255,255,.08);
 }
 
+.mydrops-drop-card img,
+.mydrops-drop-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* ============================================
-   RESPONSIVO
-============================================ */
+   RESPONSIVO E CORREÇÕES DE TELA
+   ============================================ */
+
+/* ⚠️ CORREÇÃO: Em telas pequenas (ou teclado aberto), diminui a capa para o nome não sumir */
+@media (max-height: 700px) {
+  .mydrops-cover {
+    height: 220px;
+  }
+  .mydrops-profile-card {
+    margin-top: -220px;
+  }
+}
 
 @media (max-width: 480px) {
   .mydrops-grid {
@@ -543,19 +540,8 @@
   }
 
   .mydrops-drop-card {
-    /* ⚠️ MUDANÇA AQUI: Força o card a ser vertical (retrato) 
-       para combinar com o formato do celular e do editor de Notas */
     aspect-ratio: 9 / 16; 
   }
-}
-
-/* ⚠️ ADIÇÃO: Garante que a mídia dentro do card preencha sem achatar */
-.mydrops-drop-card img,
-.mydrops-drop-card video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 
 @media (max-width: 420px) {
@@ -586,7 +572,11 @@
     width: 96px;
   }
 }
-/* ⚠️ Cápsula de reações no card do My Drops */
+
+/* ============================================
+   CÁPSULAS E DETALHES
+   ============================================ */
+
 .mydrops-pub-reacao-capsula {
   position: absolute;
   bottom: 8px;
@@ -622,11 +612,6 @@
   line-height: 1;
 }
 
-/* ============================================
-   FASE 3 — CONTADOR DE COMPARTILHAMENTO 🔁
-   (dentro da cápsula de reação do card)
-============================================ */
-
 .mydrops-pub-reacao-capsula .mydrops-pub-share-icone {
   display: inline-flex;
   align-items: center;
@@ -661,7 +646,7 @@
     transform: translateY(0);
   }
 }
-/* ⚠️ Avatar e capa clicáveis */
+
 .mydrops-avatar,
 .mydrops-cover {
   transition: filter 0.18s ease, transform 0.18s ease;
@@ -672,7 +657,7 @@
   filter: brightness(0.92);
   transform: scale(0.99);
 }
-/* ⚠️ Cápsula do contador do mural */
+
 .mural-capsula-contador-nex {
   display: inline-flex;
   align-items: center;
@@ -695,11 +680,6 @@
   font-weight: 900;
   font-size: 12px;
 }
-
-/* ============================================
-   DIVISOR DE TÍTULO (CRIAR / PUBLICAÇÕES)
-   Espelha o padrão do perfil visitado
-============================================ */
 
 .mydrops-divisor-titulo {
   display: flex;
@@ -739,18 +719,9 @@
   );
 }
 
-/* ============================================
-   AJUSTE — grid respira melhor com o divisor
-============================================ */
-
 .mydrops-tab-panel[data-panel="drops"] .mydrops-grid {
   margin-top: 0;
 }
-
-/* ============================================
-   AJUSTE — action-row já tinha margin-top 18px
-   Agora o divisor cuida do espaçamento
-============================================ */
 
 .mydrops-tab-panel[data-panel="drops"] .mydrops-action-row {
   margin-top: 0;

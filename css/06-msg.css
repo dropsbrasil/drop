@@ -51,7 +51,7 @@
 }
 
 .msg-row.right .msg-layer {
-  min-width: 220px;
+  min-width: 120px; /* ⚠️ Reduzido de 220px para não esticar mensagens curtas em telas pequenas */
 }
 
 .msg-row.left .msg-layer {
@@ -186,7 +186,6 @@
   align-self: flex-start;
 }
 
-/* ⚠️ Status "enviando" — ícone pulsando */
 .msg-status.status-enviando {
   animation: pulsoEnviandoNex 1.2s ease-in-out infinite;
 }
@@ -196,7 +195,6 @@
   50% { opacity: 0.4; }
 }
 
-/* ⚠️ Status "erro" — vermelho */
 .msg-status.status-erro {
   color: #ef4444;
   font-weight: 900;
@@ -472,98 +470,70 @@
   background: #1d4ed8;
   transform: scale(0.98);
 }
+
 /* ============================================
-   ANEXOS: ÁLBUM
+   ÁUDIO NA MENSAGEM
 ============================================ */
 
-.msg-album-card {
+.audio-msg {
   width: 100%;
-  max-width: 200px; /* ⚠️ Largura reduzida */
-  max-height: 300px; /* ⚠️ Altura máxima */
-  margin: 0 auto;
-  border-radius: 18px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  position: relative;
-}
-
-.msg-album-cover {
-  position: relative;
-  overflow: hidden;
-  min-height: 165px;
-  width: 100%;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #2b6bff 0%, #7b61ff 100%);
-}
-
-.msg-album-blur-grid {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
-  gap: 6px;
-  padding: 10px;
-  filter: blur(9px) saturate(1.15);
-  transform: scale(1.08);
-}
-
-.msg-album-blur-thumb {
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(255,255,255,.12);
-}
-
-.msg-album-blur-thumb img,
-.msg-album-blur-thumb video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.msg-album-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 8px;
+  background: #fff;
+  border-radius: 22px;
   padding: 14px;
-  background: linear-gradient(180deg, rgba(10,15,30,.12) 0%, rgba(10,15,30,.52) 100%);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.08);
 }
 
-.msg-album-badge {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+.audio-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audio-bar {
+  flex: 1;
+  height: 8px;
+  background: #dbeafe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.audio-progress {
+  width: 0%;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width .15s linear;
+}
+
+.audio-time {
+  min-width: 54px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.audio-open-btn {
+  width: 100%;
+  border: none;
+  border-radius: 18px;
+  background: #2563eb;
+  color: #fff;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,.16);
-  backdrop-filter: blur(8px);
-  font-size: 22px;
+  gap: 10px;
+  box-shadow: 0 8px 18px rgba(37,99,235,.18);
 }
-
-.msg-album-title {
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 800;
-  color: #fff;
-}
-
-.msg-album-subtitle {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255,255,255,.86);
-}
-
 /* ============================================
-   ANEXOS: MÍDIA ÚNICA (imagem/vídeo drop)
+   ANEXOS: MÍDIA ÚNICA (A CORREÇÃO DO ESMAGAMENTO)
 ============================================ */
 
 .msg-anexo-card {
@@ -571,15 +541,14 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  max-width: 200px; /* ⚠️ Largura reduzida */
+  max-width: 220px; /* Largura controlada */
   margin: 0 auto;
-  /* ⚠️ Altura máxima para não ficar gigante */
-  max-height: 300px; 
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 9 / 16; /* Mantém a proporção vertical */
   position: relative;
   overflow: hidden;
   border-radius: 18px;
   background: #000;
+  /* ⚠️ Removido o max-height: 300px para a foto/vídeo não achatar */
 }
 
 .msg-midia-thumb,
@@ -593,7 +562,6 @@
 
 .msg-midia-thumb {
   width: 100%;
-  aspect-ratio: 9 / 16;
   object-fit: cover;
   border-radius: 18px;
   display: block;
@@ -601,6 +569,8 @@
 
 .msg-video-thumb video {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
@@ -664,9 +634,7 @@
   font-weight: 800;
   cursor: pointer;
   transition: .18s ease;
-  box-shadow:
-    0 8px 20px rgba(0,0,0,.08),
-    inset 0 1px 0 rgba(255,255,255,.7);
+  box-shadow: 0 8px 20px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.7);
 }
 
 .msg-drop-profile-btn:active {
@@ -691,14 +659,8 @@
   grid-template-columns: 1fr;
 }
 
-.msg-midias-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.msg-midias-grid-3 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
+.msg-midias-grid-2,
+.msg-midias-grid-3,
 .msg-midias-grid-4 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -729,8 +691,9 @@
   object-fit: cover;
   display: block;
 }
+
 /* ============================================
-   MÍDIA ÚNICA (LARGURA MAIOR)
+   MÍDIA ÚNICA (LARGURA MAIOR E SEM CONFLITO)
 ============================================ */
 
 .msg-card.midias-unica {
@@ -743,35 +706,15 @@
 
 .msg-midias-grid.msg-midias-single {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
+  max-width: 100%;
 }
 
 .msg-midias-grid.msg-midias-single .msg-grid-item {
-  width: 100%;
-  max-width: 100%;
-  aspect-ratio: 3 / 4;
-  display: block;
-  overflow: hidden;
-}
-
-.msg-midias-grid.msg-midias-single .msg-grid-item img,
-.msg-midias-grid.msg-midias-single .msg-grid-item video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.msg-midias-single {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.msg-midias-single .msg-grid-item {
   width: min(72vw, 320px);
-  height: min(118vw, 620px);
+  height: auto;
+  aspect-ratio: 3 / 4;
   flex: 0 0 min(72vw, 320px);
   border-radius: 28px;
   overflow: hidden;
@@ -781,101 +724,12 @@
   background: #dfe8f7;
 }
 
-.msg-midias-single .msg-grid-item img,
-.msg-midias-single .msg-grid-item video {
+.msg-midias-grid.msg-midias-single .msg-grid-item img,
+.msg-midias-grid.msg-midias-single .msg-grid-item video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-/* ============================================
-   REAÇÃO EM MÍDIA (PREVIEW PEQUENO)
-============================================ */
-
-.msg-anexo-card,
-.msg-grid-item,
-.msg-video-thumb {
-  position: relative;
-}
-
-.msg-reaction-preview {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(13,20,36,.92);
-  box-shadow: 0 6px 16px rgba(0,0,0,.25);
-  font-size: 18px;
-  z-index: 10;
-  pointer-events: none;
-}
-
-/* ============================================
-   ÁUDIO NA MENSAGEM
-============================================ */
-
-.audio-msg {
-  width: 100%;
-  background: #fff;
-  border-radius: 22px;
-  padding: 14px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 8px 18px rgba(0,0,0,.08);
-}
-
-.audio-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.audio-bar {
-  flex: 1;
-  height: 8px;
-  background: #dbeafe;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.audio-progress {
-  width: 0%;
-  height: 100%;
-  background: #2563eb;
-  border-radius: 999px;
-  transition: width .15s linear;
-}
-
-.audio-time {
-  min-width: 54px;
-  text-align: right;
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-}
-
-.audio-open-btn {
-  width: 100%;
-  border: none;
-  border-radius: 18px;
-  background: #2563eb;
-  color: #fff;
-  padding: 14px;
-  font-size: 15px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 8px 18px rgba(37,99,235,.18);
 }
 
 /* ============================================
@@ -924,13 +778,6 @@
   margin-bottom: 2px;
 }
 
-.reply-linked-top span:first-child,
-.reply-cited-bottom span:last-child {
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
 .reply-arrow {
   font-size: 16px;
   line-height: 1;
@@ -950,14 +797,6 @@
   background: rgba(255,255,255,.55);
   box-sizing: border-box;
   flex-shrink: 0;
-}
-
-.reply-linked-top .reply-count-pill {
-  color: #1f7a1f;
-}
-
-.reply-cited-bottom .reply-count-pill {
-  color: #9a6b00;
 }
 
 .reply-next-btn {
@@ -980,37 +819,9 @@
 }
 
 /* ============================================
-   DESTAQUE DE MENSAGEM
+   SELO DE COMENTÁRIO NO NEARBY E BADGES
 ============================================ */
 
-.msg-destaque-verde-nex,
-.msg-destaque-amarelo-nex {
-  border-radius: 20px;
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
-}
-
-.msg-destaque-verde-nex {
-  box-shadow: 0 0 0 3px #92d9a0, 0 0 0 7px rgba(195, 240, 201, .35);
-}
-
-.msg-destaque-amarelo-nex {
-  box-shadow: 0 0 0 3px #f1d97a, 0 0 0 7px rgba(255, 243, 179, .35);
-}
-
-/* ============================================
-   MENSAGEM EDITADA
-============================================ */
-
-.msg-editada-nex {
-  display: inline-block;
-  margin-left: 6px;
-  font-size: 11px;
-  color: #94a3b8;
-  font-style: italic;
-}
-/* ⚠️ Selo de comentário do Nearby */
 .msg-nearby-comment {
   display: flex;
   flex-direction: column;
@@ -1029,20 +840,6 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-.msg-nearby-comment-icone {
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.msg-nearby-comment-texto {
-  font-size: 13px;
-  font-weight: 800;
-  color: #92400e;
-  line-height: 1.2;
-}
-
-/* ⚠️ Botão "Ver Drop" dentro do card de comentário do Nearby */
 .msg-nearby-comment-btn {
   width: 100%;
   border: none;
@@ -1054,7 +851,6 @@
   padding: 12px;
   cursor: pointer;
   transition: filter 0.15s ease, transform 0.12s ease;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .msg-nearby-comment-btn:active {
@@ -1062,7 +858,6 @@
   filter: brightness(1.08);
 }
 
-/* ⚠️ Badge de reação em mídia do chat */
 .msg-midia-badge-slot {
   position: absolute;
   bottom: 8px;
@@ -1086,22 +881,11 @@
   display: inline-flex;
 }
 
-.msg-midia-badge-slot .badge-emoji {
-  font-size: 15px;
-  line-height: 1;
-}
-
-.msg-midia-badge-slot .badge-count {
-  line-height: 1;
-}
-
-/* Se for a MINHA reação, fica destacado */
 .msg-midia-badge-slot.minha-reacao {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 6px 16px rgba(37,99,235,.5);
 }
 
-/* ⚠️ Foto/vídeo normal precisa ter posição relativa pro badge ancorar */
 .msg-anexo-card[data-midia-msg-id] {
   position: relative;
 }
