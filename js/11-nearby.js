@@ -6,6 +6,30 @@
 (function () {
   'use strict';
 
+  // ============================================
+  // FUNÇÃO UTILITÁRIA DE SILENCIAMENTO (NOVO)
+  // ============================================
+  function checarSeFuiSilenciadoNex(idOuUser) {
+    if (!idOuUser) return false;
+    const lista = window.__quemMeSilenciouNex;
+    if (!lista) return false;
+
+    const alvo = String(idOuUser).replace(/^@/, '').trim().toLowerCase();
+
+    if (lista instanceof Set) {
+      for (const item of lista) {
+        if (String(item).replace(/^@/, '').trim().toLowerCase() === alvo) return true;
+      }
+      return false;
+    }
+
+    if (Array.isArray(lista)) {
+      return lista.some(item => String(item).replace(/^@/, '').trim().toLowerCase() === alvo);
+    }
+
+    return false;
+  }
+
   window.__dropsMapaIdsPublicacao = window.__dropsMapaIdsPublicacao || {};
 
   let ultimaLatNearbyNex = null;
@@ -79,66 +103,66 @@
       window.mostrarToastNex?.('Viewer não disponível.', 'erro');
     }
   }
-
   const reacoesDropsNex = new Map();
-  const reacoesUsuarioDropNex = new Map();
+const reacoesUsuarioDropNex = new Map();
 
-  function obterStatsReacaoDropNex(perfilId, dropIndex, url) {
-    if (typeof window.obterStatsReacaoNex === 'function' && typeof window.chaveDropPerfilNex === 'function') {
-      const chave = window.chaveDropPerfilNex(perfilId, dropIndex, url);
-      return window.obterStatsReacaoNex(chave);
+function obterStatsReacaoDropNex(perfilId, dropIndex, url) {
+  if (typeof window.obterStatsReacaoNex === 'function' && typeof window.chaveDropPerfilNex === 'function') {
+    const chave = window.chaveDropPerfilNex(perfilId, dropIndex, url);
+    return window.obterStatsReacaoNex(chave);
+  }
+  return reacoesDropsNex.get(chaveReacaoDropNex(perfilId, dropIndex, url)) || { heart: 0, broken: 0 };
+}
+
+function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
+  if (typeof window.obterReacaoUsuarioNex === 'function' && typeof window.chaveDropPerfilNex === 'function') {
+    const chave = window.chaveDropPerfilNex(perfilId, dropIndex, url);
+    return window.obterReacaoUsuarioNex(chave, usuarioId);
+  }
+  return reacoesUsuarioDropNex.get(chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId)) || '';
+}
+
+function registrarReacaoDropNex(perfilId, dropIndex, url, emoji, usuarioId = 'local') {
+  const chaveDrop = window.chaveDropPerfilNex
+    ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
+    : chaveReacaoDropNex(perfilId, dropIndex, url);
+
+  if (typeof window.alternarReacaoSupabase === 'function') {
+    const publicacaoId = window.__dropsMapaIdsPublicacao && window.__dropsMapaIdsPublicacao[chaveDrop];
+    if (publicacaoId) {
+      window.alternarReacaoSupabase(publicacaoId, emoji).catch((err) => console.warn('Erro Supabase reação:', err));
     }
-    return reacoesDropsNex.get(chaveReacaoDropNex(perfilId, dropIndex, url)) || { heart: 0, broken: 0 };
   }
 
-  function obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId) {
-    if (typeof window.obterReacaoUsuarioNex === 'function' && typeof window.chaveDropPerfilNex === 'function') {
-      const chave = window.chaveDropPerfilNex(perfilId, dropIndex, url);
-      return window.obterReacaoUsuarioNex(chave, usuarioId);
-    }
-    return reacoesUsuarioDropNex.get(chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId)) || '';
-  }
-
-  function registrarReacaoDropNex(perfilId, dropIndex, url, emoji, usuarioId = 'local') {
-    const chaveDrop = window.chaveDropPerfilNex
-      ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
-      : chaveReacaoDropNex(perfilId, dropIndex, url);
-
-    if (typeof window.alternarReacaoSupabase === 'function') {
-      const publicacaoId = window.__dropsMapaIdsPublicacao && window.__dropsMapaIdsPublicacao[chaveDrop];
-      if (publicacaoId) {
-        window.alternarReacaoSupabase(publicacaoId, emoji).catch((err) => console.warn('Erro Supabase reação:', err));
-      }
-    }
-
-    if (typeof window.alternarReacaoNex === 'function') {
-      const resultado = window.alternarReacaoNex(chaveDrop, usuarioId, emoji);
-      const keyUser = chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId);
-      reacoesDropsNex.set(chaveDrop, { heart: resultado.heart, broken: resultado.broken });
-      reacoesUsuarioDropNex.set(keyUser, resultado.reacaoAtual);
-
-      if (resultado.reacaoAtual) {
-        registrarInteracaoNex(perfilId, resultado.reacaoAtual === '❤️' ? 'like' : 'deslike', `${perfilId}::${dropIndex}`);
-      }
-      return resultado;
-    }
-
-    const estatisticas = reacoesDropsNex.get(chaveDrop) || { heart: 0, broken: 0 };
+  if (typeof window.alternarReacaoNex === 'function') {
+    const resultado = window.alternarReacaoNex(chaveDrop, usuarioId, emoji);
     const keyUser = chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId);
-    const reacaoAnterior = reacoesUsuarioDropNex.get(keyUser) || '';
+    reacoesDropsNex.set(chaveDrop, { heart: resultado.heart, broken: resultado.broken });
+    reacoesUsuarioDropNex.set(keyUser, resultado.reacaoAtual);
 
-    if (reacaoAnterior === emoji) return;
-    if (reacaoAnterior === '❤️') estatisticas.heart = Math.max(0, estatisticas.heart - 1);
-    if (reacaoAnterior === '💔') estatisticas.broken = Math.max(0, estatisticas.broken - 1);
-    if (emoji === '❤️') estatisticas.heart += 1;
-    if (emoji === '💔') estatisticas.broken += 1;
-
-    reacoesDropsNex.set(chaveDrop, estatisticas);
-    reacoesUsuarioDropNex.set(keyUser, emoji);
-
-    registrarInteracaoNex(perfilId, emoji === '❤️' ? 'like' : 'deslike', `${perfilId}::${dropIndex}`);
+    if (resultado.reacaoAtual) {
+      registrarInteracaoNex(perfilId, resultado.reacaoAtual === '❤️' ? 'like' : 'deslike', `${perfilId}::${dropIndex}`);
+    }
+    return resultado;
   }
-  function calcularTempoExpiracaoNex(expiraEm) {
+
+  const estatisticas = reacoesDropsNex.get(chaveDrop) || { heart: 0, broken: 0 };
+  const keyUser = chaveUsuarioReacaoDropNex(perfilId, dropIndex, url, usuarioId);
+  const reacaoAnterior = reacoesUsuarioDropNex.get(keyUser) || '';
+
+  if (reacaoAnterior === emoji) return;
+  if (reacaoAnterior === '❤️') estatisticas.heart = Math.max(0, estatisticas.heart - 1);
+  if (reacaoAnterior === '💔') estatisticas.broken = Math.max(0, estatisticas.broken - 1);
+  if (emoji === '❤️') estatisticas.heart += 1;
+  if (emoji === '💔') estatisticas.broken += 1;
+
+  reacoesDropsNex.set(chaveDrop, estatisticas);
+  reacoesUsuarioDropNex.set(keyUser, emoji);
+
+  registrarInteracaoNex(perfilId, emoji === '❤️' ? 'like' : 'deslike', `${perfilId}::${dropIndex}`);
+}
+
+function calcularTempoExpiracaoNex(expiraEm) {
   if (!expiraEm) return 'Permanente';
   const ms = new Date(expiraEm).getTime() - Date.now();
   if (isNaN(ms)) return 'Permanente';
@@ -162,8 +186,7 @@ function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-
-function animarMidiaNex(container, url, tipo, direcao) {
+  function animarMidiaNex(container, url, tipo, direcao) {
   if (!container || !url) return;
 
   const ehVideo = tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
@@ -228,7 +251,7 @@ function obterDropsDoPerfil(perfil) {
   if (Array.isArray(perfil?.drops) && perfil.drops.length) return perfil.drops;
   return [{ url: perfil?.imagem || '', type: 'image', views: perfil?.views || 128, expireText: perfil?.expireText || 'Expira em 4h' }];
 }
-    function abrirViewerPublicacaoNex(post, tipo, id, dropIndexInicial = 0, baseOverride = null) {
+  function abrirViewerPublicacaoNex(post, tipo, id, dropIndexInicial = 0, baseOverride = null) {
     if (!post) return;
 
     let base;
@@ -359,7 +382,7 @@ function obterDropsDoPerfil(perfil) {
 `;
 
     document.body.appendChild(viewer);
-      window.__nearbyScrollStateNex = {
+    window.__nearbyScrollStateNex = {
   viewerRef: viewer,
   ids, base, obterDropsDoPerfil,
   getPerfilAtualId: () => perfilAtualId,
@@ -500,8 +523,7 @@ if (btnVerMaisLegenda && legendaTextoEl) {
     }
   };
 }
-
-viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
+    viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
   btn.addEventListener('click', () => {
     const perfil = base[perfilAtualId];
     const drops = obterDropsDoPerfil(perfil);
@@ -575,7 +597,8 @@ async function enviarComentarioNearbyNex() {
   const perfil = base[perfilAtualId];
   if (perfil) {
     const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
-    const estouSilenciado = window.__quemMeSilenciouNex && window.__quemMeSilenciouNex.has(perfilIdCalc);
+    // CORRIGIDO AQUI: Usando a função utilitária segura
+    const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
     if (estouSilenciado) { window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro'); return; }
   }
   const texto = (inputComentario?.value || '').trim();
@@ -632,14 +655,14 @@ async function enviarComentarioNearbyNex() {
   if (typeof window.feedbackNex?.comentou === 'function') window.feedbackNex.comentou();
   registrarInteracaoNex(perfil.id || perfilAtualId || perfil.nome || '', 'comment', `nearby::${dropIndexAtual}`);
 }
-
-if (botaoEnviar) {
+    if (botaoEnviar) {
   botaoEnviar.addEventListener('click', () => {
     const temTexto = (inputComentario?.value || '').trim().length > 0;
     if (temTexto) enviarComentarioNearbyNex();
     else compartilharDropNearbyNex();
   });
 }
+
 async function compartilharDropNearbyNex() {
   const perfil = base[perfilAtualId];
   const drops = obterDropsDoPerfil(perfil);
@@ -734,14 +757,33 @@ function renderizar() {
   const totalReacoes = stats.heart + stats.broken;
   atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 
-  const estouSilenciado = window.__quemMeSilenciouNex && window.__quemMeSilenciouNex.has(perfilIdCalc);
+  // CORRIGIDO AQUI: Usando a função utilitária segura
+  const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
   const commentInputAtual = viewer.querySelector('.nearby-drop-comment-input');
-  if (estouSilenciado && commentInputAtual) {
-    commentInputAtual.disabled = true;
-    commentInputAtual.placeholder = 'Você foi silenciado';
-  } else if (commentInputAtual) {
-    commentInputAtual.disabled = false;
-    commentInputAtual.placeholder = 'Comentar...';
+  // CORRIGIDO AQUI: Redeclaração de const commentBoxAtual removida
+
+  if (estouSilenciado) {
+    if (commentInputAtual) {
+      commentInputAtual.disabled = true;
+      commentInputAtual.placeholder = 'Você foi silenciado';
+      commentInputAtual.style.background = '#e2e8f0';
+      commentInputAtual.style.color = '#94a3b8';
+    }
+    if (commentBoxAtual) {
+      commentBoxAtual.style.opacity = '0.6';
+      commentBoxAtual.style.pointerEvents = 'none'; // Bloqueia cliques nos botões de enviar e reações
+    }
+  } else {
+    if (commentInputAtual) {
+      commentInputAtual.disabled = false;
+      commentInputAtual.placeholder = 'Comentar...';
+      commentInputAtual.style.background = '#ffffff';
+      commentInputAtual.style.color = '#111827';
+    }
+    if (commentBoxAtual) {
+      commentBoxAtual.style.opacity = '1';
+      commentBoxAtual.style.pointerEvents = 'auto';
+    }
   }
 
   if (media) {
@@ -936,8 +978,7 @@ function renderizar() {
   renderizar();
   document.body.style.overflow = 'hidden';
 } // FECHA abrirViewerPublicacaoNex
-
-async function atualizarCapsulaShareNearbyNex(publicacaoId) {
+  async function atualizarCapsulaShareNearbyNex(publicacaoId) {
   const capsulaEl = document.querySelector('#nearbyDropShareCapsula');
   if (!capsulaEl) return;
   if (!publicacaoId || typeof window.jaCompartilhouSupabase !== 'function') { capsulaEl.style.display = 'none'; return; }
@@ -1226,8 +1267,8 @@ function abrirMinhasPublicacoesNearby() {
       }
     }
   });
-}
-  function receberAvisoNearbyNex(pub) {
+  }
+    function receberAvisoNearbyNex(pub) {
   if (!pub || !pub.autor_username) return;
   if (pub.expira_em) {
     const agora = Date.now();

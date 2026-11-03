@@ -892,17 +892,34 @@ if (chatAvatar) {
   const listaQuemMeSilenciou = window.__quemMeSilenciouNex || new Set();
   const estouSilenciado = listaQuemMeSilenciou.has(usernameReal);
 
-  if (estouSilenciado) {
-    if (chatBottom) chatBottom.classList.add('silenciado');
-    if (toastSilenciado) toastSilenciado.style.display = 'flex';
-    if (iconeEnviar) iconeEnviar.style.display = 'none';
-    if (iconeMudo) iconeMudo.style.display = 'block';
-  } else {
-    if (chatBottom) chatBottom.classList.remove('silenciado');
-    if (toastSilenciado) toastSilenciado.style.display = 'none';
-    if (iconeEnviar) iconeEnviar.style.display = 'block';
-    if (iconeMudo) iconeMudo.style.display = 'none';
-  }
+  const inputChat = document.getElementById('chatInput');
+const btnEnviar = document.getElementById('btnEnviarChatNex');
+const btnAnexo = document.getElementById('btnAnexoNex');
+const btnMic = document.getElementById('micBtn');
+
+if (estouSilenciado) {
+  if (chatBottom) chatBottom.classList.add('silenciado');
+  if (toastSilenciado) toastSilenciado.style.display = 'flex';
+  if (iconeEnviar) iconeEnviar.style.display = 'none';
+  if (iconeMudo) iconeMudo.style.display = 'block';
+  
+  // Desativa fisicamente o input e os botões
+  if (inputChat) { inputChat.disabled = true; inputChat.placeholder = 'Você foi silenciado por este usuário.'; }
+  if (btnEnviar) btnEnviar.disabled = true;
+  if (btnAnexo) btnAnexo.disabled = true;
+  if (btnMic) btnMic.disabled = true;
+} else {
+  if (chatBottom) chatBottom.classList.remove('silenciado');
+  if (toastSilenciado) toastSilenciado.style.display = 'none';
+  if (iconeEnviar) iconeEnviar.style.display = 'block';
+  if (iconeMudo) iconeMudo.style.display = 'none';
+  
+  // Reativa o input e os botões
+  if (inputChat) { inputChat.disabled = false; inputChat.placeholder = 'Digite uma mensagem...'; }
+  if (btnEnviar) btnEnviar.disabled = false;
+  if (btnAnexo) btnAnexo.disabled = false;
+  if (btnMic) btnMic.disabled = false;
+}
 
   if (typeof window.carregarConversaSupabase === 'function') {
     try {
