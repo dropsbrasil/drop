@@ -358,7 +358,6 @@
             if (Array.isArray(conversas) && conversas.length) {
               const idsConversas = conversas.map((c) => c.id);
 
-              // ⚠️ NOVO: Buscar as mídias para apagar do Storage antes de deletar as mensagens
               const { data: mensagensComMidia } = await window.supabaseClient
                 .from('mensagens')
                 .select('media_url')
@@ -384,13 +383,11 @@
                 }
               }
 
-              // Deleta as mensagens do banco
               await window.supabaseClient
                 .from('mensagens')
                 .delete()
                 .in('conversa_id', idsConversas);
 
-              // Deleta a conversa do banco
               await window.supabaseClient
                 .from('conversas')
                 .delete()
@@ -434,8 +431,7 @@
     window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
   }
   }
-  
-  // ============================================
+    // ============================================
 // VER MÍDIAS COMPARTILHADAS
 // ============================================
 
@@ -583,12 +579,10 @@ async function resolverUsernameRealNex(chave, card = null) {
     window.__convUsernamesNex = {};
   }
 
-  // 1. Cache
   if (window.__convUsernamesNex[chave]) {
     return window.__convUsernamesNex[chave];
   }
 
-  // 2. data-username do card
   const usernameDoCard = card?.dataset?.username;
   if (usernameDoCard) {
     const limpo = String(usernameDoCard)
@@ -602,7 +596,6 @@ async function resolverUsernameRealNex(chave, card = null) {
     }
   }
 
-  // 3. Se já é um @username válido, usa direto
   const chaveLimpa = String(chave).replace(/^@/, '').trim().toLowerCase();
 
   if (/^[a-z0-9]+$/.test(chaveLimpa)) {
@@ -610,7 +603,6 @@ async function resolverUsernameRealNex(chave, card = null) {
     return chaveLimpa;
   }
 
-  // 4. Busca no Supabase pelo nome exibido
   if (window.supabaseClient) {
     try {
       const { data: perfil } = await window.supabaseClient
@@ -634,7 +626,6 @@ async function resolverUsernameRealNex(chave, card = null) {
     }
   }
 
-  // Fallback final
   const fallback = String(chave)
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
@@ -649,20 +640,18 @@ async function resolverUsernameRealNex(chave, card = null) {
 // ============================================
 // BUSCAR AVATAR (cache em memória)
 // ============================================
-// ⚠️ NOVO: Cache com TTL (Time To Live) de 10 minutos
+
 const CACHE_AVATAR_TTL_MS = 10 * 60 * 1000;
 
 async function buscarAvatarNex(username) {
   if (!username) return null;
 
-  // ⚠️ Verifica se está no cache E se ainda é válido
   const emCache = cacheAvataresNex[username];
   if (emCache && typeof emCache === 'object') {
     if (Date.now() - emCache.timestamp < CACHE_AVATAR_TTL_MS) {
       return emCache.url;
     }
   } else if (emCache && typeof emCache === 'string') {
-    // Compatibilidade com cache antigo (string pura)
     return emCache;
   }
 
@@ -711,29 +700,13 @@ async function buscarAvatarNex(username) {
   return null;
 }
   
-  // ============================================
-// ABRIR CHAT (versão definitiva)
 // ============================================
-// Aceita DUAS formas:
-//   1. Um Card do DOM (vem da aba NEX)
-//   2. Um objeto { username, nome } (vem do perfil visitado)
-//
-// Fluxo idêntico nos dois casos:
-//   a) Descobre o @username
-//   b) Pinta o cabeçalho direto do Supabase
-//   c) Desativa o Skeleton
-//   d) Carrega o histórico e renderiza
+// ABRIR CHAT (versão definitiva)
 // ============================================
 
 async function abrirChatNex(el) {
-  // --------------------------------------------
-  // 1. ATIVA O SKELETON IMEDIATAMENTE
-  // --------------------------------------------
   ativarSkeletonChatNex();
 
-  // --------------------------------------------
-  // 2. IDENTIFICA A ORIGEM E PEGA O @USERNAME
-  // --------------------------------------------
   const ehObjetoDireto =
     el &&
     typeof el === 'object' &&
@@ -770,7 +743,6 @@ async function abrirChatNex(el) {
     return;
   }
 
-  // Resolve o @username real (pode ter que buscar no banco se veio um nome solto)
   const usernameReal = await resolverUsernameRealNex(chaveBruta, card);
 
   if (!usernameReal) {
@@ -780,15 +752,10 @@ async function abrirChatNex(el) {
     return;
   }
 
-  // --------------------------------------------
-// 3. ATUALIZA O ESTADO GLOBAL E LIMPA A TELA
-// --------------------------------------------
-// ⚠️ Força a chave para o usuário novo ANTES de qualquer render
 Drops.estado.conversaAtual = usernameReal;
 window.setConversaAbertaNex(usernameReal);
 window.setCardAbertoNex(card || null);
 
-// ⚠️ Limpa a área de mensagens para não mostrar histórico do perfil anterior
 const areaMsgs = document.getElementById('chatMsgs');
 if (areaMsgs) areaMsgs.innerHTML = '';
 
@@ -796,9 +763,6 @@ if (areaMsgs) areaMsgs.innerHTML = '';
     window.dropsEmpilharEstado('chat', { username: usernameReal });
   }
 
-  // --------------------------------------------
-  // 4. TROCA DE TELA (mostra o chat, esconde o NEX)
-  // --------------------------------------------
   const chat = document.getElementById('chatNex');
   const nex = document.getElementById('nex');
 
@@ -814,11 +778,6 @@ if (areaMsgs) areaMsgs.innerHTML = '';
 
   document.body.classList.add('chat-aberto');
 
-  // --------------------------------------------
-  // 5. BUSCA OS DADOS DO PERFIL (nome, bio, avatar, status)
-  // --------------------------------------------
-  // Faz uma única query e usa para pintar o cabeçalho.
-  // Se falhar, ainda tenta pintar com o que tem (nomeSugerido).
   let perfilReal = null;
 
   if (window.supabaseClient) {
@@ -835,25 +794,19 @@ if (areaMsgs) areaMsgs.innerHTML = '';
     }
   }
 
-  // Nome final: banco > card > chave crua
   const nomeExibido =
     perfilReal?.nome ||
     nomeSugerido ||
     usernameReal;
 
-  // Salva o nome exibido no cache global (para o histórico usar depois)
   window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
   window.__convNomesExibidosNex[usernameReal] = nomeExibido;
 
-  // --------------------------------------------
-  // 6. PREENCHE O CABEÇALHO
-  // --------------------------------------------
   const chatName = document.getElementById('chatName');
   const chatBio = document.getElementById('chatBio');
   const chatStatus = document.getElementById('chatStatus');
   const chatAvatar = document.getElementById('chatAvatar');
 
-  // Nome
   if (chatName) {
     chatName.innerText = nomeExibido;
     chatName.style.cursor = 'pointer';
@@ -871,7 +824,6 @@ if (areaMsgs) areaMsgs.innerHTML = '';
     chatName.addEventListener('click', chatName.__clickPerfilHandler);
   }
 
-  // Bio
   if (chatBio) {
     const bioReal = (perfilReal?.bio || '').trim();
     const textoBio = bioReal || 'Sem bio ainda.';
@@ -887,7 +839,6 @@ if (areaMsgs) areaMsgs.innerHTML = '';
     }, 100);
   }
 
-  // Status
   if (chatStatus) {
     const ultima = perfilReal?.ultima_atividade;
     const LIMITE_ONLINE_MS = 30 * 1000;
@@ -901,7 +852,6 @@ if (areaMsgs) areaMsgs.innerHTML = '';
     chatStatus.classList.toggle('offline', !estaOnline);
   }
 
-  // Avatar
 if (chatAvatar) {
   chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
   chatAvatar.style.backgroundImage = 'none';
@@ -910,7 +860,6 @@ if (chatAvatar) {
   if (perfilReal?.avatar_url) {
     chatAvatar.innerHTML = `<img src="${perfilReal.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
     
-    // ⚠️ CORREÇÃO: Salva no cache para as bolhas reaproveitarem
     const chaveCache = String(usernameReal).toLowerCase().trim();
     cacheAvataresNex[chaveCache] = {
       url: perfilReal.avatar_url,
@@ -933,14 +882,8 @@ if (chatAvatar) {
     chatAvatar.addEventListener('click', chatAvatar.__clickPerfilHandler);
   }
 
-  // --------------------------------------------
-  // 7. CABEÇALHO PRONTO → MATA O SKELETON
-  // --------------------------------------------
   desativarSkeletonChatNex();
 
-  // --------------------------------------------
-  // 8. VERIFICA SE ESTOU SILENCIADO POR ESSA PESSOA
-  // --------------------------------------------
   const chatBottom = document.querySelector('.chat-bottom');
   const toastSilenciado = document.getElementById('toastSilenciadoNex');
   const iconeEnviar = document.getElementById('iconeEnviarChatNex');
@@ -961,9 +904,6 @@ if (chatAvatar) {
     if (iconeMudo) iconeMudo.style.display = 'none';
   }
 
-  // --------------------------------------------
-  // 9. CARREGA O HISTÓRICO DO BANCO
-  // --------------------------------------------
   if (typeof window.carregarConversaSupabase === 'function') {
     try {
       await window.carregarConversaSupabase(usernameReal);
@@ -976,9 +916,6 @@ if (chatAvatar) {
     conversas[usernameReal] = [];
   }
 
-  // --------------------------------------------
-  // 10. MARCA MENSAGENS COMO VISUALIZADAS
-  // --------------------------------------------
   const convIdParaMarcarVisto =
     window.__convIdsNex && window.__convIdsNex[usernameReal];
 
@@ -993,19 +930,12 @@ if (chatAvatar) {
       );
   }
 
-  // Atualiza o card (se existir) para tirar o "silenciado"
   atualizarSilenciadoNoCardNex(usernameReal);
 
-  // --------------------------------------------
-  // 11. RENDERIZA AS MENSAGENS NA TELA
-  // --------------------------------------------
   renderChat(usernameReal);
 
   document.getElementById('chatInput')?.focus();
 
-  // --------------------------------------------
-  // 12. LIMPA O PRESENÇA POLLING ANTIGO
-  // --------------------------------------------
   if (window.__statusPollingNex) {
     clearInterval(window.__statusPollingNex);
     window.__statusPollingNex = null;
@@ -1159,6 +1089,7 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
     await atualizarBadgeReacaoMidiaNex(msgId, midiaIndex);
   }
 }
+
   // ============================================
 // RENDERIZAR CHAT
 // ============================================
@@ -1242,7 +1173,6 @@ function renderChat(nome) {
 if (lado === 'right') {
   usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
 } else {
-  // ⚠️ CORREÇÃO: Pega o @username real usando a chave da conversa atual
   const chaveReal = typeof window.resolverChaveNex === 'function'
     ? window.resolverChaveNex(nome)
     : nome;
@@ -1250,7 +1180,6 @@ if (lado === 'right') {
   usernameAvatarMsg = String(chaveReal).replace(/^@/, '').toLowerCase().trim();
 }
 
-    // ⚠️ CORREÇÃO: Extrai a URL corretamente, seja o cache em formato de objeto ou string
 const cacheItem = cacheAvataresNex[usernameAvatarMsg];
 const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
 
@@ -1454,7 +1383,6 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
 
   if (!username) return;
 
-  // ⚠️ CORREÇÃO: Extrai a URL corretamente (se o cache for objeto, pega o .url)
   const cacheItem = cacheAvataresNex[username];
   const urlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
 
@@ -1502,8 +1430,7 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
     });
   });
 }
-
-  // ============================================
+    // ============================================
 // ENVIAR MENSAGEM
 // ============================================
 
@@ -2047,8 +1974,7 @@ async function reenviarMensagemNex(msgId) {
 }
 
 window.reenviarMensagemNex = reenviarMensagemNex;
-
-// ============================================
+  // ============================================
 // CANCELAR RESPOSTA
 // ============================================
 
@@ -2098,11 +2024,11 @@ function atualizarPreviewStackNex() {
   stack.classList.toggle('tem-conteudo', temAlgo);
 }
   
-    // ============================================
-  // MENU DE MENSAGEM
-  // ============================================
+// ============================================
+// MENU DE MENSAGEM
+// ============================================
 
-  function abrirMenuMsgNex(botao, msgId) {
+function abrirMenuMsgNex(botao, msgId) {
   const conversaAtual = Drops.estado.conversaAtual;
   const lista = conversas[conversaAtual] || [];
   const msg = lista.find((m) => m.id === msgId);
@@ -2116,7 +2042,6 @@ function atualizarPreviewStackNex() {
 
   const lado = msg.side === 'right' ? 'right' : 'left';
 
-  // Pega o nome exibido e o ID da mensagem para passar para a denúncia
   const nomeExibido = (msg.nome || 'Usuário').replace(/'/g, "\\'");
   const idMensagem = msg._supabaseId || msg.id;
 
@@ -2177,449 +2102,482 @@ function atualizarPreviewStackNex() {
   menu.style.left = '50%';
   menu.style.top = '50%';
   menu.style.transform = 'translate(-50%, -50%)';
-  }
+}
 
-  function fecharMenuMsgNex() {
-    const menu = document.getElementById('msgMenuNex');
-    if (menu) {
-      menu.style.display = 'none';
-      menu.style.visibility = 'hidden';
-      menu.style.opacity = '0';
-      menu.style.pointerEvents = 'none';
-      menu.innerHTML = '';
-      menu.style.left = '';
-      menu.style.top = '';
-      menu.style.transform = '';
-    }
-    mensagemSelecionadaNex = null;
+function fecharMenuMsgNex() {
+  const menu = document.getElementById('msgMenuNex');
+  if (menu) {
+    menu.style.display = 'none';
+    menu.style.visibility = 'hidden';
+    menu.style.opacity = '0';
+    menu.style.pointerEvents = 'none';
+    menu.innerHTML = '';
+    menu.style.left = '';
+    menu.style.top = '';
+    menu.style.transform = '';
   }
+  mensagemSelecionadaNex = null;
+}
 
-  function acaoResponderNex() {
-    if (!mensagemSelecionadaNex) return;
-    respostaSelecionadaNex = mensagemSelecionadaNex;
-    mostrarPreviewRespostaNex();
+function acaoResponderNex() {
+  if (!mensagemSelecionadaNex) return;
+  respostaSelecionadaNex = mensagemSelecionadaNex;
+  mostrarPreviewRespostaNex();
+  fecharMenuMsgNex();
+}
+
+function acaoReeditarNex() {
+  if (!mensagemSelecionadaNex) return;
+  const msg = mensagemSelecionadaNex;
+  const temTexto = typeof msg.text === 'string' && msg.text.trim().length > 0;
+  if (!temTexto) {
     fecharMenuMsgNex();
+    return;
   }
+  mensagemEmEdicaoNex = msg;
+  textoOriginalEdicaoNex = msg.text || '';
+  abrirModalEdicaoNex(msg.text || '');
+  fecharMenuMsgNex();
+}
 
-  function acaoReeditarNex() {
-    if (!mensagemSelecionadaNex) return;
-    const msg = mensagemSelecionadaNex;
-    const temTexto = typeof msg.text === 'string' && msg.text.trim().length > 0;
-    if (!temTexto) {
-      fecharMenuMsgNex();
-      return;
-    }
-    mensagemEmEdicaoNex = msg;
-    textoOriginalEdicaoNex = msg.text || '';
-    abrirModalEdicaoNex(msg.text || '');
-    fecharMenuMsgNex();
-  }
+function acaoApagarPraMimNex() {
+  if (!mensagemSelecionadaNex) return;
+  mensagemParaApagarNex = mensagemSelecionadaNex;
+  const modal = document.getElementById('confirmDeleteMeModalNex');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  fecharMenuMsgNex();
+}
 
-  function acaoApagarPraMimNex() {
-    if (!mensagemSelecionadaNex) return;
-    mensagemParaApagarNex = mensagemSelecionadaNex;
-    const modal = document.getElementById('confirmDeleteMeModalNex');
-    if (!modal) return;
-    modal.style.display = 'flex';
-    fecharMenuMsgNex();
-  }
+function fecharConfirmDeleteMeNex() {
+  const modal = document.getElementById('confirmDeleteMeModalNex');
+  if (modal) modal.style.display = 'none';
+  mensagemParaApagarNex = null;
+}
 
-  function fecharConfirmDeleteMeNex() {
-    const modal = document.getElementById('confirmDeleteMeModalNex');
-    if (modal) modal.style.display = 'none';
-    mensagemParaApagarNex = null;
-  }
+async function confirmarApagarPraMimNex() {
+  if (!mensagemParaApagarNex) return;
+  const msg = mensagemParaApagarNex;
+  const idMsg = typeof msg === 'string' ? msg : msg.id;
+  const idSupabase =
+    typeof msg === 'object' ? msg._supabaseId || msg.id : msg;
 
-  async function confirmarApagarPraMimNex() {
-    if (!mensagemParaApagarNex) return;
-    const msg = mensagemParaApagarNex;
-    const idMsg = typeof msg === 'string' ? msg : msg.id;
-    const idSupabase =
-      typeof msg === 'object' ? msg._supabaseId || msg.id : msg;
-
-    if (typeof window.apagarPraMimSupabase === 'function' && idSupabase) {
-      try {
-        await window.apagarPraMimSupabase(idSupabase);
-      } catch (err) {
-        console.warn('Erro ao ocultar no Supabase:', err);
-      }
-    }
-
-    const conversaAtual = Drops.estado.conversaAtual;
-    const lista = conversas[conversaAtual] || [];
-    const index = lista.findIndex((m) => m.id === idMsg);
-    if (index !== -1) lista.splice(index, 1);
-
-    fecharConfirmDeleteMeNex();
-    renderChat(conversaAtual);
-    mensagemParaApagarNex = null;
-  }
-
-  function acaoApagarMsgNex() {
-    if (!mensagemSelecionadaNex) return;
-    mensagemParaApagarNex = mensagemSelecionadaNex;
-    const modal = document.getElementById('confirmDeleteModalNex');
-    if (!modal) return;
-    modal.style.display = 'flex';
-    fecharMenuMsgNex();
-  }
-
-  function fecharConfirmDeleteNex() {
-    const modal = document.getElementById('confirmDeleteModalNex');
-    if (!modal) return;
-    modal.style.display = 'none';
-    mensagemParaApagarNex = null;
-  }
-
-  async function confirmarApagarMsgNex() {
-    if (!mensagemParaApagarNex) return;
-    const msg = mensagemParaApagarNex;
-    const nomePessoa = msg.nome || 'usuário';
-
-    fecharConfirmDeleteNex();
-
-    const idSupabase = msg._supabaseId || msg.id;
-    if (typeof window.apagarPraTodosSupabase === 'function' && idSupabase) {
-      try {
-        await window.apagarPraTodosSupabase(idSupabase);
-      } catch (err) {
-        console.warn('Erro ao apagar no Supabase:', err);
-      }
-    }
-
-    msg.deleted = true;
-    msg.deletedAt = Date.now();
-    msg.deletedText = msg.eu
-      ? '🗑️ Mensagem apagada'
-      : `⚠️ Mensagem apagada pelo ${nomePessoa}`;
-
-    renderChat(Drops.estado.conversaAtual);
-
-    setTimeout(() => {
-      const lista = conversas[Drops.estado.conversaAtual];
-      if (!Array.isArray(lista)) return;
-      const index = lista.indexOf(msg);
-      if (index !== -1) {
-        lista.splice(index, 1);
-        renderChat(Drops.estado.conversaAtual);
-      }
-    }, msg.eu ? 5000 : 10000);
-
-    mensagemParaApagarNex = null;
-  }
-
-  function abrirModalEdicaoNex(texto) {
-    const modal = document.getElementById('editarMsgModalNex');
-    const input = document.getElementById('editarMsgInputNex');
-    const btn = document.getElementById('btnConcluirEdicaoNex');
-    if (!modal || !input || !btn) return;
-    input.value = texto || '';
-    modal.style.display = 'flex';
-    modal.style.zIndex = '999999999';
-    btn.disabled = true;
-    setTimeout(() => {
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-    }, 50);
-  }
-
-  function fecharModalEdicaoNex() {
-    const modal = document.getElementById('editarMsgModalNex');
-    const input = document.getElementById('editarMsgInputNex');
-    const btn = document.getElementById('btnConcluirEdicaoNex');
-    if (input) {
-      input.blur();
-      input.value = '';
-    }
-    if (btn) btn.disabled = true;
-    if (modal) modal.style.display = 'none';
-    mensagemEmEdicaoNex = null;
-    textoOriginalEdicaoNex = '';
-  }
-
-  function atualizarBotaoEdicaoNex() {
-    const input = document.getElementById('editarMsgInputNex');
-    const btn = document.getElementById('btnConcluirEdicaoNex');
-    if (!input || !btn) return;
-    btn.disabled = input.value.trim() === textoOriginalEdicaoNex.trim();
-  }
-
-  async function concluirEdicaoNex() {
-    if (!mensagemEmEdicaoNex) return;
-    const input = document.getElementById('editarMsgInputNex');
-    if (!input) return;
-    const novoTexto = input.value;
-    if (novoTexto.trim() === textoOriginalEdicaoNex.trim()) return;
-
-    const idSupabase = mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
-    if (typeof window.editarMensagemSupabase === 'function' && idSupabase) {
-      try {
-        await window.editarMensagemSupabase(idSupabase, novoTexto);
-      } catch (err) {
-        console.warn('Erro ao editar no Supabase:', err);
-      }
-    }
-
-    mensagemEmEdicaoNex.text = novoTexto;
-    mensagemEmEdicaoNex.edited = true;
-    fecharModalEdicaoNex();
-    renderChat(Drops.estado.conversaAtual);
-  }
-
-  function mostrarPreviewRespostaNex() {
-    const preview = document.getElementById('previewRespostaNex');
-    if (!preview || !respostaSelecionadaNex) return;
-    preview.innerHTML = `
-      <div class="reply-preview-box">
-        <div class="reply-preview-text">Você está respondendo uma Msg específica.</div>
-        <button type="button" id="btnCancelarRespostaNex" class="reply-preview-close">✕</button>
-      </div>
-    `;
-    preview.style.display = 'block';
-    const btnCancelar = document.getElementById('btnCancelarRespostaNex');
-    if (btnCancelar) btnCancelar.addEventListener('click', cancelarRespostaNex);
-    atualizarPreviewStackNex();
-  }
-
-  // ============================================
-  // NAVEGAÇÃO ENTRE MENSAGENS
-  // ============================================
-
-  function obterCardMensagemNex(msgId) {
-    const alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-    if (!alvo) return null;
-    return (
-      alvo.querySelector('.msg-layer') ||
-      alvo.querySelector('.msg-card') ||
-      alvo.firstElementChild ||
-      alvo
-    );
-  }
-
-  function limparDestaqueMensagemNex() {
-    if (!msgDestacadaNex) return;
-    msgDestacadaNex.classList.remove(
-      'msg-destaque-verde-nex',
-      'msg-destaque-amarelo-nex'
-    );
-    msgDestacadaNex = null;
-  }
-
-  function destacarMensagemNex(msgId, tipo) {
-    const card = obterCardMensagemNex(msgId);
-    if (!card) return;
-    limparDestaqueMensagemNex();
-    card.classList.add(
-      tipo === 'amarelo' ? 'msg-destaque-amarelo-nex' : 'msg-destaque-verde-nex'
-    );
-    msgDestacadaNex = card;
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
-    let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-    if (!alvo && msgIdLocal)
-      alvo = document.querySelector(`[data-msg-id="${msgIdLocal}"]`);
-    if (!alvo) {
-      const msgs = conversas[Drops.estado.conversaAtual] || [];
-      const msgEncontrada = msgs.find(
-        (m) =>
-          String(m.id) === String(msgId) ||
-          String(m._supabaseId) === String(msgId) ||
-          (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
-      );
-      if (msgEncontrada)
-        alvo = document.querySelector(
-          `[data-msg-id="${msgEncontrada.id || msgEncontrada._supabaseId}"]`
-        );
-    }
-    if (!alvo) return;
-    const card =
-      alvo.querySelector('.msg-layer') ||
-      alvo.querySelector('.msg-card') ||
-      alvo.firstElementChild ||
-      alvo;
-    limparDestaqueMensagemNex();
-    card.classList.add('msg-destaque-verde-nex');
-    msgDestacadaNex = card;
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
-    const msgs = conversas[Drops.estado.conversaAtual] || [];
-    const idsValidos = [
-      String(msgIdOriginal || ''),
-      String(msgIdSupabaseOriginal || '')
-    ].filter(Boolean);
-    const respostas = msgs.filter(
-      (m) => m.resposta && idsValidos.includes(String(m.resposta.id || ''))
-    );
-    if (!respostas.length) return;
-    const primeira = respostas[0];
-    destacarMensagemNex(primeira.id || primeira._supabaseId, 'amarelo');
-  }
-
-  function irParaProximaRespostaNex(originalId, ordemAtual) {
-    const msgs = conversas[Drops.estado.conversaAtual] || [];
-    const respostas = msgs.filter(
-      (m) => m.resposta && m.resposta.id === originalId
-    );
-    const proxima = respostas[ordemAtual];
-    if (!proxima) return;
-    destacarMensagemNex(proxima.id, 'amarelo');
-  }
-
-  // ============================================
-  // EVENTOS GLOBAIS
-  // ============================================
-
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('msgMenuNex');
-    if (
-      menu &&
-      menu.style.display !== 'none' &&
-      !menu.contains(e.target) &&
-      !e.target.closest('.msg-menu-btn')
-    ) {
-      fecharMenuMsgNex();
-    }
-    const modal = document.getElementById('editarMsgModalNex');
-    if (
-      modal &&
-      getComputedStyle(modal).display !== 'none' &&
-      e.target.id === 'editarMsgModalNex'
-    ) {
-      fecharModalEdicaoNex();
-    }
-    const deleteModal = document.getElementById('confirmDeleteModalNex');
-    if (
-      deleteModal &&
-      getComputedStyle(deleteModal).display !== 'none' &&
-      e.target.id === 'confirmDeleteModalNex'
-    ) {
-      fecharConfirmDeleteNex();
-    }
-  });
-
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (
-        e.target.closest('.msg-card') ||
-        e.target.closest('.msg-layer') ||
-        e.target.closest('.reply-linked-top') ||
-        e.target.closest('.reply-cited-bottom') ||
-        e.target.closest('.reply-next-btn')
-      )
-        return;
-      limparDestaqueMensagemNex();
-    },
-    true
-  );
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
-    if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
-
-    const inputEdicao = document.getElementById('editarMsgInputNex');
-    if (inputEdicao)
-      inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
-
-    const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
-    if (btnFecharEdicao)
-      btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
-
-    document.addEventListener('drops_presenca_atualizada', (e) => {
-      const { username, online } = e.detail || {};
-      if (!username) return;
-
-      const conversaAberta = Drops.estado.conversaAtual;
-      if (
-        String(username).toLowerCase() ===
-        String(conversaAberta).toLowerCase()
-      ) {
-        const chatStatus = document.getElementById('chatStatus');
-        if (chatStatus) {
-          chatStatus.innerText = online ? 'online' : 'offline';
-          chatStatus.classList.toggle('online', !!online);
-          chatStatus.classList.toggle('offline', !online);
-        }
-      }
-    });
-  });
-
-  // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
-
-  window.abrirMenuMsgNex = abrirMenuMsgNex;
-  window.fecharMenuMsgNex = fecharMenuMsgNex;
-  window.acaoResponderNex = acaoResponderNex;
-  window.acaoReeditarNex = acaoReeditarNex;
-  window.acaoApagarMsgNex = acaoApagarMsgNex;
-  window.acaoApagarPraMimNex = acaoApagarPraMimNex;
-  window.fecharConfirmDeleteNex = fecharConfirmDeleteNex;
-  window.confirmarApagarMsgNex = confirmarApagarMsgNex;
-  window.fecharConfirmDeleteMeNex = fecharConfirmDeleteMeNex;
-  window.confirmarApagarPraMimNex = confirmarApagarPraMimNex;
-  window.abrirModalEdicaoNex = abrirModalEdicaoNex;
-  window.fecharModalEdicaoNex = fecharModalEdicaoNex;
-  window.atualizarBotaoEdicaoNex = atualizarBotaoEdicaoNex;
-  window.concluirEdicaoNex = concluirEdicaoNex;
-  window.irParaMensagemNex = irParaMensagemNex;
-  window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
-  window.irParaProximaRespostaNex = irParaProximaRespostaNex;
-  window.abrirChatNex = abrirChatNex;
-  window.voltarChatNex = voltarChatNex;
-  window.renderChat = renderChat;
-  window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
-  window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
-  window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
-  window.enviarMsgNex = enviarMsgNex;
-  window.cancelarRespostaNex = cancelarRespostaNex;
-  window.atualizarPreviewStackNex = atualizarPreviewStackNex;
-  window.buscarAvatarNex = buscarAvatarNex;
-
-  window.abrirMenuChatNex = abrirMenuChatNex;
-  window.fecharMenuChatNex = fecharMenuChatNex;
-
-  window.toggleMenuChatNex = function () {
-    if (chatMenuAbertoNex) {
-      fecharMenuChatNex();
-    } else {
-      abrirMenuChatNex();
-    }
-  };
-
-  window.estaSilenciadoNex = estaSilenciadoNex;
-  window.alternarSilenciarChatNex = alternarSilenciarChatNex;
-  window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;
-  window.apagarChatNex = apagarChatNex;
-  window.atualizarSilenciadoNoCardNex = atualizarSilenciadoNoCardNex;
-
-  window.buscarStatusNex = async function (username) {
-    if (!username || !window.supabaseClient) return false;
+  if (typeof window.apagarPraMimSupabase === 'function' && idSupabase) {
     try {
-      const { data: perfil } = await window.supabaseClient
-        .from('profiles')
-        .select('ultima_atividade')
-        .eq(
-          'username',
-          String(username).toLowerCase().replace(/^@/, '').trim()
-        )
-        .maybeSingle();
-      const ultima = perfil?.ultima_atividade;
-      const LIMITE_ONLINE_MS = 30 * 1000;
-      return !!(
-        ultima &&
-        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS
-      );
+      await window.apagarPraMimSupabase(idSupabase);
     } catch (err) {
-      console.warn('Erro ao buscar status:', err);
-      return false;
+      console.warn('Erro ao ocultar no Supabase:', err);
     }
-  };
+  }
 
-  console.log('💬 05-nex-chat.js completo (versão definitiva)');
+  const conversaAtual = Drops.estado.conversaAtual;
+  const lista = conversas[conversaAtual] || [];
+  const index = lista.findIndex((m) => m.id === idMsg);
+  if (index !== -1) lista.splice(index, 1);
+
+  fecharConfirmDeleteMeNex();
+  renderChat(conversaAtual);
+  mensagemParaApagarNex = null;
+}
+  function acaoApagarMsgNex() {
+  if (!mensagemSelecionadaNex) return;
+  mensagemParaApagarNex = mensagemSelecionadaNex;
+  const modal = document.getElementById('confirmDeleteModalNex');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  fecharMenuMsgNex();
+}
+
+function fecharConfirmDeleteNex() {
+  const modal = document.getElementById('confirmDeleteModalNex');
+  if (!modal) return;
+  modal.style.display = 'none';
+  mensagemParaApagarNex = null;
+}
+
+async function confirmarApagarMsgNex() {
+  if (!mensagemParaApagarNex) return;
+  const msg = mensagemParaApagarNex;
+  const nomePessoa = msg.nome || 'usuário';
+
+  fecharConfirmDeleteNex();
+
+  const idSupabase = msg._supabaseId || msg.id;
+  if (typeof window.apagarPraTodosSupabase === 'function' && idSupabase) {
+    try {
+      await window.apagarPraTodosSupabase(idSupabase);
+    } catch (err) {
+      console.warn('Erro ao apagar no Supabase:', err);
+    }
+  }
+
+  msg.deleted = true;
+  msg.deletedAt = Date.now();
+  msg.deletedText = msg.eu
+    ? '🗑️ Mensagem apagada'
+    : `⚠️ Mensagem apagada pelo ${nomePessoa}`;
+
+  renderChat(Drops.estado.conversaAtual);
+
+  setTimeout(() => {
+    const lista = conversas[Drops.estado.conversaAtual];
+    if (!Array.isArray(lista)) return;
+    const index = lista.indexOf(msg);
+    if (index !== -1) {
+      lista.splice(index, 1);
+      renderChat(Drops.estado.conversaAtual);
+    }
+  }, msg.eu ? 5000 : 10000);
+
+  mensagemParaApagarNex = null;
+}
+
+function abrirModalEdicaoNex(texto) {
+  const modal = document.getElementById('editarMsgModalNex');
+  const input = document.getElementById('editarMsgInputNex');
+  const btn = document.getElementById('btnConcluirEdicaoNex');
+  if (!modal || !input || !btn) return;
+  input.value = texto || '';
+  modal.style.display = 'flex';
+  modal.style.zIndex = '999999999';
+  btn.disabled = true;
+  setTimeout(() => {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, 50);
+}
+
+function fecharModalEdicaoNex() {
+  const modal = document.getElementById('editarMsgModalNex');
+  const input = document.getElementById('editarMsgInputNex');
+  const btn = document.getElementById('btnConcluirEdicaoNex');
+  if (input) {
+    input.blur();
+    input.value = '';
+  }
+  if (btn) btn.disabled = true;
+  if (modal) modal.style.display = 'none';
+  mensagemEmEdicaoNex = null;
+  textoOriginalEdicaoNex = '';
+}
+
+function atualizarBotaoEdicaoNex() {
+  const input = document.getElementById('editarMsgInputNex');
+  const btn = document.getElementById('btnConcluirEdicaoNex');
+  if (!input || !btn) return;
+  btn.disabled = input.value.trim() === textoOriginalEdicaoNex.trim();
+}
+
+async function concluirEdicaoNex() {
+  if (!mensagemEmEdicaoNex) return;
+  const input = document.getElementById('editarMsgInputNex');
+  if (!input) return;
+  const novoTexto = input.value;
+  if (novoTexto.trim() === textoOriginalEdicaoNex.trim()) return;
+
+  const idSupabase = mensagemEmEdicaoNex._supabaseId || mensagemEmEdicaoNex.id;
+  if (typeof window.editarMensagemSupabase === 'function' && idSupabase) {
+    try {
+      await window.editarMensagemSupabase(idSupabase, novoTexto);
+    } catch (err) {
+      console.warn('Erro ao editar no Supabase:', err);
+    }
+  }
+
+  mensagemEmEdicaoNex.text = novoTexto;
+  mensagemEmEdicaoNex.edited = true;
+  fecharModalEdicaoNex();
+  renderChat(Drops.estado.conversaAtual);
+}
+
+function mostrarPreviewRespostaNex() {
+  const preview = document.getElementById('previewRespostaNex');
+  if (!preview || !respostaSelecionadaNex) return;
+  preview.innerHTML = `
+    <div class="reply-preview-box">
+      <div class="reply-preview-text">Você está respondendo uma Msg específica.</div>
+      <button type="button" id="btnCancelarRespostaNex" class="reply-preview-close">✕</button>
+    </div>
+  `;
+  preview.style.display = 'block';
+  const btnCancelar = document.getElementById('btnCancelarRespostaNex');
+  if (btnCancelar) btnCancelar.addEventListener('click', cancelarRespostaNex);
+  atualizarPreviewStackNex();
+}
+
+// ============================================
+// NAVEGAÇÃO ENTRE MENSAGENS (A CORREÇÃO)
+// ============================================
+
+function obterCardMensagemNex(msgId) {
+  const alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (!alvo) return null;
+  return (
+    alvo.querySelector('.msg-card') ||
+    alvo.querySelector('.msg-layer') ||
+    alvo.firstElementChild ||
+    alvo
+  );
+}
+
+function limparDestaqueMensagemNex() {
+  if (!msgDestacadaNex) return;
+  msgDestacadaNex.classList.remove(
+    'msg-destaque-verde-nex',
+    'msg-destaque-amarelo-nex'
+  );
+  msgDestacadaNex = null;
+}
+
+function destacarMensagemNex(msgId, tipo) {
+  const card = obterCardMensagemNex(msgId);
+  if (!card) return;
+  
+  limparDestaqueMensagemNex();
+  card.classList.add(
+    tipo === 'amarelo' ? 'msg-destaque-amarelo-nex' : 'msg-destaque-verde-nex'
+  );
+  msgDestacadaNex = card;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  setTimeout(() => {
+    if (msgDestacadaNex === card) {
+      limparDestaqueMensagemNex();
+    }
+  }, 3000);
+}
+
+function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
+  let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
+  
+  if (!alvo) {
+    const msgs = conversas[Drops.estado.conversaAtual] || [];
+    const msgEncontrada = msgs.find(
+      (m) =>
+        String(m.id) === String(msgId) ||
+        String(m._supabaseId) === String(msgId) ||
+        (msgIdSupabase && String(m._supabaseId) === String(msgIdSupabase))
+    );
+    if (msgEncontrada) {
+      alvo = document.querySelector(`[data-msg-id="${msgEncontrada.id || msgEncontrada._supabaseId}"]`);
+    }
+  }
+
+  if (!alvo) {
+    window.mostrarToastNex?.('Mensagem original não encontrada.', 'info');
+    return;
+  }
+
+  const card = alvo.querySelector('.msg-card') || alvo.querySelector('.msg-layer') || alvo;
+  limparDestaqueMensagemNex();
+  card.classList.add('msg-destaque-verde-nex');
+  msgDestacadaNex = card;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  setTimeout(() => {
+    if (msgDestacadaNex === card) {
+      limparDestaqueMensagemNex();
+    }
+  }, 3000);
+}
+
+function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
+  const msgs = conversas[Drops.estado.conversaAtual] || [];
+  const idsValidos = [
+    String(msgIdOriginal || ''),
+    String(msgIdSupabaseOriginal || '')
+  ].filter(Boolean);
+  
+  const respostas = msgs.filter(
+    (m) => m.resposta && idsValidos.includes(String(m.resposta.id || ''))
+  );
+  
+  if (!respostas.length) {
+    window.mostrarToastNex?.('Nenhuma resposta encontrada.', 'info');
+    return;
+  }
+  
+  const primeira = respostas[0];
+  let alvo = document.querySelector(`[data-msg-id="${primeira.id || primeira._supabaseId}"]`);
+  
+  if (!alvo) {
+    window.mostrarToastNex?.('Resposta não encontrada na tela.', 'info');
+    return;
+  }
+
+  const card = alvo.querySelector('.msg-card') || alvo.querySelector('.msg-layer') || alvo;
+  limparDestaqueMensagemNex();
+  card.classList.add('msg-destaque-amarelo-nex');
+  msgDestacadaNex = card;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  setTimeout(() => {
+    if (msgDestacadaNex === card) {
+      limparDestaqueMensagemNex();
+    }
+  }, 3000);
+}
+
+function irParaProximaRespostaNex(originalId, ordemAtual) {
+  const msgs = conversas[Drops.estado.conversaAtual] || [];
+  const respostas = msgs.filter(
+    (m) => m.resposta && m.resposta.id === originalId
+  );
+  const proxima = respostas[ordemAtual];
+  if (!proxima) return;
+  destacarMensagemNex(proxima.id, 'amarelo');
+}
+  // ============================================
+// EVENTOS GLOBAIS
+// ============================================
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('msgMenuNex');
+  if (
+    menu &&
+    menu.style.display !== 'none' &&
+    !menu.contains(e.target) &&
+    !e.target.closest('.msg-menu-btn')
+  ) {
+    fecharMenuMsgNex();
+  }
+  const modal = document.getElementById('editarMsgModalNex');
+  if (
+    modal &&
+    getComputedStyle(modal).display !== 'none' &&
+    e.target.id === 'editarMsgModalNex'
+  ) {
+    fecharModalEdicaoNex();
+  }
+  const deleteModal = document.getElementById('confirmDeleteModalNex');
+  if (
+    deleteModal &&
+    getComputedStyle(deleteModal).display !== 'none' &&
+    e.target.id === 'confirmDeleteModalNex'
+  ) {
+    fecharConfirmDeleteNex();
+  }
+});
+
+document.addEventListener(
+  'click',
+  (e) => {
+    if (
+      e.target.closest('.msg-card') ||
+      e.target.closest('.msg-layer') ||
+      e.target.closest('.reply-linked-top') ||
+      e.target.closest('.reply-cited-bottom') ||
+      e.target.closest('.reply-next-btn')
+    )
+      return;
+    limparDestaqueMensagemNex();
+  },
+  true
+);
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
+  if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
+
+  const inputEdicao = document.getElementById('editarMsgInputNex');
+  if (inputEdicao)
+    inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
+
+  const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
+  if (btnFecharEdicao)
+    btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
+
+  document.addEventListener('drops_presenca_atualizada', (e) => {
+    const { username, online } = e.detail || {};
+    if (!username) return;
+
+    const conversaAberta = Drops.estado.conversaAtual;
+    if (
+      String(username).toLowerCase() ===
+      String(conversaAberta).toLowerCase()
+    ) {
+      const chatStatus = document.getElementById('chatStatus');
+      if (chatStatus) {
+        chatStatus.innerText = online ? 'online' : 'offline';
+        chatStatus.classList.toggle('online', !!online);
+        chatStatus.classList.toggle('offline', !online);
+      }
+    }
+  });
+});
+
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
+
+window.abrirMenuMsgNex = abrirMenuMsgNex;
+window.fecharMenuMsgNex = fecharMenuMsgNex;
+window.acaoResponderNex = acaoResponderNex;
+window.acaoReeditarNex = acaoReeditarNex;
+window.acaoApagarMsgNex = acaoApagarMsgNex;
+window.acaoApagarPraMimNex = acaoApagarPraMimNex;
+window.fecharConfirmDeleteNex = fecharConfirmDeleteNex;
+window.confirmarApagarMsgNex = confirmarApagarMsgNex;
+window.fecharConfirmDeleteMeNex = fecharConfirmDeleteMeNex;
+window.confirmarApagarPraMimNex = confirmarApagarPraMimNex;
+window.abrirModalEdicaoNex = abrirModalEdicaoNex;
+window.fecharModalEdicaoNex = fecharModalEdicaoNex;
+window.atualizarBotaoEdicaoNex = atualizarBotaoEdicaoNex;
+window.concluirEdicaoNex = concluirEdicaoNex;
+window.irParaMensagemNex = irParaMensagemNex;
+window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
+window.irParaProximaRespostaNex = irParaProximaRespostaNex;
+window.abrirChatNex = abrirChatNex;
+window.voltarChatNex = voltarChatNex;
+window.renderChat = renderChat;
+window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
+window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
+window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
+window.enviarMsgNex = enviarMsgNex;
+window.cancelarRespostaNex = cancelarRespostaNex;
+window.atualizarPreviewStackNex = atualizarPreviewStackNex;
+window.buscarAvatarNex = buscarAvatarNex;
+
+window.abrirMenuChatNex = abrirMenuChatNex;
+window.fecharMenuChatNex = fecharMenuChatNex;
+
+window.toggleMenuChatNex = function () {
+  if (chatMenuAbertoNex) {
+    fecharMenuChatNex();
+  } else {
+    abrirMenuChatNex();
+  }
+};
+
+window.estaSilenciadoNex = estaSilenciadoNex;
+window.alternarSilenciarChatNex = alternarSilenciarChatNex;
+window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;
+window.apagarChatNex = apagarChatNex;
+window.atualizarSilenciadoNoCardNex = atualizarSilenciadoNoCardNex;
+
+window.buscarStatusNex = async function (username) {
+  if (!username || !window.supabaseClient) return false;
+  try {
+    const { data: perfil } = await window.supabaseClient
+      .from('profiles')
+      .select('ultima_atividade')
+      .eq(
+        'username',
+        String(username).toLowerCase().replace(/^@/, '').trim()
+      )
+      .maybeSingle();
+    const ultima = perfil?.ultima_atividade;
+    const LIMITE_ONLINE_MS = 30 * 1000;
+    return !!(
+      ultima &&
+      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS
+    );
+  } catch (err) {
+    console.warn('Erro ao buscar status:', err);
+    return false;
+  }
+};
+
+console.log('💬 05-nex-chat.js completo (navegação de msg corrigida)');
 
 })();
