@@ -889,3 +889,24 @@
 .msg-anexo-card[data-midia-msg-id] {
   position: relative;
 }
+/* ============================================
+   DESTAQUE DE MENSAGEM (Navegação)
+============================================ */
+
+.msg-destaque-verde-nex {
+  outline: 3px solid #22c55e !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6) !important;
+  border-radius: 24px !important;
+  transition: all 0.3s ease !important;
+  z-index: 10;
+}
+
+.msg-destaque-amarelo-nex {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.6) !important;
+  border-radius: 24px !important;
+  transition: all 0.3s ease !important;
+  z-index: 10;
+}
