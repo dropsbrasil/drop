@@ -11,6 +11,30 @@
   'use strict';
 
   // ============================================
+  // FUNÇÃO UTILITÁRIA DE SILENCIAMENTO (NOVO)
+  // ============================================
+  function checarSeFuiSilenciadoNex(idOuUser) {
+    if (!idOuUser) return false;
+    const lista = window.__quemMeSilenciouNex;
+    if (!lista) return false;
+
+    const alvo = String(idOuUser).replace(/^@/, '').trim().toLowerCase();
+
+    if (lista instanceof Set) {
+      for (const item of lista) {
+        if (String(item).replace(/^@/, '').trim().toLowerCase() === alvo) return true;
+      }
+      return false;
+    }
+
+    if (Array.isArray(lista)) {
+      return lista.some(item => String(item).replace(/^@/, '').trim().toLowerCase() === alvo);
+    }
+
+    return false;
+  }
+
+  // ============================================
   // SKELETON DE CARREGAMENTO DO CHAT
   // ============================================
 
@@ -158,178 +182,176 @@
     menu.classList.add('aberto');
     chatMenuAbertoNex = true;
   }
-
   function fecharMenuChatNex() {
-    const menu = document.getElementById('chatMenuDropdownNex');
-    if (menu) menu.classList.remove('aberto');
-    chatMenuAbertoNex = false;
+  const menu = document.getElementById('chatMenuDropdownNex');
+  if (menu) menu.classList.remove('aberto');
+  chatMenuAbertoNex = false;
+}
+
+document.addEventListener('click', (e) => {
+  if (!chatMenuAbertoNex) return;
+
+  const menu = document.getElementById('chatMenuDropdownNex');
+  const btn = document.getElementById('chatMenuBtnNex');
+
+  if (menu && menu.contains(e.target)) return;
+  if (btn && btn.contains(e.target)) return;
+
+  fecharMenuChatNex();
+});
+
+// ============================================
+// SILENCIAR
+// ============================================
+
+function estaSilenciadoNex(username) {
+  if (!username) return false;
+  try {
+    const lista = JSON.parse(
+      localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
+    );
+    return Array.isArray(lista) && lista.includes(username);
+  } catch (e) {
+    return false;
   }
+}
 
-  document.addEventListener('click', (e) => {
-    if (!chatMenuAbertoNex) return;
+function salvarSilenciadosNex(lista) {
+  try {
+    localStorage.setItem(
+      'dropsChatsSilenciadosNex',
+      JSON.stringify(Array.isArray(lista) ? lista : [])
+    );
+  } catch (e) {}
+}
 
-    const menu = document.getElementById('chatMenuDropdownNex');
-    const btn = document.getElementById('chatMenuBtnNex');
+async function alternarSilenciarChatNex(username) {
+  if (!username) return;
 
-    if (menu && menu.contains(e.target)) return;
-    if (btn && btn.contains(e.target)) return;
-
-    fecharMenuChatNex();
-  });
-
-  // ============================================
-  // SILENCIAR
-  // ============================================
-
-  function estaSilenciadoNex(username) {
-    if (!username) return false;
+  const lista = (() => {
     try {
-      const lista = JSON.parse(
+      return JSON.parse(
         localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
       );
-      return Array.isArray(lista) && lista.includes(username);
     } catch (e) {
-      return false;
+      return [];
     }
+  })();
+
+  const index = lista.indexOf(username);
+  let ativouSilencio = false;
+
+  if (index === -1) {
+    lista.push(username);
+    ativouSilencio = true;
+  } else {
+    lista.splice(index, 1);
   }
 
-  function salvarSilenciadosNex(lista) {
-    try {
-      localStorage.setItem(
-        'dropsChatsSilenciadosNex',
-        JSON.stringify(Array.isArray(lista) ? lista : [])
-      );
-    } catch (e) {}
+  salvarSilenciadosNex(lista);
+
+  if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
+  if (ativouSilencio) {
+    window.__euSilencieiNex.add(username);
+  } else {
+    window.__euSilencieiNex.delete(username);
   }
 
-  async function alternarSilenciarChatNex(username) {
-    if (!username) return;
-
-    const lista = (() => {
-      try {
-        return JSON.parse(
-          localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
-        );
-      } catch (e) {
-        return [];
-      }
-    })();
-
-    const index = lista.indexOf(username);
-    let ativouSilencio = false;
-
-    if (index === -1) {
-      lista.push(username);
-      ativouSilencio = true;
-    } else {
-      lista.splice(index, 1);
-    }
-
-    salvarSilenciadosNex(lista);
-
-    if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
-    if (ativouSilencio) {
-      window.__euSilencieiNex.add(username);
-    } else {
-      window.__euSilencieiNex.delete(username);
-    }
-
-    if (typeof window.alternarSilenciarSupabase === 'function') {
-      await window.alternarSilenciarSupabase(
-        username,
-        ativouSilencio ? 'silenciar' : 'dessilenciar'
-      );
-    }
-
-    atualizarSilenciadoNoCardNex(username);
-
-    window.mostrarToastNex?.(
-      ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
-      'info'
+  if (typeof window.alternarSilenciarSupabase === 'function') {
+    await window.alternarSilenciarSupabase(
+      username,
+      ativouSilencio ? 'silenciar' : 'dessilenciar'
     );
   }
 
-  function atualizarSilenciadoNoCardNex(username) {
-    if (!username) return;
+  atualizarSilenciadoNoCardNex(username);
 
-    const card =
-      typeof window.obterCardConversaNex === 'function'
-        ? window.obterCardConversaNex(username)
-        : document.querySelector(`.nex-chat[data-chat="${username}"]`);
+  window.mostrarToastNex?.(
+    ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
+    'info'
+  );
+}
 
-    if (!card) return;
+function atualizarSilenciadoNoCardNex(username) {
+  if (!username) return;
 
-    card.classList.toggle('silenciado', estaSilenciadoNex(username));
+  const card =
+    typeof window.obterCardConversaNex === 'function'
+      ? window.obterCardConversaNex(username)
+      : document.querySelector(`.nex-chat[data-chat="${username}"]`);
 
-    if (estaSilenciadoNex(username)) {
-      const listaNaoLidas = document.getElementById('nex-naolidas');
-      if (listaNaoLidas && listaNaoLidas.contains(card)) {
-        const destino = document.getElementById('nex-geral');
-        if (destino) destino.prepend(card);
-      }
+  if (!card) return;
+
+  card.classList.toggle('silenciado', estaSilenciadoNex(username));
+
+  if (estaSilenciadoNex(username)) {
+    const listaNaoLidas = document.getElementById('nex-naolidas');
+    if (listaNaoLidas && listaNaoLidas.contains(card)) {
+      const destino = document.getElementById('nex-geral');
+      if (destino) destino.prepend(card);
     }
   }
+}
 
-  // ============================================
-  // APAGAR CONVERSA
-  // ============================================
+// ============================================
+// APAGAR CONVERSA
+// ============================================
 
-  function abrirConfirmApagarChatNex(username) {
-    if (!username) return;
+function abrirConfirmApagarChatNex(username) {
+  if (!username) return;
 
-    let modal = document.getElementById('confirmApagarChatNex');
+  let modal = document.getElementById('confirmApagarChatNex');
 
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'confirmApagarChatNex';
-      modal.className = 'modal-msg-nex';
-      document.body.appendChild(modal);
-    }
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'confirmApagarChatNex';
+    modal.className = 'modal-msg-nex';
+    document.body.appendChild(modal);
+  }
 
-    modal.style.display = 'flex';
+  modal.style.display = 'flex';
 
-    modal.innerHTML = `
-      <div class="modal-msg-box">
-        <div class="modal-confirm-delete-title">
-          Apagar esta conversa?<br>
-          <small style="font-weight:500;opacity:.7;font-size:13px;">
-            Vai apagar para todos e limpar este chat.
-          </small>
-        </div>
-
-        <div class="modal-confirm-delete-actions">
-          <button
-            type="button"
-            class="btn-delete-cancel-nex"
-            id="btnCancelarApagarChatNex">
-            Cancelar
-          </button>
-
-          <button
-            type="button"
-            class="btn-delete-confirm-nex"
-            id="btnConfirmarApagarChatNex">
-            Apagar
-          </button>
-        </div>
+  modal.innerHTML = `
+    <div class="modal-msg-box">
+      <div class="modal-confirm-delete-title">
+        Apagar esta conversa?<br>
+        <small style="font-weight:500;opacity:.7;font-size:13px;">
+          Vai apagar para todos e limpar este chat.
+        </small>
       </div>
-    `;
 
-    document.getElementById('btnCancelarApagarChatNex').onclick = () => {
-      modal.style.display = 'none';
-    };
+      <div class="modal-confirm-delete-actions">
+        <button
+          type="button"
+          class="btn-delete-cancel-nex"
+          id="btnCancelarApagarChatNex">
+          Cancelar
+        </button>
 
-    document.getElementById('btnConfirmarApagarChatNex').onclick = async () => {
-      modal.style.display = 'none';
-      await apagarChatNex(username);
-    };
+        <button
+          type="button"
+          class="btn-delete-confirm-nex"
+          id="btnConfirmarApagarChatNex">
+          Apagar
+        </button>
+      </div>
+    </div>
+  `;
 
-    modal.onclick = (e) => {
-      if (e.target === modal) modal.style.display = 'none';
-    };
-  }
+  document.getElementById('btnCancelarApagarChatNex').onclick = () => {
+    modal.style.display = 'none';
+  };
 
-  async function apagarChatNex(username) {
+  document.getElementById('btnConfirmarApagarChatNex').onclick = async () => {
+    modal.style.display = 'none';
+    await apagarChatNex(username);
+  };
+
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  };
+}
+    async function apagarChatNex(username) {
   if (!username) return;
 
   window.mostrarToastNex?.('Apagando conversa...', 'info');
@@ -567,8 +589,7 @@ function abrirMidiasCompartilhadasNex(username) {
     });
   });
 }
-
-// ============================================
+  // ============================================
 // RESOLVER USERNAME REAL (@) A PARTIR DE UMA CHAVE
 // ============================================
 
@@ -699,8 +720,7 @@ async function buscarAvatarNex(username) {
 
   return null;
 }
-  
-// ============================================
+  // ============================================
 // ABRIR CHAT (versão definitiva)
 // ============================================
 
@@ -883,43 +903,42 @@ if (chatAvatar) {
   }
 
   desativarSkeletonChatNex();
-
-  const chatBottom = document.querySelector('.chat-bottom');
+    const chatBottom = document.querySelector('.chat-bottom');
   const toastSilenciado = document.getElementById('toastSilenciadoNex');
   const iconeEnviar = document.getElementById('iconeEnviarChatNex');
   const iconeMudo = document.getElementById('iconeMudoChatNex');
 
-  const listaQuemMeSilenciou = window.__quemMeSilenciouNex || new Set();
-  const estouSilenciado = listaQuemMeSilenciou.has(usernameReal);
+  // CORRIGIDO: Usando a função utilitária segura
+  const estouSilenciado = checarSeFuiSilenciadoNex(usernameReal);
 
   const inputChat = document.getElementById('chatInput');
-const btnEnviar = document.getElementById('btnEnviarChatNex');
-const btnAnexo = document.getElementById('btnAnexoNex');
-const btnMic = document.getElementById('micBtn');
+  const btnEnviar = document.getElementById('btnEnviarChatNex');
+  const btnAnexo = document.getElementById('btnAnexoNex');
+  const btnMic = document.getElementById('micBtn');
 
-if (estouSilenciado) {
-  if (chatBottom) chatBottom.classList.add('silenciado');
-  if (toastSilenciado) toastSilenciado.style.display = 'flex';
-  if (iconeEnviar) iconeEnviar.style.display = 'none';
-  if (iconeMudo) iconeMudo.style.display = 'block';
-  
-  // Desativa fisicamente o input e os botões
-  if (inputChat) { inputChat.disabled = true; inputChat.placeholder = 'Você foi silenciado por este usuário.'; }
-  if (btnEnviar) btnEnviar.disabled = true;
-  if (btnAnexo) btnAnexo.disabled = true;
-  if (btnMic) btnMic.disabled = true;
-} else {
-  if (chatBottom) chatBottom.classList.remove('silenciado');
-  if (toastSilenciado) toastSilenciado.style.display = 'none';
-  if (iconeEnviar) iconeEnviar.style.display = 'block';
-  if (iconeMudo) iconeMudo.style.display = 'none';
-  
-  // Reativa o input e os botões
-  if (inputChat) { inputChat.disabled = false; inputChat.placeholder = 'Digite uma mensagem...'; }
-  if (btnEnviar) btnEnviar.disabled = false;
-  if (btnAnexo) btnAnexo.disabled = false;
-  if (btnMic) btnMic.disabled = false;
-}
+  if (estouSilenciado) {
+    if (chatBottom) chatBottom.classList.add('silenciado');
+    if (toastSilenciado) toastSilenciado.style.display = 'flex';
+    if (iconeEnviar) iconeEnviar.style.display = 'none';
+    if (iconeMudo) iconeMudo.style.display = 'block';
+    
+    // Desativa fisicamente o input e os botões
+    if (inputChat) { inputChat.disabled = true; inputChat.placeholder = 'Você foi silenciado por este usuário.'; }
+    if (btnEnviar) btnEnviar.disabled = true;
+    if (btnAnexo) btnAnexo.disabled = true;
+    if (btnMic) btnMic.disabled = true;
+  } else {
+    if (chatBottom) chatBottom.classList.remove('silenciado');
+    if (toastSilenciado) toastSilenciado.style.display = 'none';
+    if (iconeEnviar) iconeEnviar.style.display = 'block';
+    if (iconeMudo) iconeMudo.style.display = 'none';
+    
+    // Reativa o input e os botões
+    if (inputChat) { inputChat.disabled = false; inputChat.placeholder = 'Digite uma mensagem...'; }
+    if (btnEnviar) btnEnviar.disabled = false;
+    if (btnAnexo) btnAnexo.disabled = false;
+    if (btnMic) btnMic.disabled = false;
+  }
 
   if (typeof window.carregarConversaSupabase === 'function') {
     try {
@@ -951,7 +970,9 @@ if (estouSilenciado) {
 
   renderChat(usernameReal);
 
-  document.getElementById('chatInput')?.focus();
+  if (inputChat && !estouSilenciado) {
+    inputChat.focus();
+  }
 
   if (window.__statusPollingNex) {
     clearInterval(window.__statusPollingNex);
@@ -1014,6 +1035,21 @@ function voltarChatNex() {
 
   const iconeMudo = document.getElementById('iconeMudoChatNex');
   if (iconeMudo) iconeMudo.style.display = 'none';
+
+  // Reset defensivo
+  const inputChatReset = document.getElementById('chatInput');
+  if (inputChatReset) {
+    inputChatReset.disabled = false;
+    inputChatReset.placeholder = 'Digite uma mensagem...';
+  }
+  ['btnEnviarChatNex', 'btnAnexoNex', 'micBtn'].forEach((id) => {
+    const b = document.getElementById(id);
+    if (b) {
+      b.disabled = false;
+      b.style.pointerEvents = '';
+      b.style.opacity = '';
+    }
+  });
 
   if (typeof window.sincronizarCardsNexSupabase === 'function') {
     setTimeout(() => {
@@ -1106,8 +1142,7 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
     await atualizarBadgeReacaoMidiaNex(msgId, midiaIndex);
   }
 }
-
-  // ============================================
+    // ============================================
 // RENDERIZAR CHAT
 // ============================================
 
@@ -1423,8 +1458,12 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
 
     if (!username) return;
 
-    if (cacheAvataresNex[username]) {
-      el.innerHTML = `<img src="${escapeHTML(cacheAvataresNex[username])}" alt="">`;
+    // CORRIGIDO: Tratamento correto do objeto de cache
+    const cacheItemLoc = cacheAvataresNex[username];
+    const urlCacheLoc = (cacheItemLoc && typeof cacheItemLoc === 'object') ? cacheItemLoc.url : cacheItemLoc;
+
+    if (urlCacheLoc) {
+      el.innerHTML = `<img src="${escapeHTML(urlCacheLoc)}" alt="">`;
       return;
     }
 
@@ -1447,14 +1486,22 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
     });
   });
 }
-    // ============================================
+      // ============================================
 // ENVIAR MENSAGEM
 // ============================================
 
 async function enviarMsgNex() {
+  const conversaAtual = Drops.estado.conversaAtual;
+
+  // CORRIGIDO: Verifica pelo dado real (mais seguro que a classe CSS)
+  if (checarSeFuiSilenciadoNex(conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    return;
+  }
+
   const chatBottom = document.querySelector('.chat-bottom');
   if (chatBottom && chatBottom.classList.contains('silenciado')) {
-    window.mostrarToastNex?.('Você está silenciado nesta conversa.', 'erro');
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
     return;
   }
 
@@ -1488,8 +1535,6 @@ async function enviarMsgNex() {
   ) {
     return;
   }
-
-  const conversaAtual = Drops.estado.conversaAtual;
 
   if (!conversas[conversaAtual]) {
     conversas[conversaAtual] = [];
@@ -1528,6 +1573,7 @@ async function enviarMsgNex() {
   const mensagem = {
     id: gerarIdMensagemNex(),
     timestamp: Date.now(),
+    eu: true, // CORRIGIDO: Define que é minha mensagem
     side: 'right',
     nome: 'Eu',
     avatar: 'EU',
@@ -1856,6 +1902,11 @@ async function reenviarMensagemNex(msgId) {
   const conversaAtual = Drops.estado.conversaAtual;
   if (!conversaAtual) return;
 
+  if (checarSeFuiSilenciadoNex(conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    return;
+  }
+
   const lista = conversas[conversaAtual] || [];
   const msgOriginal = lista.find((m) => m.id === msgId);
 
@@ -1868,6 +1919,7 @@ async function reenviarMensagemNex(msgId) {
   const novaMensagem = {
     ...msgOriginal,
     id: gerarIdMensagemNex(),
+    eu: true, // CORRIGIDO
     timestamp: Date.now(),
     status: 'enviando'
   };
@@ -1991,7 +2043,7 @@ async function reenviarMensagemNex(msgId) {
 }
 
 window.reenviarMensagemNex = reenviarMensagemNex;
-  // ============================================
+    // ============================================
 // CANCELAR RESPOSTA
 // ============================================
 
@@ -2059,7 +2111,8 @@ function abrirMenuMsgNex(botao, msgId) {
 
   const lado = msg.side === 'right' ? 'right' : 'left';
 
-  const nomeExibido = (msg.nome || 'Usuário').replace(/'/g, "\\'");
+  // CORRIGIDO: Prevenção de XSS no atributo inline
+  const nomeExibido = escapeHTML(msg.nome || 'Usuário').replace(/'/g, "\\'").replace(/"/g, '&quot;');
   const idMensagem = msg._supabaseId || msg.id;
 
   menu.innerHTML =
@@ -2230,7 +2283,7 @@ async function confirmarApagarMsgNex() {
 
   msg.deleted = true;
   msg.deletedAt = Date.now();
-  msg.deletedText = msg.eu
+  msg.deletedText = msg.eu || msg.side === 'right'
     ? '🗑️ Mensagem apagada'
     : `⚠️ Mensagem apagada pelo ${nomePessoa}`;
 
@@ -2244,12 +2297,11 @@ async function confirmarApagarMsgNex() {
       lista.splice(index, 1);
       renderChat(Drops.estado.conversaAtual);
     }
-  }, msg.eu ? 5000 : 10000);
+  }, (msg.eu || msg.side === 'right') ? 5000 : 10000);
 
   mensagemParaApagarNex = null;
 }
-
-function abrirModalEdicaoNex(texto) {
+  function abrirModalEdicaoNex(texto) {
   const modal = document.getElementById('editarMsgModalNex');
   const input = document.getElementById('editarMsgInputNex');
   const btn = document.getElementById('btnConcluirEdicaoNex');
@@ -2318,7 +2370,8 @@ function mostrarPreviewRespostaNex() {
   `;
   preview.style.display = 'block';
   const btnCancelar = document.getElementById('btnCancelarRespostaNex');
-  if (btnCancelar) btnCancelar.addEventListener('click', cancelarRespostaNex);
+  // CORRIGIDO: Uso de onclick evita listener duplicado
+  if (btnCancelar) btnCancelar.onclick = cancelarRespostaNex;
   atualizarPreviewStackNex();
 }
 
@@ -2595,6 +2648,6 @@ window.buscarStatusNex = async function (username) {
   }
 };
 
-console.log('💬 05-nex-chat.js completo (navegação de msg corrigida)');
+console.log('💬 05-nex-chat.js completo (silenciamento e bugs corrigidos)');
 
 })();
