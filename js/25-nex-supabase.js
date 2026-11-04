@@ -71,147 +71,147 @@
   }
 
   // ============================================
-// DEBOUNCE — marcar conversa como lida
-// ============================================
-function marcarConversaLidaDebounced(conversaId) {
-  if (!conversaId) return;
-  __debounceLidaNex.pendente = conversaId;
-  if (__debounceLidaNex.timer) clearTimeout(__debounceLidaNex.timer);
-  __debounceLidaNex.timer = setTimeout(() => {
-    const id = __debounceLidaNex.pendente;
-    __debounceLidaNex.pendente = null;
-    __debounceLidaNex.timer = null;
-    if (id) {
-      marcarConversaLidaSupabase(id).catch((err) =>
-        console.warn('Falha ao marcar lida (debounce):', err)
-      );
-    }
-  }, 600);
-}
+  // DEBOUNCE — marcar conversa como lida
+  // ============================================
+  function marcarConversaLidaDebounced(conversaId) {
+    if (!conversaId) return;
+    __debounceLidaNex.pendente = conversaId;
+    if (__debounceLidaNex.timer) clearTimeout(__debounceLidaNex.timer);
+    __debounceLidaNex.timer = setTimeout(() => {
+      const id = __debounceLidaNex.pendente;
+      __debounceLidaNex.pendente = null;
+      __debounceLidaNex.timer = null;
+      if (id) {
+        marcarConversaLidaSupabase(id).catch((err) =>
+          console.warn('Falha ao marcar lida (debounce):', err)
+        );
+      }
+    }, 600);
+  }
 
-// ============================================
-// MARCAR MENSAGENS COMO ENTREGUES
-// ============================================
-async function marcarMensagensComoEntreguesSupabase(conversaId) {
-  if (!window.supabaseClient || !conversaId) return false;
+  // ============================================
+  // MARCAR MENSAGENS COMO ENTREGUES
+  // ============================================
+  async function marcarMensagensComoEntreguesSupabase(conversaId) {
+    if (!window.supabaseClient || !conversaId) return false;
 
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return false;
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return false;
 
-    const { error } = await window.supabaseClient
-      .from('mensagens')
-      .update({ entregue_em: new Date().toISOString() })
-      .eq('conversa_id', conversaId)
-      .neq('autor_id', user.id)
-      .is('entregue_em', null);
+      const { error } = await window.supabaseClient
+        .from('mensagens')
+        .update({ entregue_em: new Date().toISOString() })
+        .eq('conversa_id', conversaId)
+        .neq('autor_id', user.id)
+        .is('entregue_em', null);
 
-    if (error) {
-      console.warn('Erro ao marcar entregue:', error);
+      if (error) {
+        console.warn('Erro ao marcar entregue:', error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.warn('Erro ao marcar entregue:', err);
       return false;
     }
-
-    return true;
-  } catch (err) {
-    console.warn('Erro ao marcar entregue:', err);
-    return false;
   }
-}
 
-// ============================================
-// MARCAR MENSAGENS COMO VISUALIZADAS
-// ============================================
-async function marcarMensagensComoVisualizadasSupabase(conversaId) {
-  if (!window.supabaseClient || !conversaId) return false;
+  // ============================================
+  // MARCAR MENSAGENS COMO VISUALIZADAS
+  // ============================================
+  async function marcarMensagensComoVisualizadasSupabase(conversaId) {
+    if (!window.supabaseClient || !conversaId) return false;
 
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return false;
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return false;
 
-    const agora = new Date().toISOString();
+      const agora = new Date().toISOString();
 
-    const { error } = await window.supabaseClient
-      .from('mensagens')
-      .update({
-        visualizado_em: agora,
-        entregue_em: agora
-      })
-      .eq('conversa_id', conversaId)
-      .neq('autor_id', user.id)
-      .is('visualizado_em', null);
+      const { error } = await window.supabaseClient
+        .from('mensagens')
+        .update({
+          visualizado_em: agora,
+          entregue_em: agora
+        })
+        .eq('conversa_id', conversaId)
+        .neq('autor_id', user.id)
+        .is('visualizado_em', null);
 
-    if (error) {
-      console.warn('Erro ao marcar visualizado:', error);
+      if (error) {
+        console.warn('Erro ao marcar visualizado:', error);
+        return false;
+      }
+
+      const { error: errEntrega } = await window.supabaseClient
+        .from('mensagens')
+        .update({ entregue_em: agora })
+        .eq('conversa_id', conversaId)
+        .neq('autor_id', user.id)
+        .is('entregue_em', null);
+
+      if (errEntrega) {
+        console.warn('Erro ao completar entregue_em:', errEntrega);
+      }
+
+      return true;
+    } catch (err) {
+      console.warn('Erro ao marcar visualizado:', err);
       return false;
     }
-
-    const { error: errEntrega } = await window.supabaseClient
-      .from('mensagens')
-      .update({ entregue_em: agora })
-      .eq('conversa_id', conversaId)
-      .neq('autor_id', user.id)
-      .is('entregue_em', null);
-
-    if (errEntrega) {
-      console.warn('Erro ao completar entregue_em:', errEntrega);
-    }
-
-    return true;
-  } catch (err) {
-    console.warn('Erro ao marcar visualizado:', err);
-    return false;
   }
-}
 
-// ============================================
-// BUSCAR STATUS DAS MENSAGENS (entregue/visualizado)
-// ============================================
-async function buscarStatusMensagensSupabase(conversaId) {
-  if (!window.supabaseClient || !conversaId) return {};
+  // ============================================
+  // BUSCAR STATUS DAS MENSAGENS (entregue/visualizado)
+  // ============================================
+  async function buscarStatusMensagensSupabase(conversaId) {
+    if (!window.supabaseClient || !conversaId) return {};
 
-  try {
-    const { data, error } = await window.supabaseClient
-      .from('mensagens')
-      .select('id, entregue_em, visualizado_em')
-      .eq('conversa_id', conversaId);
+    try {
+      const { data, error } = await window.supabaseClient
+        .from('mensagens')
+        .select('id, entregue_em, visualizado_em')
+        .eq('conversa_id', conversaId);
 
-    if (error) {
-      console.warn('Erro ao buscar status:', error);
+      if (error) {
+        console.warn('Erro ao buscar status:', error);
+        return {};
+      }
+
+      const mapa = {};
+      (data || []).forEach((m) => {
+        mapa[m.id] = {
+          entregue_em: m.entregue_em,
+          visualizado_em: m.visualizado_em
+        };
+      });
+
+      return mapa;
+    } catch (err) {
+      console.warn('Erro ao buscar status:', err);
       return {};
     }
-
-    const mapa = {};
-    (data || []).forEach((m) => {
-      mapa[m.id] = {
-        entregue_em: m.entregue_em,
-        visualizado_em: m.visualizado_em
-      };
-    });
-
-    return mapa;
-  } catch (err) {
-    console.warn('Erro ao buscar status:', err);
-    return {};
   }
-}
 
-// ============================================
-// OBTER OU CRIAR CONVERSA
-// ============================================
-async function obterOuCriarConversaSupabase(usernameOutro) {
-  if (!window.supabaseClient || !usernameOutro) return null;
+  // ============================================
+  // OBTER OU CRIAR CONVERSA
+  // ============================================
+  async function obterOuCriarConversaSupabase(usernameOutro) {
+    if (!window.supabaseClient || !usernameOutro) return null;
 
-  try {
-    // ⚠️ GARANTE QUE A SESSÃO ESTÁ ATIVA NO NAVEGADOR
-    const { data: { session } } = await window.supabaseClient.auth.getSession();
-    if (!session) {
-      await window.supabaseClient.auth.refreshSession();
-    }
+    try {
+      // ⚠️ GARANTE QUE A SESSÃO ESTÁ ATIVA NO NAVEGADOR
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
+      if (!session) {
+        await window.supabaseClient.auth.refreshSession();
+      }
 
-    const { data, error } = await window.supabaseClient
-      .rpc('obter_ou_criar_conversa', {
-        username_outro: normalizarUsernameNex(usernameOutro)
-      });
+      const { data, error } = await window.supabaseClient
+        .rpc('obter_ou_criar_conversa', {
+          username_outro: normalizarUsernameNex(usernameOutro)
+        });
 
       if (error) {
         console.warn('Erro ao obter/criar conversa:', error);
@@ -224,70 +224,69 @@ async function obterOuCriarConversaSupabase(usernameOutro) {
       return null;
     }
   }
-
   // ============================================
-  // LISTAR MINHAS CONVERSAS
-  // ============================================
-  async function listarMinhasConversasSupabase() {
-    if (!window.supabaseClient) return [];
+// LISTAR MINHAS CONVERSAS
+// ============================================
+async function listarMinhasConversasSupabase() {
+  if (!window.supabaseClient) return [];
 
-    try {
-      const { data, error } = await window.supabaseClient
-        .rpc('listar_minhas_conversas');
+  try {
+    const { data, error } = await window.supabaseClient
+      .rpc('listar_minhas_conversas');
 
-      if (error) {
-        console.warn('Erro ao listar conversas:', error);
-        return [];
-      }
-
-      return Array.isArray(data) ? data : [];
-    } catch (err) {
-      console.warn('Erro ao listar conversas:', err);
+    if (error) {
+      console.warn('Erro ao listar conversas:', error);
       return [];
     }
+
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.warn('Erro ao listar conversas:', err);
+    return [];
   }
+}
 
-  // ============================================
-  // BUSCAR MENSAGENS DE UMA CONVERSA
-  // ============================================
-  async function buscarMensagensSupabase(conversaId) {
-    if (!window.supabaseClient || !conversaId) return [];
+// ============================================
+// BUSCAR MENSAGENS DE UMA CONVERSA
+// ============================================
+async function buscarMensagensSupabase(conversaId) {
+  if (!window.supabaseClient || !conversaId) return [];
 
-    try {
-      const { data: mensagens, error } = await window.supabaseClient
-  .from('mensagens')
-  .select('id, autor_id, tipo, texto, media_url, media_meta, resposta_a_id, editada, apagada_para_todos, entregue_em, visualizado_em, criado_em')
-  .eq('conversa_id', conversaId)
-  .order('criado_em', { ascending: true });
+  try {
+    const { data: mensagens, error } = await window.supabaseClient
+      .from('mensagens')
+      .select('id, autor_id, tipo, texto, media_url, media_meta, resposta_a_id, editada, apagada_para_todos, entregue_em, visualizado_em, criado_em')
+      .eq('conversa_id', conversaId)
+      .order('criado_em', { ascending: true });
 
-      if (error) {
-        console.warn('Erro ao buscar mensagens:', error);
-        return [];
-      }
-
-      if (!Array.isArray(mensagens) || !mensagens.length) return [];
-
-      const { data: { user } } = await window.supabaseClient.auth.getUser();
-      if (!user) return mensagens;
-
-      const idsMensagens = mensagens.map((m) => m.id);
-
-      const { data: ocultas } = await window.supabaseClient
-        .from('mensagens_ocultas')
-        .select('mensagem_id')
-        .eq('usuario_id', user.id)
-        .in('mensagem_id', idsMensagens);
-
-      const idsOcultas = new Set((ocultas || []).map((o) => o.mensagem_id));
-
-      return mensagens.filter((m) => !idsOcultas.has(m.id));
-    } catch (err) {
-      console.warn('Erro ao buscar mensagens:', err);
+    if (error) {
+      console.warn('Erro ao buscar mensagens:', error);
       return [];
     }
-  }
 
-  // ============================================
+    if (!Array.isArray(mensagens) || !mensagens.length) return [];
+
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return mensagens;
+
+    const idsMensagens = mensagens.map((m) => m.id);
+
+    const { data: ocultas } = await window.supabaseClient
+      .from('mensagens_ocultas')
+      .select('mensagem_id')
+      .eq('usuario_id', user.id)
+      .in('mensagem_id', idsMensagens);
+
+    const idsOcultas = new Set((ocultas || []).map((o) => o.mensagem_id));
+
+    return mensagens.filter((m) => !idsOcultas.has(m.id));
+  } catch (err) {
+    console.warn('Erro ao buscar mensagens:', err);
+    return [];
+  }
+}
+
+// ============================================
 // ENVIAR MENSAGEM
 // ============================================
 async function enviarMensagemSupabase(payload) {
@@ -409,7 +408,7 @@ async function apagarPraTodosSupabase(mensagemId) {
         // Extrai o caminho do arquivo da URL pública
         const partes = msg.media_url.split('/public/nex/');
         const arquivo = partes.length > 1 ? partes[1].split('?')[0] : null;
-        
+
         if (arquivo) {
           await window.supabaseClient.storage.from('nex').remove([arquivo]);
           console.log('🗑️ Mídia do chat removida do Storage.');
@@ -441,8 +440,7 @@ async function apagarPraTodosSupabase(mensagemId) {
     return false;
   }
 }
-
-// ============================================
+  // ============================================
 // CARREGAR CONVERSA COMPLETA (para o chat)
 // ============================================
 async function carregarConversaSupabase(nome) {
@@ -571,31 +569,31 @@ async function carregarConversaSupabase(nome) {
 
     let statusMsg = 'enviado';
 
-if (ehMinha) {
-  if (m.visualizado_em) statusMsg = 'visualizado';
-  else if (m.entregue_em) statusMsg = 'entregue';
-}
+    if (ehMinha) {
+      if (m.visualizado_em) statusMsg = 'visualizado';
+      else if (m.entregue_em) statusMsg = 'entregue';
+    }
 
-return {
-  id: m.id,
-  timestamp: dataObj.getTime(),
-  side: ehMinha ? 'right' : 'left',
-  nome: ehMinha ? 'Eu' : chave,
-  avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
-  data: dataObj.toLocaleDateString('pt-BR'),
-  hora: dataObj.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }),
-  status: statusMsg,
-  text: m.texto || '',
-  audio: m.tipo === 'audio' ? m.media_url : null,
-  anexo,
-  resposta: respostaCompleta,
-  edited: m.editada === true,
-  deleted: m.apagada_para_todos === true,
-  _supabaseId: m.id
-};
+    return {
+      id: m.id,
+      timestamp: dataObj.getTime(),
+      side: ehMinha ? 'right' : 'left',
+      nome: ehMinha ? 'Eu' : chave,
+      avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
+      data: dataObj.toLocaleDateString('pt-BR'),
+      hora: dataObj.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: statusMsg,
+      text: m.texto || '',
+      audio: m.tipo === 'audio' ? m.media_url : null,
+      anexo,
+      resposta: respostaCompleta,
+      edited: m.editada === true,
+      deleted: m.apagada_para_todos === true,
+      _supabaseId: m.id
+    };
   });
 
   if (typeof window.conversas === 'object') {
@@ -621,7 +619,7 @@ return {
 // SINCRONIZAR CARDS DO NEX
 // ============================================
 
-  // ⚠️ NOVO: Timer para fazer o "Debounce" (agrupar chamadas repetidas)
+// ⚠️ Timer para fazer o "Debounce" (agrupar chamadas repetidas)
 let _timerSyncCardsNex = null;
 
 async function sincronizarCardsNexSupabase() {
@@ -644,148 +642,147 @@ async function sincronizarCardsNexSupabase() {
       try {
         const lista = await listarMinhasConversasSupabase();
 
-    if (!Array.isArray(lista) || !lista.length) {
-  window.__sincronizandoCardsNex = false;
-  resolve();
-  return;
-    }
+        if (!Array.isArray(lista) || !lista.length) {
+          window.__sincronizandoCardsNex = false;
+          resolve();
+          return;
+        }
 
-    const meuUser = normalizarUsernameNex(Drops.usernameAtual || '');
+        const meuUser = normalizarUsernameNex(Drops.usernameAtual || '');
 
-    for (const conv of lista) {
-      const usernameOutro = normalizarUsernameNex(conv.outro_username || '');
-      if (!usernameOutro) continue;
-      if (usernameOutro === meuUser) continue;
+        for (const conv of lista) {
+          const usernameOutro = normalizarUsernameNex(conv.outro_username || '');
+          if (!usernameOutro) continue;
+          if (usernameOutro === meuUser) continue;
 
-      const nomeExibicao =
-        conv.outro_nome || conv.outro_username || 'Usuário';
+          const nomeExibicao =
+            conv.outro_nome || conv.outro_username || 'Usuário';
 
-      // ⚠️ Conversa sempre indexada pelo username real
-      if (
-        typeof window.conversas === 'object' &&
-        !window.conversas[usernameOutro]
-      ) {
-        window.conversas[usernameOutro] = [];
-      }
-
-      // ⚠️ Aponta o nome exibido pra MESMA lista
-      if (
-        typeof window.conversas === 'object' &&
-        nomeExibicao !== usernameOutro
-      ) {
-        window.conversas[nomeExibicao] = window.conversas[usernameOutro];
-      }
-
-      window.__convIdsNex = window.__convIdsNex || {};
-      window.__convIdsNex[usernameOutro] = conv.conversa_id;
-
-      window.__convUsernamesNex = window.__convUsernamesNex || {};
-window.__convUsernamesNex[usernameOutro] = usernameOutro;
-window.__convUsernamesNex[nomeExibicao] = usernameOutro;
-
-window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
-window.__convNomesExibidosNex[usernameOutro] = nomeExibicao;
-
-      const cardExistente =
-        typeof window.obterCardConversaNex === 'function'
-          ? window.obterCardConversaNex(usernameOutro)
-          : document.querySelector(
-              `.nex-chat[data-chat="${usernameOutro}"]`
-            );
-
-      const conectado =
-        typeof window.estaConectadoNoMyDropsNex === 'function'
-          ? window.estaConectadoNoMyDropsNex(usernameOutro)
-          : false;
-
-      if (cardExistente) {
-  // ⚠️ Atualiza preview
-  if (conv.ultima_msg_texto) {
-    const p = cardExistente.querySelector('.nex-info p');
-    if (p) p.textContent = conv.ultima_msg_texto;
-  }
-
-  // ⚠️ Atualiza timestamp + hora do card
-  const tsMsg =
-    conv.ultima_msg_em ||
-    conv.ultima_msg_data ||
-    conv.atualizado_em ||
-    null;
-
-  if (tsMsg) {
-    const tsNum = new Date(tsMsg).getTime();
-
-    if (!isNaN(tsNum)) {
-      cardExistente.dataset.timestamp = String(tsNum);
-
-      const smallEl = cardExistente.querySelector('.nex-right small');
-      if (smallEl && typeof window.formatarHoraCardNex === 'function') {
-        smallEl.textContent = window.formatarHoraCardNex(tsNum);
-      }
-    }
-  }
-
-  // ⚠️ Atualiza nome exibido (caso tenha mudado)
-  const h3 = cardExistente.querySelector('.nex-info h3');
-  if (h3) h3.textContent = nomeExibicao;
-  cardExistente.dataset.nomeExibido = nomeExibicao;
-
-  const naoLida = conv.nao_lida === true;
-        const jaEstaMarcadoNaoLida =
-          cardExistente.classList.contains('unread-chat');
-
-        if (naoLida && !jaEstaMarcadoNaoLida) {
-          cardExistente.classList.add('unread-chat');
-          if (typeof window.moverCardConversaNex === 'function') {
-            window.moverCardConversaNex(
-              cardExistente.dataset.chat || usernameOutro,
-              'nex-naolidas',
-              true
-            );
+          // ⚠️ Conversa sempre indexada pelo username real
+          if (
+            typeof window.conversas === 'object' &&
+            !window.conversas[usernameOutro]
+          ) {
+            window.conversas[usernameOutro] = [];
           }
-        } else if (!naoLida && jaEstaMarcadoNaoLida) {
-          cardExistente.classList.remove('unread-chat');
-          if (typeof window.moverCardConversaNex === 'function') {
-            window.moverCardConversaNex(
-              cardExistente.dataset.chat || usernameOutro,
-              conectado ? 'nex-conectados' : 'nex-geral',
-              true
+
+          // ⚠️ Aponta o nome exibido pra MESMA lista
+          if (
+            typeof window.conversas === 'object' &&
+            nomeExibicao !== usernameOutro
+          ) {
+            window.conversas[nomeExibicao] = window.conversas[usernameOutro];
+          }
+
+          window.__convIdsNex = window.__convIdsNex || {};
+          window.__convIdsNex[usernameOutro] = conv.conversa_id;
+
+          window.__convUsernamesNex = window.__convUsernamesNex || {};
+          window.__convUsernamesNex[usernameOutro] = usernameOutro;
+          window.__convUsernamesNex[nomeExibicao] = usernameOutro;
+
+          window.__convNomesExibidosNex = window.__convNomesExibidosNex || {};
+          window.__convNomesExibidosNex[usernameOutro] = nomeExibicao;
+
+          const cardExistente =
+            typeof window.obterCardConversaNex === 'function'
+              ? window.obterCardConversaNex(usernameOutro)
+              : document.querySelector(
+                  `.nex-chat[data-chat="${usernameOutro}"]`
+                );
+
+          const conectado =
+            typeof window.estaConectadoNoMyDropsNex === 'function'
+              ? window.estaConectadoNoMyDropsNex(usernameOutro)
+              : false;
+
+          if (cardExistente) {
+            // ⚠️ Atualiza preview
+            if (conv.ultima_msg_texto) {
+              const p = cardExistente.querySelector('.nex-info p');
+              if (p) p.textContent = conv.ultima_msg_texto;
+            }
+
+            // ⚠️ Atualiza timestamp + hora do card
+            const tsMsg =
+              conv.ultima_msg_em ||
+              conv.ultima_msg_data ||
+              conv.atualizado_em ||
+              null;
+
+            if (tsMsg) {
+              const tsNum = new Date(tsMsg).getTime();
+
+              if (!isNaN(tsNum)) {
+                cardExistente.dataset.timestamp = String(tsNum);
+
+                const smallEl = cardExistente.querySelector('.nex-right small');
+                if (smallEl && typeof window.formatarHoraCardNex === 'function') {
+                  smallEl.textContent = window.formatarHoraCardNex(tsNum);
+                }
+              }
+            }
+
+            // ⚠️ Atualiza nome exibido (caso tenha mudado)
+            const h3 = cardExistente.querySelector('.nex-info h3');
+            if (h3) h3.textContent = nomeExibicao;
+            cardExistente.dataset.nomeExibido = nomeExibicao;
+
+            const naoLida = conv.nao_lida === true;
+            const jaEstaMarcadoNaoLida =
+              cardExistente.classList.contains('unread-chat');
+
+            if (naoLida && !jaEstaMarcadoNaoLida) {
+              cardExistente.classList.add('unread-chat');
+              if (typeof window.moverCardConversaNex === 'function') {
+                window.moverCardConversaNex(
+                  cardExistente.dataset.chat || usernameOutro,
+                  'nex-naolidas',
+                  true
+                );
+              }
+            } else if (!naoLida && jaEstaMarcadoNaoLida) {
+              cardExistente.classList.remove('unread-chat');
+              if (typeof window.moverCardConversaNex === 'function') {
+                window.moverCardConversaNex(
+                  cardExistente.dataset.chat || usernameOutro,
+                  conectado ? 'nex-conectados' : 'nex-geral',
+                  true
+                );
+              }
+            }
+
+            continue;
+          }
+
+          if (typeof window.criarCardConversaNex === 'function') {
+            const preview = conv.ultima_msg_texto || 'Nova conversa';
+            const naoLida = conv.nao_lida === true;
+            const tipoCard = naoLida ? 'recebida' : 'enviada';
+
+            // ⚠️ Passa timestamp real da última mensagem (pra ordenar)
+            const tsMsg =
+              conv.ultima_msg_em ||
+              conv.ultima_msg_data ||
+              conv.atualizado_em ||
+              null;
+
+            const timestampFinal = tsMsg
+              ? new Date(tsMsg).getTime()
+              : Date.now();
+
+            window.criarCardConversaNex(
+              nomeExibicao,
+              conectado,
+              {
+                text: preview,
+                timestamp: timestampFinal
+              },
+              tipoCard
             );
           }
         }
-
-        continue;
-      }
-
-if (typeof window.criarCardConversaNex === 'function') {
-  const preview = conv.ultima_msg_texto || 'Nova conversa';
-  const naoLida = conv.nao_lida === true;
-  const tipoCard = naoLida ? 'recebida' : 'enviada';
-
-  // ⚠️ Passa timestamp real da última mensagem (pra ordenar)
-  const tsMsg =
-    conv.ultima_msg_em ||
-    conv.ultima_msg_data ||
-    conv.atualizado_em ||
-    null;
-
-  const timestampFinal = tsMsg
-    ? new Date(tsMsg).getTime()
-    : Date.now();
-
-  window.criarCardConversaNex(
-    nomeExibicao,
-    conectado,
-    {
-      text: preview,
-      timestamp: timestampFinal
-    },
-    tipoCard
-  );
-}
-      
-    }
-        } catch (err) {
+      } catch (err) {
         console.warn('Erro ao sincronizar cards:', err);
       } finally {
         window.__sincronizandoCardsNex = false;
@@ -794,8 +791,7 @@ if (typeof window.criarCardConversaNex === 'function') {
     }, 2000); // ⚠️ Espera 2 segundos antes de executar
   });
 }
-
-// ============================================
+  // ============================================
 // REALTIME — escuta mensagens novas
 // ============================================
 let canalRealtimeNex = null;
@@ -850,18 +846,18 @@ async function iniciarRealtimeNexSupabase() {
           table: 'mensagens'
         },
         (payload) => {
-  const msg = payload.new;
-  if (!msg) return;
+          const msg = payload.new;
+          if (!msg) return;
 
-  // ⚠️ Se é MINHA mensagem e mudou status (entregue/visto),
-  //    atualiza o objeto local pra refletir ✓✓ e 👁️
-  if (msg.autor_id === user.id) {
-    processarStatusMinhaMensagemNex(msg);
-    return;
-  }
+          // ⚠️ Se é MINHA mensagem e mudou status (entregue/visto),
+          //    atualiza o objeto local pra refletir ✓✓ e 👁️
+          if (msg.autor_id === user.id) {
+            processarStatusMinhaMensagemNex(msg);
+            return;
+          }
 
-  console.log('✏️ Mensagem atualizada via Realtime:', msg);
-  processarAtualizacaoMensagemNex(msg);
+          console.log('✏️ Mensagem atualizada via Realtime:', msg);
+          processarAtualizacaoMensagemNex(msg);
         }
       )
       .subscribe((status) => {
@@ -935,7 +931,7 @@ document.addEventListener('visibilitychange', () => {
   // ⚠️ SYNC DE SEGURANÇA: Puxa o que foi perdido enquanto estava fora
   console.log('🔄 Sincronizando dados após voltar ao foco...');
   sincronizarCardsNexSupabase().catch(() => {});
-  
+
   if (Drops.estado.conversaAtual) {
     carregarConversaSupabase(Drops.estado.conversaAtual).catch(() => {});
   }
@@ -949,13 +945,12 @@ window.addEventListener('online', () => {
   // ⚠️ SYNC DE SEGURANÇA: Puxa o que foi perdido enquanto estava offline
   console.log('🔄 Sincronizando dados após retorno da rede...');
   sincronizarCardsNexSupabase().catch(() => {});
-  
+
   if (Drops.estado.conversaAtual) {
     carregarConversaSupabase(Drops.estado.conversaAtual).catch(() => {});
   }
 });
-
-// ============================================
+  // ============================================
 // ATUALIZA STATUS DE MENSAGEM MINHA (entregue/visto)
 // ============================================
 function processarStatusMinhaMensagemNex(msg) {
@@ -1107,13 +1102,13 @@ async function processarMensagemRealtimeNex(msg) {
 
   if (!chaveContato) return;
 
-// ⚠️ Marca as mensagens dessa conversa como ENTREGUES
-marcarMensagensComoEntreguesSupabase(msg.conversa_id).catch((err) =>
-  console.warn('Falha ao marcar entregues (realtime):', err)
-);
+  // ⚠️ Marca as mensagens dessa conversa como ENTREGUES
+  marcarMensagensComoEntreguesSupabase(msg.conversa_id).catch((err) =>
+    console.warn('Falha ao marcar entregues (realtime):', err)
+  );
 
-// ⚠️ Conversa carregando? Guarda no buffer
-if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
+  // ⚠️ Conversa carregando? Guarda no buffer
+  if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
     if (!__bufferRealtimeNex.has(msg.conversa_id)) {
       __bufferRealtimeNex.set(msg.conversa_id, []);
     }
@@ -1360,31 +1355,31 @@ if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
 
             let statusMsgR = 'enviado';
 
-if (ehMinha) {
-  if (m.visualizado_em) statusMsgR = 'visualizado';
-  else if (m.entregue_em) statusMsgR = 'entregue';
-}
+            if (ehMinha) {
+              if (m.visualizado_em) statusMsgR = 'visualizado';
+              else if (m.entregue_em) statusMsgR = 'entregue';
+            }
 
-return {
-  id: m.id,
-  timestamp: d.getTime(),
-  side: ehMinha ? 'right' : 'left',
-  nome: ehMinha ? 'Eu' : chaveContato,
-  avatar: ehMinha ? 'EU' : (chaveContato || '?').charAt(0).toUpperCase(),
-  data: d.toLocaleDateString('pt-BR'),
-  hora: d.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  }),
-  status: statusMsgR,
-  text: m.texto || '',
-  audio: m.tipo === 'audio' ? m.media_url : null,
-  anexo: anexoRecarga,
-  resposta: respostaRecarga,
-  edited: m.editada === true,
-  deleted: m.apagada_para_todos === true,
-  _supabaseId: m.id
-};
+            return {
+              id: m.id,
+              timestamp: d.getTime(),
+              side: ehMinha ? 'right' : 'left',
+              nome: ehMinha ? 'Eu' : chaveContato,
+              avatar: ehMinha ? 'EU' : (chaveContato || '?').charAt(0).toUpperCase(),
+              data: d.toLocaleDateString('pt-BR'),
+              hora: d.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              status: statusMsgR,
+              text: m.texto || '',
+              audio: m.tipo === 'audio' ? m.media_url : null,
+              anexo: anexoRecarga,
+              resposta: respostaRecarga,
+              edited: m.editada === true,
+              deleted: m.apagada_para_todos === true,
+              _supabaseId: m.id
+            };
           });
 
           if (resolverChaveNex(Drops.estado.conversaAtual) === chaveContato) {
@@ -1399,8 +1394,7 @@ return {
       }
     }
   }
-
-  // ⚠️ Insere na chave única
+    // ⚠️ Insere na chave única
   window.conversas[chaveContato].push(nova);
 
   // ⚠️ Chat aberto = compara pelo username real
@@ -1414,27 +1408,27 @@ return {
     chatEstaVisivel && chaveAberta === chaveContato;
 
   if (chatDaPessoaEstaAberto) {
-  if (typeof window.renderChat === 'function') {
-    window.renderChat(chaveContato);
-  }
+    if (typeof window.renderChat === 'function') {
+      window.renderChat(chaveContato);
+    }
 
-  // ⚠️ FEEDBACK: vibra + toca (ela te respondeu — sem notificação, sem badge)
-  if (typeof window.feedbackNex?.msgRecebida === 'function') {
-    window.feedbackNex.msgRecebida({ contarBadge: false });
-  }
+    // ⚠️ FEEDBACK: vibra + toca (ela te respondeu — sem notificação, sem badge)
+    if (typeof window.feedbackNex?.msgRecebida === 'function') {
+      window.feedbackNex.msgRecebida({ contarBadge: false });
+    }
 
-  const convIdAberto =
-    window.__convIdsNex && window.__convIdsNex[chaveContato];
-  if (convIdAberto) {
-    marcarConversaLidaDebounced(convIdAberto);
+    const convIdAberto =
+      window.__convIdsNex && window.__convIdsNex[chaveContato];
+    if (convIdAberto) {
+      marcarConversaLidaDebounced(convIdAberto);
 
-    // ⚠️ Se o chat está aberto e chegou mensagem nova,
-    //    marca as mensagens dessa conversa como VISUALIZADAS
-    marcarMensagensComoVisualizadasSupabase(convIdAberto).catch((err) =>
-      console.warn('Falha ao marcar visualizadas (realtime):', err)
-    );
-  }
-} else {
+      // ⚠️ Se o chat está aberto e chegou mensagem nova,
+      //    marca as mensagens dessa conversa como VISUALIZADAS
+      marcarMensagensComoVisualizadasSupabase(convIdAberto).catch((err) =>
+        console.warn('Falha ao marcar visualizadas (realtime):', err)
+      );
+    }
+  } else {
     if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
       window.marcarConversaComoNaoLidaNex(chaveContato);
     }
@@ -1462,7 +1456,7 @@ return {
   }
 }
 
-  // ============================================
+// ============================================
 // UPLOAD DE MÍDIA DO NEX
 // ============================================
 async function uploadMidiaNexSupabase(arquivo, tipo) {
@@ -1473,7 +1467,7 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
     if (arquivo.type.startsWith('image/') && window.comprimirImagemNex) {
       arquivo = await window.comprimirImagemNex(arquivo);
     }
-    
+
     // ⚠️ Para vídeo, se tiver o FFmpeg disponível, comprime; senão, envia original
     if (arquivo.type.startsWith('video/') && window.FFmpeg) {
       try {
@@ -1482,13 +1476,13 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
         await ffmpeg.load();
         ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(arquivo));
         await ffmpeg.run(
-  '-i', 'input.mp4',
-  '-vf', 'scale=-2:720',
-  '-b:v', '1000k',
-  '-c:a', 'aac',
-  '-b:a', '128k',
-  'output.mp4'
-);
+          '-i', 'input.mp4',
+          '-vf', 'scale=-2:720',
+          '-b:v', '1000k',
+          '-c:a', 'aac',
+          '-b:a', '128k',
+          'output.mp4'
+        );
         const data = ffmpeg.FS('readFile', 'output.mp4');
         arquivo = new Blob([data.buffer], { type: 'video/mp4' });
       } catch (err) {
@@ -1638,13 +1632,13 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
     }
 
     const { data: uploadData, error: uploadError } =
-  await window.supabaseClient.storage
-    .from('nex')
-    .upload(nomeArquivo, blob, {
-      contentType: contentType,
-      upsert: false,
-      cacheControl: '31536000'
-    });
+      await window.supabaseClient.storage
+        .from('nex')
+        .upload(nomeArquivo, blob, {
+          contentType: contentType,
+          upsert: false,
+          cacheControl: '31536000'
+        });
 
     if (uploadError) {
       console.error('❌ Erro no upload do NEX:', {
@@ -1669,13 +1663,13 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
     }
 
     let configTransform = undefined;
-if (extensao === 'jpg' || extensao === 'jpeg' || extensao === 'png' || extensao === 'webp') {
-  configTransform = { width: 400, quality: 70 };
-}
+    if (extensao === 'jpg' || extensao === 'jpeg' || extensao === 'png' || extensao === 'webp') {
+      configTransform = { width: 400, quality: 70 };
+    }
 
-const { data: urlData } = window.supabaseClient.storage
-  .from('nex')
-  .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
+    const { data: urlData } = window.supabaseClient.storage
+      .from('nex')
+      .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
 
     console.log('☁️ Upload NEX OK:', urlData.publicUrl);
     return urlData.publicUrl;
@@ -1763,274 +1757,273 @@ async function pedirPermissaoNotificacaoNex() {
     return false;
   }
 }
+    // ============================================
+  // SILENCIADOS
+  // ============================================
+  async function carregarSilenciadosSupabase() {
+    if (!window.supabaseClient) return;
 
- // ============================================
-// SILENCIADOS
-// ============================================
-async function carregarSilenciadosSupabase() {
-  if (!window.supabaseClient) return;
-  
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return;
 
-    // 1. Quem EU silenciei
-    const { data: euSilenciei } = await window.supabaseClient
-      .from('silenciados')
-      .select('silenciado_username')
-      .eq('usuario_id', user.id);
+      // ⚠️ SEM JOIN embutido. 3 selects simples.
+      // Funciona mesmo SEM foreign keys declaradas na tabela.
 
-    // 2. Quem ME silenciou
-    const { data: meSilenciou } = await window.supabaseClient
-      .from('silenciados')
-      .select('usuario_username')
-      .eq('silenciado_id', user.id);
-
-    // Como a tabela não tem os usernames ainda (vamos salvar só o ID),
-    // precisamos buscar os perfis para cruzar os dados.
-    // Para simplificar e economizar logs, vamos buscar todos os silenciados de uma vez.
-    
-    const { data: todosSilenciados } = await window.supabaseClient
-      .from('silenciados')
-      .select(`
-        usuario_id,
-        silenciado_id,
-        usuario:usuario_id(username),
-        silenciado:silenciado_id(username)
-      `)
-      .or(`usuario_id.eq.${user.id},silenciado_id.eq.${user.id}`);
-
-    if (!todosSilenciados) return;
-
-    const quemEuSilenciei = new Set();
-    const quemMeSilenciou = new Set();
-
-    todosSilenciados.forEach(s => {
-  if (s.usuario_id === user.id) {
-    if (s.silenciado?.username) {
-      quemEuSilenciei.add(
-        String(s.silenciado.username).toLowerCase().trim()
-      );
-    }
-  }
-  if (s.silenciado_id === user.id) {
-    if (s.usuario?.username) {
-      quemMeSilenciou.add(
-        String(s.usuario.username).toLowerCase().trim()
-      );
-    }
-  }
-});
-
-    window.__euSilencieiNex = quemEuSilenciei;
-    window.__quemMeSilenciouNex = quemMeSilenciou;
-
-    console.log('🔇 Silenciados carregados:', {
-      euSilenciei: quemEuSilenciei.size,
-      meSilenciou: quemMeSilenciou.size
-    });
-
-  } catch (err) {
-    console.warn('Erro ao carregar silenciados:', err);
-  }
-}
-
-async function alternarSilenciarSupabase(username, acao) {
-  if (!window.supabaseClient || !username) return false;
-
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return false;
-
-    // Busca o ID do perfil pelo username
-    const { data: perfil } = await window.supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle();
-
-    if (!perfil?.id) return false;
-
-    if (acao === 'silenciar') {
-      const { error } = await window.supabaseClient
+      // 1. IDs de quem EU silenciei
+      const { data: euSilenciei } = await window.supabaseClient
         .from('silenciados')
-        .insert({ usuario_id: user.id, silenciado_id: perfil.id });
+        .select('silenciado_id')
+        .eq('usuario_id', user.id);
 
-      if (error && error.code !== '23505') { // Ignora se já existe
-        console.warn('Erro ao silenciar:', error);
-        return false;
-      }
-      return true;
-    } else if (acao === 'dessilenciar') {
-      const { error } = await window.supabaseClient
+      // 2. IDs de quem ME silenciou
+      const { data: meSilenciou } = await window.supabaseClient
         .from('silenciados')
-        .delete()
-        .eq('usuario_id', user.id)
-        .eq('silenciado_id', perfil.id);
+        .select('usuario_id')
+        .eq('silenciado_id', user.id);
 
-      if (error) {
-        console.warn('Erro ao dessilenciar:', error);
-        return false;
+      const idsEuSilenciei = (euSilenciei || []).map(s => s.silenciado_id);
+      const idsMeSilenciou = (meSilenciou || []).map(s => s.usuario_id);
+      const todosIds = [...new Set([...idsEuSilenciei, ...idsMeSilenciou])];
+
+      const quemEuSilenciei = new Set();
+      const quemMeSilenciou = new Set();
+
+      if (todosIds.length) {
+        // 3. Busca usernames de todos de uma vez
+        const { data: perfis } = await window.supabaseClient
+          .from('profiles')
+          .select('id, username')
+          .in('id', todosIds);
+
+        const mapa = {};
+        (perfis || []).forEach(p => {
+          mapa[p.id] = String(p.username || '')
+            .replace(/^@/, '').toLowerCase().trim();
+        });
+
+        idsEuSilenciei.forEach(id => {
+          const u = mapa[id];
+          if (u) quemEuSilenciei.add(u);
+        });
+
+        idsMeSilenciou.forEach(id => {
+          const u = mapa[id];
+          if (u) quemMeSilenciou.add(u);
+        });
       }
-      return true;
+
+      window.__euSilencieiNex = quemEuSilenciei;
+      window.__quemMeSilenciouNex = quemMeSilenciou;
+
+      console.log('🔇 Silenciados carregados:', {
+        euSilenciei: quemEuSilenciei.size,
+        meSilenciou: quemMeSilenciou.size
+      });
+
+      // ⚠️ Se o chat está aberto, re-aplica o bloqueio visual AGORA
+      if (typeof window.revalidarSilenciamentoNex === 'function') {
+        window.revalidarSilenciamentoNex();
+      }
+
+    } catch (err) {
+      console.warn('Erro ao carregar silenciados:', err);
     }
-
-  } catch (err) {
-    console.warn('Erro ao alternar silenciar:', err);
-    return false;
   }
-}
 
-// ============================================
-// REALTIME: SILENCIADOS
-// ============================================
-let canalRealtimeSilenciadosNex = null;
+  async function alternarSilenciarSupabase(username, acao) {
+    if (!window.supabaseClient || !username) return false;
 
-async function iniciarRealtimeSilenciadosNex() {
-  if (!window.supabaseClient) return;
-  if (canalRealtimeSilenciadosNex) return;
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return false;
 
-  try {
-    const { data: { user } } = await window.supabaseClient.auth.getUser();
-    if (!user) return;
+      // Busca o ID do perfil pelo username
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
 
-    console.log('📡 Iniciando Realtime de silenciados...');
+      if (!perfil?.id) return false;
 
-    canalRealtimeSilenciadosNex = window.supabaseClient
-      .channel('nex-silenciados-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'silenciados'
-        },
-        async (payload) => {
-          const registro = payload.new || payload.old;
-          if (!registro) return;
+      if (acao === 'silenciar') {
+        const { error } = await window.supabaseClient
+          .from('silenciados')
+          .insert({ usuario_id: user.id, silenciado_id: perfil.id });
 
-          const ehMeuSilenciamento = registro.usuario_id === user.id;
-          const fuiSilenciado = registro.silenciado_id === user.id;
+        if (error && error.code !== '23505') { // Ignora se já existe
+          console.warn('Erro ao silenciar:', error);
+          return false;
+        }
+        return true;
+      } else if (acao === 'dessilenciar') {
+        const { error } = await window.supabaseClient
+          .from('silenciados')
+          .delete()
+          .eq('usuario_id', user.id)
+          .eq('silenciado_id', perfil.id);
 
-          if (!ehMeuSilenciamento && !fuiSilenciado) return;
+        if (error) {
+          console.warn('Erro ao dessilenciar:', error);
+          return false;
+        }
+        return true;
+      }
 
-          // Precisamos do username da outra pessoa para atualizar a lista
-          const outroId = ehMeuSilenciamento ? registro.silenciado_id : registro.usuario_id;
-          
-          if (!outroId) return;
+    } catch (err) {
+      console.warn('Erro ao alternar silenciar:', err);
+      return false;
+    }
+  }
 
-          // Busca o username da outra pessoa (rápido, só 1 linha)
-          const { data: perfil } = await window.supabaseClient
-            .from('profiles')
-            .select('username')
-            .eq('id', outroId)
-            .maybeSingle();
+  // ============================================
+  // REALTIME: SILENCIADOS
+  // ============================================
+  let canalRealtimeSilenciadosNex = null;
 
-          if (!perfil?.username) return;
-          const username = String(perfil.username).toLowerCase().trim();
+  async function iniciarRealtimeSilenciadosNex() {
+    if (!window.supabaseClient) return;
+    if (canalRealtimeSilenciadosNex) return;
 
-          // Garante que os Sets existam
-          if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
-          if (!window.__quemMeSilenciouNex) window.__quemMeSilenciouNex = new Set();
+    try {
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+      if (!user) return;
 
-          // Atualiza as listas na memória
-          if (ehMeuSilenciamento) {
-            if (payload.eventType === 'INSERT') {
-              window.__euSilencieiNex.add(username);
-            } else if (payload.eventType === 'DELETE') {
-              window.__euSilencieiNex.delete(username);
+      console.log('📡 Iniciando Realtime de silenciados...');
+
+      canalRealtimeSilenciadosNex = window.supabaseClient
+        .channel('nex-silenciados-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'silenciados'
+          },
+          async (payload) => {
+            const registro = payload.new || payload.old;
+            if (!registro) return;
+
+            const ehMeuSilenciamento = registro.usuario_id === user.id;
+            const fuiSilenciado = registro.silenciado_id === user.id;
+
+            if (!ehMeuSilenciamento && !fuiSilenciado) return;
+
+            // Precisamos do username da outra pessoa para atualizar a lista
+            const outroId = ehMeuSilenciamento ? registro.silenciado_id : registro.usuario_id;
+
+            if (!outroId) return;
+
+            // Busca o username da outra pessoa (rápido, só 1 linha)
+            const { data: perfil } = await window.supabaseClient
+              .from('profiles')
+              .select('username')
+              .eq('id', outroId)
+              .maybeSingle();
+
+            if (!perfil?.username) return;
+            const username = String(perfil.username).toLowerCase().trim();
+
+            // Garante que os Sets existam
+            if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
+            if (!window.__quemMeSilenciouNex) window.__quemMeSilenciouNex = new Set();
+
+            // Atualiza as listas na memória
+            if (ehMeuSilenciamento) {
+              if (payload.eventType === 'INSERT') {
+                window.__euSilencieiNex.add(username);
+              } else if (payload.eventType === 'DELETE') {
+                window.__euSilencieiNex.delete(username);
+              }
             }
-          }
 
-          if (fuiSilenciado) {
-            if (payload.eventType === 'INSERT') {
-              window.__quemMeSilenciouNex.add(username);
-              
-              // Se eu estiver no chat com essa pessoa agora, bloqueia na hora
-              if (Drops.estado.conversaAtual === username) {
-                if (typeof window.abrirChatNex === 'function') {
-                  // Força reavaliar a interface
-                  const card = typeof window.obterCardConversaNex === 'function' ? window.obterCardConversaNex(username) : null;
-                  if (card) window.abrirChatNex(card);
+            if (fuiSilenciado) {
+              if (payload.eventType === 'INSERT') {
+                window.__quemMeSilenciouNex.add(username);
+
+                // ⚠️ CORRIGIDO: se eu estiver no chat com essa pessoa agora,
+                //    aplica o bloqueio visual via revalidarSilenciamentoNex
+                //    (leve, não recarrega o chat inteiro, mantém scroll)
+                if (Drops.estado.conversaAtual === username) {
+                  if (typeof window.revalidarSilenciamentoNex === 'function') {
+                    window.revalidarSilenciamentoNex();
+                  }
+                }
+              } else if (payload.eventType === 'DELETE') {
+                window.__quemMeSilenciouNex.delete(username);
+
+                // ⚠️ CORRIGIDO: se eu estiver no chat, destrava na hora
+                //    via revalidarSilenciamentoNex (que reseta TUDO:
+                //    display, disabled, placeholder, classes)
+                if (Drops.estado.conversaAtual === username) {
+                  if (typeof window.revalidarSilenciamentoNex === 'function') {
+                    window.revalidarSilenciamentoNex();
+                  }
                 }
               }
-            } else if (payload.eventType === 'DELETE') {
-              window.__quemMeSilenciouNex.delete(username);
-              
-              // Se eu estiver no chat, desbloqueia na hora
-              if (Drops.estado.conversaAtual === username) {
-                const chatBottom = document.querySelector('.chat-bottom');
-                if (chatBottom) chatBottom.classList.remove('silenciado');
-                const toast = document.getElementById('toastSilenciadoNex');
-                if (toast) toast.style.display = 'none';
-                const iconeEnviar = document.getElementById('iconeEnviarChatNex');
-                if (iconeEnviar) iconeEnviar.style.display = 'block';
-                const iconeMudo = document.getElementById('iconeMudoChatNex');
-                if (iconeMudo) iconeMudo.style.display = 'none';
-              }
             }
+
+            console.log(`🔇 Realtime silenciados: ${username} (${payload.eventType})`);
           }
+        )
+        .subscribe((status) => {
+          console.log('📡 Realtime silenciados status:', status);
+        });
 
-          console.log(`🔇 Realtime silenciados: ${username} (${payload.eventType})`);
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Realtime silenciados status:', status);
-      });
-
-  } catch (err) {
-    console.warn('Erro ao iniciar Realtime de silenciados:', err);
+    } catch (err) {
+      console.warn('Erro ao iniciar Realtime de silenciados:', err);
+    }
   }
-}
 
-// ============================================
-// REALTIME: PRESENÇA (ONLINE/OFFLINE)
-// ============================================
-let canalRealtimePresencaNex = null;
+  // ============================================
+  // REALTIME: PRESENÇA (ONLINE/OFFLINE)
+  // ============================================
+  let canalRealtimePresencaNex = null;
 
-async function iniciarRealtimePresencaNex() {
-  if (!window.supabaseClient) return;
-  if (canalRealtimePresencaNex && canalRealtimePresencaNex.state === 'joined') return;
+  async function iniciarRealtimePresencaNex() {
+    if (!window.supabaseClient) return;
+    if (canalRealtimePresencaNex && canalRealtimePresencaNex.state === 'joined') return;
 
-  try {
-    console.log('📡 Iniciando Realtime de presença...');
+    try {
+      console.log('📡 Iniciando Realtime de presença...');
 
-    canalRealtimePresencaNex = window.supabaseClient
-      .channel('nex-presenca-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles'
-        },
-        (payload) => {
-          const perfil = payload.new;
-          if (!perfil || !perfil.username) return;
+      canalRealtimePresencaNex = window.supabaseClient
+        .channel('nex-presenca-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles'
+          },
+          (payload) => {
+            const perfil = payload.new;
+            if (!perfil || !perfil.username) return;
 
-          // Calcula se está online com base na ultima_atividade
-          const ultima = perfil.ultima_atividade;
-          const LIMITE_ONLINE_MS = 30 * 1000;
-          const online = ultima && (Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
+            // Calcula se está online com base na ultima_atividade
+            const ultima = perfil.ultima_atividade;
+            const LIMITE_ONLINE_MS = 30 * 1000;
+            const online = ultima && (Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
 
-          // Avisa as telas (Chat e lista de Cards) que a presença mudou
-          document.dispatchEvent(new CustomEvent('drops_presenca_atualizada', {
-            detail: { username: perfil.username.toLowerCase(), online }
-          }));
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Realtime presença status:', status);
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setTimeout(iniciarRealtimePresencaNex, 5000);
-        }
-      });
+            // Avisa as telas (Chat e lista de Cards) que a presença mudou
+            document.dispatchEvent(new CustomEvent('drops_presenca_atualizada', {
+              detail: { username: perfil.username.toLowerCase(), online }
+            }));
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 Realtime presença status:', status);
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setTimeout(iniciarRealtimePresencaNex, 5000);
+          }
+        });
 
-  } catch (err) {
-    console.warn('Erro ao iniciar Realtime de presença:', err);
-    setTimeout(iniciarRealtimePresencaNex, 5000);
+    } catch (err) {
+      console.warn('Erro ao iniciar Realtime de presença:', err);
+      setTimeout(iniciarRealtimePresencaNex, 5000);
+    }
   }
-}
 
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -2042,9 +2035,9 @@ async function iniciarRealtimePresencaNex() {
   window.iniciarRealtimeSilenciadosNex = iniciarRealtimeSilenciadosNex;
   window.marcarConversaLidaSupabase = marcarConversaLidaSupabase;
   window.marcarConversaLidaDebounced = marcarConversaLidaDebounced;
-window.marcarMensagensComoEntreguesSupabase = marcarMensagensComoEntreguesSupabase;
-window.marcarMensagensComoVisualizadasSupabase = marcarMensagensComoVisualizadasSupabase;
-window.buscarStatusMensagensSupabase = buscarStatusMensagensSupabase;
+  window.marcarMensagensComoEntreguesSupabase = marcarMensagensComoEntreguesSupabase;
+  window.marcarMensagensComoVisualizadasSupabase = marcarMensagensComoVisualizadasSupabase;
+  window.buscarStatusMensagensSupabase = buscarStatusMensagensSupabase;
   window.obterOuCriarConversaSupabase = obterOuCriarConversaSupabase;
   window.listarMinhasConversasSupabase = listarMinhasConversasSupabase;
   window.buscarMensagensSupabase = buscarMensagensSupabase;

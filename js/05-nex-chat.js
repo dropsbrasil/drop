@@ -11,8 +11,9 @@
   'use strict';
 
   // ============================================
-  // FUNÇÃO UTILITÁRIA DE SILENCIAMENTO (NOVO)
+  // FUNÇÃO UTILITÁRIA DE SILENCIAMENTO
   // ============================================
+
   function checarSeFuiSilenciadoNex(idOuUser) {
     if (!idOuUser) return false;
     const lista = window.__quemMeSilenciouNex;
@@ -33,6 +34,71 @@
 
     return false;
   }
+
+  // ============================================
+  // BLOQUEIO VISUAL DE SILENCIAMENTO
+  // ============================================
+
+  function aplicarSilenciamentoChatNex(usernameAberto) {
+    const silenciado = checarSeFuiSilenciadoNex(usernameAberto);
+
+    const chatBottom = document.querySelector('.chat-bottom');
+    const toastSilenciado = document.getElementById('toastSilenciadoNex');
+    const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+    const iconeMudo = document.getElementById('iconeMudoChatNex');
+    const inputChat = document.getElementById('chatInput');
+    const btnEnviar = document.getElementById('btnEnviarChatNex');
+    const btnAnexo = document.getElementById('btnAnexoNex');
+    const btnMic = document.getElementById('micBtn');
+
+    if (silenciado) {
+      // ⚠️ Esconde o bloco inferior INTEIRO (input + botões)
+      if (chatBottom) {
+        chatBottom.classList.add('silenciado');
+        chatBottom.style.display = 'none';
+      }
+
+      // Mostra o card de "silenciado"
+      if (toastSilenciado) toastSilenciado.style.display = 'flex';
+
+      if (iconeEnviar) iconeEnviar.style.display = 'none';
+      if (iconeMudo) iconeMudo.style.display = 'block';
+
+      // Trava por segurança (defesa em profundidade)
+      if (inputChat) inputChat.disabled = true;
+      if (btnEnviar) btnEnviar.disabled = true;
+      if (btnAnexo) btnAnexo.disabled = true;
+      if (btnMic) btnMic.disabled = true;
+
+    } else {
+      // Restaura o bloco inferior normal
+      if (chatBottom) {
+        chatBottom.classList.remove('silenciado');
+        chatBottom.style.display = '';
+      }
+
+      if (toastSilenciado) toastSilenciado.style.display = 'none';
+
+      if (iconeEnviar) iconeEnviar.style.display = 'block';
+      if (iconeMudo) iconeMudo.style.display = 'none';
+
+      if (inputChat) {
+        inputChat.disabled = false;
+        inputChat.placeholder = 'Digite uma mensagem...';
+      }
+      if (btnEnviar) btnEnviar.disabled = false;
+      if (btnAnexo) btnAnexo.disabled = false;
+      if (btnMic) btnMic.disabled = false;
+    }
+  }
+
+  function revalidarSilenciamentoNex() {
+    const conversaAtual = Drops.estado.conversaAtual;
+    if (!conversaAtual) return;
+    aplicarSilenciamentoChatNex(conversaAtual);
+  }
+
+  window.revalidarSilenciamentoNex = revalidarSilenciamentoNex;
 
   // ============================================
   // SKELETON DE CARREGAMENTO DO CHAT
@@ -96,7 +162,8 @@
 
   const cacheAvataresNex = {};
   const avataresEmBuscaNex = new Set();
-    // ============================================
+
+  // ============================================
   // MENU DO CHAT (3 pontinhos)
   // ============================================
 
@@ -113,7 +180,28 @@
     }
 
     const usernameAtual = Drops.estado.conversaAtual;
-    const silenciado = estaSilenciadoNex(usernameAtual);
+
+    // ⚠️ euSilenciei = EU silenciei ELE (preferências de notificação)
+    // ⚠️ fuiSilenciado = ELE me silenciou (bloqueio de comunicação)
+    const euSilenciei = estaSilenciadoNex(usernameAtual);
+    const fuiSilenciado = checarSeFuiSilenciadoNex(usernameAtual);
+
+    // ⚠️ Se fui silenciado, o botão "Apagar conversa" some
+    const blocoApagar = fuiSilenciado
+      ? ''
+      : `
+  <div class="chat-menu-divisor"></div>
+
+  <button type="button" class="chat-menu-item danger" data-acao="apagar">
+    <span class="chat-menu-item-icone">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    </span>
+    <span class="chat-menu-item-texto">Apagar conversa</span>
+  </button>
+`;
 
     menu.innerHTML = `
   <button type="button" class="chat-menu-item" data-acao="midias">
@@ -131,7 +219,7 @@
 
   <button type="button" class="chat-menu-item" data-acao="silenciar">
     <span class="chat-menu-item-icone">
-      ${silenciado ? `
+      ${euSilenciei ? `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -146,20 +234,10 @@
         </svg>
       `}
     </span>
-    <span class="chat-menu-item-texto">${silenciado ? 'Reativar notificações' : 'Silenciar conversa'}</span>
+    <span class="chat-menu-item-texto">${euSilenciei ? 'Reativar notificações' : 'Silenciar conversa'}</span>
   </button>
 
-  <div class="chat-menu-divisor"></div>
-
-  <button type="button" class="chat-menu-item danger" data-acao="apagar">
-    <span class="chat-menu-item-icone">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-      </svg>
-    </span>
-    <span class="chat-menu-item-texto">Apagar conversa</span>
-  </button>
+  ${blocoApagar}
 `;
 
     menu.querySelectorAll('.chat-menu-item').forEach((btn) => {
@@ -201,8 +279,13 @@ document.addEventListener('click', (e) => {
 });
 
 // ============================================
-// SILENCIAR
+// SILENCIAR (preferência de notificação)
 // ============================================
+// ⚠️ ATENÇÃO: essa função é para "EU silenciei ELE"
+//    (mute de notificações). O BLOQUEIO de comunicação
+//    é feito pela tabela `silenciados` do Supabase,
+//    e checado via `checarSeFuiSilenciadoNex()`.
+//    As duas coisas são independentes.
 
 function estaSilenciadoNex(username) {
   if (!username) return false;
@@ -257,11 +340,27 @@ async function alternarSilenciarChatNex(username) {
     window.__euSilencieiNex.delete(username);
   }
 
+  // ⚠️ Atualiza no Supabase (é ISSO que faz o B ver o bloqueio)
   if (typeof window.alternarSilenciarSupabase === 'function') {
-    await window.alternarSilenciarSupabase(
-      username,
-      ativouSilencio ? 'silenciar' : 'dessilenciar'
-    );
+    try {
+      await window.alternarSilenciarSupabase(
+        username,
+        ativouSilencio ? 'silenciar' : 'dessilenciar'
+      );
+    } catch (err) {
+      console.warn('Erro ao alternar silenciar no Supabase:', err);
+    }
+  }
+
+  // ⚠️ FALLBACK: recarrega do Supabase
+  //    Garante que __quemMeSilenciouNex e __euSilencieiNex
+  //    estejam sincronizados mesmo se o realtime falhar.
+  if (typeof window.carregarSilenciadosSupabase === 'function') {
+    try {
+      await window.carregarSilenciadosSupabase();
+    } catch (err) {
+      console.warn('Erro ao recarregar silenciados:', err);
+    }
   }
 
   atualizarSilenciadoNoCardNex(username);
@@ -292,13 +391,21 @@ function atualizarSilenciadoNoCardNex(username) {
     }
   }
 }
-
-// ============================================
+  // ============================================
 // APAGAR CONVERSA
 // ============================================
 
 function abrirConfirmApagarChatNex(username) {
   if (!username) return;
+
+  // ⚠️ BLOQUEIO: se fui silenciado por A, NÃO abre o modal
+  if (checarSeFuiSilenciadoNex(username)) {
+    window.mostrarToastNex?.(
+      'Você está silenciado por este usuário.',
+      'erro'
+    );
+    return;
+  }
 
   let modal = document.getElementById('confirmApagarChatNex');
 
@@ -351,8 +458,18 @@ function abrirConfirmApagarChatNex(username) {
     if (e.target === modal) modal.style.display = 'none';
   };
 }
-    async function apagarChatNex(username) {
+
+async function apagarChatNex(username) {
   if (!username) return;
+
+  // ⚠️ BLOQUEIO: se fui silenciado por A, NÃO apaga
+  if (checarSeFuiSilenciadoNex(username)) {
+    window.mostrarToastNex?.(
+      'Você está silenciado por este usuário.',
+      'erro'
+    );
+    return;
+  }
 
   window.mostrarToastNex?.('Apagando conversa...', 'info');
 
@@ -388,7 +505,7 @@ function abrirConfirmApagarChatNex(username) {
 
               if (mensagensComMidia && mensagensComMidia.length > 0) {
                 const arquivosParaApagar = [];
-                
+
                 mensagensComMidia.forEach((msg) => {
                   if (msg.media_url) {
                     const partes = msg.media_url.split('/public/nex/');
@@ -452,10 +569,13 @@ function abrirConfirmApagarChatNex(username) {
     console.error('Erro ao apagar chat:', err);
     window.mostrarToastNex?.('Erro ao apagar conversa.', 'erro');
   }
-  }
-    // ============================================
+}
+
+// ============================================
 // VER MÍDIAS COMPARTILHADAS
 // ============================================
+// ⚠️ REGRA: B (silenciado por A) PODE ver as mídias.
+//    "Ver mídias compartilhadas" é leitura, não comunicação.
 
 function abrirMidiasCompartilhadasNex(username) {
   if (!username) return;
@@ -506,8 +626,7 @@ function abrirMidiasCompartilhadasNex(username) {
       });
     }
   });
-
-  let modal = document.getElementById('midiasCompartilhadasNex');
+    let modal = document.getElementById('midiasCompartilhadasNex');
 
   if (!modal) {
     modal = document.createElement('div');
@@ -589,7 +708,8 @@ function abrirMidiasCompartilhadasNex(username) {
     });
   });
 }
-  // ============================================
+
+// ============================================
 // RESOLVER USERNAME REAL (@) A PARTIR DE UMA CHAVE
 // ============================================
 
@@ -772,12 +892,12 @@ async function abrirChatNex(el) {
     return;
   }
 
-Drops.estado.conversaAtual = usernameReal;
-window.setConversaAbertaNex(usernameReal);
-window.setCardAbertoNex(card || null);
+  Drops.estado.conversaAtual = usernameReal;
+  window.setConversaAbertaNex(usernameReal);
+  window.setCardAbertoNex(card || null);
 
-const areaMsgs = document.getElementById('chatMsgs');
-if (areaMsgs) areaMsgs.innerHTML = '';
+  const areaMsgs = document.getElementById('chatMsgs');
+  if (areaMsgs) areaMsgs.innerHTML = '';
 
   if (typeof window.dropsEmpilharEstado === 'function') {
     window.dropsEmpilharEstado('chat', { username: usernameReal });
@@ -872,22 +992,22 @@ if (areaMsgs) areaMsgs.innerHTML = '';
     chatStatus.classList.toggle('offline', !estaOnline);
   }
 
-if (chatAvatar) {
-  chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
-  chatAvatar.style.backgroundImage = 'none';
-  chatAvatar.style.cursor = 'pointer';
+  if (chatAvatar) {
+    chatAvatar.innerText = nomeExibido.charAt(0).toUpperCase();
+    chatAvatar.style.backgroundImage = 'none';
+    chatAvatar.style.cursor = 'pointer';
 
-  if (perfilReal?.avatar_url) {
-    chatAvatar.innerHTML = `<img src="${perfilReal.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
-    
-    const chaveCache = String(usernameReal).toLowerCase().trim();
-    cacheAvataresNex[chaveCache] = {
-      url: perfilReal.avatar_url,
-      timestamp: Date.now()
-    };
-  } else {
-    chatAvatar.innerHTML = '';
-  }
+    if (perfilReal?.avatar_url) {
+      chatAvatar.innerHTML = `<img src="${perfilReal.avatar_url}" alt="${nomeExibido}" style="width:100%;height:100%;object-fit:cover;border-radius:32px;display:block;">`;
+
+      const chaveCache = String(usernameReal).toLowerCase().trim();
+      cacheAvataresNex[chaveCache] = {
+        url: perfilReal.avatar_url,
+        timestamp: Date.now()
+      };
+    } else {
+      chatAvatar.innerHTML = '';
+    }
 
     if (chatAvatar.__clickPerfilHandler) {
       chatAvatar.removeEventListener('click', chatAvatar.__clickPerfilHandler);
@@ -903,42 +1023,13 @@ if (chatAvatar) {
   }
 
   desativarSkeletonChatNex();
-    const chatBottom = document.querySelector('.chat-bottom');
-  const toastSilenciado = document.getElementById('toastSilenciadoNex');
-  const iconeEnviar = document.getElementById('iconeEnviarChatNex');
-  const iconeMudo = document.getElementById('iconeMudoChatNex');
 
-  // CORRIGIDO: Usando a função utilitária segura
+  // ⚠️ APLICA O BLOQUEIO VISUAL IMEDIATAMENTE
+  //    Se estou silenciado, o .chat-bottom é escondido e o
+  //    card "Você foi silenciado..." aparece no lugar.
+  aplicarSilenciamentoChatNex(usernameReal);
+
   const estouSilenciado = checarSeFuiSilenciadoNex(usernameReal);
-
-  const inputChat = document.getElementById('chatInput');
-  const btnEnviar = document.getElementById('btnEnviarChatNex');
-  const btnAnexo = document.getElementById('btnAnexoNex');
-  const btnMic = document.getElementById('micBtn');
-
-  if (estouSilenciado) {
-    if (chatBottom) chatBottom.classList.add('silenciado');
-    if (toastSilenciado) toastSilenciado.style.display = 'flex';
-    if (iconeEnviar) iconeEnviar.style.display = 'none';
-    if (iconeMudo) iconeMudo.style.display = 'block';
-    
-    // Desativa fisicamente o input e os botões
-    if (inputChat) { inputChat.disabled = true; inputChat.placeholder = 'Você foi silenciado por este usuário.'; }
-    if (btnEnviar) btnEnviar.disabled = true;
-    if (btnAnexo) btnAnexo.disabled = true;
-    if (btnMic) btnMic.disabled = true;
-  } else {
-    if (chatBottom) chatBottom.classList.remove('silenciado');
-    if (toastSilenciado) toastSilenciado.style.display = 'none';
-    if (iconeEnviar) iconeEnviar.style.display = 'block';
-    if (iconeMudo) iconeMudo.style.display = 'none';
-    
-    // Reativa o input e os botões
-    if (inputChat) { inputChat.disabled = false; inputChat.placeholder = 'Digite uma mensagem...'; }
-    if (btnEnviar) btnEnviar.disabled = false;
-    if (btnAnexo) btnAnexo.disabled = false;
-    if (btnMic) btnMic.disabled = false;
-  }
 
   if (typeof window.carregarConversaSupabase === 'function') {
     try {
@@ -970,8 +1061,9 @@ if (chatAvatar) {
 
   renderChat(usernameReal);
 
-  if (inputChat && !estouSilenciado) {
-    inputChat.focus();
+  // ⚠️ Só foca o input se NÃO estiver silenciado
+  if (!estouSilenciado) {
+    document.getElementById('chatInput')?.focus();
   }
 
   if (window.__statusPollingNex) {
@@ -1024,8 +1116,13 @@ function voltarChatNex() {
   document.body.classList.remove('chat-aberto');
   document.body.classList.remove('chat-open');
 
+  // ⚠️ RESTAURA O BLOCO INFERIOR (que pode ter sido escondido
+  //    pela aplicarSilenciamentoChatNex com display:none)
   const chatBottom = document.querySelector('.chat-bottom');
-  if (chatBottom) chatBottom.classList.remove('silenciado');
+  if (chatBottom) {
+    chatBottom.classList.remove('silenciado');
+    chatBottom.style.display = '';
+  }
 
   const toastSilenciado = document.getElementById('toastSilenciadoNex');
   if (toastSilenciado) toastSilenciado.style.display = 'none';
@@ -1036,12 +1133,13 @@ function voltarChatNex() {
   const iconeMudo = document.getElementById('iconeMudoChatNex');
   if (iconeMudo) iconeMudo.style.display = 'none';
 
-  // Reset defensivo
+  // Reset defensivo dos inputs e botões
   const inputChatReset = document.getElementById('chatInput');
   if (inputChatReset) {
     inputChatReset.disabled = false;
     inputChatReset.placeholder = 'Digite uma mensagem...';
   }
+
   ['btnEnviarChatNex', 'btnAnexoNex', 'micBtn'].forEach((id) => {
     const b = document.getElementById(id);
     if (b) {
@@ -1142,7 +1240,8 @@ async function atualizarTodosBadgesReacaoMidiaNex() {
     await atualizarBadgeReacaoMidiaNex(msgId, midiaIndex);
   }
 }
-    // ============================================
+
+// ============================================
 // RENDERIZAR CHAT
 // ============================================
 
@@ -1151,6 +1250,11 @@ function renderChat(nome) {
   if (!area) return;
 
   area.innerHTML = '';
+
+  // ⚠️ Checa silenciamento UMA VEZ por renderização.
+  //    Usado para ocultar o menu "..." das MINHAS mensagens
+  //    quando estou silenciado por A.
+  const estouSilenciado = checarSeFuiSilenciadoNex(nome);
 
   const chaveUnica =
     typeof window.resolverChaveNex === 'function'
@@ -1222,18 +1326,18 @@ function renderChat(nome) {
 
     let usernameAvatarMsg = '';
 
-if (lado === 'right') {
-  usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
-} else {
-  const chaveReal = typeof window.resolverChaveNex === 'function'
-    ? window.resolverChaveNex(nome)
-    : nome;
-  
-  usernameAvatarMsg = String(chaveReal).replace(/^@/, '').toLowerCase().trim();
-}
+    if (lado === 'right') {
+      usernameAvatarMsg = String(Drops.usernameAtual || '').trim();
+    } else {
+      const chaveReal = typeof window.resolverChaveNex === 'function'
+        ? window.resolverChaveNex(nome)
+        : nome;
 
-const cacheItem = cacheAvataresNex[usernameAvatarMsg];
-const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
+      usernameAvatarMsg = String(chaveReal).replace(/^@/, '').toLowerCase().trim();
+    }
+
+    const cacheItem = cacheAvataresNex[usernameAvatarMsg];
+    const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
 
     const dataExibida = msg.data || 'Hoje';
     const horaExibida = msg.hora || msg.time || '';
@@ -1291,6 +1395,13 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
         ? `onclick="event.stopPropagation(); window.reenviarMensagemNex('${msg.id}')"`
         : '';
 
+    // ⚠️ REGRA DO SILENCIAMENTO NO MENU "..." DA MENSAGEM
+    //    - Mensagem MINHA (side right) e eu fui silenciado → NÃO renderiza botão
+    //    - Mensagem DELA (side left) e eu fui silenciado → renderiza botão
+    //      (o abrirMenuMsgNex vai mostrar APENAS "Denunciar")
+    const mostrarBotaoMenuMinha = !(estouSilenciado && lado === 'right');
+    const mostrarBotaoMenuDela = true; // sempre renderiza, o menu cuida da filtragem
+
     card.innerHTML = msg.deleted
       ? `
       <div class="msg-apagada-wrapper">
@@ -1315,14 +1426,18 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
 
           ${
             lado === 'right'
-              ? `<button
+              ? `
+                ${mostrarBotaoMenuMinha ? `
+                <button
                   type="button"
                   class="msg-menu-btn"
                   aria-label="Mais opções"
                   onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
                   ⋮
                 </button>
-                <div class="msg-status ${statusClasse}" ${statusOnclick}>${escapeHTML(statusExibido)}</div>`
+                ` : ''}
+                <div class="msg-status ${statusClasse}" ${statusOnclick}>${escapeHTML(statusExibido)}</div>
+              `
               : ''
           }
 
@@ -1338,13 +1453,17 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
 
           ${
             lado === 'left'
-              ? `<button
+              ? `
+                ${mostrarBotaoMenuDela ? `
+                <button
                   type="button"
                   class="msg-menu-btn"
                   aria-label="Mais opções"
                   onclick="event.stopPropagation(); window.abrirMenuMsgNex(this, '${msg.id}')">
                   ⋮
-                </button>`
+                </button>
+                ` : ''}
+              `
               : `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
     avatarUrlCache
       ? `<img src="${escapeHTML(avatarUrlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(avatarTexto)}';">`
@@ -1430,27 +1549,27 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
   atualizarTodosBadgesReacaoMidiaNex();
 
   area.querySelectorAll('.msg-avatar[data-avatar-user]').forEach(async (el) => {
-  const username = el.dataset.avatarUser;
-  const fallback = el.dataset.avatarFallback || '?';
+    const username = el.dataset.avatarUser;
+    const fallback = el.dataset.avatarFallback || '?';
 
-  if (!username) return;
+    if (!username) return;
 
-  const cacheItem = cacheAvataresNex[username];
-  const urlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
+    const cacheItem = cacheAvataresNex[username];
+    const urlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.url : cacheItem;
 
-  if (urlCache) {
-    el.innerHTML = `<img src="${escapeHTML(urlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(fallback)}';">`;
-    return;
-  }
+    if (urlCache) {
+      el.innerHTML = `<img src="${escapeHTML(urlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(fallback)}';">`;
+      return;
+    }
 
-  const url = await buscarAvatarNex(username);
+    const url = await buscarAvatarNex(username);
 
-  if (url && el.isConnected) {
-    el.innerHTML = `<img src="${escapeHTML(url)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(fallback)}';">`;
-  } else if (el.isConnected && !el.querySelector('img')) {
-    el.textContent = fallback;
-  }
-});
+    if (url && el.isConnected) {
+      el.innerHTML = `<img src="${escapeHTML(url)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(fallback)}';">`;
+    } else if (el.isConnected && !el.querySelector('img')) {
+      el.textContent = fallback;
+    }
+  });
 
   area.querySelectorAll('.msg-location-avatar[data-avatar-user]').forEach(async (el) => {
     const username = el.dataset.avatarUser;
@@ -1458,7 +1577,6 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
 
     if (!username) return;
 
-    // CORRIGIDO: Tratamento correto do objeto de cache
     const cacheItemLoc = cacheAvataresNex[username];
     const urlCacheLoc = (cacheItemLoc && typeof cacheItemLoc === 'object') ? cacheItemLoc.url : cacheItemLoc;
 
@@ -1486,19 +1604,20 @@ const avatarUrlCache = (cacheItem && typeof cacheItem === 'object') ? cacheItem.
     });
   });
 }
-      // ============================================
+  // ============================================
 // ENVIAR MENSAGEM
 // ============================================
 
 async function enviarMsgNex() {
   const conversaAtual = Drops.estado.conversaAtual;
 
-  // CORRIGIDO: Verifica pelo dado real (mais seguro que a classe CSS)
+  // ⚠️ BLOQUEIO 1: dado real (checagem principal)
   if (checarSeFuiSilenciadoNex(conversaAtual)) {
     window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
     return;
   }
 
+  // ⚠️ BLOQUEIO 2: defesa em profundidade (classe CSS)
   const chatBottom = document.querySelector('.chat-bottom');
   if (chatBottom && chatBottom.classList.contains('silenciado')) {
     window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
@@ -1573,7 +1692,7 @@ async function enviarMsgNex() {
   const mensagem = {
     id: gerarIdMensagemNex(),
     timestamp: Date.now(),
-    eu: true, // CORRIGIDO: Define que é minha mensagem
+    eu: true,
     side: 'right',
     nome: 'Eu',
     avatar: 'EU',
@@ -1902,6 +2021,7 @@ async function reenviarMensagemNex(msgId) {
   const conversaAtual = Drops.estado.conversaAtual;
   if (!conversaAtual) return;
 
+  // ⚠️ BLOQUEIO: se fui silenciado por A, NÃO reenvia
   if (checarSeFuiSilenciadoNex(conversaAtual)) {
     window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
     return;
@@ -1919,7 +2039,7 @@ async function reenviarMensagemNex(msgId) {
   const novaMensagem = {
     ...msgOriginal,
     id: gerarIdMensagemNex(),
-    eu: true, // CORRIGIDO
+    eu: true,
     timestamp: Date.now(),
     status: 'enviando'
   };
@@ -2043,7 +2163,8 @@ async function reenviarMensagemNex(msgId) {
 }
 
 window.reenviarMensagemNex = reenviarMensagemNex;
-    // ============================================
+
+// ============================================
 // CANCELAR RESPOSTA
 // ============================================
 
@@ -2092,8 +2213,7 @@ function atualizarPreviewStackNex() {
 
   stack.classList.toggle('tem-conteudo', temAlgo);
 }
-  
-// ============================================
+  // ============================================
 // MENU DE MENSAGEM
 // ============================================
 
@@ -2111,9 +2231,51 @@ function abrirMenuMsgNex(botao, msgId) {
 
   const lado = msg.side === 'right' ? 'right' : 'left';
 
-  // CORRIGIDO: Prevenção de XSS no atributo inline
-  const nomeExibido = escapeHTML(msg.nome || 'Usuário').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  // ⚠️ REGRA DE SILENCIAMENTO NO MENU
+  const fuiSilenciado = checarSeFuiSilenciadoNex(conversaAtual);
+
+  // Se fui silenciado E a mensagem é minha → nem abre o menu
+  // (o renderChat já não renderiza o botão ⋮, mas defensivamente
+  // bloqueia aqui também)
+  if (fuiSilenciado && lado === 'right') {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharMenuMsgNex();
+    return;
+  }
+
+  // Prevenção de XSS no atributo inline
+  const nomeExibido = escapeHTML(msg.nome || 'Usuário')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '&quot;');
   const idMensagem = msg._supabaseId || msg.id;
+
+  // ⚠️ Se fui silenciado E a mensagem é dela → só "Denunciar"
+  if (fuiSilenciado && lado === 'left') {
+    menu.innerHTML = `
+      <button type="button" class="danger" onclick="event.stopPropagation(); window.abrirModalDenunciaNex('${nomeExibido}', '${conversaAtual}', '${idMensagem}'); window.fecharMenuMsgNex();" style="display:flex; align-items:center; gap:10px; color: #f59e0b;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Denunciar
+      </button>
+      <button type="button" class="cancelar" onclick="fecharMenuMsgNex()">Cancelar</button>
+    `;
+
+    menu.style.display = 'flex';
+    menu.style.visibility = 'visible';
+    menu.style.opacity = '1';
+    menu.style.pointerEvents = 'auto';
+    menu.style.left = '50%';
+    menu.style.top = '50%';
+    menu.style.transform = 'translate(-50%, -50%)';
+    return;
+  }
+
+  // ============================================
+  // MENU NORMAL (sem silenciamento)
+  // ============================================
 
   menu.innerHTML =
     lado === 'left'
@@ -2191,6 +2353,14 @@ function fecharMenuMsgNex() {
 
 function acaoResponderNex() {
   if (!mensagemSelecionadaNex) return;
+
+  // ⚠️ BLOQUEIO: se fui silenciado, não pode responder
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharMenuMsgNex();
+    return;
+  }
+
   respostaSelecionadaNex = mensagemSelecionadaNex;
   mostrarPreviewRespostaNex();
   fecharMenuMsgNex();
@@ -2198,6 +2368,14 @@ function acaoResponderNex() {
 
 function acaoReeditarNex() {
   if (!mensagemSelecionadaNex) return;
+
+  // ⚠️ BLOQUEIO: se fui silenciado, não pode reeditar
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharMenuMsgNex();
+    return;
+  }
+
   const msg = mensagemSelecionadaNex;
   const temTexto = typeof msg.text === 'string' && msg.text.trim().length > 0;
   if (!temTexto) {
@@ -2212,6 +2390,14 @@ function acaoReeditarNex() {
 
 function acaoApagarPraMimNex() {
   if (!mensagemSelecionadaNex) return;
+
+  // ⚠️ BLOQUEIO: se fui silenciado, não pode apagar
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharMenuMsgNex();
+    return;
+  }
+
   mensagemParaApagarNex = mensagemSelecionadaNex;
   const modal = document.getElementById('confirmDeleteMeModalNex');
   if (!modal) return;
@@ -2219,7 +2405,23 @@ function acaoApagarPraMimNex() {
   fecharMenuMsgNex();
 }
 
-function fecharConfirmDeleteMeNex() {
+function acaoApagarMsgNex() {
+  if (!mensagemSelecionadaNex) return;
+
+  // ⚠️ BLOQUEIO: se fui silenciado, não pode apagar
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharMenuMsgNex();
+    return;
+  }
+
+  mensagemParaApagarNex = mensagemSelecionadaNex;
+  const modal = document.getElementById('confirmDeleteModalNex');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  fecharMenuMsgNex();
+}
+  function fecharConfirmDeleteMeNex() {
   const modal = document.getElementById('confirmDeleteMeModalNex');
   if (modal) modal.style.display = 'none';
   mensagemParaApagarNex = null;
@@ -2227,6 +2429,14 @@ function fecharConfirmDeleteMeNex() {
 
 async function confirmarApagarPraMimNex() {
   if (!mensagemParaApagarNex) return;
+
+  // ⚠️ DEFESA EM PROFUNDIDADE: se fui silenciado, NÃO apaga
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharConfirmDeleteMeNex();
+    return;
+  }
+
   const msg = mensagemParaApagarNex;
   const idMsg = typeof msg === 'string' ? msg : msg.id;
   const idSupabase =
@@ -2249,14 +2459,6 @@ async function confirmarApagarPraMimNex() {
   renderChat(conversaAtual);
   mensagemParaApagarNex = null;
 }
-  function acaoApagarMsgNex() {
-  if (!mensagemSelecionadaNex) return;
-  mensagemParaApagarNex = mensagemSelecionadaNex;
-  const modal = document.getElementById('confirmDeleteModalNex');
-  if (!modal) return;
-  modal.style.display = 'flex';
-  fecharMenuMsgNex();
-}
 
 function fecharConfirmDeleteNex() {
   const modal = document.getElementById('confirmDeleteModalNex');
@@ -2267,6 +2469,14 @@ function fecharConfirmDeleteNex() {
 
 async function confirmarApagarMsgNex() {
   if (!mensagemParaApagarNex) return;
+
+  // ⚠️ DEFESA EM PROFUNDIDADE
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharConfirmDeleteNex();
+    return;
+  }
+
   const msg = mensagemParaApagarNex;
   const nomePessoa = msg.nome || 'usuário';
 
@@ -2301,7 +2511,8 @@ async function confirmarApagarMsgNex() {
 
   mensagemParaApagarNex = null;
 }
-  function abrirModalEdicaoNex(texto) {
+
+function abrirModalEdicaoNex(texto) {
   const modal = document.getElementById('editarMsgModalNex');
   const input = document.getElementById('editarMsgInputNex');
   const btn = document.getElementById('btnConcluirEdicaoNex');
@@ -2339,6 +2550,14 @@ function atualizarBotaoEdicaoNex() {
 
 async function concluirEdicaoNex() {
   if (!mensagemEmEdicaoNex) return;
+
+  // ⚠️ DEFESA EM PROFUNDIDADE
+  if (checarSeFuiSilenciadoNex(Drops.estado.conversaAtual)) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    fecharModalEdicaoNex();
+    return;
+  }
+
   const input = document.getElementById('editarMsgInputNex');
   if (!input) return;
   const novoTexto = input.value;
@@ -2370,13 +2589,12 @@ function mostrarPreviewRespostaNex() {
   `;
   preview.style.display = 'block';
   const btnCancelar = document.getElementById('btnCancelarRespostaNex');
-  // CORRIGIDO: Uso de onclick evita listener duplicado
   if (btnCancelar) btnCancelar.onclick = cancelarRespostaNex;
   atualizarPreviewStackNex();
 }
 
 // ============================================
-// NAVEGAÇÃO ENTRE MENSAGENS (A CORREÇÃO)
+// NAVEGAÇÃO ENTRE MENSAGENS (leitura — sem bloqueio)
 // ============================================
 
 function obterCardMensagemNex(msgId) {
@@ -2402,7 +2620,7 @@ function limparDestaqueMensagemNex() {
 function destacarMensagemNex(msgId, tipo) {
   const card = obterCardMensagemNex(msgId);
   if (!card) return;
-  
+
   limparDestaqueMensagemNex();
   card.classList.add(
     tipo === 'amarelo' ? 'msg-destaque-amarelo-nex' : 'msg-destaque-verde-nex'
@@ -2419,7 +2637,7 @@ function destacarMensagemNex(msgId, tipo) {
 
 function irParaMensagemNex(msgId, msgIdLocal, msgIdSupabase) {
   let alvo = document.querySelector(`[data-msg-id="${msgId}"]`);
-  
+
   if (!alvo) {
     const msgs = conversas[Drops.estado.conversaAtual] || [];
     const msgEncontrada = msgs.find(
@@ -2457,19 +2675,19 @@ function irParaRespostaFilhaNex(msgIdOriginal, msgIdSupabaseOriginal) {
     String(msgIdOriginal || ''),
     String(msgIdSupabaseOriginal || '')
   ].filter(Boolean);
-  
+
   const respostas = msgs.filter(
     (m) => m.resposta && idsValidos.includes(String(m.resposta.id || ''))
   );
-  
+
   if (!respostas.length) {
     window.mostrarToastNex?.('Nenhuma resposta encontrada.', 'info');
     return;
   }
-  
+
   const primeira = respostas[0];
   let alvo = document.querySelector(`[data-msg-id="${primeira.id || primeira._supabaseId}"]`);
-  
+
   if (!alvo) {
     window.mostrarToastNex?.('Resposta não encontrada na tela.', 'info');
     return;
@@ -2497,157 +2715,158 @@ function irParaProximaRespostaNex(originalId, ordemAtual) {
   if (!proxima) return;
   destacarMensagemNex(proxima.id, 'amarelo');
 }
+    // ============================================
+  // EVENTOS GLOBAIS
   // ============================================
-// EVENTOS GLOBAIS
-// ============================================
 
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('msgMenuNex');
-  if (
-    menu &&
-    menu.style.display !== 'none' &&
-    !menu.contains(e.target) &&
-    !e.target.closest('.msg-menu-btn')
-  ) {
-    fecharMenuMsgNex();
-  }
-  const modal = document.getElementById('editarMsgModalNex');
-  if (
-    modal &&
-    getComputedStyle(modal).display !== 'none' &&
-    e.target.id === 'editarMsgModalNex'
-  ) {
-    fecharModalEdicaoNex();
-  }
-  const deleteModal = document.getElementById('confirmDeleteModalNex');
-  if (
-    deleteModal &&
-    getComputedStyle(deleteModal).display !== 'none' &&
-    e.target.id === 'confirmDeleteModalNex'
-  ) {
-    fecharConfirmDeleteNex();
-  }
-});
-
-document.addEventListener(
-  'click',
-  (e) => {
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('msgMenuNex');
     if (
-      e.target.closest('.msg-card') ||
-      e.target.closest('.msg-layer') ||
-      e.target.closest('.reply-linked-top') ||
-      e.target.closest('.reply-cited-bottom') ||
-      e.target.closest('.reply-next-btn')
-    )
-      return;
-    limparDestaqueMensagemNex();
-  },
-  true
-);
-
-document.addEventListener('DOMContentLoaded', () => {
-  const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
-  if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
-
-  const inputEdicao = document.getElementById('editarMsgInputNex');
-  if (inputEdicao)
-    inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
-
-  const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
-  if (btnFecharEdicao)
-    btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
-
-  document.addEventListener('drops_presenca_atualizada', (e) => {
-    const { username, online } = e.detail || {};
-    if (!username) return;
-
-    const conversaAberta = Drops.estado.conversaAtual;
-    if (
-      String(username).toLowerCase() ===
-      String(conversaAberta).toLowerCase()
+      menu &&
+      menu.style.display !== 'none' &&
+      !menu.contains(e.target) &&
+      !e.target.closest('.msg-menu-btn')
     ) {
-      const chatStatus = document.getElementById('chatStatus');
-      if (chatStatus) {
-        chatStatus.innerText = online ? 'online' : 'offline';
-        chatStatus.classList.toggle('online', !!online);
-        chatStatus.classList.toggle('offline', !online);
-      }
+      fecharMenuMsgNex();
+    }
+    const modal = document.getElementById('editarMsgModalNex');
+    if (
+      modal &&
+      getComputedStyle(modal).display !== 'none' &&
+      e.target.id === 'editarMsgModalNex'
+    ) {
+      fecharModalEdicaoNex();
+    }
+    const deleteModal = document.getElementById('confirmDeleteModalNex');
+    if (
+      deleteModal &&
+      getComputedStyle(deleteModal).display !== 'none' &&
+      e.target.id === 'confirmDeleteModalNex'
+    ) {
+      fecharConfirmDeleteNex();
     }
   });
-});
 
-// ============================================
-// EXPÕE GLOBALMENTE
-// ============================================
-
-window.abrirMenuMsgNex = abrirMenuMsgNex;
-window.fecharMenuMsgNex = fecharMenuMsgNex;
-window.acaoResponderNex = acaoResponderNex;
-window.acaoReeditarNex = acaoReeditarNex;
-window.acaoApagarMsgNex = acaoApagarMsgNex;
-window.acaoApagarPraMimNex = acaoApagarPraMimNex;
-window.fecharConfirmDeleteNex = fecharConfirmDeleteNex;
-window.confirmarApagarMsgNex = confirmarApagarMsgNex;
-window.fecharConfirmDeleteMeNex = fecharConfirmDeleteMeNex;
-window.confirmarApagarPraMimNex = confirmarApagarPraMimNex;
-window.abrirModalEdicaoNex = abrirModalEdicaoNex;
-window.fecharModalEdicaoNex = fecharModalEdicaoNex;
-window.atualizarBotaoEdicaoNex = atualizarBotaoEdicaoNex;
-window.concluirEdicaoNex = concluirEdicaoNex;
-window.irParaMensagemNex = irParaMensagemNex;
-window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
-window.irParaProximaRespostaNex = irParaProximaRespostaNex;
-window.abrirChatNex = abrirChatNex;
-window.voltarChatNex = voltarChatNex;
-window.renderChat = renderChat;
-window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
-window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
-window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
-window.enviarMsgNex = enviarMsgNex;
-window.cancelarRespostaNex = cancelarRespostaNex;
-window.atualizarPreviewStackNex = atualizarPreviewStackNex;
-window.buscarAvatarNex = buscarAvatarNex;
-
-window.abrirMenuChatNex = abrirMenuChatNex;
-window.fecharMenuChatNex = fecharMenuChatNex;
-
-window.toggleMenuChatNex = function () {
-  if (chatMenuAbertoNex) {
-    fecharMenuChatNex();
-  } else {
-    abrirMenuChatNex();
-  }
-};
-
-window.estaSilenciadoNex = estaSilenciadoNex;
-window.alternarSilenciarChatNex = alternarSilenciarChatNex;
-window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;
-window.apagarChatNex = apagarChatNex;
-window.atualizarSilenciadoNoCardNex = atualizarSilenciadoNoCardNex;
-
-window.buscarStatusNex = async function (username) {
-  if (!username || !window.supabaseClient) return false;
-  try {
-    const { data: perfil } = await window.supabaseClient
-      .from('profiles')
-      .select('ultima_atividade')
-      .eq(
-        'username',
-        String(username).toLowerCase().replace(/^@/, '').trim()
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (
+        e.target.closest('.msg-card') ||
+        e.target.closest('.msg-layer') ||
+        e.target.closest('.reply-linked-top') ||
+        e.target.closest('.reply-cited-bottom') ||
+        e.target.closest('.reply-next-btn')
       )
-      .maybeSingle();
-    const ultima = perfil?.ultima_atividade;
-    const LIMITE_ONLINE_MS = 30 * 1000;
-    return !!(
-      ultima &&
-      Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS
-    );
-  } catch (err) {
-    console.warn('Erro ao buscar status:', err);
-    return false;
-  }
-};
+        return;
+      limparDestaqueMensagemNex();
+    },
+    true
+  );
 
-console.log('💬 05-nex-chat.js completo (silenciamento e bugs corrigidos)');
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnConcluir = document.getElementById('btnConcluirEdicaoNex');
+    if (btnConcluir) btnConcluir.addEventListener('click', concluirEdicaoNex);
+
+    const inputEdicao = document.getElementById('editarMsgInputNex');
+    if (inputEdicao)
+      inputEdicao.addEventListener('input', atualizarBotaoEdicaoNex);
+
+    const btnFecharEdicao = document.querySelector('.modal-edicao-fechar');
+    if (btnFecharEdicao)
+      btnFecharEdicao.addEventListener('click', fecharModalEdicaoNex);
+
+    document.addEventListener('drops_presenca_atualizada', (e) => {
+      const { username, online } = e.detail || {};
+      if (!username) return;
+
+      const conversaAberta = Drops.estado.conversaAtual;
+      if (
+        String(username).toLowerCase() ===
+        String(conversaAberta).toLowerCase()
+      ) {
+        const chatStatus = document.getElementById('chatStatus');
+        if (chatStatus) {
+          chatStatus.innerText = online ? 'online' : 'offline';
+          chatStatus.classList.toggle('online', !!online);
+          chatStatus.classList.toggle('offline', !online);
+        }
+      }
+    });
+  });
+
+  // ============================================
+  // EXPÕE GLOBALMENTE
+  // ============================================
+
+  window.abrirMenuMsgNex = abrirMenuMsgNex;
+  window.fecharMenuMsgNex = fecharMenuMsgNex;
+  window.acaoResponderNex = acaoResponderNex;
+  window.acaoReeditarNex = acaoReeditarNex;
+  window.acaoApagarMsgNex = acaoApagarMsgNex;
+  window.acaoApagarPraMimNex = acaoApagarPraMimNex;
+  window.fecharConfirmDeleteNex = fecharConfirmDeleteNex;
+  window.confirmarApagarMsgNex = confirmarApagarMsgNex;
+  window.fecharConfirmDeleteMeNex = fecharConfirmDeleteMeNex;
+  window.confirmarApagarPraMimNex = confirmarApagarPraMimNex;
+  window.abrirModalEdicaoNex = abrirModalEdicaoNex;
+  window.fecharModalEdicaoNex = fecharModalEdicaoNex;
+  window.atualizarBotaoEdicaoNex = atualizarBotaoEdicaoNex;
+  window.concluirEdicaoNex = concluirEdicaoNex;
+  window.irParaMensagemNex = irParaMensagemNex;
+  window.irParaRespostaFilhaNex = irParaRespostaFilhaNex;
+  window.irParaProximaRespostaNex = irParaProximaRespostaNex;
+  window.abrirChatNex = abrirChatNex;
+  window.voltarChatNex = voltarChatNex;
+  window.renderChat = renderChat;
+  window.atualizarBadgeReacaoMidiaNex = atualizarBadgeReacaoMidiaNex;
+  window.atualizarNotificacaoTabbarNex = atualizarNotificacaoTabbarNex;
+  window.atualizarTodosBadgesReacaoMidiaNex = atualizarTodosBadgesReacaoMidiaNex;
+  window.enviarMsgNex = enviarMsgNex;
+  window.cancelarRespostaNex = cancelarRespostaNex;
+  window.atualizarPreviewStackNex = atualizarPreviewStackNex;
+  window.buscarAvatarNex = buscarAvatarNex;
+
+  window.abrirMenuChatNex = abrirMenuChatNex;
+  window.fecharMenuChatNex = fecharMenuChatNex;
+
+  window.toggleMenuChatNex = function () {
+    if (chatMenuAbertoNex) {
+      fecharMenuChatNex();
+    } else {
+      abrirMenuChatNex();
+    }
+  };
+
+  window.estaSilenciadoNex = estaSilenciadoNex;
+  window.alternarSilenciarChatNex = alternarSilenciarChatNex;
+  window.abrirMidiasCompartilhadasNex = abrirMidiasCompartilhadasNex;
+  window.apagarChatNex = apagarChatNex;
+  window.atualizarSilenciadoNoCardNex = atualizarSilenciadoNoCardNex;
+  window.checarSeFuiSilenciadoNex = checarSeFuiSilenciadoNex;
+
+  window.buscarStatusNex = async function (username) {
+    if (!username || !window.supabaseClient) return false;
+    try {
+      const { data: perfil } = await window.supabaseClient
+        .from('profiles')
+        .select('ultima_atividade')
+        .eq(
+          'username',
+          String(username).toLowerCase().replace(/^@/, '').trim()
+        )
+        .maybeSingle();
+      const ultima = perfil?.ultima_atividade;
+      const LIMITE_ONLINE_MS = 30 * 1000;
+      return !!(
+        ultima &&
+        Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS
+      );
+    } catch (err) {
+      console.warn('Erro ao buscar status:', err);
+      return false;
+    }
+  };
+
+  console.log('💬 05-nex-chat.js completo (silenciamento e bugs corrigidos)');
 
 })();

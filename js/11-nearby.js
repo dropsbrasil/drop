@@ -7,8 +7,14 @@
   'use strict';
 
   // ============================================
-  // FUNÇÃO UTILITÁRIA DE SILENCIAMENTO (NOVO)
+  // FUNÇÃO UTILITÁRIA DE SILENCIAMENTO
   // ============================================
+  // ⚠️ Essa função checa se EU (B) fui silenciado por alguém (A).
+  //    Fonte de verdade: `window.__quemMeSilenciouNex` (Set do
+  //    25-nex-supabase.js).
+  //
+  //    Normaliza @, case e trim pra bater certo.
+
   function checarSeFuiSilenciadoNex(idOuUser) {
     if (!idOuUser) return false;
     const lista = window.__quemMeSilenciouNex;
@@ -103,7 +109,15 @@
       window.mostrarToastNex?.('Viewer não disponível.', 'erro');
     }
   }
-  const reacoesDropsNex = new Map();
+  // ============================================
+// REAÇÕES EM DROP (LIBERADO mesmo silenciado)
+// ============================================
+// ⚠️ REGRA: reagir em mídia de PUBLICAÇÃO (drop) é LIBERADO
+//    mesmo se B foi silenciado por A.
+//    Reação em mídia do CHAT é bloqueada (no 07-nex-album.js).
+//    Reação em DROP é liberada (aqui).
+
+const reacoesDropsNex = new Map();
 const reacoesUsuarioDropNex = new Map();
 
 function obterStatsReacaoDropNex(perfilId, dropIndex, url) {
@@ -162,6 +176,10 @@ function registrarReacaoDropNex(perfilId, dropIndex, url, emoji, usuarioId = 'lo
   registrarInteracaoNex(perfilId, emoji === '❤️' ? 'like' : 'deslike', `${perfilId}::${dropIndex}`);
 }
 
+// ============================================
+// UTILITÁRIOS
+// ============================================
+
 function calcularTempoExpiracaoNex(expiraEm) {
   if (!expiraEm) return 'Permanente';
   const ms = new Date(expiraEm).getTime() - Date.now();
@@ -186,17 +204,22 @@ function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
+    // ============================================
+  // ANIMAÇÃO DE TROCA DE MÍDIA
+  // ============================================
+  // (Sem bloqueio — só animação visual)
+
   function animarMidiaNex(container, url, tipo, direcao) {
-  if (!container || !url) return;
+    if (!container || !url) return;
 
-  const ehVideo = tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
-  const novo = document.createElement('div');
-  novo.className = 'nearby-pub-midia-item';
+    const ehVideo = tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+    const novo = document.createElement('div');
+    novo.className = 'nearby-pub-midia-item';
 
-  if (ehVideo) {
-    const playerWrapper = document.createElement('div');
-    playerWrapper.className = 'player-custom-nex';
-    playerWrapper.innerHTML = `
+    if (ehVideo) {
+      const playerWrapper = document.createElement('div');
+      playerWrapper.className = 'player-custom-nex';
+      playerWrapper.innerHTML = `
       <video id="videoPlayerNearbyNex" src="${url}" autoplay playsinline muted></video>
       <div class="video-overlay-swipe-nex"></div>
       <button type="button" class="btn-mute-custom-nex" onclick="toggleMuteNearbyNex(this)">
@@ -213,44 +236,52 @@ function calcularDistanciaMetrosNex(lat1, lon1, lat2, lon2) {
         <div class="tempo-texto-nex"><span class="tempo-atual-nearby">0:00</span> / <span class="tempo-total-nearby">0:00</span></div>
       </div>
     `;
-    novo.appendChild(playerWrapper);
-  } else {
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = '';
-    novo.appendChild(img);
+      novo.appendChild(playerWrapper);
+    } else {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      novo.appendChild(img);
+    }
+
+    let transformEntrada = 'translateX(100%)';
+    let transformSaida = 'translateX(-100%)';
+    if (direcao === 'left') { transformEntrada = 'translateX(100%)'; transformSaida = 'translateX(-100%)'; }
+    else if (direcao === 'right') { transformEntrada = 'translateX(-100%)'; transformSaida = 'translateX(100%)'; }
+    else if (direcao === 'down') { transformEntrada = 'translateY(100%)'; transformSaida = 'translateY(-100%)'; }
+    else if (direcao === 'up') { transformEntrada = 'translateY(-100%)'; transformSaida = 'translateY(100%)'; }
+
+    novo.style.transform = transformEntrada;
+    novo.style.opacity = '0';
+
+    const midiaAtual = container.querySelector('.nearby-pub-midia-item');
+    container.appendChild(novo);
+    void novo.offsetWidth;
+
+    novo.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
+    novo.style.transform = 'translateX(0) translateY(0)';
+    novo.style.opacity = '1';
+
+    if (midiaAtual) {
+      midiaAtual.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
+      midiaAtual.style.transform = transformSaida;
+      midiaAtual.style.opacity = '0';
+      setTimeout(() => { if (midiaAtual.parentNode === container) midiaAtual.remove(); }, 540);
+    }
   }
 
-  let transformEntrada = 'translateX(100%)';
-  let transformSaida = 'translateX(-100%)';
-  if (direcao === 'left') { transformEntrada = 'translateX(100%)'; transformSaida = 'translateX(-100%)'; }
-  else if (direcao === 'right') { transformEntrada = 'translateX(-100%)'; transformSaida = 'translateX(100%)'; }
-  else if (direcao === 'down') { transformEntrada = 'translateY(100%)'; transformSaida = 'translateY(-100%)'; }
-  else if (direcao === 'up') { transformEntrada = 'translateY(-100%)'; transformSaida = 'translateY(100%)'; }
-
-  novo.style.transform = transformEntrada;
-  novo.style.opacity = '0';
-
-  const midiaAtual = container.querySelector('.nearby-pub-midia-item');
-  container.appendChild(novo);
-  void novo.offsetWidth;
-
-  novo.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
-  novo.style.transform = 'translateX(0) translateY(0)';
-  novo.style.opacity = '1';
-
-  if (midiaAtual) {
-    midiaAtual.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease';
-    midiaAtual.style.transform = transformSaida;
-    midiaAtual.style.opacity = '0';
-    setTimeout(() => { if (midiaAtual.parentNode === container) midiaAtual.remove(); }, 540);
+  function obterDropsDoPerfil(perfil) {
+    if (Array.isArray(perfil?.drops) && perfil.drops.length) return perfil.drops;
+    return [{ url: perfil?.imagem || '', type: 'image', views: perfil?.views || 128, expireText: perfil?.expireText || 'Expira em 4h' }];
   }
-}
 
-function obterDropsDoPerfil(perfil) {
-  if (Array.isArray(perfil?.drops) && perfil.drops.length) return perfil.drops;
-  return [{ url: perfil?.imagem || '', type: 'image', views: perfil?.views || 128, expireText: perfil?.expireText || 'Expira em 4h' }];
-}
+  // ============================================
+  // ABRIR VIEWER DE PUBLICAÇÃO
+  // ============================================
+  // (Parte de leitura/renderização — sem bloqueio.
+  //  Os handlers internos que fazem comunicação serão
+  //  ajustados nas próximas partes.)
+
   function abrirViewerPublicacaoNex(post, tipo, id, dropIndexInicial = 0, baseOverride = null) {
     if (!post) return;
 
@@ -523,26 +554,45 @@ if (btnVerMaisLegenda && legendaTextoEl) {
     }
   };
 }
-    viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
+    // ============================================
+// REAÇÃO EM DROP — LIBERADO MESMO SE SILENCIADO
+// ============================================
+// ⚠️ REGRA CRÍTICA: reagir em mídia de PUBLICAÇÃO (drop) é
+//    LIBERADO mesmo se B foi silenciado por A.
+//
+//    Isso difere de mídia do CHAT (que é bloqueada no
+//    07-nex-album.js), porque drop é "publicação" e chat
+//    é "comunicação direta".
+
+viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
   btn.addEventListener('click', () => {
     const perfil = base[perfilAtualId];
     const drops = obterDropsDoPerfil(perfil);
     const drop = drops[dropIndexAtual];
     if (!perfil || !drop) return;
+
     const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
     const urlCalc = drop.url || drop.imagem || '';
     const autorLimpo = String(perfilIdCalc).toLowerCase();
     const meuUser = String(Drops.usernameAtual || '').toLowerCase();
+
     if (autorLimpo && autorLimpo === meuUser) {
       window.mostrarToastNex?.('Você não pode reagir ao seu próprio drop.', 'info');
       return;
     }
+
     const usuarioId = Drops.usernameAtual || 'anonimo';
     registrarReacaoDropNex(perfilIdCalc, dropIndexAtual, urlCalc, btn.textContent.trim(), usuarioId);
+
     if (typeof window.feedbackNex?.reagiu === 'function') window.feedbackNex.reagiu();
-    btn.classList.remove('pop-anim'); void btn.offsetWidth; btn.classList.add('pop-anim');
+
+    btn.classList.remove('pop-anim');
+    void btn.offsetWidth;
+    btn.classList.add('pop-anim');
     setTimeout(() => btn.classList.remove('pop-anim'), 360);
+
     atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
+
     const reacoesElAtual = viewer.querySelector('#nearbyDropReactions');
     if (reacoesElAtual) {
       const statsAtual = obterStatsReacaoDropNex(perfilIdCalc, dropIndexAtual, urlCalc);
@@ -555,11 +605,19 @@ if (btnVerMaisLegenda && legendaTextoEl) {
         reacoesElAtual.style.display = 'none';
       }
     }
+
     if (typeof renderChat === 'function') renderChat(Drops.estado.conversaAtual);
   });
 });
 
 document.body.style.overflow = 'hidden';
+
+// ============================================
+// GERAR FRAME DE VÍDEO (para anexar ao comentário)
+// ============================================
+// (Sem bloqueio — só gera thumbnail. O bloqueio real
+//  acontece em enviarComentarioNearbyNex.)
+
 function gerarFrameVideoNearbyNex(urlVideo) {
   return new Promise((resolve) => {
     if (!urlVideo) { resolve(''); return; }
@@ -593,34 +651,52 @@ function gerarFrameVideoNearbyNex(urlVideo) {
   });
 }
 
+// ============================================
+// ENVIAR COMENTÁRIO NO DROP
+// ============================================
+// ⚠️ BLOQUEIO DE SILENCIAMENTO: comentar no drop de A é
+//    mandar mensagem pra A. Se B foi silenciado, BLOQUEADO.
+
 async function enviarComentarioNearbyNex() {
   const perfil = base[perfilAtualId];
+
   if (perfil) {
     const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
-    // CORRIGIDO AQUI: Usando a função utilitária segura
+
+    // ⚠️ BLOQUEIO DE SILENCIAMENTO
     const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
-    if (estouSilenciado) { window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro'); return; }
+    if (estouSilenciado) {
+      window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+      return;
+    }
   }
+
   const texto = (inputComentario?.value || '').trim();
   if (!texto) return;
+
   const drops = obterDropsDoPerfil(perfil);
   const drop = drops[dropIndexAtual];
   if (!perfil || !drop) return;
+
   const nomeContato = perfil.nome || 'Perfil Nearby';
   const chaveConversa = nomeContato;
   const tipoDrop = drop.type === 'video' || drop.tipo === 'video' ? 'video' : 'imagem';
   let urlAnexo = drop.url || drop.imagem || '';
+
   if (tipoDrop === 'video' && urlAnexo) {
     const frame = await gerarFrameVideoNearbyNex(urlAnexo);
     if (frame) urlAnexo = frame;
   }
+
   const mensagemNearby = {
     id: gerarIdMensagemNex(), timestamp: Date.now(), side: 'right', nome: 'Eu', avatar: 'EU',
     ...obterDataHoraNex(), status: 'enviado', text: texto,
     anexo: { type: 'imagem', tipoOriginal: tipoDrop, url: urlAnexo, origem: 'nearby', perfilNome: nomeContato, perfilId: perfil.id || '', dropIndex: dropIndexAtual }
   };
+
   const usernameDestino = (window.__convUsernamesNex && window.__convUsernamesNex[nomeContato]) || perfil.id || nomeContato;
   let convId = null;
+
   if (typeof window.obterOuCriarConversaSupabase === 'function') {
     try {
       convId = await window.obterOuCriarConversaSupabase(usernameDestino);
@@ -630,6 +706,7 @@ async function enviarComentarioNearbyNex() {
       }
     } catch (err) {}
   }
+
   if (convId && typeof window.enviarMensagemSupabase === 'function') {
     try {
       const msgSupabase = await window.enviarMensagemSupabase({
@@ -640,22 +717,37 @@ async function enviarComentarioNearbyNex() {
       if (msgSupabase && msgSupabase.id) mensagemNearby._supabaseId = msgSupabase.id;
     } catch (err) {}
   }
+
   if (typeof registrarMensagemRecebidaNex === 'function') registrarMensagemRecebidaNex(nomeContato, mensagemNearby, false);
   else { if (!conversas[chaveConversa]) conversas[chaveConversa] = []; conversas[chaveConversa].push(mensagemNearby); }
+
   if (typeof window.criarCardConversaNex === 'function' && typeof window.obterCardConversaNex === 'function' && !window.obterCardConversaNex(nomeContato)) {
     window.criarCardConversaNex(nomeContato, false, { text: texto }, 'enviada');
   }
+
   if (typeof marcarConversaComoNaoLidaNex === 'function') marcarConversaComoNaoLidaNex(nomeContato, false);
   if (typeof renderChat === 'function' && Drops.estado.conversaAtual === chaveConversa) renderChat(chaveConversa);
+
   if (inputComentario) {
     inputComentario.value = 'Você enviou um comentário.';
     atualizarEstadoEnviarNex(); sairModoComentarioNex(); inputComentario.blur();
     setTimeout(() => { inputComentario.value = ''; atualizarEstadoEnviarNex(); }, 1200);
   }
+
   if (typeof window.feedbackNex?.comentou === 'function') window.feedbackNex.comentou();
   registrarInteracaoNex(perfil.id || perfilAtualId || perfil.nome || '', 'comment', `nearby::${dropIndexAtual}`);
 }
-    if (botaoEnviar) {
+    // ============================================
+// BOTÃO ENVIAR/COMPARTILHAR (clique)
+// ============================================
+// ⚠️ Se tem texto → tenta comentar (bloqueado se silenciado em
+//    enviarComentarioNearbyNex).
+// ⚠️ Se está vazio → tenta compartilhar (bloqueado se silenciado
+//    em compartilharDropNearbyNex).
+//
+// Ou seja, os bloqueios acontecem nas funções chamadas.
+
+if (botaoEnviar) {
   botaoEnviar.addEventListener('click', () => {
     const temTexto = (inputComentario?.value || '').trim().length > 0;
     if (temTexto) enviarComentarioNearbyNex();
@@ -663,24 +755,59 @@ async function enviarComentarioNearbyNex() {
   });
 }
 
+// ============================================
+// COMPARTILHAR DROP
+// ============================================
+// ⚠️ BLOQUEIO DE SILENCIAMENTO: compartilhar o drop de A é
+//    espalhar A pra outros. Se B foi silenciado por A,
+//    BLOQUEADO.
+
 async function compartilharDropNearbyNex() {
   const perfil = base[perfilAtualId];
   const drops = obterDropsDoPerfil(perfil);
   const drop = drops[dropIndexAtual];
   if (!perfil || !drop) return;
+
   const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
   const urlCalc = drop.url || drop.imagem || '';
+
+  // ⚠️ BLOQUEIO DE SILENCIAMENTO
+  const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
+  if (estouSilenciado) {
+    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
+    return;
+  }
+
   const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
   const autorLimpo = String(perfilIdCalc).toLowerCase().trim();
-  if (autorLimpo && autorLimpo === meuUser) { window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info'); return; }
-  const chaveDrop = window.chaveDropPerfilNex ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc) : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
+
+  if (autorLimpo && autorLimpo === meuUser) {
+    window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
+    return;
+  }
+
+  const chaveDrop = window.chaveDropPerfilNex
+    ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
+    : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
+
   const publicacaoId = window.__dropsMapaIdsPublicacao && window.__dropsMapaIdsPublicacao[chaveDrop];
-  if (!publicacaoId) { window.mostrarToastNex?.('Drop muito antigo. Não é possível compartilhar.', 'info'); return; }
-  if (typeof window.compartilharPublicacaoSupabase !== 'function') { window.mostrarToastNex?.('Sistema indisponível.', 'erro'); return; }
+
+  if (!publicacaoId) {
+    window.mostrarToastNex?.('Drop muito antigo. Não é possível compartilhar.', 'info');
+    return;
+  }
+
+  if (typeof window.compartilharPublicacaoSupabase !== 'function') {
+    window.mostrarToastNex?.('Sistema indisponível.', 'erro');
+    return;
+  }
+
   const btn = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
   if (btn) btn.style.pointerEvents = 'none';
+
   try {
     const resultado = await window.compartilharPublicacaoSupabase(publicacaoId);
+
     if (resultado?.ok) {
       window.mostrarToastNex?.('Drop compartilhado!', 'sucesso');
       if (btn) btn.classList.add('ja-compartilhado');
@@ -694,183 +821,298 @@ async function compartilharDropNearbyNex() {
     }
   } catch (err) {
     window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
-  } finally { if (btn) btn.style.pointerEvents = ''; }
+  } finally {
+    if (btn) btn.style.pointerEvents = '';
+  }
 }
+
 window.compartilharDropNearbyNex = compartilharDropNearbyNex;
 
-const dropsJaSincronizados = new Set();
-const viewsJaRegistradas = new Set();
+// ============================================
+// CÁPSULA DE COMPARTILHAMENTOS (leitura)
+// ============================================
+// (Sem bloqueio — só renderiza o contador)
 
-function renderizar() {
-  const perfil = base[perfilAtualId];
+async function atualizarCapsulaShareNearbyNex(publicacaoId) {
+  const capsulaEl = document.querySelector('#nearbyDropShareCapsula');
+  if (!capsulaEl) return;
+
+  if (!publicacaoId || typeof window.jaCompartilhouSupabase !== 'function') {
+    capsulaEl.style.display = 'none';
+    return;
+  }
+
+  try {
+    const ja = await window.jaCompartilhouSupabase(publicacaoId);
+    if (!ja) {
+      capsulaEl.style.display = 'none';
+      return;
+    }
+
+    let total = 0;
+    if (typeof window.contarCompartilhamentosSupabase === 'function') {
+      total = Number(await window.contarCompartilhamentosSupabase(publicacaoId)) || 0;
+    }
+
+    capsulaEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>${total}</span>`;
+    capsulaEl.style.display = 'inline-flex';
+  } catch (err) {
+    capsulaEl.style.display = 'none';
+  }
+}
+
+// ============================================
+// ATUALIZAR BOTÕES DE REAÇÃO (leitura)
+// ============================================
+// (Sem bloqueio — só marca qual reação está ativa)
+
+function atualizarBotoesReacaoNex(viewerEl, perfilId, dropIndex, url) {
+  if (!viewerEl) return;
+  const usuarioId = Drops.usernameAtual || 'anonimo';
+  let reacaoAtual = '';
+
+  if (typeof window.obterReacaoUsuarioNex === 'function') {
+    const chave = window.chaveDropPerfilNex
+      ? window.chaveDropPerfilNex(perfilId, dropIndex, url)
+      : chaveReacaoDropNex(perfilId, dropIndex, url);
+    reacaoAtual = window.obterReacaoUsuarioNex(chave, usuarioId);
+  } else {
+    reacaoAtual = obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId);
+  }
+
+  viewerEl.querySelectorAll('.nearby-drop-reaction').forEach((b) => {
+    b.classList.toggle('ativo', b.textContent.trim() === reacaoAtual);
+  });
+}
+
+// ============================================
+// ABRIR PUBLICAÇÃO CONECTADA (leitura)
+// ============================================
+// (Sem bloqueio — só abre o viewer)
+
+function abrirPublicacaoConectadaNex(id) {
+  const conectadosReais = lerConectadosMyDropsNex();
+  const baseDinamica = {};
+
+  conectadosReais.forEach((perfil) => {
+    const idPerfil = normalizarIdPerfilNex(perfil.id);
+    if (!idPerfil) return;
+    const dadosVisuais = publicacoesNearbyNex.conectados[idPerfil] || publicacoesNearbyNex.nearby[idPerfil] || {};
+    baseDinamica[idPerfil] = { id: idPerfil, nome: perfil.nome || dadosVisuais.nome || idPerfil, distancia: dadosVisuais.distancia || '', imagem: dadosVisuais.imagem || '', ...dadosVisuais };
+  });
+
+  const perfil = baseDinamica[id];
   if (!perfil) return;
 
-  const commentBoxAtual = viewer.querySelector('.nearby-drop-comment-box');
-  if (commentBoxAtual && commentBoxAtual.classList.contains('comentario-focado')) {
-    const inputAtual = viewer.querySelector('.nearby-drop-comment-input');
-    if (inputAtual) inputAtual.value = '';
-    commentBoxAtual.classList.remove('comentario-focado');
-    viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => btn.style.display = '');
-  }
-  if (viewer.classList.contains('modo-expandido')) {
-    viewer.classList.remove('modo-expandido');
-    const btnExp = viewer.querySelector('#nearbyDropExpandir');
-    if (btnExp) btnExp.textContent = '⤢';
-  }
+  abrirViewerPublicacaoNex(perfil, 'conectados', id, 0, baseDinamica);
+}
 
-  const drops = obterDropsDoPerfil(perfil);
-  const drop = drops[dropIndexAtual] || drops[0];
-  const avatar = viewer.querySelector('#nearbyDropAvatar');
-  const nome = viewer.querySelector('#nearbyDropNome');
-  const distancia = viewer.querySelector('#nearbyDropDistancia');
-  const expire = viewer.querySelector('#nearbyDropExpire');
-  const counter = viewer.querySelector('#nearbyDropCounter');
-  const views = viewer.querySelector('#nearbyDropViews');
-  const media = viewer.querySelector('#nearbyDropMedia');
+// ============================================
+// ABRIR PUBLICAÇÃO DO NEARBY (leitura)
+// ============================================
+// (Sem bloqueio — só abre o viewer)
 
-  if (avatar) {
-    const avatarUrl = perfil.avatar;
-    if (avatarUrl && typeof avatarUrl === 'string' && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:image'))) {
-      avatar.style.backgroundImage = `url('${avatarUrl}')`;
-      avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; avatar.textContent = '';
-    } else {
-      avatar.style.backgroundImage = 'none'; avatar.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
-    }
-  }
-  if (nome) nome.textContent = perfil.nome || 'Perfil';
-  if (distancia) distancia.textContent = perfil.distancia || '';
-  if (expire) expire.textContent = calcularTempoExpiracaoNex(drop.expiraEm);
+function abrirPublicacaoNearbyNex(id) {
+  abrirViewerPublicacaoNex(publicacoesNearbyNex.nearby[id], 'nearby', id);
+}
 
-  const selosAntigosNearby = viewer.querySelector('.selos-origem');
-  if (selosAntigosNearby) selosAntigosNearby.remove();
-  if (drop.selos && typeof window.gerarHTMLSelos === 'function') {
-    const metaWrapNearby = viewer.querySelector('.nearby-drop-user-meta');
-    if (metaWrapNearby) metaWrapNearby.insertAdjacentHTML('beforeend', window.gerarHTMLSelos(drop.selos));
-  }
-  if (counter) counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
-  if (views) views.textContent = drop.views || 0;
+// ============================================
+// ABRIR MINHAS PUBLICAÇÕES (leitura)
+// ============================================
+// (Sem bloqueio — só abre o viewer dos MEUS drops)
 
-  const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
-  const urlCalc = drop.url || drop.imagem || '';
+function abrirMinhasPublicacoesNearby() {
+  const publicacoesOrdenadas = obterPublicacoesOrdenadasMyDropsNex();
 
-  const stats = obterStatsReacaoDropNex(perfilIdCalc, dropIndexAtual, urlCalc);
-  const totalReacoes = stats.heart + stats.broken;
-  atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
-
-  // CORRIGIDO AQUI: Usando a função utilitária segura
-  const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
-  const commentInputAtual = viewer.querySelector('.nearby-drop-comment-input');
-  // CORRIGIDO AQUI: Redeclaração de const commentBoxAtual removida
-
-  if (estouSilenciado) {
-    if (commentInputAtual) {
-      commentInputAtual.disabled = true;
-      commentInputAtual.placeholder = 'Você foi silenciado';
-      commentInputAtual.style.background = '#e2e8f0';
-      commentInputAtual.style.color = '#94a3b8';
-    }
-    if (commentBoxAtual) {
-      commentBoxAtual.style.opacity = '0.6';
-      commentBoxAtual.style.pointerEvents = 'none'; // Bloqueia cliques nos botões de enviar e reações
-    }
-  } else {
-    if (commentInputAtual) {
-      commentInputAtual.disabled = false;
-      commentInputAtual.placeholder = 'Comentar...';
-      commentInputAtual.style.background = '#ffffff';
-      commentInputAtual.style.color = '#111827';
-    }
-    if (commentBoxAtual) {
-      commentBoxAtual.style.opacity = '1';
-      commentBoxAtual.style.pointerEvents = 'auto';
-    }
+  if (!publicacoesOrdenadas.length) {
+    alert('Você ainda não publicou nenhum Drop.\n\nVá em My Drops e toque em Notas, Foto ou Vídeo pra criar um.');
+    return;
   }
 
-  if (media) {
-    const url = String(drop.url || drop.imagem || '');
-    const tipoDrop = String(drop.type || drop.tipo || '').toLowerCase();
+  abrirVisualizadorPublicacaoMyDropsNex(publicacoesOrdenadas, 0);
+}
+      const dropsJaSincronizados = new Set();
+  const viewsJaRegistradas = new Set();
 
-    if (primeiraRenderizacaoNex) {
-      primeiraRenderizacaoNex = false;
-      const ehVideo = tipoDrop.includes('video') || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+  function renderizar() {
+    const perfil = base[perfilAtualId];
+    if (!perfil) return;
 
-      media.innerHTML = '';
-      const novoInicial = document.createElement('div');
-      novoInicial.className = 'nearby-pub-midia-item';
+    const commentBoxAtual = viewer.querySelector('.nearby-drop-comment-box');
+    if (commentBoxAtual && commentBoxAtual.classList.contains('comentario-focado')) {
+      const inputAtual = viewer.querySelector('.nearby-drop-comment-input');
+      if (inputAtual) inputAtual.value = '';
+      commentBoxAtual.classList.remove('comentario-focado');
+      viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => btn.style.display = '');
+    }
+    if (viewer.classList.contains('modo-expandido')) {
+      viewer.classList.remove('modo-expandido');
+      const btnExp = viewer.querySelector('#nearbyDropExpandir');
+      if (btnExp) btnExp.textContent = '⤢';
+    }
 
-      if (ehVideo) {
-        const playerWrapper = document.createElement('div');
-        playerWrapper.className = 'player-custom-nex';
-        playerWrapper.innerHTML = `
-          <video id="videoPlayerNearbyNex" src="${url}" autoplay playsinline loop="${drop.loop ? 'true' : 'false'}" muted></video>
-          <div class="video-overlay-swipe-nex"></div>
-          <button type="button" class="btn-mute-custom-nex" onclick="toggleMuteNearbyNex(this)">
-            <svg class="icone-mudo-nearby" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-              <line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>
-            </svg>
-          </button>
-          <div class="controles-inferiores-nex">
-            <button type="button" class="btn-play-pause-custom-nex" onclick="togglePlayNearbyNex(this)">
-              <svg class="icone-play-nearby" viewBox="0 0 24 24" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
-              <svg class="icone-pause-nearby" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            </button>
-            <div class="barra-tempo-custom-nex" onclick="seekNearbyNex(event, this)">
-              <div class="barra-tempo-fundo-nex"><div class="barra-tempo-progresso-nex progresso-nearby"></div></div>
-            </div>
-            <div class="tempo-texto-nex"><span class="tempo-atual-nearby">0:00</span> / <span class="tempo-total-nearby">0:00</span></div>
-          </div>
-        `;
-        novoInicial.appendChild(playerWrapper);
+    const drops = obterDropsDoPerfil(perfil);
+    const drop = drops[dropIndexAtual] || drops[0];
+    const avatar = viewer.querySelector('#nearbyDropAvatar');
+    const nome = viewer.querySelector('#nearbyDropNome');
+    const distancia = viewer.querySelector('#nearbyDropDistancia');
+    const expire = viewer.querySelector('#nearbyDropExpire');
+    const counter = viewer.querySelector('#nearbyDropCounter');
+    const views = viewer.querySelector('#nearbyDropViews');
+    const media = viewer.querySelector('#nearbyDropMedia');
 
-        const videoEl = playerWrapper.querySelector('video');
-        const progressoEl = playerWrapper.querySelector('.progresso-nearby');
-        const tempoAtualEl = playerWrapper.querySelector('.tempo-atual-nearby');
-        const tempoTotalEl = playerWrapper.querySelector('.tempo-total-nearby');
-
-        const formatarTempo = (s) => {
-          if (isNaN(s)) return '0:00';
-          const m = Math.floor(s / 60); const seg = Math.floor(s % 60);
-          return `${m}:${seg.toString().padStart(2, '0')}`;
-        };
-
-        videoEl.addEventListener('loadedmetadata', () => tempoTotalEl.textContent = formatarTempo(videoEl.duration));
-        videoEl.addEventListener('timeupdate', () => {
-          if (!videoEl.duration) return;
-          const pct = (videoEl.currentTime / videoEl.duration) * 100;
-          progressoEl.style.width = `${pct}%`;
-          tempoAtualEl.textContent = formatarTempo(videoEl.currentTime);
-        });
-        videoEl.addEventListener('play', () => {
-          playerWrapper.querySelector('.icone-play-nearby').style.display = 'none';
-          playerWrapper.querySelector('.icone-pause-nearby').style.display = 'block';
-        });
-        videoEl.addEventListener('pause', () => {
-          playerWrapper.querySelector('.icone-play-nearby').style.display = 'block';
-          playerWrapper.querySelector('.icone-pause-nearby').style.display = 'none';
-        });
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (videoEl.isConnected && videoEl.paused) videoEl.play().catch(() => {});
-          });
-        });
+    if (avatar) {
+      const avatarUrl = perfil.avatar;
+      if (avatarUrl && typeof avatarUrl === 'string' && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:image'))) {
+        avatar.style.backgroundImage = `url('${avatarUrl}')`;
+        avatar.style.backgroundSize = 'cover'; avatar.style.backgroundPosition = 'center'; avatar.textContent = '';
       } else {
-        const img = document.createElement('img');
-        img.src = url; img.alt = perfil.nome || '';
-        novoInicial.appendChild(img);
+        avatar.style.backgroundImage = 'none'; avatar.textContent = (perfil.nome || '?').charAt(0).toUpperCase();
       }
-      media.appendChild(novoInicial);
-    } else {
-      animarMidiaNex(media, url, tipoDrop, direcaoAnimacaoNex);
     }
-  }      
-      viewer.addEventListener('touchstart', (e) => {
+    if (nome) nome.textContent = perfil.nome || 'Perfil';
+    if (distancia) distancia.textContent = perfil.distancia || '';
+    if (expire) expire.textContent = calcularTempoExpiracaoNex(drop.expiraEm);
+
+    const selosAntigosNearby = viewer.querySelector('.selos-origem');
+    if (selosAntigosNearby) selosAntigosNearby.remove();
+    if (drop.selos && typeof window.gerarHTMLSelos === 'function') {
+      const metaWrapNearby = viewer.querySelector('.nearby-drop-user-meta');
+      if (metaWrapNearby) metaWrapNearby.insertAdjacentHTML('beforeend', window.gerarHTMLSelos(drop.selos));
+    }
+    if (counter) counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
+    if (views) views.textContent = drop.views || 0;
+
+    const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
+    const urlCalc = drop.url || drop.imagem || '';
+
+    const stats = obterStatsReacaoDropNex(perfilIdCalc, dropIndexAtual, urlCalc);
+    const totalReacoes = stats.heart + stats.broken;
+    atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
+
+    // ⚠️ BLOQUEIO VISUAL DE SILENCIAMENTO
+    //    Bloqueia SÓ o input de comentário e o botão de enviar.
+    //    Reações ❤️/💔 continuam LIBERADAS (drop não é comunicação).
+    const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
+    const commentInputAtual = viewer.querySelector('.nearby-drop-comment-input');
+
+    if (estouSilenciado) {
+      if (commentInputAtual) {
+        commentInputAtual.disabled = true;
+        commentInputAtual.placeholder = 'Você está silenciado por este usuário.';
+        commentInputAtual.style.background = '#e2e8f0';
+        commentInputAtual.style.color = '#94a3b8';
+      }
+
+      // ⚠️ Bloqueia SÓ o botão de enviar
+      if (botaoEnviar) {
+        botaoEnviar.disabled = true;
+        botaoEnviar.style.opacity = '0.4';
+        botaoEnviar.style.pointerEvents = 'none';
+      }
+
+      // ⚠️ NÃO bloqueia as reações — reagir em drop é liberado
+    } else {
+      if (commentInputAtual) {
+        commentInputAtual.disabled = false;
+        commentInputAtual.placeholder = 'Comentar...';
+        commentInputAtual.style.background = '#ffffff';
+        commentInputAtual.style.color = '#111827';
+      }
+
+      if (botaoEnviar) {
+        botaoEnviar.disabled = false;
+        botaoEnviar.style.opacity = '';
+        botaoEnviar.style.pointerEvents = '';
+      }
+    }
+
+    if (media) {
+      const url = String(drop.url || drop.imagem || '');
+      const tipoDrop = String(drop.type || drop.tipo || '').toLowerCase();
+
+      if (primeiraRenderizacaoNex) {
+        primeiraRenderizacaoNex = false;
+        const ehVideo = tipoDrop.includes('video') || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+
+        media.innerHTML = '';
+        const novoInicial = document.createElement('div');
+        novoInicial.className = 'nearby-pub-midia-item';
+
+        if (ehVideo) {
+          const playerWrapper = document.createElement('div');
+          playerWrapper.className = 'player-custom-nex';
+          playerWrapper.innerHTML = `
+        <video id="videoPlayerNearbyNex" src="${url}" autoplay playsinline loop="${drop.loop ? 'true' : 'false'}" muted></video>
+        <div class="video-overlay-swipe-nex"></div>
+        <button type="button" class="btn-mute-custom-nex" onclick="toggleMuteNearbyNex(this)">
+          <svg class="icone-mudo-nearby" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+        <div class="controles-inferiores-nex">
+          <button type="button" class="btn-play-pause-custom-nex" onclick="togglePlayNearbyNex(this)">
+            <svg class="icone-play-nearby" viewBox="0 0 24 24" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="icone-pause-nearby" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <div class="barra-tempo-custom-nex" onclick="seekNearbyNex(event, this)">
+            <div class="barra-tempo-fundo-nex"><div class="barra-tempo-progresso-nex progresso-nearby"></div></div>
+          </div>
+          <div class="tempo-texto-nex"><span class="tempo-atual-nearby">0:00</span> / <span class="tempo-total-nearby">0:00</span></div>
+        </div>
+      `;
+          novoInicial.appendChild(playerWrapper);
+
+          const videoEl = playerWrapper.querySelector('video');
+          const progressoEl = playerWrapper.querySelector('.progresso-nearby');
+          const tempoAtualEl = playerWrapper.querySelector('.tempo-atual-nearby');
+          const tempoTotalEl = playerWrapper.querySelector('.tempo-total-nearby');
+
+          const formatarTempo = (s) => {
+            if (isNaN(s)) return '0:00';
+            const m = Math.floor(s / 60); const seg = Math.floor(s % 60);
+            return `${m}:${seg.toString().padStart(2, '0')}`;
+          };
+
+          videoEl.addEventListener('loadedmetadata', () => tempoTotalEl.textContent = formatarTempo(videoEl.duration));
+          videoEl.addEventListener('timeupdate', () => {
+            if (!videoEl.duration) return;
+            const pct = (videoEl.currentTime / videoEl.duration) * 100;
+            progressoEl.style.width = `${pct}%`;
+            tempoAtualEl.textContent = formatarTempo(videoEl.currentTime);
+          });
+          videoEl.addEventListener('play', () => {
+            playerWrapper.querySelector('.icone-play-nearby').style.display = 'none';
+            playerWrapper.querySelector('.icone-pause-nearby').style.display = 'block';
+          });
+          videoEl.addEventListener('pause', () => {
+            playerWrapper.querySelector('.icone-play-nearby').style.display = 'block';
+            playerWrapper.querySelector('.icone-pause-nearby').style.display = 'none';
+          });
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (videoEl.isConnected && videoEl.paused) videoEl.play().catch(() => {});
+            });
+          });
+        } else {
+          const img = document.createElement('img');
+          img.src = url; img.alt = perfil.nome || '';
+          novoInicial.appendChild(img);
+        }
+        media.appendChild(novoInicial);
+      } else {
+        animarMidiaNex(media, url, tipoDrop, direcaoAnimacaoNex);
+      }
+    }
+
+    viewer.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
       const alvo = e.target;
       if (alvo.closest('.nearby-drop-close') || alvo.closest('.nearby-drop-comment-box') ||
-          alvo.closest('.nearby-drop-footer') || alvo.closest('.nearby-drop-profile-btn') ||
-          alvo.closest('.nearby-pub-stats-row') || alvo.closest('.nearby-drop-expandir') ||
-          alvo.closest('.controles-inferiores-nex') || alvo.closest('.btn-mute-custom-nex') ||
-          alvo.closest('input')) {
+        alvo.closest('.nearby-drop-footer') || alvo.closest('.nearby-drop-profile-btn') ||
+        alvo.closest('.nearby-pub-stats-row') || alvo.closest('.nearby-drop-expandir') ||
+        alvo.closest('.controles-inferiores-nex') || alvo.closest('.btn-mute-custom-nex') ||
+        alvo.closest('input')) {
         swipeAtivo = false;
         return;
       }
@@ -966,6 +1208,7 @@ function renderizar() {
     viewer.remove();
     document.body.style.overflow = '';
   };
+
   viewer.addEventListener('click', (e) => {
     if (e.target === viewer) {
       if (inputComentario) inputComentario.value = '';
@@ -978,46 +1221,29 @@ function renderizar() {
   renderizar();
   document.body.style.overflow = 'hidden';
 } // FECHA abrirViewerPublicacaoNex
-  async function atualizarCapsulaShareNearbyNex(publicacaoId) {
-  const capsulaEl = document.querySelector('#nearbyDropShareCapsula');
-  if (!capsulaEl) return;
-  if (!publicacaoId || typeof window.jaCompartilhouSupabase !== 'function') { capsulaEl.style.display = 'none'; return; }
-  try {
-    const ja = await window.jaCompartilhouSupabase(publicacaoId);
-    if (!ja) { capsulaEl.style.display = 'none'; return; }
-    let total = 0;
-    if (typeof window.contarCompartilhamentosSupabase === 'function') total = Number(await window.contarCompartilhamentosSupabase(publicacaoId)) || 0;
-    capsulaEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>${total}</span>`;
-    capsulaEl.style.display = 'inline-flex';
-  } catch (err) { capsulaEl.style.display = 'none'; }
-}
-
-function atualizarBotoesReacaoNex(viewerEl, perfilId, dropIndex, url) {
-  if (!viewerEl) return;
-  const usuarioId = Drops.usernameAtual || 'anonimo';
-  let reacaoAtual = '';
-  if (typeof window.obterReacaoUsuarioNex === 'function') {
-    const chave = window.chaveDropPerfilNex ? window.chaveDropPerfilNex(perfilId, dropIndex, url) : chaveReacaoDropNex(perfilId, dropIndex, url);
-    reacaoAtual = window.obterReacaoUsuarioNex(chave, usuarioId);
-  } else {
-    reacaoAtual = obterReacaoUsuarioDropNex(perfilId, dropIndex, url, usuarioId);
-  }
-  viewerEl.querySelectorAll('.nearby-drop-reaction').forEach((b) => {
-    b.classList.toggle('ativo', b.textContent.trim() === reacaoAtual);
-  });
-}
+  // ============================================
+// FUNÇÕES AUXILIARES — redeclaradas no IIFE
+// ============================================
+// ⚠️ NOTA: na Parte 6 essas funções foram colocadas dentro de
+//    `abrirViewerPublicacaoNex` por engano de indentação.
+//    Como precisam ser exportadas via `window.*`, redeclaramos
+//    aqui no escopo correto (IIFE). As versões internas viram
+//    "dead code" (nunca chamadas), mas não causam erro.
 
 function abrirPublicacaoConectadaNex(id) {
   const conectadosReais = lerConectadosMyDropsNex();
   const baseDinamica = {};
+
   conectadosReais.forEach((perfil) => {
     const idPerfil = normalizarIdPerfilNex(perfil.id);
     if (!idPerfil) return;
     const dadosVisuais = publicacoesNearbyNex.conectados[idPerfil] || publicacoesNearbyNex.nearby[idPerfil] || {};
     baseDinamica[idPerfil] = { id: idPerfil, nome: perfil.nome || dadosVisuais.nome || idPerfil, distancia: dadosVisuais.distancia || '', imagem: dadosVisuais.imagem || '', ...dadosVisuais };
   });
+
   const perfil = baseDinamica[id];
   if (!perfil) return;
+
   abrirViewerPublicacaoNex(perfil, 'conectados', id, 0, baseDinamica);
 }
 
@@ -1027,13 +1253,20 @@ function abrirPublicacaoNearbyNex(id) {
 
 function abrirMinhasPublicacoesNearby() {
   const publicacoesOrdenadas = obterPublicacoesOrdenadasMyDropsNex();
+
   if (!publicacoesOrdenadas.length) {
     alert('Você ainda não publicou nenhum Drop.\n\nVá em My Drops e toque em Notas, Foto ou Vídeo pra criar um.');
     return;
   }
+
   abrirVisualizadorPublicacaoMyDropsNex(publicacoesOrdenadas, 0);
 }
-  async function renderizarPublicacoesNearbyNex() {
+
+// ============================================
+// RENDERIZAR PUBLICAÇÕES DO NEARBY
+// ============================================
+
+async function renderizarPublicacoesNearbyNex() {
   const stories = document.querySelector('.nearby-stories');
   const grid = document.querySelector('.nearby-grid');
   if (!stories || !grid) return;
@@ -1119,7 +1352,7 @@ function abrirMinhasPublicacoesNearby() {
     });
   });
 
-  const conectadosLista = lerConectadosMyDropsNex();
+    const conectadosLista = lerConectadosMyDropsNex();
   const idsConectados = new Set(conectadosLista.map((c) => String(c.id || '').replace(/^@/, '').toLowerCase().trim()));
   const dropsPorAutor = {};
 
@@ -1157,6 +1390,10 @@ function abrirMinhasPublicacoesNearby() {
     return formatarDistanciaNex(metros);
   }
 
+  // ============================================
+  // AUTORES CONECTADOS → STORIES (topo)
+  // ============================================
+
   autoresConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
     const dropPrincipal = dropsDoAutor[0];
     const card = document.createElement('div');
@@ -1193,6 +1430,10 @@ function abrirMinhasPublicacoesNearby() {
     card.addEventListener('click', () => abrirDropRealNearbyNex(dropPrincipal, drops, 'conectados'));
     stories.appendChild(card);
   });
+
+  // ============================================
+  // AUTORES NÃO-CONECTADOS → GRID (embaixo)
+  // ============================================
 
   autoresNaoConectados.forEach(({ autorId, drops: dropsDoAutor }) => {
     const dropPrincipal = dropsDoAutor[0];
@@ -1250,6 +1491,7 @@ function abrirMinhasPublicacoesNearby() {
 
     card.addEventListener('click', () => abrirDropRealNearbyNex(dropPrincipal, drops, 'nearby'));
 
+    // ⚠️ Auto-remove card quando o drop expira
     if (dropPrincipal.expiraEm) {
       const agora = Date.now();
       const expira = new Date(dropPrincipal.expiraEm).getTime();
@@ -1267,29 +1509,56 @@ function abrirMinhasPublicacoesNearby() {
       }
     }
   });
-  }
-    function receberAvisoNearbyNex(pub) {
+} // FECHA renderizarPublicacoesNearbyNex
+  // ============================================
+// RECEBER AVISO DE DROP NOVO (realtime)
+// ============================================
+// (Sem bloqueio — é notificação de leitura)
+
+function receberAvisoNearbyNex(pub) {
   if (!pub || !pub.autor_username) return;
+
   if (pub.expira_em) {
     const agora = Date.now();
     const expira = new Date(pub.expira_em).getTime();
-    if (expira <= agora) { console.log('⏳ Aviso ignorado (drop já expirou):', pub.id); return; }
+    if (expira <= agora) {
+      console.log('⏳ Aviso ignorado (drop já expirou):', pub.id);
+      return;
+    }
   }
+
   const minhaLat = window.minhaLatitudeAtual;
   const minhaLng = window.minhaLongitudeAtual;
   if (typeof minhaLat !== 'number' || typeof minhaLng !== 'number') return;
+
   const autorLat = pub.autor_lat;
   const autorLng = pub.autor_lng;
-  if (typeof autorLat !== 'number' || typeof autorLng !== 'number') { console.warn('Aviso sem coordenadas do autor. Ignorando.'); return; }
+  if (typeof autorLat !== 'number' || typeof autorLng !== 'number') {
+    console.warn('Aviso sem coordenadas do autor. Ignorando.');
+    return;
+  }
+
   const distancia = calcularDistanciaMetrosNex(minhaLat, minhaLng, autorLat, autorLng);
   const RAIO_MAXIMO = 5000 * 1000;
-  if (distancia > RAIO_MAXIMO) { console.log(`📡 Aviso de @${pub.autor_username} ignorado (distância: ${Math.round(distancia / 1000)} km)`); return; }
+  if (distancia > RAIO_MAXIMO) {
+    console.log(`📡 Aviso de @${pub.autor_username} ignorado (distância: ${Math.round(distancia / 1000)} km)`);
+    return;
+  }
+
   console.log(`📡 Aviso válido de @${pub.autor_username}. Atualizando Nearby.`);
+
   cachePerfisNearbyNex = null;
   ultimaLatNearbyNex = null;
   ultimaLngNearbyNex = null;
-  if (typeof renderizarPublicacoesNearbyNex === 'function') renderizarPublicacoesNearbyNex();
+
+  if (typeof renderizarPublicacoesNearbyNex === 'function') {
+    renderizarPublicacoesNearbyNex();
+  }
 }
+
+// ============================================
+// EXPORTS GLOBAIS (dados e reações)
+// ============================================
 
 window.publicacoesNearbyNex = publicacoesNearbyNex;
 window.receberAvisoNearbyNex = receberAvisoNearbyNex;
@@ -1305,7 +1574,11 @@ window.obterReacaoUsuarioDropNex = obterReacaoUsuarioDropNex;
 window.registrarReacaoDropNex = registrarReacaoDropNex;
 window.obterDropsDoPerfil = obterDropsDoPerfil;
 
-window.togglePlayNearbyNex = function(btn) {
+// ============================================
+// CONTROLES DO PLAYER CUSTOMIZADO
+// ============================================
+
+window.togglePlayNearbyNex = function (btn) {
   const wrapper = btn.closest('.player-custom-nex');
   if (!wrapper) return;
   const video = wrapper.querySelector('video');
@@ -1313,7 +1586,7 @@ window.togglePlayNearbyNex = function(btn) {
   else video.pause();
 };
 
-window.toggleMuteNearbyNex = function(btn) {
+window.toggleMuteNearbyNex = function (btn) {
   const wrapper = btn.closest('.player-custom-nex');
   if (!wrapper) return;
   const video = wrapper.querySelector('video');
@@ -1326,7 +1599,7 @@ window.toggleMuteNearbyNex = function(btn) {
   }
 };
 
-window.seekNearbyNex = function(e, barra) {
+window.seekNearbyNex = function (e, barra) {
   const wrapper = barra.closest('.player-custom-nex');
   if (!wrapper) return;
   const video = wrapper.querySelector('video');
@@ -1334,78 +1607,88 @@ window.seekNearbyNex = function(e, barra) {
   const pct = (e.clientX - rect.left) / rect.width;
   video.currentTime = pct * video.duration;
 };
-    function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
-    if (!dropClicado) return;
-    let lista = Array.isArray(listaDeDrops) ? listaDeDrops : [];
 
-    if (tipoOrigem === 'conectados' || tipoOrigem === 'nearby') {
-      const conectados = typeof lerConectadosMyDropsNex === 'function' ? lerConectadosMyDropsNex() : [];
-      const idsConectados = new Set(conectados.map((c) => String(c.id || '').replace(/^@/, '').toLowerCase().trim()));
-      lista = lista.filter((d) => {
-        const autor = String(d.autorUsername || '').replace(/^@/, '').toLowerCase().trim();
-        const ehConectado = idsConectados.has(autor);
-        return tipoOrigem === 'conectados' ? ehConectado : !ehConectado;
-      });
-      if (!lista.length) lista = [dropClicado];
-    }
+// ============================================
+// ABRIR DROP A PARTIR DO CARD/STORY
+// ============================================
+// (Sem bloqueio — abre o viewer)
 
-    const dropsPorAutor = {};
-    lista.forEach((d) => {
-      const id = d.autorUsername || 'usuario';
-      if (!dropsPorAutor[id]) dropsPorAutor[id] = [];
-      dropsPorAutor[id].push(d);
+function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
+  if (!dropClicado) return;
+  let lista = Array.isArray(listaDeDrops) ? listaDeDrops : [];
+
+  if (tipoOrigem === 'conectados' || tipoOrigem === 'nearby') {
+    const conectados = typeof lerConectadosMyDropsNex === 'function' ? lerConectadosMyDropsNex() : [];
+    const idsConectados = new Set(conectados.map((c) => String(c.id || '').replace(/^@/, '').toLowerCase().trim()));
+    lista = lista.filter((d) => {
+      const autor = String(d.autorUsername || '').replace(/^@/, '').toLowerCase().trim();
+      const ehConectado = idsConectados.has(autor);
+      return tipoOrigem === 'conectados' ? ehConectado : !ehConectado;
     });
-
-    const base = {};
-    Object.entries(dropsPorAutor).forEach(([autorId, drops]) => {
-      const primeiro = drops[0];
-      base[autorId] = {
-        id: autorId,
-        nome: primeiro.autorNome || autorId,
-        avatar: primeiro.autorAvatar || null,
-        distancia: '',
-        drops: drops.map((d, idxDentro) => {
-          const chaveLocal = typeof window.chaveDropPerfilNex === 'function'
-            ? window.chaveDropPerfilNex(autorId, idxDentro, d.mediaUrl)
-            : `${autorId}::${idxDentro}::${d.mediaUrl}`;
-          window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
-          return {
-            url: d.mediaUrl,
-            type: d.tipo === 'video' ? 'video' : 'image',
-            autorId: d.autorUsername,
-            autorNome: d.autorNome,
-            dropIndex: d.id,
-            publicacaoIdSupabase: d.id,
-            expiraEm: d.expiraEm || null,
-            selos: d.selos || null,
-            legenda: d.legenda || '',
-            compartilhado_de_id: d.compartilhado_de_id || null,
-            compartilhado_de_username: d.compartilhado_de_username || '',
-            compartilhado_de_nome: d.compartilhado_de_nome || '',
-            compartilhado_de_avatar: d.compartilhado_de_avatar || ''
-          };
-        })
-      };
-    });
-
-    const autorClicado = dropClicado.autorUsername || 'usuario';
-    const perfilClicado = base[autorClicado];
-    if (!perfilClicado) return;
-
-    window.limparNovidadePostConectado?.(autorClicado);
-    window.atualizarBordasCardsNex?.();
-
-    const indexClicado = perfilClicado.drops.findIndex((d) => d.dropIndex === dropClicado.id);
-    const dropIndexFinal = indexClicado >= 0 ? indexClicado : 0;
-
-    if (typeof window.abrirViewerPublicacaoNex === 'function') {
-      window.abrirViewerPublicacaoNex(perfilClicado, 'nearby', autorClicado, dropIndexFinal, base);
-    } else {
-      console.warn('abrirViewerPublicacaoNex não disponível');
-    }
+    if (!lista.length) lista = [dropClicado];
   }
 
-  window.abrirDropRealNearbyNex = abrirDropRealNearbyNex;
+  const dropsPorAutor = {};
+  lista.forEach((d) => {
+    const id = d.autorUsername || 'usuario';
+    if (!dropsPorAutor[id]) dropsPorAutor[id] = [];
+    dropsPorAutor[id].push(d);
+  });
+
+  const base = {};
+  Object.entries(dropsPorAutor).forEach(([autorId, drops]) => {
+    const primeiro = drops[0];
+    base[autorId] = {
+      id: autorId,
+      nome: primeiro.autorNome || autorId,
+      avatar: primeiro.autorAvatar || null,
+      distancia: '',
+      drops: drops.map((d, idxDentro) => {
+        const chaveLocal = typeof window.chaveDropPerfilNex === 'function'
+          ? window.chaveDropPerfilNex(autorId, idxDentro, d.mediaUrl)
+          : `${autorId}::${idxDentro}::${d.mediaUrl}`;
+        window.__dropsMapaIdsPublicacao[chaveLocal] = d.id;
+        return {
+          url: d.mediaUrl,
+          type: d.tipo === 'video' ? 'video' : 'image',
+          autorId: d.autorUsername,
+          autorNome: d.autorNome,
+          dropIndex: d.id,
+          publicacaoIdSupabase: d.id,
+          expiraEm: d.expiraEm || null,
+          selos: d.selos || null,
+          legenda: d.legenda || '',
+          compartilhado_de_id: d.compartilhado_de_id || null,
+          compartilhado_de_username: d.compartilhado_de_username || '',
+          compartilhado_de_nome: d.compartilhado_de_nome || '',
+          compartilhado_de_avatar: d.compartilhado_de_avatar || ''
+        };
+      })
+    };
+  });
+
+  const autorClicado = dropClicado.autorUsername || 'usuario';
+  const perfilClicado = base[autorClicado];
+  if (!perfilClicado) return;
+
+  window.limparNovidadePostConectado?.(autorClicado);
+  window.atualizarBordasCardsNex?.();
+
+  const indexClicado = perfilClicado.drops.findIndex((d) => d.dropIndex === dropClicado.id);
+  const dropIndexFinal = indexClicado >= 0 ? indexClicado : 0;
+
+  if (typeof window.abrirViewerPublicacaoNex === 'function') {
+    window.abrirViewerPublicacaoNex(perfilClicado, 'nearby', autorClicado, dropIndexFinal, base);
+  } else {
+    console.warn('abrirViewerPublicacaoNex não disponível');
+  }
+}
+
+window.abrirDropRealNearbyNex = abrirDropRealNearbyNex;
+
+    // ============================================
+  // LISTENERS GLOBAIS (DOMContentLoaded)
+  // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
     const btnMinhasPublicacoes = document.getElementById('btnMinhasPublicacoesNearby');
@@ -1449,9 +1732,10 @@ window.seekNearbyNex = function(e, barra) {
     }
   });
 
-    // ============================================
+  // ============================================
   // FORÇAR ATUALIZAÇÃO DO NEARBY (BOTÃO)
   // ============================================
+
   async function forcarAtualizacaoNearbyNex() {
     const btn = document.getElementById('btnAtualizarNearbyNex');
     const icone = document.getElementById('iconeAtualizarNearbyNex');
@@ -1476,9 +1760,9 @@ window.seekNearbyNex = function(e, barra) {
         (pos) => {
           window.minhaLatitudeAtual = pos.coords.latitude;
           window.minhaLongitudeAtual = pos.coords.longitude;
-          
+
           renderizarPublicacoesNearbyNex();
-          
+
           finalizarAtualizacaoNex(btn, icone);
         },
         (err) => {
@@ -1498,7 +1782,7 @@ window.seekNearbyNex = function(e, barra) {
     setTimeout(() => {
       icone.classList.remove('girando');
       btn.disabled = false;
-      
+
       if (typeof window.mostrarToastNex === 'function') {
         window.mostrarToastNex('Nearby atualizado!', 'sucesso');
       }
@@ -1507,6 +1791,10 @@ window.seekNearbyNex = function(e, barra) {
 
   window.forcarAtualizacaoNearbyNex = forcarAtualizacaoNearbyNex;
 
-  console.log('🗺️ 11-nearby.js carregado');
+  // ============================================
+  // DEBUG
+  // ============================================
+
+  console.log('🗺️ 11-nearby.js carregado (silenciamento aplicado em comentar/compartilhar drop)');
 
 })();
