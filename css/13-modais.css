@@ -15,7 +15,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* ⚠️ CORREÇÃO: z-index seguro no limite do int32 */
   z-index: 2147483640;
   padding: 20px;
   -webkit-overflow-scrolling: touch;
@@ -30,14 +29,17 @@ body.modal-duracao-aberto {
   overflow: hidden !important;
 }
 
+/* ⚠️ CORRIGIDO: fundo do modal agora é azul escuro do app */
 .modal-duracao-box {
   width: min(92vw, 420px);
-  background: #1f241a;
+  background: #0f172a;
   border-radius: 28px;
   padding: 18px;
   color: #fff;
   max-height: 85vh;
   overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
 .modal-duracao-titulo {
@@ -58,13 +60,14 @@ body.modal-duracao-aberto {
   padding-right: 4px;
 }
 
+/* ⚠️ CORRIGIDO: cápsulas dos rádios agora usam rgba do app */
 .modal-duracao-opcao {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: #2d3327;
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-size: 16px;
   font-weight: 800;
@@ -73,12 +76,20 @@ body.modal-duracao-aberto {
   transition: 0.2s;
 }
 
+/* ⚠️ NOVO: cápsula marcada ganha destaque azul */
+.modal-duracao-opcao:has(input:checked) {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+/* ⚠️ CORRIGIDO: bolinha do rádio agora é azul */
 .modal-duracao-opcao input {
-  accent-color: #c6e48b;
+  accent-color: #60a5fa;
   width: 18px;
   height: 18px;
 }
 
+/* ⚠️ CORRIGIDO: wrap da roleta agora usa rgba do app */
 .modal-duracao-personalizado {
   display: none;
   flex-direction: column;
@@ -86,7 +97,7 @@ body.modal-duracao-aberto {
   margin-top: 14px;
   padding: 14px;
   border-radius: 18px;
-  background: #2d3327;
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-weight: 700;
 }
@@ -95,7 +106,6 @@ body.modal-duracao-aberto {
   font-size: 14px;
   color: #cbd5e1;
 }
-
 
 .modal-footer-duracao {
   display: flex;
@@ -581,6 +591,7 @@ body.modal-duracao-aberto {
   height: 48px; border: none; border-radius: 14px; background: #2563eb; color: #ffffff;
   font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
 }
+
 /* ============================================
    ROLETA DE HORAS — MY DROPS
    Substitui o input de digitação do modal
