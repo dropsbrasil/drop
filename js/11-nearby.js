@@ -1446,18 +1446,29 @@ async function renderizarPublicacoesNearbyNex() {
     if (!estaOnline) card.classList.add('offline');
 
     if (dropPrincipal.mediaUrl) {
-      const isVideo = dropPrincipal.tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(dropPrincipal.mediaUrl);
-      if (isVideo) {
-        const videoFundo = document.createElement('video');
-        videoFundo.src = dropPrincipal.mediaUrl;
-        videoFundo.muted = true;
-        videoFundo.playsInline = true;
-        videoFundo.preload = 'metadata';
-        videoFundo.style.cssText = 'position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; pointer-events: none;';
-        card.style.position = 'relative';
-        card.style.overflow = 'hidden';
-        card.appendChild(videoFundo);
-      } else {
+  const isVideo = dropPrincipal.tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(dropPrincipal.mediaUrl);
+  if (isVideo) {
+    // ⚠️ AJUSTE 3: mostra um frame do vídeo como fundo do card
+    //    (carrega só o metadata + seek de 1s, economiza dados)
+    const videoFundo = document.createElement('video');
+    videoFundo.src = dropPrincipal.mediaUrl;
+    videoFundo.muted = true;
+    videoFundo.playsInline = true;
+    videoFundo.preload = 'metadata';
+    videoFundo.style.cssText = 'position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; pointer-events: none;';
+
+    // ⚠️ Avança 1s pra pegar um frame que não seja preto
+    videoFundo.addEventListener('loadedmetadata', () => {
+      try {
+        const alvo = Math.min(1, (videoFundo.duration || 2) / 2);
+        videoFundo.currentTime = alvo;
+      } catch (e) {}
+    });
+
+    card.style.position = 'relative';
+    card.style.overflow = 'hidden';
+    card.appendChild(videoFundo);
+  } else {
         const imgFundo = document.createElement('img');
         imgFundo.src = dropPrincipal.mediaUrl;
         imgFundo.alt = '';
