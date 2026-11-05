@@ -1053,11 +1053,41 @@ function onbIniciarTimerReenviar() {
     }
 
     if (!error && data && data.user) {
-      console.log('✅ Código confirmado. Modo:', modo);
-      localStorage.setItem('drops_codigo_verificado', 'true');
-      localStorage.setItem('drops_codigo_tentativas', '0');
+  console.log('✅ Código confirmado. Modo:', modo);
+  localStorage.setItem('drops_codigo_verificado', 'true');
+  localStorage.setItem('drops_codigo_tentativas', '0');
 
-      if (modo === 'login') {
+  // ============================================
+  // REGISTRA CONSENTIMENTOS NO SUPABASE (LGPD)
+  // ============================================
+  try {
+    const userId = data.user.id;
+    const agora = new Date().toISOString();
+    const versao = '1.0';
+    const tipos = ['termos', 'privacidade', 'dados', 'localizacao'];
+
+    const registros = tipos.map((tipo) => ({
+      user_id: userId,
+      tipo,
+      versao,
+      aceito_em: agora,
+      user_agent: navigator.userAgent || ''
+    }));
+
+    const { error: erroConsent } = await window.supabaseClient
+      .from('consentimentos')
+      .insert(registros);
+
+    if (erroConsent) {
+      console.warn('⚠️ Erro ao registrar consentimentos:', erroConsent);
+    } else {
+      console.log('✅ Consentimentos registrados no Supabase');
+    }
+  } catch (errConsent) {
+    console.warn('⚠️ Erro inesperado ao registrar consentimentos:', errConsent);
+  }
+
+  if (modo === 'login') {
         console.log('🔓 Login confirmado. Marcando como logado...');
 
         localStorage.setItem('drops_logado', 'true');
@@ -1402,46 +1432,53 @@ function onbIniciarTimerReenviar() {
   }
 
   function onbAtualizarBotaoLgpd() {
-    const termos = document.getElementById('onbLgpdTermos');
-    const privacidade = document.getElementById('onbLgpdPrivacidade');
-    const dados = document.getElementById('onbLgpdDados');
-    const btn = document.getElementById('onbBtnLgpd');
+  const termos = document.getElementById('onbLgpdTermos');
+  const privacidade = document.getElementById('onbLgpdPrivacidade');
+  const dados = document.getElementById('onbLgpdDados');
+  const localizacao = document.getElementById('onbLgpdLocalizacao');
+  const btn = document.getElementById('onbBtnLgpd');
 
-    if (!termos || !privacidade || !dados || !btn) return;
+  if (!termos || !privacidade || !dados || !localizacao || !btn) return;
 
-    const tudoMarcado = termos.checked && privacidade.checked && dados.checked;
+  const tudoMarcado =
+    termos.checked &&
+    privacidade.checked &&
+    dados.checked &&
+    localizacao.checked;
 
-    if (tudoMarcado) {
-      btn.disabled = false;
-      btn.classList.remove('onb-btn-desabilitado');
-    } else {
-      btn.disabled = true;
-      btn.classList.add('onb-btn-desabilitado');
-    }
+  if (tudoMarcado) {
+    btn.disabled = false;
+    btn.classList.remove('onb-btn-desabilitado');
+  } else {
+    btn.disabled = true;
+    btn.classList.add('onb-btn-desabilitado');
   }
+  } 
 
   function onbFinalizarLgpd() {
-    const termos = document.getElementById('onbLgpdTermos');
-    const privacidade = document.getElementById('onbLgpdPrivacidade');
-    const dados = document.getElementById('onbLgpdDados');
+  const termos = document.getElementById('onbLgpdTermos');
+  const privacidade = document.getElementById('onbLgpdPrivacidade');
+  const dados = document.getElementById('onbLgpdDados');
+  const localizacao = document.getElementById('onbLgpdLocalizacao');
 
-    if (!termos || !privacidade || !dados) return;
-    if (!termos.checked || !privacidade.checked || !dados.checked) return;
+  if (!termos || !privacidade || !dados || !localizacao) return;
+  if (!termos.checked || !privacidade.checked || !dados.checked || !localizacao.checked) return;
 
-    const agora = new Date().toISOString();
-    localStorage.setItem('drops_termos_versao', '1.0');
-    localStorage.setItem('drops_termos_aceito_em', agora);
-    localStorage.setItem('drops_lgpd_versao', '1.0');
-    localStorage.setItem('drops_lgpd_aceito_em', agora);
-    localStorage.setItem('drops_dados_aceito_em', agora);
+  const agora = new Date().toISOString();
+  localStorage.setItem('drops_termos_versao', '1.0');
+  localStorage.setItem('drops_termos_aceito_em', agora);
+  localStorage.setItem('drops_lgpd_versao', '1.0');
+  localStorage.setItem('drops_lgpd_aceito_em', agora);
+  localStorage.setItem('drops_dados_aceito_em', agora);
+  localStorage.setItem('drops_localizacao_aceito_em', agora);
 
-    console.log('✅ Consentimento registrado em', agora);
+  console.log('✅ Consentimento registrado em', agora);
 
-    localStorage.setItem(CHAVE_CADASTRO, 'true');
-    localStorage.setItem('drops_logado', 'true');
-    localStorage.setItem('drops_cadastro_em', new Date().toISOString());
+  localStorage.setItem(CHAVE_CADASTRO, 'true');
+  localStorage.setItem('drops_logado', 'true');
+  localStorage.setItem('drops_cadastro_em', new Date().toISOString());
 
-    onbIrParaApp();
+  onbIrParaApp();
   }
 
   /* ============================================

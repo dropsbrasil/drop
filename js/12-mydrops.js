@@ -195,6 +195,7 @@ const HORAS_INICIAIS = 24;
 function atualizarCampoDuracaoPersonalizadaMyDropsNex() {
   const modal = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
   const wrap = document.getElementById('duracaoPersonalizadaWrapMyDropsNex');
+  const btnConcluir = document.getElementById('concluirDuracaoPublicacaoMyDropsNex');
 
   const selecionado = modal?.querySelector(
     'input[name="duracaoPublicacaoMyDropsNex"]:checked'
@@ -207,9 +208,12 @@ function atualizarCampoDuracaoPersonalizadaMyDropsNex() {
   if (mostrar) {
     // ⚠️ Sempre começa em 24 ao abrir
     setTimeout(() => rolarParaHoraMyDropsNex(HORAS_INICIAIS), 60);
+    if (btnConcluir) btnConcluir.disabled = false; // ⚠️ Ativa o botão azul
+  } else {
+    if (btnConcluir) btnConcluir.disabled = true; // ⚠️ Desativa (cinza) se for 24h
   }
 }
-
+  
 // ============================================
 // CRIAR OS ITENS (1..720)
 // ============================================

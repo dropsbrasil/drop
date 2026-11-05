@@ -244,23 +244,38 @@ function notificarSouAdeptoNex(perfil, tipo) {
       ? `👑 Parabéns! Você se tornou adepto de ${nome}!`
       : `😢 Você deixou de ser adepto de ${nome}.`;
 
-  conversas[nomeContato].push({
-    id: gerarIdMensagemNex(),
-    timestamp: agora,
-    side: 'right',
-    nome: 'Eu',
-    avatar: 'EU',
-    data: new Date(agora).toLocaleDateString('pt-BR'),
-    hora: new Date(agora).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    text: textoMensagem,
-    sistema: true
-  });
+  // Salva no banco de dados primeiro
+(async () => {
+  try {
+    const convId = await window.obterOuCriarConversaSupabase(perfil.id);
+    if (convId) {
+      await window.enviarMensagemSupabase({
+        conversa_id: convId,
+        tipo: 'texto',
+        texto: textoMensagem,
+        media_meta: { sistema: true }
+      });
+    }
+  } catch (e) { console.warn('Erro ao salvar adepto no banco:', e); }
+})();
 
-  // Cria/atualiza card no NEX
-  let card = obterCardConversaNex(nomeContato);
+conversas[nomeContato].push({
+  id: gerarIdMensagemNex(),
+  timestamp: agora,
+  side: 'right',
+  nome: 'Eu',
+  avatar: 'EU',
+  data: new Date(agora).toLocaleDateString('pt-BR'),
+  hora: new Date(agora).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }),
+  text: textoMensagem,
+  sistema: true
+});
+
+// Cria/atualiza card no NEX
+let card = obterCardConversaNex(nomeContato);
 
   if (!card) {
     criarCardConversaNex(
@@ -394,12 +409,13 @@ function renderizarMeusAdeptosNex() {
   container.innerHTML = '';
 
   if (!adeptos.length) {
-    const vazio = document.createElement('div');
-    vazio.className = 'adepto-vazio-nex';
+  const vazio = document.createElement('div');
+  vazio.className = 'adepto-vazio-nex';
+  
     vazio.innerHTML =
-      'Você ainda não tem adeptos.<br><br>Quando alguém te salvar em <strong>Conectados</strong> e interagir <strong>15 vezes</strong> em 30 dias, vai aparecer aqui.';
+  'Você ainda não tem adeptos.<br><br>Quando alguém começar a engajar com suas publicações, vai aparecer aqui.';
     container.appendChild(vazio);
-    return;
+  return;
   }
 
   // Ordena: quem interagiu mais recente primeiro
@@ -412,26 +428,23 @@ function renderizarMeusAdeptosNex() {
     item.type = 'button';
     item.className = 'adepto-item-nex';
 
-    const diasAdepto = Math.max(
-      1,
-      Math.floor(
-        (Date.now() - (a.desde || Date.now())) / (1000 * 60 * 60 * 24)
-      )
-    );
+    // Verifica se o avatar é uma URL de imagem ou apenas a inicial
+const avatarTexto = String(a.avatar || '?');
+const avatarEhUrl = avatarTexto.startsWith('http') || avatarTexto.startsWith('data:image');
+const avatarHTML = avatarEhUrl
+  ? `<img src="${avatarTexto}" alt="">`
+  : avatarTexto;
 
-    item.innerHTML = `
-      <div class="adepto-avatar-nex">${a.avatar || '?'}</div>
+item.innerHTML = `
+  <div class="adepto-avatar-nex">${avatarHTML}</div>
 
-      <div class="adepto-info-nex">
-        <div class="adepto-nome-nex">${a.nome || 'Perfil'}</div>
-        <div class="adepto-handle-nex">@${a.id}</div>
-        <div class="adepto-meta-nex">
-          <span>👑 ${diasAdepto}d como adepto</span>
-          <span>•</span>
-          <span>${a.totalInteracoes || 0} interações</span>
-        </div>
-      </div>
-    `;
+  <div class="adepto-info-nex">
+    <div class="adepto-nome-nex">
+      ${a.nome || 'Perfil'} <span style="font-size: 14px; margin-left: 4px;">👑</span>
+    </div>
+    <div class="adepto-handle-nex">@${a.id}</div>
+  </div>
+`;
 
     item.addEventListener('click', () => {
       fecharMeusAdeptosNex();

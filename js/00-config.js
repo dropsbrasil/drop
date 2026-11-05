@@ -97,10 +97,9 @@
   // ============================================
 
   Drops.LIMITES = {
-    // Sistema de adeptos
-    MINIMO_INTERACOES: 15,      // Precisa de 15 interações...
-    JANELA_DIAS: 30,            // ...em até 30 dias
-
+  // Sistema de adeptos
+  JANELA_DIAS: 30,            // O prazo de validade do adepto é de 30 dias
+    
     // Áudio
     AUDIO: 60,                  // 60 segundos máximo
 

@@ -1124,41 +1124,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btnExcluir.style.color = '#fca5a5';
         btnExcluir.textContent = '🗑️ Excluir minha conta';
         
-        btnExcluir.addEventListener('click', async () => {
-          const confirmar = confirm('TEM CERTEZA? Esta ação é irreversível. Suas fotos e dados serão apagados para sempre.');
-          
-          if (confirmar) {
-            const confirmar2 = prompt('Para confirmar, digite a palavra: EXCLUIR');
-            if (confirmar2 !== 'EXCLUIR') {
-              alert('Exclusão cancelada.');
-              return;
-            }
-
-            window.mostrarToastNex?.('Excluindo conta...', 'info');
-
-            try {
-              const { data: { session } } = await window.supabaseClient.auth.getSession();
-              
-              await fetch(`${window.Drops.SUPABASE_URL}/functions/v1/excluir-conta`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${session.access_token}`
-                }
-              });
-
-              if (window.supabaseClient) {
-                await window.supabaseClient.auth.signOut();
-              }
-              localStorage.clear();
-              window.location.href = './onboarding.html';
-
-            } catch (err) {
-              console.error('Erro ao excluir conta:', err);
-              window.mostrarToastNex?.('Erro ao excluir. Tente novamente.', 'erro');
-            }
-          }
-        });
+        btnExcluir.addEventListener('click', () => {
+  if (typeof fecharPainelControleNex === 'function') {
+    fecharPainelControleNex();
+  }
+  abrirModalExcluirContaNex();
+});
 
         bloco.appendChild(btnExcluir);
       }
@@ -1166,9 +1137,86 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1000);
 });
   // ============================================
-// EXPÕE FUNÇÕES GLOBALMENTE
+// MODAL DE EXCLUSÃO DE CONTA
 // ============================================
 
+function abrirModalExcluirContaNex() {
+  const modal = document.getElementById('modalExcluirContaNex');
+  const input = document.getElementById('inputConfirmarExclusaoNex');
+  const btn = document.getElementById('btnConfirmarExclusaoFinalNex');
+  
+  if (!modal || !input || !btn) return;
+
+  // Reseta o estado
+  input.value = '';
+  btn.style.background = 'rgba(239, 68, 68, 0.5)';
+  btn.style.pointerEvents = 'none';
+  btn.textContent = 'Excluir';
+
+  // Abre o modal
+  modal.style.display = 'flex';
+  
+  setTimeout(() => input.focus(), 100);
+
+  // Lógica para habilitar o botão apenas quando digitar EXCLUIR
+  input.oninput = (e) => {
+    const texto = e.target.value.trim().toUpperCase();
+    if (texto === 'EXCLUIR') {
+      btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+      btn.style.pointerEvents = 'auto';
+      btn.style.boxShadow = '0 10px 24px rgba(239, 68, 68, 0.32)';
+      input.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+    } else {
+      btn.style.background = 'rgba(239, 68, 68, 0.5)';
+      btn.style.pointerEvents = 'none';
+      btn.style.boxShadow = 'none';
+      input.style.borderColor = 'rgba(255,255,255,0.1)';
+    }
+  };
+
+  // Ação do botão
+  btn.onclick = async () => {
+    if (input.value.trim().toUpperCase() !== 'EXCLUIR') return;
+
+    btn.disabled = true;
+    btn.textContent = 'Excluindo...';
+    window.mostrarToastNex?.('Excluindo conta...', 'info');
+
+    try {
+      const { data: { session } } = await window.supabaseClient.auth.getSession();
+      
+      await fetch(`${window.Drops.SUPABASE_URL}/functions/v1/excluir-conta`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (window.supabaseClient) {
+        await window.supabaseClient.auth.signOut();
+      }
+      
+      localStorage.clear();
+      window.location.href = './onboarding.html';
+
+    } catch (err) {
+      console.error('Erro ao excluir conta:', err);
+      window.mostrarToastNex?.('Erro ao excluir. Tente novamente.', 'erro');
+      btn.disabled = false;
+      btn.textContent = 'Excluir';
+    }
+  };
+}
+
+function fecharModalExcluirContaNex() {
+  const modal = document.getElementById('modalExcluirContaNex');
+  if (modal) modal.style.display = 'none';
+}
+
+// ============================================
+// EXPÕE FUNÇÕES GLOBALMENTE
+// ============================================
 window.abrirEditorNomeNex = abrirEditorNomeNex;
 window.fecharEditorNomeNex = fecharEditorNomeNex;
 window.salvarNomeNex = salvarNomeNex;
@@ -1190,6 +1238,8 @@ window.abrirModalSairContaNex = abrirModalSairContaNex;
 window.fecharModalSairContaNex = fecharModalSairContaNex;
 window.confirmarSairContaNex = confirmarSairContaNex;
 window.sairDaContaNex = sairDaContaNex;
+window.abrirModalExcluirContaNex = abrirModalExcluirContaNex;
+window.fecharModalExcluirContaNex = fecharModalExcluirContaNex;
 
 // ============================================
 // DEBUG

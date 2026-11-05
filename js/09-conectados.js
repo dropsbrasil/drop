@@ -394,6 +394,11 @@ function abrirPainelControleNex() {
 }
 
 function preencherPerfilNoPainelControleNex() {
+  // ⚠️ Adicione esta linha no final da função:
+  if (typeof verificarStatusSecretNex === 'function') {
+    verificarStatusSecretNex();
+  }
+  
   if (
     !window.AuthAdapterNex ||
     typeof window.AuthAdapterNex.lerUsuario !== 'function' ||
@@ -636,10 +641,464 @@ function removerConversaBloqueadaDoNex(perfilId) {
   delete conversas[nomeMaiusculo];
   delete estadoConversasNex[nomeMaiusculo];
 }
-    // ============================================
-  // EXPÕE GLOBALMENTE
-  // ============================================
 
+  // ============================================
+// NAVEGAÇÃO DAS SUB-ABAS DE AMIGOS
+// ============================================
+
+function mudarAbaAmigosNex(aba) {
+  const btnLista = document.querySelector('.tab-btn-amigos:nth-child(1)');
+  const btnBuscar = document.querySelector('.tab-btn-amigos:nth-child(2)');
+  const contentLista = document.getElementById('aba-amigos-lista');
+  const contentBuscar = document.getElementById('aba-amigos-buscar');
+
+  if (!btnLista || !btnBuscar || !contentLista || !contentBuscar) return;
+
+  if (aba === 'lista') {
+    btnLista.classList.add('active');
+    btnBuscar.classList.remove('active');
+    contentLista.classList.add('active');
+    contentBuscar.classList.remove('active');
+  } else {
+    btnBuscar.classList.add('active');
+    btnLista.classList.remove('active');
+    contentBuscar.classList.add('active');
+    contentLista.classList.remove('active');
+  }
+}
+
+window.mudarAbaAmigosNex = mudarAbaAmigosNex;
+
+  // ============================================
+// BUSCA DE USUÁRIOS
+// ============================================
+let timeoutBuscaAmigo = null;
+
+async function buscarUsuarioNex() {
+  const input = document.getElementById('inputBuscaAmigoNex');
+  const container = document.getElementById('resultadoBuscaAmigoNex');
+  if (!input || !container) return;
+
+  const termo = input.value.replace(/^@/, '').trim().toLowerCase();
+
+  if (timeoutBuscaAmigo) clearTimeout(timeoutBuscaAmigo);
+
+  if (termo.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:13px;">Buscando...</div>';
+
+  timeoutBuscaAmigo = setTimeout(async () => {
+    try {
+      const { data: perfis, error } = await window.supabaseClient
+        .from('profiles')
+        .select('id, username, nome, avatar_url')
+        .ilike('username', `%${termo}%`)
+        .limit(5);
+
+      if (error) throw error;
+
+      container.innerHTML = '';
+
+      if (!perfis || perfis.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:13px; padding: 20px;">Nenhum perfil encontrado.</div>';
+        return;
+      }
+
+      const meusConectados = lerConectadosMyDropsNex();
+      const idsConectados = new Set(meusConectados.map(c => String(c.id).toLowerCase()));
+
+      perfis.forEach(perfil => {
+  if (String(perfil.username).toLowerCase() === String(Drops.usernameAtual).toLowerCase()) return; // Não mostra a si mesmo
+
+  const jaConectado = idsConectados.has(String(perfil.username).toLowerCase());
+  
+  // Monta o HTML do avatar usando as classes reais do app
+  const avatarValor = String(perfil.avatar_url || '');
+  const avatarEhUrl = avatarValor.startsWith('http') || avatarValor.startsWith('data:image');
+  const avatarHTML = avatarEhUrl 
+    ? `<img src="${avatarValor}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">` 
+    : (avatarValor || (perfil.nome || '?').charAt(0).toUpperCase());
+
+  const card = document.createElement('div');
+  card.className = 'mydrops-connected-item'; // ⚠️ Usa a mesma classe da lista de amigos
+  card.style.marginBottom = '10px';
+  
+  card.innerHTML = `
+  <div class="connected-avatar">${avatarHTML}</div>
+  <div class="connected-info">
+    <div class="connected-name">${perfil.nome || perfil.username}</div>
+    <div class="connected-handle">@${perfil.username}</div>
+  </div>
+  <button class="connected-send-btn" style="
+    background: ${jaConectado ? 'rgba(37, 99, 235, 0.15)' : '#2563eb'}; 
+    color: ${jaConectado ? '#60a5fa' : '#fff'};
+    border: ${jaConectado ? '1px solid rgba(37, 99, 235, 0.3)' : 'none'};
+  ">
+    ${jaConectado ? 'Ver perfil' : 'Adicionar'}
+  </button>
+`;
+
+  card.querySelector('button').onclick = async () => {
+    if (jaConectado) {
+      // Se já é conectado, abre o perfil
+      abrirPerfilVisitadoNex(perfil.username, perfil.nome);
+    } else {
+      // Se não, adiciona
+      if (window.ConectadosAdapterNex?.adicionarConectadoSupabase) {
+        await window.ConectadosAdapterNex.adicionarConectadoSupabase(perfil.username);
+      }
+      const novaLista = lerConectadosMyDropsNex();
+      novaLista.unshift({
+        id: perfil.username,
+        nome: perfil.nome || perfil.username,
+        avatar: perfil.avatar_url || (perfil.nome || '?').charAt(0).toUpperCase()
+      });
+      salvarConectadosMyDropsNex(novaLista);
+      
+      window.mostrarToastNex?.('Amigo adicionado!', 'sucesso');
+      buscarUsuarioNex(); // Recarrega a busca
+      renderizarConectadosMyDropsNex(); // Atualiza a lista principal
+    }
+  };
+
+  container.appendChild(card);
+});
+
+    } catch (err) {
+      console.warn('Erro na busca:', err);
+      container.innerHTML = '<div style="text-align:center; color:#fca5a5; font-size:13px;">Erro ao buscar.</div>';
+    }
+  }, 500); // Debounce de 500ms
+}
+
+// ============================================
+// GERAR MEU QR CODE
+// ============================================
+function abrirMeuQrCodeNex() {
+  const modal = document.getElementById('modalMeuQrCodeNex');
+  const container = document.getElementById('qrcodeCanvasNex');
+  if (!modal || !container) return;
+
+  container.innerHTML = ''; // Limpa o anterior
+  const meuUser = Drops.usernameAtual;
+  const linkPerfil = `https://appdrop.com.br/?user=${meuUser}`; // Link que o leitor vai capturar
+
+  new QRCode(container, {
+    text: linkPerfil,
+    width: 200,
+    height: 200,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+  });
+
+  modal.style.display = 'flex';
+}
+
+function fecharMeuQrCodeNex() {
+  const modal = document.getElementById('modalMeuQrCodeNex');
+  if (modal) modal.style.display = 'none';
+}
+
+// ============================================
+// LER QR CODE (CÂMERA)
+// ============================================
+let html5QrCodeScanner = null;
+
+function abrirLeitorQrCodeNex() {
+  const modal = document.getElementById('modalLeitorQrCodeNex');
+  if (!modal) return;
+
+  modal.style.display = 'flex';
+
+  if (html5QrCodeScanner) {
+    html5QrCodeScanner.clear();
+  }
+
+  html5QrCodeScanner = new Html5Qrcode("leitorQrCodeCanvasNex");
+
+  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+  html5QrCodeScanner.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      // SUCESSO AO LER!
+      console.log("QR Code lido:", decodedText);
+      
+      // Para a câmera imediatamente
+      html5QrCodeScanner.stop().then(() => {
+        fecharLeitorQrCodeNex();
+        
+        // Extrai o username do link (ex: https://appdrop.com.br/?user=jqmarques1)
+        let usernameLido = '';
+        try {
+          const url = new URL(decodedText);
+          usernameLido = url.searchParams.get('user');
+        } catch (e) {
+          // Se não for URL, tenta usar o texto puro
+          usernameLido = decodedText.replace('@', '').trim();
+        }
+
+        if (usernameLido) {
+          window.mostrarToastNex?.('Perfil encontrado!', 'sucesso');
+          abrirPerfilVisitadoNex(usernameLido, usernameLido);
+        } else {
+          window.mostrarToastNex?.('QR Code inválido.', 'erro');
+        }
+      }).catch(err => console.warn('Erro ao parar câmera:', err));
+    },
+    (errorMessage) => {
+      // Ignorar erros de leitura contínua (ruído da câmera)
+    }
+  ).catch(err => {
+    console.warn('Erro ao abrir câmera:', err);
+    window.mostrarToastNex?.('Não foi possível abrir a câmera.', 'erro');
+    fecharLeitorQrCodeNex();
+  });
+}
+
+function fecharLeitorQrCodeNex() {
+  const modal = document.getElementById('modalLeitorQrCodeNex');
+  if (modal) modal.style.display = 'none';
+  
+  if (html5QrCodeScanner) {
+    html5QrCodeScanner.stop().then(() => {
+      html5QrCodeScanner.clear();
+    }).catch(() => {});
+  }
+}
+
+// ============================================
+// SECRET MODE (LIGAR/DESLIGAR E VERIFICAR)
+// ============================================
+
+async function verificarStatusSecretNex() {
+  if (!window.supabaseClient) return;
+  const toggle = document.getElementById('toggleSecretModeNex');
+  const btnSolicitacoes = document.getElementById('btnSolicitacoesSecretNex');
+  if (!toggle || !btnSolicitacoes) return;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // 1. Verifica se o perfil é secret
+    const { data: perfil } = await window.supabaseClient
+      .from('profiles')
+      .select('is_secret')
+      .eq('id', user.id)
+      .single();
+
+    const isSecret = perfil?.is_secret === true;
+
+    // Atualiza o visual do Toggle
+    toggle.classList.toggle('ativo', isSecret);
+    
+    // Mostra/esconde o botão de solicitações
+    if (isSecret) {
+      btnSolicitacoes.classList.add('visivel');
+      atualizarBadgeSolicitacoesNex(); // Busca o número de solicitações
+    } else {
+      btnSolicitacoes.classList.remove('visivel');
+    }
+
+  } catch (err) {
+    console.warn('Erro ao verificar status secret:', err);
+  }
+}
+
+async function alternarSecretModeNex() {
+  if (!window.supabaseClient) return;
+  const toggle = document.getElementById('toggleSecretModeNex');
+  const btnSolicitacoes = document.getElementById('btnSolicitacoesSecretNex');
+  if (!toggle || !btnSolicitacoes) return;
+
+  // Pega o estado atual e inverte
+  const vaiAtivar = !toggle.classList.contains('ativo');
+  
+  // Atualiza o visual otimista (para não travar)
+  toggle.classList.toggle('ativo', vaiAtivar);
+  if (vaiAtivar) {
+    btnSolicitacoes.classList.add('visivel');
+  } else {
+    btnSolicitacoes.classList.remove('visivel');
+  }
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // Salva no banco
+    const { error } = await window.supabaseClient
+      .from('profiles')
+      .update({ is_secret: vaiAtivar })
+      .eq('id', user.id);
+
+    if (error) throw error;
+
+    window.mostrarToastNex?.(vaiAtivar ? 'Secret Mode Ativado 🕵️' : 'Secret Mode Desativado', 'sucesso');
+    
+    if (vaiAtivar) atualizarBadgeSolicitacoesNex();
+
+  } catch (err) {
+    console.warn('Erro ao alternar secret:', err);
+    // Reverte se der erro
+    toggle.classList.toggle('ativo', !vaiAtivar);
+    if (!vaiAtivar) btnSolicitacoes.classList.add('visivel');
+    else btnSolicitacoes.classList.remove('visivel');
+    window.mostrarToastNex?.('Erro ao salvar. Tente novamente.', 'erro');
+  }
+}
+
+// ============================================
+// SOLICITAÇÕES (BADGE E LISTA)
+// ============================================
+
+async function atualizarBadgeSolicitacoesNex() {
+  if (!window.supabaseClient) return;
+  const badge = document.getElementById('badgeSolicitacoesNex');
+  if (!badge) return;
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    const { count, error } = await window.supabaseClient
+      .from('solicitacoes_acesso')
+      .select('*', { count: 'exact', head: true })
+      .eq('dono_perfil_id', user.id)
+      .eq('status', 'pendente');
+
+    if (error) throw error;
+
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (err) {
+    console.warn('Erro ao buscar badge:', err);
+  }
+}
+
+async function abrirSolicitacoesSecretNex() {
+  const modal = document.getElementById('modalSolicitacoesSecretNex');
+  const lista = document.getElementById('listaSolicitacoesSecretNex');
+  if (!modal || !lista) return;
+
+  modal.style.display = 'flex';
+  lista.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-size:13px;">Carregando...</div>';
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // Puxa as solicitações pendentes E os dados de quem pediu
+    const { data: solicitacoes, error } = await window.supabaseClient
+      .from('solicitacoes_acesso')
+      .select(`
+        id,
+        solicitante_id,
+        profiles!solicitacoes_acesso_solicitante_id_fkey (username, nome, avatar_url)
+      `)
+      .eq('dono_perfil_id', user.id)
+      .eq('status', 'pendente')
+      .order('criado_em', { ascending: false });
+
+    if (error) throw error;
+
+    lista.innerHTML = '';
+
+    if (!solicitacoes || solicitacoes.length === 0) {
+      lista.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-size:13px;">Nenhuma solicitação pendente.</div>';
+      return;
+    }
+
+    solicitacoes.forEach(sol => {
+      const perfil = sol.profiles || {};
+      const inicial = (perfil.nome || perfil.username || '?').charAt(0).toUpperCase();
+      const avatarHTML = perfil.avatar_url 
+        ? `<img src="${perfil.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+        : inicial;
+
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); padding:12px; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
+      
+      item.innerHTML = `
+        <div style="width:46px; height:46px; border-radius:50%; background:#1e293b; display:flex; align-items:center; justify-content:center; font-weight:900; flex-shrink:0; overflow:hidden;">
+          ${avatarHTML}
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="color:#fff; font-weight:800; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${perfil.nome || 'Usuário'}</div>
+          <div style="color:#94a3b8; font-size:12px;">@${perfil.username}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+          <button onclick="aceitarSolicitacaoSecretNex('${sol.id}')" style="background:#22c55e; color:#fff; border:none; padding:6px 12px; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">Aceitar</button>
+          <button onclick="recusarSolicitacaoSecretNex('${sol.id}')" style="background:transparent; color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:6px 12px; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">Recusar</button>
+        </div>
+      `;
+      lista.appendChild(item);
+    });
+
+  } catch (err) {
+    console.warn('Erro ao carregar solicitações:', err);
+    lista.innerHTML = '<div style="text-align:center; padding:20px; color:#fca5a5; font-size:13px;">Erro ao carregar.</div>';
+  }
+}
+
+async function aceitarSolicitacaoSecretNex(solicitacaoId) {
+  try {
+    // Chama a RPC que criamos no banco
+    const { error } = await window.supabaseClient.rpc('aceitar_solicitacao_secret', { 
+      solicitacao_id_param: solicitacaoId 
+    });
+
+    if (error) throw error;
+
+    window.mostrarToastNex?.('Acesso concedido!', 'sucesso');
+    
+    // Atualiza a tela
+    abrirSolicitacoesSecretNex(); 
+    atualizarBadgeSolicitacoesNex();
+
+  } catch (err) {
+    console.warn('Erro ao aceitar:', err);
+    window.mostrarToastNex?.('Erro ao aceitar.', 'erro');
+  }
+}
+
+async function recusarSolicitacaoSecretNex(solicitacaoId) {
+  try {
+    const { error } = await window.supabaseClient
+      .from('solicitacoes_acesso')
+      .update({ status: 'recusado' })
+      .eq('id', solicitacaoId);
+
+    if (error) throw error;
+
+    window.mostrarToastNex?.('Solicitação recusada.', 'info');
+    abrirSolicitacoesSecretNex();
+    atualizarBadgeSolicitacoesNex();
+
+  } catch (err) {
+    console.warn('Erro ao recusar:', err);
+    window.mostrarToastNex?.('Erro ao recusar.', 'erro');
+  }
+}
+
+function fecharSolicitacoesSecretNex() {
+  const modal = document.getElementById('modalSolicitacoesSecretNex');
+  if (modal) modal.style.display = 'none';
+}
+  
+// ============================================
+// EXPÕE GLOBALMENTE
+// ============================================
   // Conectados
   window.lerConectadosMyDropsNex = lerConectadosMyDropsNex;
   window.salvarConectadosMyDropsNex = salvarConectadosMyDropsNex;
@@ -665,11 +1124,27 @@ function removerConversaBloqueadaDoNex(perfilId) {
   window.fecharModalDesbloquearNex = fecharModalDesbloquearNex;
   window.confirmarDesbloqueioNex = confirmarDesbloqueioNex;
 
-  // Modal de bloquear perfil
-  window.abrirModalBloquearPerfilNex = abrirModalBloquearPerfilNex;
-  window.fecharModalBloquearPerfilNex = fecharModalBloquearPerfilNex;
-  window.confirmarBloqueioPerfilNex = confirmarBloqueioPerfilNex;
+// Modal de bloquear perfil
+window.abrirModalBloquearPerfilNex = abrirModalBloquearPerfilNex;
+window.fecharModalBloquearPerfilNex = fecharModalBloquearPerfilNex;
+window.confirmarBloqueioPerfilNex = confirmarBloqueioPerfilNex;
 
+// Secret Mode
+window.verificarStatusSecretNex = verificarStatusSecretNex;
+window.alternarSecretModeNex = alternarSecretModeNex;
+window.atualizarBadgeSolicitacoesNex = atualizarBadgeSolicitacoesNex;
+window.abrirSolicitacoesSecretNex = abrirSolicitacoesSecretNex;
+window.aceitarSolicitacaoSecretNex = aceitarSolicitacaoSecretNex;
+window.recusarSolicitacaoSecretNex = recusarSolicitacaoSecretNex;
+window.fecharSolicitacoesSecretNex = fecharSolicitacoesSecretNex;
+
+// Novas funções de Amigos (Busca e QR Code)
+window.buscarUsuarioNex = buscarUsuarioNex;
+window.abrirMeuQrCodeNex = abrirMeuQrCodeNex;
+window.fecharMeuQrCodeNex = fecharMeuQrCodeNex;
+window.abrirLeitorQrCodeNex = abrirLeitorQrCodeNex;
+window.fecharLeitorQrCodeNex = fecharLeitorQrCodeNex;
+  
   // ============================================
   // INICIALIZAÇÃO
   // ============================================

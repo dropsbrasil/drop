@@ -26,17 +26,33 @@
   // ============================================
 
   async function abrirPerfilVisitadoNex(perfilId, perfilNome) {
-  Drops.estado.telaOrigemPerfilVisitado =
-    document.querySelector('.screen.active')?.id || 'nex';
+Drops.estado.telaOrigemPerfilVisitado =
+  document.querySelector('.screen.active')?.id || 'nex';
 
-  const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
+const id = String(perfilId || '').replace(/^@/, '').trim().toLowerCase();
 
-  Drops.estado.perfilBloquearAtual = id;
-  Drops.estado.perfilAberto = perfilNome;
+Drops.estado.perfilBloquearAtual = id;
+Drops.estado.perfilAberto = perfilNome;
 
-  if (perfisBloqueadosNex.has(id)) {
-    return;
+if (perfisBloqueadosNex.has(id)) {
+  if (typeof window.mostrarToastNex === 'function') {
+    window.mostrarToastNex('Perfil indisponível.', 'info');
   }
+  return;
+}
+
+// ⚠️ LGPD / Política de Bloqueio:
+// Se EU fui bloqueado por essa pessoa, não posso visualizar o perfil dela.
+const estouBloqueadoPorEle =
+  typeof window.checarSeFuiSilenciadoNex === 'function' &&
+  window.checarSeFuiSilenciadoNex(id);
+
+if (estouBloqueadoPorEle) {
+  if (typeof window.mostrarToastNex === 'function') {
+    window.mostrarToastNex('Perfil indisponível.', 'info');
+  }
+  return;
+}
 
   document.body.style.overflow = '';
   document.body.classList.remove('viewer-aberto');

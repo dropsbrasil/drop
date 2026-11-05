@@ -574,10 +574,14 @@ async function carregarConversaSupabase(nome) {
       else if (m.entregue_em) statusMsg = 'entregue';
     }
 
-    return {
-      id: m.id,
-      timestamp: dataObj.getTime(),
-      side: ehMinha ? 'right' : 'left',
+    // ⚠️ NOVO: Detecta se a mensagem foi salva como sistema
+const isSistema = m.media_meta && m.media_meta.sistema === true;
+
+return {
+  id: m.id,
+  timestamp: dataObj.getTime(),
+  side: ehMinha ? 'right' : 'left',
+  sistema: isSistema, // ⚠️ NOVO: Adiciona a flag visual
       nome: ehMinha ? 'Eu' : chave,
       avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
       data: dataObj.toLocaleDateString('pt-BR'),
@@ -1217,11 +1221,15 @@ async function processarMensagemRealtimeNex(msg) {
     };
   }
 
-  const nova = {
-    id: msg.id,
-    timestamp: dataObj.getTime(),
-    side: 'left',
-    nome: chaveContato,
+// ⚠️ NOVO: Detecta se a mensagem foi salva como sistema
+const isSistemaRealtime = msg.media_meta && msg.media_meta.sistema === true;
+
+const nova = {
+  id: msg.id,
+  timestamp: dataObj.getTime(),
+  side: 'left',
+  sistema: isSistemaRealtime, // ⚠️ NOVO: Adiciona a flag visual
+  nome: chaveContato,
     avatar: (chaveContato || '?').charAt(0).toUpperCase(),
     data: dataObj.toLocaleDateString('pt-BR'),
     hora: dataObj.toLocaleTimeString('pt-BR', {
