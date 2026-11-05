@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050b18">
+  <title>Exclusão de Conta — Drops</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #050b18;
+      color: #cbd5e1;
+      line-height: 1.6;
+      padding: 24px 20px 60px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    h1 { color: #fff; font-size: 26px; margin-bottom: 8px; }
+    h2 { color: #fff; font-size: 17px; margin: 26px 0 10px; }
+    p, li { font-size: 15px; margin-bottom: 10px; }
+    ul { padding-left: 22px; margin-bottom: 12px; }
+    a { color: #60a5fa; }
+    .meta { color: #94a3b8; font-size: 13px; margin-bottom: 24px; }
+    .voltar { display: inline-block; margin-bottom: 24px; color: #60a5fa; text-decoration: none; font-weight: 700; }
+    .aviso {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      padding: 14px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 16px 0 24px;
+    }
+    .form-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 20px;
+    }
+    label { display: block; font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; }
+    input, textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    input:focus, textarea:focus { border-color: #60a5fa; }
+    textarea { min-height: 100px; resize: vertical; }
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.28);
+    }
+    button:active { transform: scale(0.98); }
+    .ok-msg { display: none; color: #4ade80; font-weight: 700; margin-top: 14px; text-align: center; }
+  </style>
+</head>
+<body>
+  <a class="voltar" href="/">← Voltar para o Drops</a>
+  <h1>Exclusão de Conta</h1>
+  <p class="meta">Página pública — não é necessário estar logado</p>
+
+  <p>Você pode solicitar a exclusão da sua conta do Drops a qualquer momento. Ao confirmar a exclusão, os seguintes dados serão removidos permanentemente:</p>
+  <ul>
+    <li>Perfil (nome, @username, bio, avatar, capa)</li>
+    <li>Publicações (fotos, vídeos, notas)</li>
+    <li>Mensagens e conversas</li>
+    <li>Mural e contribuições</li>
+    <li>Conexões (conectados, adeptos)</li>
+    <li>Reações e visualizações</li>
+  </ul>
+
+  <div class="aviso">
+    ⚠️ Esta ação é irreversível. Após a exclusão, não é possível recuperar a conta ou o conteúdo.
+  </div>
+
+  <h2>Como solicitar</h2>
+  <p>Preencha o formulário abaixo. Sua solicitação será processada em até <strong>30 dias</strong>, conforme a LGPD.</p>
+
+  <div class="form-box">
+    <form id="formExclusao" onsubmit="enviarSolicitacao(event)">
+      <label for="email">E-mail cadastrado no Drops</label>
+      <input type="email" id="email" name="email" required placeholder="seu@email.com">
+
+      <label for="username">Seu @username no Drops</label>
+      <input type="text" id="username" name="username" required placeholder="@seuusuario">
+
+      <label for="motivo">Motivo (opcional)</label>
+      <textarea id="motivo" name="motivo" placeholder="Se quiser, conte o motivo da exclusão"></textarea>
+
+      <button type="submit">Solicitar exclusão da conta</button>
+      <p class="ok-msg" id="okMsg">✅ Solicitação enviada. Você receberá confirmação por e-mail.</p>
+    </form>
+  </div>
+
+  <h2>Alternativa por e-mail</h2>
+  <p>Se preferir, envie a solicitação diretamente para <strong>dpo@drops.app</strong> informando o e-mail cadastrado e o @username. Responderemos em até 30 dias.</p>
+
+  <h2>Exclusão dentro do app</h2>
+  <p>Você também pode excluir a conta diretamente pelo app: <strong>Menu (☰) → Sistema → Excluir minha conta</strong>.</p>
+
+  <script>
+    async function enviarSolicitacao(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const motivo = document.getElementById('motivo').value.trim();
+
+      if (!email || !username) return;
+
+      const assunto = encodeURIComponent('Solicitação de exclusão de conta — Drops');
+      const corpo = encodeURIComponent(
+        'Solicitação de exclusão de conta\n\n' +
+        'E-mail: ' + email + '\n' +
+        '@username: ' + username + '\n' +
+        'Motivo: ' + (motivo || '(não informado)') + '\n\n' +
+        'Enviado em: ' + new Date().toLocaleString('pt-BR')
+      );
+
+      window.location.href = 'mailto:dpo@drops.app?subject=' + assunto + '&body=' + corpo;
+
+      document.getElementById('okMsg').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
