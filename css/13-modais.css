@@ -96,41 +96,6 @@ body.modal-duracao-aberto {
   color: #cbd5e1;
 }
 
-.duracao-input-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  border-radius: 14px;
-  padding: 4px 14px;
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.duracao-input-horas {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: #111827;
-  font-size: 16px;
-  font-weight: 800;
-  padding: 10px 0;
-}
-
-.duracao-input-erro-icone {
-  display: none;
-  color: #ef4444;
-  flex-shrink: 0;
-}
-
-.duracao-input-sufixo {
-  color: #64748b;
-  font-weight: 700;
-  font-size: 14px;
-}
 
 .modal-footer-duracao {
   display: flex;
@@ -615,4 +580,95 @@ body.modal-duracao-aberto {
 .doc-sobre-ok-nex {
   height: 48px; border: none; border-radius: 14px; background: #2563eb; color: #ffffff;
   font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.32);
+}
+/* ============================================
+   ROLETA DE HORAS — MY DROPS
+   Substitui o input de digitação do modal
+   de duração. 1 a 720 horas, snap, fade.
+============================================ */
+
+#modalDuracaoPublicacaoMyDropsNex .horas-picker-nex {
+  position: relative;
+  height: 150px;          /* 3 itens visíveis × 50px */
+  width: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 50px 0;
+  margin: 0 auto;
+
+  /* Fade em cima e embaixo */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 30%,
+    #000 70%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 30%,
+    #000 70%,
+    transparent 100%
+  );
+}
+
+#modalDuracaoPublicacaoMyDropsNex .horas-picker-nex::-webkit-scrollbar {
+  display: none;
+}
+
+#modalDuracaoPublicacaoMyDropsNex .hora-item-nex {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.35);
+  scroll-snap-align: center;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.15s;
+  user-select: none;
+}
+
+#modalDuracaoPublicacaoMyDropsNex .hora-item-nex.central {
+  color: #60a5fa;
+  transform: scale(1.15);
+}
+
+/* Linhas indicadoras do centro (ajustadas pra 50px) */
+#modalDuracaoPublicacaoMyDropsNex .horas-picker-nex::before,
+#modalDuracaoPublicacaoMyDropsNex .horas-picker-nex::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: rgba(96, 165, 250, 0.25);
+  pointer-events: none;
+  z-index: 2;
+}
+
+#modalDuracaoPublicacaoMyDropsNex .horas-picker-nex::before {
+  top: 50px;
+}
+
+#modalDuracaoPublicacaoMyDropsNex .horas-picker-nex::after {
+  top: 100px;
+}
+
+#modalDuracaoPublicacaoMyDropsNex .label-horas-nex {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
 }
