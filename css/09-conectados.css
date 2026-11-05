@@ -195,6 +195,16 @@
   flex-shrink: 0;
   color: #0f172a;
   box-shadow: 0 4px 12px rgba(251,191,36,.25);
+  overflow: hidden; /* ⚠️ ADICIONADO: Impede que a imagem vaze do círculo */
+}
+
+/* ⚠️ ADICIONADO: Garante que a imagem preencha o círculo perfeitamente */
+.adepto-avatar-nex img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .adepto-info-nex {
@@ -649,4 +659,221 @@ body.light-theme .mydrops-topbar {
 .controle-social-icons-nex img.ativo {
   filter: none;
   opacity: 1;
+}
+/* ============================================
+   NOVAS SUB-ABAS DE AMIGOS E BUSCA
+============================================ */
+
+.tabs-amigos-nex {
+  display: flex;
+  background: #111827;
+  border-radius: 16px;
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.tab-btn-amigos {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #94a3b8;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn-amigos.active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.tab-content-amigos {
+  display: none;
+}
+
+.tab-content-amigos.active {
+  display: block;
+  animation: fadeInAbaAmigos 0.3s ease;
+}
+
+@keyframes fadeInAbaAmigos {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Botão Meu QR Code */
+.btn-meu-qr-nex {
+  width: 100%;
+  height: 56px;
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  transition: background 0.2s;
+}
+
+.btn-meu-qr-nex:active {
+  background: rgba(37, 99, 235, 0.25);
+}
+
+/* Barra de Busca */
+.search-row-nex {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input-wrap-nex {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #111827;
+  border-radius: 16px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.search-input-wrap-nex input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  padding: 14px 0 14px 10px;
+  outline: none;
+}
+
+.search-input-wrap-nex svg {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.btn-qr-read-nex {
+  width: 52px;
+  height: 52px;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #60a5fa;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.btn-qr-read-nex:active {
+  background: #1e293b;
+}
+/* ============================================
+   SECRET MODE - TOGGLE SWITCH
+============================================ */
+.controle-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.controle-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.controle-toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: #334155;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  flex-shrink: 0;
+}
+
+.controle-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.controle-toggle-switch.ativo {
+  background: #2563eb;
+}
+
+.controle-toggle-switch.ativo::after {
+  transform: translateX(22px);
+}
+
+/* Botão de Solicitações (Laranja para chamar atenção) */
+.btn-solicitacoes-secret {
+  display: none; /* Escondido por padrão */
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+  margin-bottom: 10px;
+  font-weight: 700;
+  transition: .18s ease;
+}
+
+.btn-solicitacoes-secret.visivel {
+  display: flex;
+}
+
+.btn-solicitacoes-secret::after {
+  content: "➟";
+  font-size: 18px;
+  opacity: .75;
+}
+
+.badge-solicitacao {
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 99px;
+  margin-left: auto;
+  margin-right: 12px;
 }
