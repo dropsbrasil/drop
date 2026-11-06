@@ -193,6 +193,11 @@ const perfilBase = {
   visitas: '0',
   reacoes: '0',
   adeptos: '0',
+  // ⚠️ CORREÇÃO SECRET MODE: preserva is_secret em perfisVisitadosNex
+  // pra o revalidate do alternarConexaoPerfilNex funcionar.
+  is_secret: perfilReal.is_secret === true,
+  id: perfilReal.id || null,
+  username: perfilReal.username || id,
   social: {
     instagram: perfilReal.social_instagram || '',
     tiktok: perfilReal.social_tiktok || '',
@@ -753,20 +758,34 @@ function voltarPerfilVisitadoNex() {
       });
     }
 
-    salvarConectadosMyDropsNex(lista);
-    atualizarBotaoConectarPerfilNex();
+      salvarConectadosMyDropsNex(lista);
+  atualizarBotaoConectarPerfilNex();
 
-    if (typeof renderizarConectadosMyDropsNex === 'function') {
-      renderizarConectadosMyDropsNex();
-    }
+  if (typeof renderizarConectadosMyDropsNex === 'function') {
+    renderizarConectadosMyDropsNex();
+  }
 
-    if (typeof renderizarPublicacoesNearbyNex === 'function') {
-      renderizarPublicacoesNearbyNex();
-    }
+  if (typeof renderizarPublicacoesNearbyNex === 'function') {
+    renderizarPublicacoesNearbyNex();
+  }
 
-    if (typeof sincronizarConversasComConectadosMyDropsNex === 'function') {
-      sincronizarConversasComConectadosMyDropsNex();
+  if (typeof sincronizarConversasComConectadosMyDropsNex === 'function') {
+    sincronizarConversasComConectadosMyDropsNex();
+  }
+
+  // ⚠️ CORREÇÃO SECRET MODE:
+  // Se acabou de adicionar (não de remover), revalida o bloqueio
+  // pra liberar o perfil na hora, sem precisar fechar e reabrir.
+  if (!jaExiste) {
+    try {
+      const perfilAtual = perfisVisitadosNex[id];
+      if (perfilAtual && typeof verificarEBloquearPerfilSecretNex === 'function') {
+        await verificarEBloquearPerfilSecretNex(perfilAtual);
+      }
+    } catch (err) {
+      console.warn('Erro ao revalidar secret após conectar:', err);
     }
+  }
   }
 
   // ============================================
@@ -843,8 +862,28 @@ async function verificarEBloquearPerfilSecretNex(perfilReal) {
 
   if (!caixaBloqueio || !perfilReal) return;
 
+  // ⚠️ Normaliza is_secret (aceita true, "true", 1, "1")
+  const ehSecret =
+    perfilReal.is_secret === true ||
+    perfilReal.is_secret === 'true' ||
+    perfilReal.is_secret === 1 ||
+    perfilReal.is_secret === '1';
+
+  // ⚠️ Fallback pros campos que podem faltar
+  const usernameAlvo = String(
+    perfilReal.username ||
+    Drops.estado.perfilBloquearAtual ||
+    ''
+  ).replace(/^@/, '').toLowerCase().trim();
+
+  console.log('🔐 verificarEBloquearPerfilSecretNex:', {
+    perfil: usernameAlvo,
+    is_secret: perfilReal.is_secret,
+    ehSecret
+  });
+
   // 1. Se não for Secret, mostra tudo normalmente e esconde o bloqueio
-  if (perfilReal.is_secret !== true) {
+  if (!ehSecret) {
     caixaBloqueio.style.display = 'none';
     if (perfilAcoes) perfilAcoes.style.display = 'grid';
     if (conteudoPrivado) conteudoPrivado.style.display = 'block';
@@ -856,8 +895,15 @@ async function verificarEBloquearPerfilSecretNex(perfilReal) {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return;
 
+    const meuUsername = String(Drops.usernameAtual || '')
+      .replace(/^@/, '').toLowerCase().trim();
+
     // O dono do perfil vê o próprio perfil
-    if (perfilReal.id === user.id) {
+    const ehMeuPerfil =
+      perfilReal.id === user.id ||
+      (usernameAlvo && usernameAlvo === meuUsername);
+
+    if (ehMeuPerfil) {
       caixaBloqueio.style.display = 'none';
       if (perfilAcoes) perfilAcoes.style.display = 'grid';
       if (conteudoPrivado) conteudoPrivado.style.display = 'block';
@@ -865,8 +911,13 @@ async function verificarEBloquearPerfilSecretNex(perfilReal) {
     }
 
     // Verifica se já sou amigo (estou nos conectados dele ou ele nos meus)
-    const meusConectados = typeof window.lerConectadosMyDropsNex === 'function' ? window.lerConectadosMyDropsNex() : [];
-    const souAmigo = meusConectados.some(c => String(c.id).toLowerCase() === String(perfilReal.username).toLowerCase());
+    const meusConectados = typeof window.lerConectadosMyDropsNex === 'function'
+      ? window.lerConectadosMyDropsNex()
+      : [];
+
+    const souAmigo = meusConectados.some(
+      (c) => String(c.id).replace(/^@/, '').toLowerCase().trim() === usernameAlvo
+    );
 
     if (souAmigo) {
       caixaBloqueio.style.display = 'none';
@@ -875,13 +926,17 @@ async function verificarEBloquearPerfilSecretNex(perfilReal) {
       return;
     }
 
-    // Verifica se já enviei solicitação pendente
-    const { data: solicitacao } = await window.supabaseClient
-      .from('solicitacoes_acesso')
-      .select('id, status')
-      .eq('dono_perfil_id', perfilReal.id)
-      .eq('solicitante_id', user.id)
-      .maybeSingle();
+    // ⚠️ Só consulta solicitacoes_acesso se tiver o id do perfil
+    let solicitacao = null;
+    if (perfilReal.id) {
+      const { data } = await window.supabaseClient
+        .from('solicitacoes_acesso')
+        .select('id, status')
+        .eq('dono_perfil_id', perfilReal.id)
+        .eq('solicitante_id', user.id)
+        .maybeSingle();
+      solicitacao = data;
+    }
 
     // Se não sou amigo, bloqueia a tela
     caixaBloqueio.style.display = 'block';
@@ -905,7 +960,6 @@ async function verificarEBloquearPerfilSecretNex(perfilReal) {
     console.warn('Erro ao verificar secret mode do perfil:', err);
   }
 }
-
 async function solicitarAcessoPerfilNex() {
   const btn = document.getElementById('btnSolicitarAcessoPerfilNex');
   const aviso = document.getElementById('avisoSolicitacaoPendenteNex');

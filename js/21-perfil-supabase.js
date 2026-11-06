@@ -256,10 +256,12 @@ async function uploadImagemSupabase(bucket, fonte) {
     if (!window.supabaseClient) return null;
     if (!username) return null;
 
+    const usernameLimpo = String(username).replace(/^@/, '').trim().toLowerCase();
+
     try {
       const { data, error } = await window.supabaseClient
         .rpc('buscar_perfil_por_username', {
-          username_busca: String(username).replace(/^@/, '').trim()
+          username_busca: usernameLimpo
         });
 
       if (error) {
@@ -269,7 +271,52 @@ async function uploadImagemSupabase(bucket, fonte) {
 
       if (!data || !data.length) return null;
 
-      return data[0];
+      const perfil = { ...data[0] };
+
+      // ⚠️ CORREÇÃO SECRET MODE:
+      // Se o RPC não retornou is_secret OU não retornou id/username,
+      // busca direto na tabela profiles pra complementar.
+      const precisaComplementar =
+        perfil.is_secret === undefined ||
+        perfil.is_secret === null ||
+        !perfil.id ||
+        !perfil.username;
+
+      if (precisaComplementar) {
+        try {
+          const { data: extra } = await window.supabaseClient
+            .from('profiles')
+            .select('id, username, is_secret')
+            .eq('username', usernameLimpo)
+            .maybeSingle();
+
+          if (extra) {
+            if (!perfil.id) perfil.id = extra.id;
+            if (!perfil.username) perfil.username = extra.username;
+            if (perfil.is_secret === undefined || perfil.is_secret === null) {
+              perfil.is_secret = extra.is_secret;
+            }
+          }
+        } catch (errExtra) {
+          console.warn('Não foi possível complementar perfil:', errExtra);
+        }
+      }
+
+      // ⚠️ Normaliza is_secret SEMPRE como boolean
+      // (aceita true, "true", 1, "1")
+      perfil.is_secret =
+        perfil.is_secret === true ||
+        perfil.is_secret === 'true' ||
+        perfil.is_secret === 1 ||
+        perfil.is_secret === '1';
+
+      console.log('🔍 Perfil carregado:', {
+        username: perfil.username,
+        is_secret: perfil.is_secret,
+        tipo: typeof perfil.is_secret
+      });
+
+      return perfil;
     } catch (erro) {
       console.error('Erro ao buscar perfil público:', erro);
       return null;
