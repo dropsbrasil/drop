@@ -713,9 +713,7 @@ async function buscarUsuarioNex() {
       perfis.forEach(perfil => {
   if (String(perfil.username).toLowerCase() === String(Drops.usernameAtual).toLowerCase()) return; // Não mostra a si mesmo
 
-  const jaConectado = idsConectados.has(String(perfil.username).toLowerCase());
-  
-  // Monta o HTML do avatar usando as classes reais do app
+    // Monta o HTML do avatar usando as classes reais do app
   const avatarValor = String(perfil.avatar_url || '');
   const avatarEhUrl = avatarValor.startsWith('http') || avatarValor.startsWith('data:image');
   const avatarHTML = avatarEhUrl 
@@ -725,6 +723,7 @@ async function buscarUsuarioNex() {
   const card = document.createElement('div');
   card.className = 'mydrops-connected-item'; // ⚠️ Usa a mesma classe da lista de amigos
   card.style.marginBottom = '10px';
+  card.style.cursor = 'pointer';
   
   card.innerHTML = `
   <div class="connected-avatar">${avatarHTML}</div>
@@ -733,36 +732,25 @@ async function buscarUsuarioNex() {
     <div class="connected-handle">@${perfil.username}</div>
   </div>
   <button class="connected-send-btn" style="
-    background: ${jaConectado ? 'rgba(37, 99, 235, 0.15)' : '#2563eb'}; 
-    color: ${jaConectado ? '#60a5fa' : '#fff'};
-    border: ${jaConectado ? '1px solid rgba(37, 99, 235, 0.3)' : 'none'};
+    background: rgba(37, 99, 235, 0.15); 
+    color: #60a5fa;
+    border: 1px solid rgba(37, 99, 235, 0.3);
   ">
-    ${jaConectado ? 'Ver perfil' : 'Adicionar'}
+    Visitar perfil
   </button>
 `;
 
-  card.querySelector('button').onclick = async () => {
-    if (jaConectado) {
-      // Se já é conectado, abre o perfil
-      abrirPerfilVisitadoNex(perfil.username, perfil.nome);
-    } else {
-      // Se não, adiciona
-      if (window.ConectadosAdapterNex?.adicionarConectadoSupabase) {
-        await window.ConectadosAdapterNex.adicionarConectadoSupabase(perfil.username);
-      }
-      const novaLista = lerConectadosMyDropsNex();
-      novaLista.unshift({
-        id: perfil.username,
-        nome: perfil.nome || perfil.username,
-        avatar: perfil.avatar_url || (perfil.nome || '?').charAt(0).toUpperCase()
-      });
-      salvarConectadosMyDropsNex(novaLista);
-      
-      window.mostrarToastNex?.('Amigo adicionado!', 'sucesso');
-      buscarUsuarioNex(); // Recarrega a busca
-      renderizarConectadosMyDropsNex(); // Atualiza a lista principal
-    }
+  // Ação do botão e do card: apenas abrir o perfil
+  const abrirPerfil = () => {
+    abrirPerfilVisitadoNex(perfil.username, perfil.nome);
   };
+
+  card.querySelector('button').onclick = (e) => {
+    e.stopPropagation(); // Evita duplicar o clique
+    abrirPerfil();
+  };
+  
+  card.onclick = abrirPerfil;
 
   container.appendChild(card);
 });
