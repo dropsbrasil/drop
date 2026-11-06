@@ -986,14 +986,10 @@ async function abrirSolicitacoesSecretNex() {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return;
 
-    // Puxa as solicitações pendentes E os dados de quem pediu
+    // 1. Puxa APENAS as solicitações pendentes
     const { data: solicitacoes, error } = await window.supabaseClient
       .from('solicitacoes_acesso')
-      .select(`
-        id,
-        solicitante_id,
-        profiles!solicitacoes_acesso_solicitante_id_fkey (username, nome, avatar_url)
-      `)
+      .select('id, solicitante_id, criado_em')
       .eq('dono_perfil_id', user.id)
       .eq('status', 'pendente')
       .order('criado_em', { ascending: false });
@@ -1007,8 +1003,23 @@ async function abrirSolicitacoesSecretNex() {
       return;
     }
 
+    // 2. Puxa os dados de quem pediu (evita erros de JOIN)
+    const idsSolicitantes = solicitacoes.map(sol => sol.solicitante_id);
+    
+    const { data: perfis, error: erroPerfis } = await window.supabaseClient
+      .from('profiles')
+      .select('id, username, nome, avatar_url')
+      .in('id', idsSolicitantes);
+
+    if (erroPerfis) throw erroPerfis;
+
+    // Cria um mapa para achar o perfil rapidamente pelo ID
+    const mapaPerfis = {};
+    (perfis || []).forEach(p => { mapaPerfis[p.id] = p; });
+
+    // 3. Monta a tela
     solicitacoes.forEach(sol => {
-      const perfil = sol.profiles || {};
+      const perfil = mapaPerfis[sol.solicitante_id] || {};
       const inicial = (perfil.nome || perfil.username || '?').charAt(0).toUpperCase();
       const avatarHTML = perfil.avatar_url 
         ? `<img src="${perfil.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -1023,7 +1034,7 @@ async function abrirSolicitacoesSecretNex() {
         </div>
         <div style="flex:1; min-width:0;">
           <div style="color:#fff; font-weight:800; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${perfil.nome || 'Usuário'}</div>
-          <div style="color:#94a3b8; font-size:12px;">@${perfil.username}</div>
+          <div style="color:#94a3b8; font-size:12px;">@${perfil.username || 'desconhecido'}</div>
         </div>
         <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
           <button onclick="aceitarSolicitacaoSecretNex('${sol.id}')" style="background:#22c55e; color:#fff; border:none; padding:6px 12px; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">Aceitar</button>
