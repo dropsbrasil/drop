@@ -244,27 +244,16 @@ function notificarSouAdeptoNex(perfil, tipo) {
       ? `👑 Parabéns! Você se tornou adepto de ${nome}!`
       : `😢 Você deixou de ser adepto de ${nome}.`;
 
-  // Salva no banco de dados primeiro
-(async () => {
-  try {
-    const convId = await window.obterOuCriarConversaSupabase(perfil.id);
-    if (convId) {
-      await window.enviarMensagemSupabase({
-        conversa_id: convId,
-        tipo: 'texto',
-        texto: textoMensagem,
-        media_meta: { sistema: true }
-      });
-    }
-  } catch (e) { console.warn('Erro ao salvar adepto no banco:', e); }
-})();
+  // ⚠️ REMOVIDO o salvamento no banco para não criar mensagens falsas de chat
+
+  // ⚠️ REMOVIDO o salvamento no banco para não criar mensagens falsas de chat
 
 conversas[nomeContato].push({
   id: gerarIdMensagemNex(),
   timestamp: agora,
-  side: 'right',
-  nome: 'Eu',
-  avatar: 'EU',
+  side: 'left', // ⚠️ CORREÇÃO: Aparece no lado esquerdo (recebida)
+  nome: nomeContato, // ⚠️ CORREÇÃO: Mostra o nome do contato
+  avatar: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>', 
   data: new Date(agora).toLocaleDateString('pt-BR'),
   hora: new Date(agora).toLocaleTimeString('pt-BR', {
     hour: '2-digit',

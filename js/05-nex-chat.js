@@ -1319,10 +1319,9 @@ function renderChat(nome) {
         usernameContato;
     }
 
-    const avatarTexto = (msg.avatar || nomeExibido || 'U')
-      .toString()
-      .slice(0, 2)
-      .toUpperCase();
+    const avatarRaw = (msg.avatar || nomeExibido || 'U').toString();
+const ehSvg = avatarRaw.trim().startsWith('<svg');
+const avatarTexto = ehSvg ? avatarRaw : avatarRaw.slice(0, 2).toUpperCase();
 
     let usernameAvatarMsg = '';
 
@@ -1414,15 +1413,15 @@ function renderChat(nome) {
       <div class="msg-layer${msg.sistema ? ' msg-sistema' : ''}">
 
         <div class="msg-header ${lado}">
-          ${
-  lado === 'left'
-    ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${escapeHTML(avatarTexto)}">${
-        avatarUrlCache
-          ? `<img src="${escapeHTML(avatarUrlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${escapeHTML(avatarTexto)}';">`
-          : escapeHTML(avatarTexto)
-      }</div>`
-    : ''
-          }
+                  ${
+lado === 'left'
+  ? `<div class="msg-avatar" data-avatar-user="${escapeHTML(usernameAvatarMsg)}" data-avatar-fallback="${ehSvg ? '👑' : escapeHTML(avatarTexto)}">${
+      avatarUrlCache
+        ? `<img src="${escapeHTML(avatarUrlCache)}" alt="" onerror="this.style.display='none'; this.parentElement.innerText='${ehSvg ? '👑' : escapeHTML(avatarTexto)}';">`
+        : (ehSvg ? avatarTexto : escapeHTML(avatarTexto))
+    }</div>`
+  : ''
+                  }
 
           ${
             lado === 'right'
