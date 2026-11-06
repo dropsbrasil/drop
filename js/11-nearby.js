@@ -1311,9 +1311,16 @@ async function renderizarPublicacoesNearbyNex() {
   perfisEncontrados = [];
 }
 
-// ⚠️ FILTRO SECRET MODE NO NEARBY
-// Se o perfil for Secret, só aparece pra quem é amigo ou adepto.
+// ⚠️ FILTRO SECRET MODE E "EU MESMO" NO NEARBY
 try {
+  // 1. Remove o próprio usuário logado
+  const meuUser = String(window.Drops?.usernameAtual || '').replace(/^@/, '').toLowerCase().trim();
+  perfisEncontrados = (perfisEncontrados || []).filter((p) => {
+    const userPerfil = String(p.username || '').replace(/^@/, '').toLowerCase().trim();
+    return userPerfil !== meuUser;
+  });
+
+  // 2. Filtro Secret Mode
   const conectadosNex = typeof window.lerConectadosMyDropsNex === 'function'
     ? window.lerConectadosMyDropsNex()
     : [];
