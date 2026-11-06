@@ -414,10 +414,13 @@ const perfilBase = {
   // ============================================
 
   if (typeof mostrarTela === 'function') {
-    mostrarTela('perfilVisitadoNex');
-  }
+  mostrarTela('perfilVisitadoNex');
+}
 
-  atualizarBotaoConectarPerfilNex();
+// ⚠️ NOVO: Verifica se o perfil é Secret e aplica o bloqueio visual
+await verificarEBloquearPerfilSecretNex(perfilReal);
+
+atualizarBotaoConectarPerfilNex();
   atualizarSeloAdeptoPerfilNex(id);
   criarBotaoDenunciarNex(); // ⚠️ Chama a criação do botão de denúncia
 
@@ -828,6 +831,127 @@ function abrirChatDiretoPerfilNex() {
 
   window.abrirChatDiretoPerfilNex = abrirChatDiretoPerfilNex;
 
+// ============================================
+// VERIFICAR SECRET MODE NO PERFIL VISITADO
+// ============================================
+async function verificarEBloquearPerfilSecretNex(perfilReal) {
+  const caixaBloqueio = document.getElementById('bloqueioSecretPerfilNex');
+  const perfilAcoes = document.getElementById('perfilAcoesNex');
+  const conteudoPrivado = document.getElementById('conteudoPrivadoPerfilNex');
+  const btnSolicitar = document.getElementById('btnSolicitarAcessoPerfilNex');
+  const avisoPendente = document.getElementById('avisoSolicitacaoPendenteNex');
+
+  if (!caixaBloqueio || !perfilReal) return;
+
+  // 1. Se não for Secret, mostra tudo normalmente e esconde o bloqueio
+  if (perfilReal.is_secret !== true) {
+    caixaBloqueio.style.display = 'none';
+    if (perfilAcoes) perfilAcoes.style.display = 'grid';
+    if (conteudoPrivado) conteudoPrivado.style.display = 'block';
+    return;
+  }
+
+  // 2. É Secret. Vamos verificar se EU tenho acesso
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // O dono do perfil vê o próprio perfil
+    if (perfilReal.id === user.id) {
+      caixaBloqueio.style.display = 'none';
+      if (perfilAcoes) perfilAcoes.style.display = 'grid';
+      if (conteudoPrivado) conteudoPrivado.style.display = 'block';
+      return;
+    }
+
+    // Verifica se já sou amigo (estou nos conectados dele ou ele nos meus)
+    const meusConectados = typeof window.lerConectadosMyDropsNex === 'function' ? window.lerConectadosMyDropsNex() : [];
+    const souAmigo = meusConectados.some(c => String(c.id).toLowerCase() === String(perfilReal.username).toLowerCase());
+
+    if (souAmigo) {
+      caixaBloqueio.style.display = 'none';
+      if (perfilAcoes) perfilAcoes.style.display = 'grid';
+      if (conteudoPrivado) conteudoPrivado.style.display = 'block';
+      return;
+    }
+
+    // Verifica se já enviei solicitação pendente
+    const { data: solicitacao } = await window.supabaseClient
+      .from('solicitacoes_acesso')
+      .select('id, status')
+      .eq('dono_perfil_id', perfilReal.id)
+      .eq('solicitante_id', user.id)
+      .maybeSingle();
+
+    // Se não sou amigo, bloqueia a tela
+    caixaBloqueio.style.display = 'block';
+    if (perfilAcoes) perfilAcoes.style.display = 'none';
+    if (conteudoPrivado) conteudoPrivado.style.display = 'none';
+
+    if (solicitacao && solicitacao.status === 'pendente') {
+      if (btnSolicitar) btnSolicitar.style.display = 'none';
+      if (avisoPendente) avisoPendente.style.display = 'block';
+    } else if (solicitacao && solicitacao.status === 'aprovado') {
+      // Se foi aprovado, libera o acesso
+      caixaBloqueio.style.display = 'none';
+      if (perfilAcoes) perfilAcoes.style.display = 'grid';
+      if (conteudoPrivado) conteudoPrivado.style.display = 'block';
+    } else {
+      if (btnSolicitar) btnSolicitar.style.display = 'block';
+      if (avisoPendente) avisoPendente.style.display = 'none';
+    }
+
+  } catch (err) {
+    console.warn('Erro ao verificar secret mode do perfil:', err);
+  }
+}
+
+async function solicitarAcessoPerfilNex() {
+  const btn = document.getElementById('btnSolicitarAcessoPerfilNex');
+  const aviso = document.getElementById('avisoSolicitacaoPendenteNex');
+  const perfilId = Drops.estado.perfilBloquearAtual; // O username
+
+  if (!btn || !perfilId) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    const { data: { user } } = await window.supabaseClient.auth.getUser();
+    
+    // Precisamos do UUID do perfil, então busca pelo username
+    const { data: perfil } = await window.supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('username', String(perfilId).toLowerCase())
+      .maybeSingle();
+
+    if (!perfil?.id) throw new Error('Perfil não encontrado');
+
+    const { error } = await window.supabaseClient
+      .from('solicitacoes_acesso')
+      .insert({
+        dono_perfil_id: perfil.id,
+        solicitante_id: user.id,
+        status: 'pendente'
+      });
+
+    if (error && error.code !== '23505') throw error; // 23505 = já existe
+
+    window.mostrarToastNex?.('Solicitação enviada!', 'sucesso');
+    btn.style.display = 'none';
+    if (aviso) aviso.style.display = 'block';
+
+  } catch (err) {
+    console.warn('Erro ao solicitar acesso:', err);
+    window.mostrarToastNex?.('Erro ao enviar solicitação.', 'erro');
+    btn.disabled = false;
+    btn.textContent = 'Solicitar Acesso';
+  }
+}
+
+window.solicitarAcessoPerfilNex = solicitarAcessoPerfilNex;
+  
   // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
