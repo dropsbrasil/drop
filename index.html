@@ -829,55 +829,72 @@
     <button type="button"><img src="./assets/whatsapp.png" alt="WhatsApp"></button>
   </div>
 
-  <div class="perfil-acoes">
-  <button type="button" class="btn-conectar-perfil" id="btnConectarPerfilNex">Adicionar aos amigos</button>
-    <button type="button" class="btn-nex-perfil" id="btnAbrirChatPerfilNex" onclick="abrirChatDiretoPerfilNex()" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+ <!-- ⚠️ BLOQUEIO SECRET MODE -->
+<div id="bloqueioSecretPerfilNex" style="display: none; text-align: center; padding: 20px 16px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; margin: 18px 14px;">
+  <div style="width: 60px; height: 60px; background: rgba(37,99,235,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #60a5fa;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+  </div>
+  <h3 style="font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 6px;">Este perfil é privado</h3>
+  <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.4;">Adicione aos amigos ou solicite acesso para ver as publicações.</p>
+  
+  <button type="button" id="btnSolicitarAcessoPerfilNex" onclick="solicitarAcessoPerfilNex()" style="width: 100%; height: 48px; background: #2563eb; color: #fff; border: none; border-radius: 14px; font-weight: 800; font-size: 15px; cursor: pointer; box-shadow: 0 8px 20px rgba(37,99,235,0.3);">
+    Solicitar Acesso
+  </button>
+  <div id="avisoSolicitacaoPendenteNex" style="display: none; margin-top: 12px; color: #fbbf24; font-size: 13px; font-weight: 700;">
+    ⏳ Solicitação pendente...
+  </div>
+</div>
+
+<div class="perfil-acoes" id="perfilAcoesNex">
+<button type="button" class="btn-conectar-perfil" id="btnConectarPerfilNex">Adicionar aos amigos</button>
+  <button type="button" class="btn-nex-perfil" id="btnAbrirChatPerfilNex" onclick="abrirChatDiretoPerfilNex()" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
   </svg>
-  NEX
+    NEX
     </button>
   </div>
 
-  <div class="perfil-drops-titulo">
-  <svg class="icone-cartoes-drop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
-    <defs>
-      <!-- IDs únicos para não conflitar com outras telas -->
-      <linearGradient id="dropGradVermelho" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#ff4b4b" />
-        <stop offset="100%" stop-color="#a80000" />
-      </linearGradient>
-      <linearGradient id="dropGradPreto" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#334155" />
-        <stop offset="100%" stop-color="#000000" />
-      </linearGradient>
-      <linearGradient id="dropGradAzul" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#00d2ff" />
-        <stop offset="100%" stop-color="#0033cc" />
-      </linearGradient>
-      <linearGradient id="dropBrilho" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="rgba(255,255,255,0.6)" />
-        <stop offset="35%" stop-color="rgba(255,255,255,0)" />
-      </linearGradient>
-    </defs>
-    <g transform="translate(25, -5) rotate(15 30 40)">
-      <rect x="10" y="15" width="45" height="62" rx="6" fill="url(#dropGradVermelho)" />
-      <rect x="10" y="15" width="45" height="62" rx="6" fill="none" stroke="#ffffff" stroke-width="2" />
-    </g>
-    <g transform="translate(10, 5) rotate(5 30 40)">
-      <rect x="10" y="15" width="45" height="62" rx="6" fill="url(#dropGradPreto)" />
-      <rect x="10" y="15" width="45" height="62" rx="6" fill="none" stroke="#ffffff" stroke-width="2" />
-    </g>
-    <g transform="translate(0, 15) rotate(-10 30 40)">
-      <rect x="10" y="15" width="45" height="62" rx="6" fill="url(#dropGradAzul)" />
-      <rect x="10" y="15" width="45" height="62" rx="6" fill="none" stroke="#ffffff" stroke-width="2" />
-      <path d="M 16 15 L 49 15 L 49 35 L 16 35 Z" fill="url(#dropBrilho)" />
-    </g>
-  </svg>
-  <span>DROPS</span>
-  </div>
+  <div id="conteudoPrivadoPerfilNex">
+    <div class="perfil-drops-titulo">
+      <svg class="icone-cartoes-drop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="dropGradVermelho" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff4b4b" />
+            <stop offset="100%" stop-color="#a80000" />
+          </linearGradient>
+          <linearGradient id="dropGradPreto" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#334155" />
+            <stop offset="100%" stop-color="#000000" />
+          </linearGradient>
+          <linearGradient id="dropGradAzul" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00d2ff" />
+            <stop offset="100%" stop-color="#0033cc" />
+          </linearGradient>
+          <linearGradient id="dropBrilho" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.6)" />
+            <stop offset="35%" stop-color="rgba(255,255,255,0)" />
+          </linearGradient>
+        </defs>
+        <g transform="translate(25, -5) rotate(15 30 40)">
+          <rect x="10" y="15" width="45" height="62" rx="6" fill="url(#dropGradVermelho)" />
+          <rect x="10" y="15" width="45" height="62" rx="6" fill="none" stroke="#ffffff" stroke-width="2" />
+        </g>
+        <g transform="translate(10, 5) rotate(5 30 40)">
+          <rect x="10" y="15" width="45" height="62" rx="6" fill="url(#dropGradPreto)" />
+          <rect x="10" y="15" width="45" height="62" rx="6" fill="none" stroke="#ffffff" stroke-width="2" />
+        </g>
+        <g transform="translate(0, 15) rotate(-10 30 40)">
+          <rect x="10" y="15" width="45" height="62" rx="6" fill="url(#dropGradAzul)" />
+          <rect x="10" y="15" width="45" height="62" rx="6" fill="none" stroke="#ffffff" stroke-width="2" />
+          <path d="M 16 15 L 49 15 L 49 35 L 16 35 Z" fill="url(#dropBrilho)" />
+        </g>
+      </svg>
+      <span>DROPS</span>
+    </div>
 
-  <div class="perfil-drops-grid" id="perfilDropsGridNex"></div>
+    <div class="perfil-drops-grid" id="perfilDropsGridNex"></div>
+  </div>
 </section>
 
 <!-- ============================================
