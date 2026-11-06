@@ -324,8 +324,11 @@ async function abrirConsentimentosNex() {
     });
 
   } catch (err) {
-    console.warn('Erro ao carregar consentimentos:', err);
-    lista.innerHTML = '<div style="text-align:center; padding:20px; color:#fca5a5; font-size:13px;">Não foi possível carregar. Tente novamente.</div>';
+  console.warn('Erro ao carregar consentimentos:', err);
+  const mensagemErro = err.message || err.details || String(err);
+  lista.innerHTML = `<div style="text-align:center; padding:20px; color:#fca5a5; font-size:13px; word-break: break-word;">
+    <b>Erro do Banco:</b><br>${mensagemErro}
+  </div>`;
   }
 }
 
