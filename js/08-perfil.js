@@ -996,11 +996,13 @@ async function solicitarAcessoPerfilNex() {
     btn.style.display = 'none';
     if (aviso) aviso.style.display = 'block';
 
-  } catch (err) {
-    console.warn('Erro ao solicitar acesso:', err);
-    window.mostrarToastNex?.('Erro ao enviar solicitação.', 'erro');
-    btn.disabled = false;
-    btn.textContent = 'Solicitar Acesso';
+} catch (err) {
+  console.warn('Erro ao solicitar acesso:', err);
+  // ⚠️ Mostra o motivo real do erro (RLS, duplicado, etc)
+  const motivo = err?.message || err?.details || 'Falha na solicitação';
+  window.mostrarToastNex?.('Erro: ' + motivo, 'erro', 6000);
+  btn.disabled = false;
+  btn.textContent = 'Solicitar Acesso';
   }
 }
 

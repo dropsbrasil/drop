@@ -1300,20 +1300,49 @@ async function renderizarPublicacoesNearbyNex() {
     console.log(`📦 Nearby: usando cache (${perfisEncontrados.length} perfis)`);
   } else {
     try {
-      perfisEncontrados = await window.buscarPerfisComDropsProximosSupabase(
-        temLocalizacaoValida ? minhaLat : null,
-        temLocalizacaoValida ? minhaLng : null,
-        cacheRaioNearbyNex,
-        TOTAL_MINIMO
-      );
-    } catch (e) {
-      console.warn('Erro na busca do Nearby:', e);
-      perfisEncontrados = [];
-    }
-    cachePerfisNearbyNex = perfisEncontrados;
-    ultimaLatNearbyNex = minhaLat;
-    ultimaLngNearbyNex = minhaLng;
-    console.log(`📡 Nearby: ${perfisEncontrados.length} perfis encontrados (busca única de ${cacheRaioNearbyNex} km)`);
+  perfisEncontrados = await window.buscarPerfisComDropsProximosSupabase(
+    temLocalizacaoValida ? minhaLat : null,
+    temLocalizacaoValida ? minhaLng : null,
+    cacheRaioNearbyNex,
+    TOTAL_MINIMO
+  );
+} catch (e) {
+  console.warn('Erro na busca do Nearby:', e);
+  perfisEncontrados = [];
+}
+
+// ⚠️ FILTRO SECRET MODE NO NEARBY
+// Se o perfil for Secret, só aparece pra quem é amigo ou adepto.
+try {
+  const conectadosNex = typeof window.lerConectadosMyDropsNex === 'function'
+    ? window.lerConectadosMyDropsNex()
+    : [];
+
+  const adeptosNex = typeof window.lerAdeptosNex === 'function'
+    ? window.lerAdeptosNex()
+    : [];
+
+  const idsPermitidos = new Set([
+    ...conectadosNex.map((c) => String(c.id || '').replace(/^@/, '').toLowerCase().trim()),
+    ...adeptosNex.map((a) => String(a.id || '').replace(/^@/, '').toLowerCase().trim())
+  ].filter(Boolean));
+
+  perfisEncontrados = (perfisEncontrados || []).filter((p) => {
+    const ehSecret = p.is_secret === true || p.is_secret === 'true' || p.is_secret === 1;
+    if (!ehSecret) return true;
+
+    const userPerfil = String(p.username || '').replace(/^@/, '').toLowerCase().trim();
+    return idsPermitidos.has(userPerfil);
+  });
+} catch (errFiltro) {
+  console.warn('Erro ao filtrar perfis Secret no Nearby:', errFiltro);
+}
+
+cachePerfisNearbyNex = perfisEncontrados;
+ultimaLatNearbyNex = minhaLat;
+ultimaLngNearbyNex = minhaLng;
+console.log(`📡 Nearby: ${perfisEncontrados.length} perfis encontrados (busca única de ${cacheRaioNearbyNex} km)`);
+  
   }
 
   grid.innerHTML = '';
