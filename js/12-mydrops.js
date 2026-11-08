@@ -2,11 +2,12 @@
    12-MYDROPS.JS
    Publicações do My Drops, viewer próprio, modal de duração
 
-   ⚠️ MODAL DE DURAÇÃO — NOVO:
-   - O input antigo de digitação foi REMOVIDO
-   - Substituído por roleta iOS-style (1..720 horas)
-   - Roleta centralizada em #horasPickerMyDropsNex
-   - Constante ITEM_HEIGHT = 50 (bate com o CSS do 13-modais.css)
+   ⚠️ MODAL DE DURAÇÃO:
+   - Input antigo removido
+   - Roleta iOS-style (1..720 horas)
+   - ITEM_HEIGHT = 50 (bate com o CSS do 13-modais.css)
+
+   ⚠️ FFmpeg REMOVIDO (incompatível com Capacitor)
 
    Depende de: 00-config.js, 03-utils.js, 11-nearby.js
 ============================================ */
@@ -17,7 +18,6 @@
   // ============================================
   // CARREGAR PUBLICAÇÕES
   // ============================================
-  // Persistência: via window.MyDropsAdapterNex (17-adapters.js)
 
   let publicacoesMyDropsNex = carregarPublicacoesMyDropsNex();
 
@@ -40,7 +40,6 @@
 
       if (!Array.isArray(pubsSupabase)) return;
 
-      // Converte o formato do Supabase para o formato local
       const pubsConvertidas = pubsSupabase.map((p) => ({
         id: p.id,
         idSupabase: p.id,
@@ -54,18 +53,14 @@
         expiraEm: p.expira_em,
         duracao: p.duracao,
         selos: p.selos || null,
-
-        // ⚠️ FASE 2 — dados do autor original (drop compartilhado)
         compartilhado_de_id: p.compartilhado_de_id || null,
         compartilhado_de_username: p.compartilhado_de_username || '',
         compartilhado_de_nome: p.compartilhado_de_nome || '',
         compartilhado_de_avatar: p.compartilhado_de_avatar || '',
-
         visualizacoes: [],
         reacoes: { heart: [], broken: [] }
       }));
 
-      // Mescla: substitui tudo do Supabase, mantém locais não sincronizados
       const idsSupabase = new Set(pubsConvertidas.map((p) => p.idSupabase));
 
       const locaisNaoSincronizados = publicacoesMyDropsNex.filter(
@@ -82,48 +77,49 @@
       console.error('Erro ao sincronizar publicações:', erro);
     }
   }
+
   // ============================================
-// REMOVER PUBLICAÇÕES EXPIRADAS
-// ============================================
+  // REMOVER PUBLICAÇÕES EXPIRADAS
+  // ============================================
 
-function removerPublicacoesExpiradasMyDropsNex() {
-  const agora = Date.now();
-  const quantidadeAntes = publicacoesMyDropsNex.length;
+  function removerPublicacoesExpiradasMyDropsNex() {
+    const agora = Date.now();
+    const quantidadeAntes = publicacoesMyDropsNex.length;
 
-  publicacoesMyDropsNex = publicacoesMyDropsNex.filter((pub) => {
-    if (!pub.expiraEm) return true; // permanente
-    const expira = new Date(pub.expiraEm).getTime();
-    return Number.isNaN(expira) ? true : expira > agora;
-  });
+    publicacoesMyDropsNex = publicacoesMyDropsNex.filter((pub) => {
+      if (!pub.expiraEm) return true;
+      const expira = new Date(pub.expiraEm).getTime();
+      return Number.isNaN(expira) ? true : expira > agora;
+    });
 
-  if (publicacoesMyDropsNex.length !== quantidadeAntes) {
-    salvarPublicacoesMyDropsNex();
+    if (publicacoesMyDropsNex.length !== quantidadeAntes) {
+      salvarPublicacoesMyDropsNex();
+    }
   }
-}
 
-// ============================================
-// OBTER PUBLICAÇÕES ORDENADAS
-// ============================================
+  // ============================================
+  // OBTER PUBLICAÇÕES ORDENADAS
+  // ============================================
 
-function obterPublicacoesOrdenadasMyDropsNex() {
-  removerPublicacoesExpiradasMyDropsNex();
+  function obterPublicacoesOrdenadasMyDropsNex() {
+    removerPublicacoesExpiradasMyDropsNex();
 
-  return [...publicacoesMyDropsNex]
-    .map((pub) => ({
-      ...pub,
-      visualizacoes: Array.isArray(pub.visualizacoes)
-        ? pub.visualizacoes
-        : [],
-      reacoes: {
-        heart: Array.isArray(pub?.reacoes?.heart) ? pub.reacoes.heart : [],
-        broken: Array.isArray(pub?.reacoes?.broken)
-          ? pub.reacoes.broken
-          : []
-      }
-    }))
-    .sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
-}
-
+    return [...publicacoesMyDropsNex]
+      .map((pub) => ({
+        ...pub,
+        visualizacoes: Array.isArray(pub.visualizacoes)
+          ? pub.visualizacoes
+          : [],
+        reacoes: {
+          heart: Array.isArray(pub?.reacoes?.heart) ? pub.reacoes.heart : [],
+          broken: Array.isArray(pub?.reacoes?.broken)
+            ? pub.reacoes.broken
+            : []
+        }
+      }))
+      .sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+  }
+  
 // ============================================
 // MODAL DE DURAÇÃO — ESTADO
 // ============================================
@@ -133,8 +129,6 @@ let publicacaoAtualMyDropsNex = null;
 // ============================================
 // ABRIR MODAL DE DURAÇÃO
 // ============================================
-// ⚠️ NOVO: em vez de resetar input, inicializa a roleta
-//          e posiciona em 24h por padrão.
 
 function abrirModalDuracaoPublicacaoMyDropsNex(tipoPublicacao) {
   publicacaoAtualMyDropsNex = { tipo: tipoPublicacao };
@@ -145,19 +139,14 @@ function abrirModalDuracaoPublicacaoMyDropsNex(tipoPublicacao) {
 
   if (!modal) return;
 
-  // Marca radio "24 horas" por padrão
   const radio24 = modal.querySelector(
     'input[name="duracaoPublicacaoMyDropsNex"][value="24h"]'
   );
   if (radio24) radio24.checked = true;
 
-  // ⚠️ Inicializa a roleta (se ainda não foi criada) e rola pra 24
   criarPickerHorasMyDropsNex();
-
-  // Mostra/esconde o wrap conforme o radio selecionado
   atualizarCampoDuracaoPersonalizadaMyDropsNex();
 
-  // Mostra o modal
   modal.classList.remove('hidden');
   document.body.classList.add('modal-duracao-aberto');
 }
@@ -174,13 +163,10 @@ function fecharModalDuracaoPublicacaoMyDropsNex() {
   document.body.classList.remove('modal-duracao-aberto');
   publicacaoAtualMyDropsNex = null;
 }
-  // ============================================
+
+// ============================================
 // MODAL DE DURAÇÃO — ROLETA
 // ============================================
-// ⚠️ NOVO SISTEMA:
-// - Input de digitação REMOVIDO
-// - Roleta iOS-style com 1..720 horas
-// - Constante ITEM_HEIGHT = 50 (bate com o CSS em 13-modais.css)
 
 const ITEM_HEIGHT = 50;
 const MIN_HORAS = 1;
@@ -190,7 +176,6 @@ const HORAS_INICIAIS = 24;
 // ============================================
 // MOSTRAR / ESCONDER A ROLETA
 // ============================================
-// Chamada quando o radio "24h" ou "Escolher duração" muda
 
 function atualizarCampoDuracaoPersonalizadaMyDropsNex() {
   const modal = document.getElementById('modalDuracaoPublicacaoMyDropsNex');
@@ -206,24 +191,21 @@ function atualizarCampoDuracaoPersonalizadaMyDropsNex() {
   if (wrap) wrap.style.display = mostrar ? 'flex' : 'none';
 
   if (mostrar) {
-    // ⚠️ Sempre começa em 24 ao abrir
     setTimeout(() => rolarParaHoraMyDropsNex(HORAS_INICIAIS), 60);
-    if (btnConcluir) btnConcluir.disabled = false; // ⚠️ Ativa o botão azul
+    if (btnConcluir) btnConcluir.disabled = false;
   } else {
-    if (btnConcluir) btnConcluir.disabled = true; // ⚠️ Desativa (cinza) se for 24h
+    if (btnConcluir) btnConcluir.disabled = true;
   }
 }
-  
+
 // ============================================
 // CRIAR OS ITENS (1..720)
 // ============================================
-// Chamada 1x ao abrir o modal. Se já estiver criada, não recria.
 
 function criarPickerHorasMyDropsNex() {
   const picker = document.getElementById('horasPickerMyDropsNex');
   if (!picker) return;
 
-  // Se já foi criada, não recria
   if (picker.dataset.criada === '1') return;
   picker.dataset.criada = '1';
 
@@ -237,7 +219,6 @@ function criarPickerHorasMyDropsNex() {
     picker.appendChild(item);
   }
 
-  // Listeners de scroll (1x)
   let scrollTimer = null;
 
   picker.addEventListener('scroll', () => {
@@ -248,7 +229,6 @@ function criarPickerHorasMyDropsNex() {
     picker._snapTimer = setTimeout(snapParaItemMaisProximoMyDropsNex, 80);
   });
 
-  // Clique num item → rola até ele
   picker.addEventListener('click', (e) => {
     const item = e.target.closest('.hora-item-nex');
     if (!item) return;
@@ -304,7 +284,6 @@ function atualizarItemCentralMyDropsNex() {
 // ============================================
 // SNAP — ENCAIXAR NO ITEM MAIS PRÓXIMO
 // ============================================
-// Chamado 80ms depois do scroll parar
 
 function snapParaItemMaisProximoMyDropsNex() {
   const picker = document.getElementById('horasPickerMyDropsNex');
@@ -330,9 +309,8 @@ function snapParaItemMaisProximoMyDropsNex() {
 }
 
 // ============================================
-// CALCULAR DURAÇÃO (reescrito)
+// CALCULAR DURAÇÃO
 // ============================================
-// ⚠️ NÃO LÊ MAIS INPUT. Lê o item central da roleta.
 
 function calcularDuracaoPublicacaoMyDropsNex() {
   const modal = document.getElementById(
@@ -347,7 +325,6 @@ function calcularDuracaoPublicacaoMyDropsNex() {
 
   const agora = Date.now();
 
-  // --- Opção Padrão: 24 horas ---
   if (selecionado === '24h') {
     return {
       modo: '24h',
@@ -356,11 +333,9 @@ function calcularDuracaoPublicacaoMyDropsNex() {
     };
   }
 
-  // --- Opção Personalizada: roleta ---
   const central = picker?.querySelector('.hora-item-nex.central');
   const horas = central ? Number(central.dataset.hora) : HORAS_INICIAIS;
 
-  // Defesa (não deve acontecer, mas garante valor válido)
   if (!Number.isFinite(horas) || horas < MIN_HORAS || horas > MAX_HORAS) {
     return {
       modo: 'personalizado',
@@ -377,7 +352,8 @@ function calcularDuracaoPublicacaoMyDropsNex() {
     expiraEm: new Date(agora + horas * 60 * 60 * 1000).toISOString()
   };
 }
-  // ============================================
+  
+// ============================================
 // CONVERTER VÍDEO PARA DATAURL
 // ============================================
 
@@ -406,6 +382,97 @@ async function converterVideoParaDataURLMyDropsNex(src) {
 }
 
 // ============================================
+// OBTER VÍDEO ATUAL (câmera ou drops)
+// ============================================
+
+function obterVideoAtualNoDropsMyDropsNex() {
+  const item = document.querySelector(
+    '#fotoEditorLayerMyDropsNex .video-editor-video-mydrops-nex'
+  );
+
+  const video = item?.querySelector('video');
+  if (!item || !video) return null;
+
+  return {
+    src: video.currentSrc || video.src || '',
+    loop: item.dataset.loop === '1' || video.loop === true
+  };
+}
+
+function obterVideoAtualNaCameraMyDropsNex() {
+  const overlay = document.getElementById('videoEditorMyDropsNex');
+  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
+
+  if (!overlay || !preview) return null;
+  if (getComputedStyle(overlay).display === 'none') return null;
+  if (!preview.src) return null;
+
+  return {
+    src: preview.currentSrc || preview.src || '',
+    loop: preview.loop === true
+  };
+}
+
+// ============================================
+// MODAL DE CONFIRMAÇÃO DE PUBLICAÇÃO
+// ============================================
+
+function mostrarModalPublicandoMyDrops() {
+  const antigo = document.querySelector('.mydrops-publishing-modal');
+  if (antigo) antigo.remove();
+
+  const modal = document.createElement('div');
+  modal.className = 'mydrops-publishing-modal';
+  modal.id = 'mydropsPublishingModal';
+
+  modal.innerHTML = `
+    <div class="mydrops-publishing-card">
+      <div class="mydrops-publishing-icon">📤</div>
+      <div class="mydrops-publishing-title">Seu Drops está sendo publicado</div>
+      <div class="mydrops-publishing-subtitle">Aguarde um momento...</div>
+      <div class="mydrops-publishing-spinner"></div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  setTimeout(() => {
+    fecharModalPublicandoMyDrops();
+  }, 5000);
+}
+
+function fecharModalPublicandoMyDrops() {
+  const modal = document.getElementById('mydropsPublishingModal');
+  if (modal) modal.remove();
+}
+
+// ============================================
+// LIMPAR CAMPOS DE LEGENDA
+// ============================================
+
+function limparCamposLegendaMyDrops() {
+  const legendaFotoInput = document.getElementById('legendaMyDropsInput');
+  if (legendaFotoInput) {
+    legendaFotoInput.value = '';
+    const contador = document.getElementById('legendaContadorMyDrops');
+    if (contador) contador.textContent = '0/500';
+  }
+
+  const legendaVideoInput = document.getElementById(
+    'legendaVideoMyDropsInput'
+  );
+  if (legendaVideoInput) {
+    legendaVideoInput.value = '';
+    const contador = document.getElementById(
+      'legendaVideoContadorMyDrops'
+    );
+    if (contador) contador.textContent = '0/500';
+  }
+
+  console.log('🧹 Campos de legenda limpos');
+}
+  
+// ============================================
 // CAPTURA NATIVA (sem html2canvas)
 // ⚠️ iOS/WebKit: html2canvas TRAVA com box-shadow +
 //    overflow hidden + background-image grande.
@@ -414,9 +481,8 @@ async function converterVideoParaDataURLMyDropsNex(src) {
 // ============================================
 async function capturarEditorComoImagemMyDropsNex() {
   // ============================================
-  // ⚠️ 1. LIMPEZA UNIVERSAL FORÇADA
+  // 1. LIMPEZA UNIVERSAL FORÇADA
   // ============================================
-  // Tira a seleção de todos os editores possíveis
   if (typeof window.desselecionarTudoNotasNex === 'function') {
     window.desselecionarTudoNotasNex();
   }
@@ -427,7 +493,6 @@ async function capturarEditorComoImagemMyDropsNex() {
     window.desselecionarTextoMyDropsNex();
   }
 
-  // Remove na força qualquer alça ou lixeira que tenha sobrado
   document
     .querySelectorAll(
       '.editor-alca-nex, #notasLixeiraNex, #fotoLixeiraNex'
@@ -435,9 +500,8 @@ async function capturarEditorComoImagemMyDropsNex() {
     .forEach((el) => el.remove());
 
   // ============================================
-  // ⚠️ 2. ESPERA A TELA ATUALIZAR
+  // 2. ESPERA A TELA ATUALIZAR
   // ============================================
-  // Espera 2 frames de animação para o navegador redesenhar a tela sem as alças
   await new Promise((resolve) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(resolve);
@@ -728,106 +792,12 @@ async function capturarEditorComoImagemMyDropsNex() {
     return '';
   }
 }
-  // ============================================
-// OBTER VÍDEO ATUAL (câmera ou drops)
-// ============================================
-
-function obterVideoAtualNoDropsMyDropsNex() {
-  const item = document.querySelector(
-    '#fotoEditorLayerMyDropsNex .video-editor-video-mydrops-nex'
-  );
-
-  const video = item?.querySelector('video');
-  if (!item || !video) return null;
-
-  return {
-    src: video.currentSrc || video.src || '',
-    loop: item.dataset.loop === '1' || video.loop === true
-  };
-}
-
-function obterVideoAtualNaCameraMyDropsNex() {
-  const overlay = document.getElementById('videoEditorMyDropsNex');
-  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
-
-  if (!overlay || !preview) return null;
-  if (getComputedStyle(overlay).display === 'none') return null;
-  if (!preview.src) return null;
-
-  return {
-    src: preview.currentSrc || preview.src || '',
-    loop: preview.loop === true
-  };
-}
-
-// ============================================
-// MODAL DE CONFIRMAÇÃO DE PUBLICAÇÃO
-// ============================================
-
-function mostrarModalPublicandoMyDrops() {
-  const antigo = document.querySelector('.mydrops-publishing-modal');
-  if (antigo) antigo.remove();
-
-  const modal = document.createElement('div');
-  modal.className = 'mydrops-publishing-modal';
-  modal.id = 'mydropsPublishingModal';
-
-  modal.innerHTML = `
-    <div class="mydrops-publishing-card">
-      <div class="mydrops-publishing-icon">📤</div>
-      <div class="mydrops-publishing-title">Seu Drops está sendo publicado</div>
-      <div class="mydrops-publishing-subtitle">Aguarde um momento...</div>
-      <div class="mydrops-publishing-spinner"></div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  setTimeout(() => {
-    fecharModalPublicandoMyDrops();
-  }, 5000);
-}
-
-function fecharModalPublicandoMyDrops() {
-  const modal = document.getElementById('mydropsPublishingModal');
-  if (modal) modal.remove();
-}
-
-// ============================================
-// LIMPAR CAMPOS DE LEGENDA
-// ============================================
-
-function limparCamposLegendaMyDrops() {
-  if (typeof window.getLegendaTemporariaMyDropsNex === 'function') {
-    // Não precisa fazer nada aqui — o editor limpa
-  }
-
-  const legendaFotoInput = document.getElementById('legendaMyDropsInput');
-  if (legendaFotoInput) {
-    legendaFotoInput.value = '';
-    const contador = document.getElementById('legendaContadorMyDrops');
-    if (contador) contador.textContent = '0/500';
-  }
-
-  const legendaVideoInput = document.getElementById(
-    'legendaVideoMyDropsInput'
-  );
-  if (legendaVideoInput) {
-    legendaVideoInput.value = '';
-    const contador = document.getElementById(
-      'legendaVideoContadorMyDrops'
-    );
-    if (contador) contador.textContent = '0/500';
-  }
-
-  console.log('🧹 Campos de legenda limpos');
-}
-
+  
 // ============================================
 // CONCLUIR PUBLICAÇÃO
+// ⚠️ FFmpeg REMOVIDO (incompatível com Capacitor)
+// ⚠️ Vídeo sobe do tamanho original
 // ============================================
-// ⚠️ Chama calcularDuracaoPublicacaoMyDropsNex() que lê
-//    da roleta (ou pega 24 no modo "24h").
 
 async function concluirPublicacaoComDuracaoMyDropsNex() {
   // ⚠️ iOS: se por algum motivo publicacaoAtualMyDropsNex virou null,
@@ -871,7 +841,6 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     }
   }
 
-  // ⚠️ Calcula duração (lê da roleta ou pega 24 no modo padrão)
   const duracao = calcularDuracaoPublicacaoMyDropsNex();
   if (!duracao) return;
 
@@ -885,34 +854,25 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
 
   let legenda = '';
 
-  // ⚠️ Foto ANTIGO: precisa existir E estar visível
   const fotoAntigoEl = document.getElementById('fotoEditorMyDropsNex');
   const fotoAntigoVisivel =
     !!fotoAntigoEl && fotoAntigoEl.style.display === 'flex';
 
-  // ⚠️ Foto NOVO (30-foto.js)
   const fotoNovoVisivel = document
     .getElementById('fotoEditorNex')
     ?.classList.contains('aberto');
 
-  // ⚠️ Vídeo (31-video.js)
   const videoNovoVisivel = document
     .getElementById('videoEditorNex')
     ?.classList.contains('aberto');
 
-  // ⚠️ Vídeo ANTIGO (13-editor.js) — legado
   const videoAntigoEl = document.getElementById('videoEditorMyDropsNex');
   const videoAntigoVisivel =
     !!videoAntigoEl && videoAntigoEl.style.display === 'flex';
 
-  // ⚠️ Notas (29-notas.js)
   const notasVisivel = document
     .getElementById('notasEditorNex')
     ?.classList.contains('aberto');
-
-  // ============================================
-  // ORDEM DE PRIORIDADE (primeiro que bater, usa)
-  // ============================================
 
   if (notasVisivel) {
     const legendaNotasInput = document.getElementById(
@@ -952,45 +912,13 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
   let publicacao = null;
 
   // ============================================
-  // VÍDEO
+  // VÍDEO — SEM FFmpeg (sobe do tamanho original)
   // ============================================
 
   if (videoInfo?.src) {
     let mediaUrl = await converterVideoParaDataURLMyDropsNex(
       videoInfo.src
     );
-
-    // ⚠️ COMPRESSÃO DE VÍDEO PARA O FEED
-    if (window.FFmpeg && mediaUrl.startsWith('data:video')) {
-      try {
-        const { createFFmpeg, fetchFile } = window.FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
-        await ffmpeg.load();
-        ffmpeg.FS(
-          'writeFile',
-          'input.mp4',
-          await fetchFile(mediaUrl)
-        );
-        await ffmpeg.run(
-          '-i',
-          'input.mp4',
-          '-vf',
-          'scale=-2:720',
-          '-b:v',
-          '1000k',
-          '-c:a',
-          'aac',
-          '-b:a',
-          '128k',
-          'output.mp4'
-        );
-        const data = ffmpeg.FS('readFile', 'output.mp4');
-        const blob = new Blob([data.buffer], { type: 'video/mp4' });
-        mediaUrl = await blobParaDataURLMyDropsNex(blob);
-      } catch (err) {
-        console.warn('Erro ao comprimir vídeo do feed:', err);
-      }
-    }
 
     if (!mediaUrl) {
       alert('Não foi possível salvar o vídeo.');
@@ -1015,17 +943,15 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     // IMAGEM
     // ============================================
 
-    // ⚠️ Verifica se o editor aberto é o de Notas
     const notasVisivelParaCaptura = document
       .getElementById('notasEditorNex')
       ?.classList.contains('aberto');
 
-    // Se for Notas, usa a captura exclusiva. Se não, usa a antiga
     let mediaUrl = notasVisivelParaCaptura
       ? await window.capturarNotasComoImagemNex?.()
       : await capturarEditorComoImagemMyDropsNex();
 
-    // ⚠️ COMPRESSÃO DE IMAGEM PARA O FEED
+    // ⚠️ COMPRESSÃO DE IMAGEM (browser-image-compression, OK no Capacitor)
     if (mediaUrl && window.comprimirImagemNex) {
       try {
         const resposta = await fetch(mediaUrl);
@@ -1066,12 +992,11 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
 
   mostrarModalPublicandoMyDrops();
 
-  // ⚠️ Atualiza o texto do modal se for vídeo
-  if (origem === 'video' && window.FFmpeg) {
+  if (origem === 'video') {
     const subtitulo = document.querySelector(
       '.mydrops-publishing-subtitle'
     );
-    if (subtitulo) subtitulo.textContent = 'Comprimindo vídeo, aguarde...';
+    if (subtitulo) subtitulo.textContent = 'Preparando vídeo, aguarde...';
   }
 
   // Salva localmente (feedback rápido)
@@ -1117,7 +1042,6 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
       window.fecharEditorVideoMyDropsNex();
     }
   } else {
-    // ⚠️ Fecha o editor de Foto NOVO (30-foto.js)
     if (typeof window.fecharFotoNex === 'function') {
       const editorNovo = document.getElementById('fotoEditorNex');
       if (editorNovo && editorNovo.classList.contains('aberto')) {
@@ -1125,11 +1049,9 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
       }
     }
 
-    // ⚠️ Fecha o editor de Foto ANTIGO (13-editor.js)
     const editorFoto = document.getElementById('fotoEditorMyDropsNex');
     if (editorFoto) editorFoto.style.display = 'none';
 
-    // ⚠️ Fecha o editor de Notas (29-notas.js)
     if (typeof window.fecharNotasNex === 'function') {
       const editorNotas = document.getElementById('notasEditorNex');
       if (editorNotas && editorNotas.classList.contains('aberto')) {
@@ -1157,7 +1079,8 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
 
   publicacaoAtualMyDropsNex = null;
 }
-  // ============================================
+  
+// ============================================
 // CRIAR CARD DE PUBLICAÇÃO NO GRID
 // ============================================
 
@@ -1175,16 +1098,11 @@ function criarCardPublicacaoMyDropsNex(pub) {
   media.className = 'mydrops-publication-media';
 
   if (pub.midiaTipo === 'video') {
-    // ⚠️ AJUSTE 2: mostra um frame do vídeo como thumbnail
-    //    (carrega só o metadata + seek de 1s, economiza dados)
-
     const video = document.createElement('video');
     video.src = pub.mediaUrl;
     video.loop = !!pub.loop;
     video.muted = true;
     video.playsInline = true;
-
-    // ⚠️ Carrega só o metadata pra pegar o primeiro frame
     video.preload = 'metadata';
     video.autoplay = false;
     video.controls = false;
@@ -1194,8 +1112,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
     video.style.height = '100%';
     video.style.objectFit = 'cover';
 
-    // ⚠️ Quando carregar o metadata, avança 1s pra pegar um frame
-    //    que não seja o frame preto inicial
     video.addEventListener('loadedmetadata', () => {
       try {
         const alvo = Math.min(1, (video.duration || 2) / 2);
@@ -1203,7 +1119,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
       } catch (e) {}
     });
 
-    // ⚠️ Overlay de play por cima do frame (não substitui o frame)
     const playOverlay = document.createElement('div');
     playOverlay.className = 'play-overlay';
     playOverlay.textContent = '▶';
@@ -1220,8 +1135,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
       z-index: 1;
     `;
 
-    // ⚠️ Container do vídeo precisa ser position: relative
-    //    pra o overlay funcionar
     const videoWrapper = document.createElement('div');
     videoWrapper.style.cssText =
       'position: relative; width: 100%; height: 100%;';
@@ -1238,9 +1151,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
     media.appendChild(img);
   }
 
-  // ⚠️ CORREÇÃO: legenda removida do card.
-  // O card mostra apenas mídia + overlay (data/hora/origem/duração).
-
   // ============================================
   // OVERLAY (metadados)
   // ============================================
@@ -1252,8 +1162,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
     String(pub.origem || 'drops').charAt(0).toUpperCase() +
     String(pub.origem || 'drops').slice(1);
 
-  // ⚠️ AJUSTE 1: mostra o tempo real escolhido pelo usuário
-  //    (24h, 5h, 720h, etc.) em vez de "Personalizado".
   let duracao = '24h';
   if (pub.expiraEm) {
     const msRestantes =
@@ -1306,14 +1214,9 @@ function criarCardPublicacaoMyDropsNex(pub) {
   capsulaReacao.dataset.pubId = pub.idSupabase || pub.id || '';
   media.appendChild(capsulaReacao);
 
-  // ⚠️ Busca reações + compartilhamentos do Supabase (async)
   (async () => {
     const pubId = pub.idSupabase || pub.id;
     if (!pubId) return;
-
-    // ============================================
-    // 1. REAÇÕES ❤️ / 💔
-    // ============================================
 
     let totalHeart = 0;
     let totalBroken = 0;
@@ -1330,10 +1233,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
       }
     }
 
-    // ============================================
-    // 2. COMPARTILHAMENTOS 🔁
-    // ============================================
-
     let totalShare = 0;
 
     if (typeof window.contarCompartilhamentosSupabase === 'function') {
@@ -1345,10 +1244,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
       }
     }
 
-    // ============================================
-    // 3. MONTA A CÁPSULA
-    // ============================================
-
     const temReacao = totalHeart + totalBroken > 0;
     const temShare = totalShare > 0;
 
@@ -1359,7 +1254,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
 
     let html = '';
 
-    // Emoji de reação (prioridade ❤️)
     if (temReacao) {
       let emoji = '❤️';
       let count = totalHeart;
@@ -1375,7 +1269,6 @@ function criarCardPublicacaoMyDropsNex(pub) {
       `;
     }
 
-    // Contador de compartilhamento
     if (temShare) {
       html += `
         <span class="mydrops-pub-share-icone">
@@ -1475,7 +1368,8 @@ function renderizarPublicacoesMyDropsNex() {
     grid.appendChild(card);
   });
 }
-  // ============================================
+  
+// ============================================
 // MODAL DE LISTA (VISUALIZAÇÕES/REAÇÕES)
 // ============================================
 
@@ -1568,7 +1462,6 @@ function abrirModalListaPublicacaoMyDropsNex(titulo, lista) {
     modal.remove();
   };
 
-  // ⚠️ Clique em item → abre o perfil
   modal.querySelectorAll('.mydrops-list-modal-item').forEach((el) => {
     el.style.cursor = 'pointer';
 
@@ -1577,17 +1470,14 @@ function abrirModalListaPublicacaoMyDropsNex(titulo, lista) {
       const item = itens[idx];
       if (!item || !item.username) return;
 
-      // ⚠️ Fecha o modal de lista
       modal.remove();
 
-      // ⚠️ Fecha o viewer de publicações que está por baixo
       const viewerAtual = document.querySelector(
         '.mydrops-publication-viewer'
       );
       if (viewerAtual) viewerAtual.remove();
       document.body.style.overflow = '';
 
-      // ⚠️ Fecha qualquer viewer de mídia aberto
       const viewerMidia = document.querySelector('.nex-midia-viewer');
       if (viewerMidia) viewerMidia.remove();
 
@@ -1649,7 +1539,7 @@ function abrirModalExcluirPublicacaoMyDropsNex(onConfirmar) {
     if (e.target === modal) modal.remove();
   });
 }
-
+  
 // ============================================
 // VISUALIZADOR DE PUBLICAÇÃO PRÓPRIA
 // ============================================
@@ -1680,12 +1570,10 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
     Math.min(indexInicial, publicacoesViewerMyDropsNex.length - 1)
   );
 
-  // ⚠️ FEEDBACK: vibra + toca ao abrir minhas publicações
   if (typeof window.feedbackNex?.navegouDrop === 'function') {
     window.feedbackNex.navegouDrop();
   }
 
-  // ⚠️ Fase 5: limpa a borda azul do drop que está sendo aberto
   const pubAberta =
     publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
   if (pubAberta) {
@@ -1806,7 +1694,7 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
   };
 
   // ============================================
-  // RENDERIZAR (abre aqui, fecha na PARTE 7-C)
+  // RENDERIZAR (continua na Parte 9)
   // ============================================
 
   const renderizarViewer = () => {
@@ -1816,7 +1704,6 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
       return;
     }
 
-    // ⚠️ Sai do modo expandido ao trocar de publicação
     if (viewer.classList.contains('modo-expandido')) {
       viewer.classList.remove('modo-expandido');
       const btnExp = viewer.querySelector('#mydropsPubExpandir');
@@ -1839,27 +1726,15 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
 
     const dataHora = formatarDataHoraPublicacaoMyDropsNex(pub.criadoEm);
 
-    // ============================================
-    // CONTADOR
-    // ============================================
-
     if (counter) {
       counter.textContent = `${
         publicacaoViewerIndexMyDropsNex + 1
       }/${publicacoesViewerMyDropsNex.length}`;
     }
 
-    // ============================================
-    // DATA
-    // ============================================
-
     if (dataEl) {
       dataEl.textContent = `${dataHora.data} · ${dataHora.hora}`;
     }
-
-    // ============================================
-    // SELOS (1 linha só)
-    // ============================================
 
     if (selosEl) {
       selosEl.innerHTML = '';
@@ -1868,629 +1743,594 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
         selosEl.innerHTML = window.gerarHTMLSelos(pub.selos);
       }
     }
-    // ============================================
-// MÍDIA
-// ============================================
 
-if (media) {
-  const url = String(pub.mediaUrl || '');
-  const tipo = String(pub.midiaTipo || '').toLowerCase();
-  const ehVideo =
-    tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
+    if (media) {
+      const url = String(pub.mediaUrl || '');
+      const tipo = String(pub.midiaTipo || '').toLowerCase();
+      const ehVideo =
+        tipo === 'video' || /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url);
 
-  media.innerHTML = '';
+      media.innerHTML = '';
 
-  if (ehVideo) {
-    // ============================================
-    // 🎬 NOVO PLAYER CUSTOMIZADO (FASE 2)
-    // ============================================
-    media.innerHTML = `
-      <div class="player-custom-nex">
-        <video id="videoPlayerMydropsNex" src="${url}" autoplay playsinline loop="${
-      pub.loop ? 'true' : 'false'
-    }" muted></video>
+      if (ehVideo) {
+        media.innerHTML = `
+          <div class="player-custom-nex">
+            <video id="videoPlayerMydropsNex" src="${url}" autoplay playsinline loop="${
+          pub.loop ? 'true' : 'false'
+        }" muted></video>
 
-        <!-- Camada para bloquear toque acidental no vídeo -->
-        <div class="player-touch-area-nex"></div>
+            <div class="player-touch-area-nex"></div>
 
-        <!-- Botão Mute (Topo Direito) -->
-        <button type="button" class="btn-mute-custom-nex" id="btnMuteMydropsNex" onclick="toggleMuteMydropsNex()">
-          <svg id="iconeMudoMydropsNex" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-            <line x1="1" y1="1" x2="23" y2="23"></line>
-            <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
-            <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-          </svg>
-        </button>
+            <button type="button" class="btn-mute-custom-nex" id="btnMuteMydropsNex" onclick="toggleMuteMydropsNex()">
+              <svg id="iconeMudoMydropsNex" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
 
-        <!-- Controles Inferiores -->
-        <div class="controles-inferiores-nex">
-          <button type="button" class="btn-play-pause-custom-nex" id="btnPlayPauseMydropsNex" onclick="togglePlayMydropsNex()">
-            <svg id="iconePlayMydropsNex" viewBox="0 0 24 24" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
-            <svg id="iconePauseMydropsNex" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          </button>
+            <div class="controles-inferiores-nex">
+              <button type="button" class="btn-play-pause-custom-nex" id="btnPlayPauseMydropsNex" onclick="togglePlayMydropsNex()">
+                <svg id="iconePlayMydropsNex" viewBox="0 0 24 24" style="display:none;"><path d="M8 5v14l11-7z"/></svg>
+                <svg id="iconePauseMydropsNex" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
 
-          <div class="barra-tempo-custom-nex" id="barraTempoMydropsNex">
-            <div class="barra-tempo-fundo-nex">
-              <div class="barra-tempo-progresso-nex" id="progressoMydropsNex"></div>
+              <div class="barra-tempo-custom-nex" id="barraTempoMydropsNex">
+                <div class="barra-tempo-fundo-nex">
+                  <div class="barra-tempo-progresso-nex" id="progressoMydropsNex"></div>
+                </div>
+              </div>
+
+              <div class="tempo-texto-nex">
+                <span id="tempoAtualMydropsNex">0:00</span> / <span id="tempoTotalMydropsNex">0:00</span>
+              </div>
             </div>
           </div>
+        `;
 
-          <div class="tempo-texto-nex">
-            <span id="tempoAtualMydropsNex">0:00</span> / <span id="tempoTotalMydropsNex">0:00</span>
-          </div>
-        </div>
-      </div>
-    `;
+        setTimeout(() => {
+          const videoEl = document.getElementById('videoPlayerMydropsNex');
+          const progressoEl = document.getElementById(
+            'progressoMydropsNex'
+          );
+          const tempoAtualEl = document.getElementById(
+            'tempoAtualMydropsNex'
+          );
+          const tempoTotalEl = document.getElementById(
+            'tempoTotalMydropsNex'
+          );
+          const barraWrap = document.getElementById('barraTempoMydropsNex');
 
-    // Configura a lógica do player recém-criado
-    setTimeout(() => {
-      const videoEl = document.getElementById('videoPlayerMydropsNex');
-      const progressoEl = document.getElementById(
-        'progressoMydropsNex'
-      );
-      const tempoAtualEl = document.getElementById(
-        'tempoAtualMydropsNex'
-      );
-      const tempoTotalEl = document.getElementById(
-        'tempoTotalMydropsNex'
-      );
-      const barraWrap = document.getElementById('barraTempoMydropsNex');
+          if (!videoEl) return;
 
-      if (!videoEl) return;
+          const formatar = (s) => {
+            if (isNaN(s)) return '0:00';
+            const m = Math.floor(s / 60);
+            const seg = Math.floor(s % 60);
+            return `${m}:${seg.toString().padStart(2, '0')}`;
+          };
 
-      const formatar = (s) => {
-        if (isNaN(s)) return '0:00';
-        const m = Math.floor(s / 60);
-        const seg = Math.floor(s % 60);
-        return `${m}:${seg.toString().padStart(2, '0')}`;
-      };
+          videoEl.addEventListener('loadedmetadata', () => {
+            tempoTotalEl.textContent = formatar(videoEl.duration);
+          });
 
-      videoEl.addEventListener('loadedmetadata', () => {
-        tempoTotalEl.textContent = formatar(videoEl.duration);
-      });
+          videoEl.addEventListener('timeupdate', () => {
+            if (!videoEl.duration) return;
+            const pct = (videoEl.currentTime / videoEl.duration) * 100;
+            progressoEl.style.width = `${pct}%`;
+            tempoAtualEl.textContent = formatar(videoEl.currentTime);
+          });
 
-      videoEl.addEventListener('timeupdate', () => {
-        if (!videoEl.duration) return;
-        const pct = (videoEl.currentTime / videoEl.duration) * 100;
-        progressoEl.style.width = `${pct}%`;
-        tempoAtualEl.textContent = formatar(videoEl.currentTime);
-      });
+          videoEl.addEventListener('play', () => {
+            document.getElementById('iconePlayMydropsNex').style.display =
+              'none';
+            document.getElementById(
+              'iconePauseMydropsNex'
+            ).style.display = 'block';
+          });
 
-      videoEl.addEventListener('play', () => {
-        document.getElementById('iconePlayMydropsNex').style.display =
-          'none';
-        document.getElementById(
-          'iconePauseMydropsNex'
-        ).style.display = 'block';
-      });
+          videoEl.addEventListener('pause', () => {
+            document.getElementById(
+              'iconePlayMydropsNex'
+            ).style.display = 'block';
+            document.getElementById(
+              'iconePauseMydropsNex'
+            ).style.display = 'none';
+          });
 
-      videoEl.addEventListener('pause', () => {
-        document.getElementById(
-          'iconePlayMydropsNex'
-        ).style.display = 'block';
-        document.getElementById(
-          'iconePauseMydropsNex'
-        ).style.display = 'none';
-      });
+          barraWrap.addEventListener('click', (e) => {
+            const rect = barraWrap.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            videoEl.currentTime = pct * videoEl.duration;
+          });
+        }, 50);
 
-      barraWrap.addEventListener('click', (e) => {
-        const rect = barraWrap.getBoundingClientRect();
-        const pct = (e.clientX - rect.left) / rect.width;
-        videoEl.currentTime = pct * videoEl.duration;
-      });
-    }, 50);
+        window.togglePlayMydropsNex = function () {
+          const videoEl = document.getElementById('videoPlayerMydropsNex');
+          if (!videoEl) return;
+          if (videoEl.paused) videoEl.play();
+          else videoEl.pause();
+        };
 
-    // ⚠️ FUNÇÕES FORA DO SETTIMEOUT (para o HTML conseguir chamar)
-    window.togglePlayMydropsNex = function () {
-      const videoEl = document.getElementById('videoPlayerMydropsNex');
-      if (!videoEl) return;
-      if (videoEl.paused) videoEl.play();
-      else videoEl.pause();
-    };
+        window.toggleMuteMydropsNex = function () {
+          const videoEl = document.getElementById('videoPlayerMydropsNex');
+          const icone = document.getElementById('iconeMudoMydropsNex');
+          if (!videoEl || !icone) return;
 
-    window.toggleMuteMydropsNex = function () {
-      const videoEl = document.getElementById('videoPlayerMydropsNex');
-      const icone = document.getElementById('iconeMudoMydropsNex');
-      if (!videoEl || !icone) return;
+          videoEl.muted = !videoEl.muted;
 
-      videoEl.muted = !videoEl.muted;
-
-      if (videoEl.muted) {
-        icone.innerHTML = `<line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>`;
+          if (videoEl.muted) {
+            icone.innerHTML = `<line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line>`;
+          } else {
+            icone.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>`;
+          }
+        };
       } else {
-        icone.innerHTML = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>`;
-      }
-    };
-  } else {
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = 'Publicação';
-    media.appendChild(img);
-  }
-}
-
-// ============================================
-// FASE 2 — CÁPSULA DE AUTOR (drop compartilhado)
-// ============================================
-
-const capsulaAutor = viewer.querySelector('#mydropsPubCapsulaAutor');
-
-if (capsulaAutor) {
-  const temCompartilhamento = !!pub.compartilhado_de_id;
-
-  if (!temCompartilhamento) {
-    capsulaAutor.style.display = 'none';
-  } else {
-    capsulaAutor.style.display = 'inline-flex';
-
-    const avatarEl = capsulaAutor.querySelector(
-      '.mydrops-pub-capsula-autor-avatar'
-    );
-    const nomeEl = capsulaAutor.querySelector(
-      '.mydrops-pub-capsula-autor-nome'
-    );
-    const userEl = capsulaAutor.querySelector(
-      '.mydrops-pub-capsula-autor-user'
-    );
-
-    // Avatar
-    if (avatarEl) {
-      if (pub.compartilhado_de_avatar) {
-        avatarEl.innerHTML = `<img src="${escapeHTML(
-          pub.compartilhado_de_avatar
-        )}" alt="">`;
-      } else {
-        avatarEl.textContent = (pub.compartilhado_de_nome || '?')
-          .charAt(0)
-          .toUpperCase();
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Publicação';
+        media.appendChild(img);
       }
     }
 
-    // Nome
-    if (nomeEl) {
-      nomeEl.textContent = pub.compartilhado_de_nome || '';
-    }
+    // ============================================
+    // FASE 2 — CÁPSULA DE AUTOR (drop compartilhado)
+    // ============================================
 
-    // @username
-    if (userEl) {
-      const userLimpo = String(pub.compartilhado_de_username || '')
-        .replace(/^@/, '')
-        .trim();
-      userEl.textContent = userLimpo ? '@' + userLimpo : '';
-    }
-  }
-}
-      // ============================================
-  // CÁPSULA DE LEGENDA
-  // ============================================
+    const capsulaAutor = viewer.querySelector('#mydropsPubCapsulaAutor');
 
-  const temLegenda =
-    pub.legenda &&
-    typeof pub.legenda === 'string' &&
-    pub.legenda.trim().length > 0;
+    if (capsulaAutor) {
+      const temCompartilhamento = !!pub.compartilhado_de_id;
 
-  if (capsula && capsulaTexto && btnVerMais && rodapeVazio) {
-    if (temLegenda) {
-      capsula.style.display = 'flex';
-      rodapeVazio.style.display = 'none';
+      if (!temCompartilhamento) {
+        capsulaAutor.style.display = 'none';
+      } else {
+        capsulaAutor.style.display = 'inline-flex';
 
-      capsulaTexto.textContent = pub.legenda.trim();
-      capsulaTexto.classList.remove('expandido');
+        const avatarEl = capsulaAutor.querySelector(
+          '.mydrops-pub-capsula-autor-avatar'
+        );
+        const nomeEl = capsulaAutor.querySelector(
+          '.mydrops-pub-capsula-autor-nome'
+        );
+        const userEl = capsulaAutor.querySelector(
+          '.mydrops-pub-capsula-autor-user'
+        );
 
-      btnVerMais.classList.remove('visivel');
-      btnVerMais.dataset.expandido = 'false';
-      btnVerMais.textContent = 'Ver mais';
-
-      // Mostra "Ver mais" só se o texto passar de 4 linhas
-      setTimeout(() => {
-        if (capsulaTexto.scrollHeight > capsulaTexto.clientHeight + 2) {
-          btnVerMais.classList.add('visivel');
+        if (avatarEl) {
+          if (pub.compartilhado_de_avatar) {
+            avatarEl.innerHTML = `<img src="${escapeHTML(
+              pub.compartilhado_de_avatar
+            )}" alt="">`;
+          } else {
+            avatarEl.textContent = (pub.compartilhado_de_nome || '?')
+              .charAt(0)
+              .toUpperCase();
+          }
         }
-      }, 30);
-    } else {
-      capsula.style.display = 'none';
-      rodapeVazio.style.display = 'block';
+
+        if (nomeEl) {
+          nomeEl.textContent = pub.compartilhado_de_nome || '';
+        }
+
+        if (userEl) {
+          const userLimpo = String(pub.compartilhado_de_username || '')
+            .replace(/^@/, '')
+            .trim();
+          userEl.textContent = userLimpo ? '@' + userLimpo : '';
+        }
+      }
     }
-  }
 
-  // ============================================
-  // STATS — LOCAL (rápido)
-  // ============================================
+    // ============================================
+    // CÁPSULA DE LEGENDA
+    // ============================================
 
-  if (viewsEl) {
-    viewsEl.textContent = Array.isArray(pub.visualizacoes)
-      ? pub.visualizacoes.length
-      : 0;
-  }
+    const temLegenda =
+      pub.legenda &&
+      typeof pub.legenda === 'string' &&
+      pub.legenda.trim().length > 0;
 
-  if (heartEl) {
-    heartEl.textContent = Array.isArray(pub?.reacoes?.heart)
-      ? pub.reacoes.heart.length
-      : 0;
-  }
+    if (capsula && capsulaTexto && btnVerMais && rodapeVazio) {
+      if (temLegenda) {
+        capsula.style.display = 'flex';
+        rodapeVazio.style.display = 'none';
 
-  if (brokenEl) {
-    brokenEl.textContent = Array.isArray(pub?.reacoes?.broken)
-      ? pub.reacoes.broken.length
-      : 0;
-  }
+        capsulaTexto.textContent = pub.legenda.trim();
+        capsulaTexto.classList.remove('expandido');
 
-  // ============================================
-  // STATS — SUPABASE (assíncrono)
-  // ============================================
+        btnVerMais.classList.remove('visivel');
+        btnVerMais.dataset.expandido = 'false';
+        btnVerMais.textContent = 'Ver mais';
 
-  const publicacaoIdSupabase = pub.idSupabase || pub.id;
+        setTimeout(() => {
+          if (capsulaTexto.scrollHeight > capsulaTexto.clientHeight + 2) {
+            btnVerMais.classList.add('visivel');
+          }
+        }, 30);
+      } else {
+        capsula.style.display = 'none';
+        rodapeVazio.style.display = 'block';
+      }
+    }
 
-  if (
-    publicacaoIdSupabase &&
-    typeof window.buscarReacoesSupabase === 'function'
-  ) {
-    window
-      .buscarReacoesSupabase(publicacaoIdSupabase)
-      .then((dados) => {
-        if (!dados) return;
+    if (viewsEl) {
+      viewsEl.textContent = Array.isArray(pub.visualizacoes)
+        ? pub.visualizacoes.length
+        : 0;
+    }
 
-        if (heartEl) heartEl.textContent = String(dados.heart || 0);
-        if (brokenEl) brokenEl.textContent = String(dados.broken || 0);
-      })
-      .catch((err) =>
-        console.warn('Erro ao buscar reações MyDrops:', err)
-      );
-  }
+    if (heartEl) {
+      heartEl.textContent = Array.isArray(pub?.reacoes?.heart)
+        ? pub.reacoes.heart.length
+        : 0;
+    }
 
-  // ============================================
-  // FASE 3 — CONTADOR DE COMPARTILHAMENTOS 🔁
-  // ============================================
+    if (brokenEl) {
+      brokenEl.textContent = Array.isArray(pub?.reacoes?.broken)
+        ? pub.reacoes.broken.length
+        : 0;
+    }
 
-  const shareBtn = viewer.querySelector('#mydropsPubShareBtn');
-  const shareEl = viewer.querySelector('#mydropsPubShare');
-
-  if (shareBtn && shareEl) {
-    // Esconde por padrão
-    shareBtn.style.display = 'none';
+    const publicacaoIdSupabase = pub.idSupabase || pub.id;
 
     if (
       publicacaoIdSupabase &&
-      typeof window.contarCompartilhamentosSupabase === 'function'
+      typeof window.buscarReacoesSupabase === 'function'
     ) {
       window
-        .contarCompartilhamentosSupabase(publicacaoIdSupabase)
-        .then((total) => {
-          const num = Number(total) || 0;
+        .buscarReacoesSupabase(publicacaoIdSupabase)
+        .then((dados) => {
+          if (!dados) return;
 
-          if (num > 0) {
-            shareEl.textContent = String(num);
-            shareBtn.style.display = 'inline-flex';
-          } else {
-            shareBtn.style.display = 'none';
-          }
+          if (heartEl) heartEl.textContent = String(dados.heart || 0);
+          if (brokenEl) brokenEl.textContent = String(dados.broken || 0);
         })
         .catch((err) =>
-          console.warn('Erro ao contar compartilhamentos:', err)
+          console.warn('Erro ao buscar reações MyDrops:', err)
         );
     }
-  }
 
-  if (
-    publicacaoIdSupabase &&
-    typeof window.buscarVisualizacoesSupabase === 'function'
-  ) {
-    window
-      .buscarVisualizacoesSupabase(publicacaoIdSupabase)
-      .then((total) => {
-        if (viewsEl) viewsEl.textContent = String(total || 0);
-      })
-      .catch((err) =>
-        console.warn('Erro ao buscar views MyDrops:', err)
-      );
-  }
-};
-    // ============================================
-  // EVENTO — VOLTAR
-  // ============================================
+    const shareBtn = viewer.querySelector('#mydropsPubShareBtn');
+    const shareEl = viewer.querySelector('#mydropsPubShare');
 
-  const btnVoltar = viewer.querySelector('#mydropsPubVoltar');
-  if (btnVoltar) btnVoltar.onclick = fechar;
-
-  viewer.addEventListener('click', (e) => {
-    if (e.target === viewer) fechar();
-  });
-
-  // ============================================
-  // NAVEGAÇÃO — feita apenas por SWIPE
-  // (as setas horizontais foram removidas)
-  // ============================================
-
-  // ============================================
-  // BOTÃO "VER MAIS" (legenda)
-  // ============================================
-
-  const btnVerMaisEl = viewer.querySelector('#mydropsPubVerMais');
-  const capsulaTextoEl = viewer.querySelector('#mydropsPubLegendaTexto');
-
-  if (btnVerMaisEl && capsulaTextoEl) {
-    btnVerMaisEl.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const expandido = btnVerMaisEl.dataset.expandido === 'true';
-
-      if (expandido) {
-        capsulaTextoEl.classList.remove('expandido');
-        btnVerMaisEl.textContent = 'Ver mais';
-        btnVerMaisEl.dataset.expandido = 'false';
-      } else {
-        capsulaTextoEl.classList.add('expandido');
-        btnVerMaisEl.textContent = 'Ver menos';
-        btnVerMaisEl.dataset.expandido = 'true';
-      }
-    };
-  }
-
-  // ============================================
-  // SWIPE — horizontal troca publicação
-  // ⚠️ Continua funcionando em modo expandido (igual Nearby)
-  // ============================================
-
-  let swipeStartX = 0;
-  let swipeStartY = 0;
-  let swipeStartTime = 0;
-  let swipeAtivo = false;
-
-  const LIMITE_SWIPE = 50;
-  const TEMPO_MAX_SWIPE = 800;
-
-  viewer.addEventListener(
-    'touchstart',
-    (e) => {
-      if (e.touches.length !== 1) return;
-
-      const alvo = e.target;
-      // ⚠️ Removemos 'video' e 'button' daqui para permitir deslizar sobre eles.
-      // Mas mantemos os botões de AÇÃO (voltar, lixeira, stats, expandir) bloqueados.
-      if (
-        alvo.closest('.mydrops-pub-voltar') ||
-        alvo.closest('.mydrops-pub-seta') ||
-        alvo.closest('.mydrops-pub-capsula') ||
-        alvo.closest('.mydrops-pub-stats-row') ||
-        alvo.closest('.mydrops-pub-trash-btn') ||
-        alvo.closest('.mydrops-pub-expandir') ||
-        alvo.closest('.controles-inferiores-nex') ||
-        alvo.closest('.btn-mute-custom-nex')
-      ) {
-        swipeAtivo = false;
-        return;
-      }
-
-      swipeAtivo = true;
-      swipeStartX = e.touches[0].clientX;
-      swipeStartY = e.touches[0].clientY;
-      swipeStartTime = Date.now();
-    },
-    { passive: true }
-  );
-
-  viewer.addEventListener(
-    'touchend',
-    (e) => {
-      if (!swipeAtivo) return;
-      swipeAtivo = false;
-
-      if (!e.changedTouches || e.changedTouches.length === 0) return;
-
-      const dx = e.changedTouches[0].clientX - swipeStartX;
-      const dy = e.changedTouches[0].clientY - swipeStartY;
-      const dt = Date.now() - swipeStartTime;
-
-      if (dt > TEMPO_MAX_SWIPE) return;
-
-      const absX = Math.abs(dx);
-      const absY = Math.abs(dy);
-
-      if (absX < LIMITE_SWIPE) return;
-      if (absX < absY * 1.3) return;
-
-      if (dx < 0) {
-        if (
-          publicacaoViewerIndexMyDropsNex <
-          publicacoesViewerMyDropsNex.length - 1
-        ) {
-          publicacaoViewerIndexMyDropsNex += 1;
-
-          // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
-          if (typeof window.feedbackNex?.navegouDrop === 'function') {
-            window.feedbackNex.navegouDrop();
-          }
-
-          renderizarViewer();
-        }
-      } else {
-        if (publicacaoViewerIndexMyDropsNex > 0) {
-          publicacaoViewerIndexMyDropsNex -= 1;
-
-          // ⚠️ FEEDBACK: vibra + toca ao trocar publicação
-          if (typeof window.feedbackNex?.navegouDrop === 'function') {
-            window.feedbackNex.navegouDrop();
-          }
-
-          renderizarViewer();
-        }
-      }
-    },
-    { passive: true }
-  );
-
-  // ============================================
-  // BOTÕES DE STATS (views / heart / broken)
-  // ============================================
-
-  viewer.querySelectorAll('.mydrops-pub-stat-btn').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const pub =
-        publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
-      if (!pub) return;
-
-      const tipo = btn.getAttribute('data-list');
-
-      if (tipo === 'views') {
-        const pubIdParaViews = pub.idSupabase || pub.id;
-
-        if (
-          pubIdParaViews &&
-          typeof window.buscarListaVisualizacoesSupabase === 'function'
-        ) {
-          const lista =
-            await window.buscarListaVisualizacoesSupabase(pubIdParaViews);
-          abrirModalListaPublicacaoMyDropsNex('Visualizações', lista || []);
-          return;
-        }
-
-        abrirModalListaPublicacaoMyDropsNex(
-          'Visualizações',
-          pub.visualizacoes || []
-        );
-        return;
-      }
-
-      const publicacaoIdSupabase = pub.idSupabase || pub.id;
+    if (shareBtn && shareEl) {
+      shareBtn.style.display = 'none';
 
       if (
         publicacaoIdSupabase &&
-        typeof window.buscarListaReacoesSupabase === 'function'
+        typeof window.contarCompartilhamentosSupabase === 'function'
       ) {
-        const tipoSupabase = tipo === 'heart' ? 'heart' : 'broken';
+        window
+          .contarCompartilhamentosSupabase(publicacaoIdSupabase)
+          .then((total) => {
+            const num = Number(total) || 0;
 
-        const lista = await window.buscarListaReacoesSupabase(
-          publicacaoIdSupabase,
-          tipoSupabase
-        );
-
-        const titulo =
-          tipoSupabase === 'heart' ? 'Reações ❤️' : 'Reações 💔';
-        abrirModalListaPublicacaoMyDropsNex(titulo, lista || []);
-        return;
+            if (num > 0) {
+              shareEl.textContent = String(num);
+              shareBtn.style.display = 'inline-flex';
+            } else {
+              shareBtn.style.display = 'none';
+            }
+          })
+          .catch((err) =>
+            console.warn('Erro ao contar compartilhamentos:', err)
+          );
       }
+    }
 
-      if (tipo === 'heart') {
-        abrirModalListaPublicacaoMyDropsNex(
-          'Reações ❤️',
-          pub.reacoes?.heart || []
+    if (
+      publicacaoIdSupabase &&
+      typeof window.buscarVisualizacoesSupabase === 'function'
+    ) {
+      window
+        .buscarVisualizacoesSupabase(publicacaoIdSupabase)
+        .then((total) => {
+          if (viewsEl) viewsEl.textContent = String(total || 0);
+        })
+        .catch((err) =>
+          console.warn('Erro ao buscar views MyDrops:', err)
         );
-      }
+    }
+  };
+  
+    // ============================================
+    // EVENTO — VOLTAR
+    // ============================================
 
-      if (tipo === 'broken') {
-        abrirModalListaPublicacaoMyDropsNex(
-          'Reações 💔',
-          pub.reacoes?.broken || []
-        );
-      }
+    const btnVoltar = viewer.querySelector('#mydropsPubVoltar');
+    if (btnVoltar) btnVoltar.onclick = fechar;
+
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) fechar();
     });
-  });
 
-  // ============================================
-  // BOTÃO EXCLUIR
-  // ============================================
+    // ============================================
+    // BOTÃO "VER MAIS" (legenda)
+    // ============================================
 
-  const btnTrash = viewer.querySelector('.mydrops-pub-trash-btn');
+    const btnVerMaisEl = viewer.querySelector('#mydropsPubVerMais');
+    const capsulaTextoEl = viewer.querySelector('#mydropsPubLegendaTexto');
 
-  if (btnTrash) {
-    btnTrash.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    if (btnVerMaisEl && capsulaTextoEl) {
+      btnVerMaisEl.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      abrirModalExcluirPublicacaoMyDropsNex(async () => {
+        const expandido = btnVerMaisEl.dataset.expandido === 'true';
+
+        if (expandido) {
+          capsulaTextoEl.classList.remove('expandido');
+          btnVerMaisEl.textContent = 'Ver mais';
+          btnVerMaisEl.dataset.expandido = 'false';
+        } else {
+          capsulaTextoEl.classList.add('expandido');
+          btnVerMaisEl.textContent = 'Ver menos';
+          btnVerMaisEl.dataset.expandido = 'true';
+        }
+      };
+    }
+
+    // ============================================
+    // SWIPE — horizontal troca publicação
+    // ============================================
+
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeStartTime = 0;
+    let swipeAtivo = false;
+
+    const LIMITE_SWIPE = 50;
+    const TEMPO_MAX_SWIPE = 800;
+
+    viewer.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length !== 1) return;
+
+        const alvo = e.target;
+        if (
+          alvo.closest('.mydrops-pub-voltar') ||
+          alvo.closest('.mydrops-pub-seta') ||
+          alvo.closest('.mydrops-pub-capsula') ||
+          alvo.closest('.mydrops-pub-stats-row') ||
+          alvo.closest('.mydrops-pub-trash-btn') ||
+          alvo.closest('.mydrops-pub-expandir') ||
+          alvo.closest('.controles-inferiores-nex') ||
+          alvo.closest('.btn-mute-custom-nex')
+        ) {
+          swipeAtivo = false;
+          return;
+        }
+
+        swipeAtivo = true;
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        swipeStartTime = Date.now();
+      },
+      { passive: true }
+    );
+
+    viewer.addEventListener(
+      'touchend',
+      (e) => {
+        if (!swipeAtivo) return;
+        swipeAtivo = false;
+
+        if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+        const dx = e.changedTouches[0].clientX - swipeStartX;
+        const dy = e.changedTouches[0].clientY - swipeStartY;
+        const dt = Date.now() - swipeStartTime;
+
+        if (dt > TEMPO_MAX_SWIPE) return;
+
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+
+        if (absX < LIMITE_SWIPE) return;
+        if (absX < absY * 1.3) return;
+
+        if (dx < 0) {
+          if (
+            publicacaoViewerIndexMyDropsNex <
+            publicacoesViewerMyDropsNex.length - 1
+          ) {
+            publicacaoViewerIndexMyDropsNex += 1;
+
+            if (typeof window.feedbackNex?.navegouDrop === 'function') {
+              window.feedbackNex.navegouDrop();
+            }
+
+            renderizarViewer();
+          }
+        } else {
+          if (publicacaoViewerIndexMyDropsNex > 0) {
+            publicacaoViewerIndexMyDropsNex -= 1;
+
+            if (typeof window.feedbackNex?.navegouDrop === 'function') {
+              window.feedbackNex.navegouDrop();
+            }
+
+            renderizarViewer();
+          }
+        }
+      },
+      { passive: true }
+    );
+
+    // ============================================
+    // BOTÕES DE STATS (views / heart / broken)
+    // ============================================
+
+    viewer.querySelectorAll('.mydrops-pub-stat-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         const pub =
           publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
         if (!pub) return;
 
-        if (pub.idSupabase) {
-          try {
-            await window.apagarPublicacaoSupabase?.(pub.idSupabase);
-            console.log('🗑️ Drop apagado do Supabase');
-          } catch (erro) {
-            console.error('Erro ao apagar do Supabase:', erro);
+        const tipo = btn.getAttribute('data-list');
+
+        if (tipo === 'views') {
+          const pubIdParaViews = pub.idSupabase || pub.id;
+
+          if (
+            pubIdParaViews &&
+            typeof window.buscarListaVisualizacoesSupabase === 'function'
+          ) {
+            const lista =
+              await window.buscarListaVisualizacoesSupabase(pubIdParaViews);
+            abrirModalListaPublicacaoMyDropsNex('Visualizações', lista || []);
+            return;
           }
-        }
 
-        publicacoesMyDropsNex = publicacoesMyDropsNex.filter(
-          (item) => item.id !== pub.id
-        );
-
-        salvarPublicacoesMyDropsNex();
-        renderizarPublicacoesMyDropsNex();
-
-        publicacoesViewerMyDropsNex = obterPublicacoesOrdenadasMyDropsNex();
-
-        if (!publicacoesViewerMyDropsNex.length) {
-          const viewerAtual = document.querySelector(
-            '.mydrops-publication-viewer'
+          abrirModalListaPublicacaoMyDropsNex(
+            'Visualizações',
+            pub.visualizacoes || []
           );
-          if (viewerAtual) viewerAtual.remove();
-          document.body.style.overflow = '';
           return;
         }
 
+        const publicacaoIdSupabase = pub.idSupabase || pub.id;
+
         if (
-          publicacaoViewerIndexMyDropsNex >=
-          publicacoesViewerMyDropsNex.length
+          publicacaoIdSupabase &&
+          typeof window.buscarListaReacoesSupabase === 'function'
         ) {
-          publicacaoViewerIndexMyDropsNex =
-            publicacoesViewerMyDropsNex.length - 1;
+          const tipoSupabase = tipo === 'heart' ? 'heart' : 'broken';
+
+          const lista = await window.buscarListaReacoesSupabase(
+            publicacaoIdSupabase,
+            tipoSupabase
+          );
+
+          const titulo =
+            tipoSupabase === 'heart' ? 'Reações ❤️' : 'Reações 💔';
+          abrirModalListaPublicacaoMyDropsNex(titulo, lista || []);
+          return;
         }
 
-        renderizarViewer();
+        if (tipo === 'heart') {
+          abrirModalListaPublicacaoMyDropsNex(
+            'Reações ❤️',
+            pub.reacoes?.heart || []
+          );
+        }
+
+        if (tipo === 'broken') {
+          abrirModalListaPublicacaoMyDropsNex(
+            'Reações 💔',
+            pub.reacoes?.broken || []
+          );
+        }
       });
     });
-  }
 
-  // ============================================
-  // BOTÃO EXPANDIR — TELA CHEIA (FOCO TOTAL)
-  // ============================================
-
-  const btnExpandir = viewer.querySelector('#mydropsPubExpandir');
-
-  function entrarModoExpandidoNex() {
-    if (!viewer) return;
-    viewer.classList.add('modo-expandido');
-    if (btnExpandir) btnExpandir.textContent = '⤡';
-  }
-
-  function sairModoExpandidoNex() {
-    if (!viewer) return;
-    viewer.classList.remove('modo-expandido');
-    if (btnExpandir) btnExpandir.textContent = '⤢';
-  }
-
-  function toggleModoExpandidoNex() {
-    if (!viewer) return;
-    const estaExpandido = viewer.classList.contains('modo-expandido');
-    if (estaExpandido) {
-      sairModoExpandidoNex();
-    } else {
-      entrarModoExpandidoNex();
-    }
-  }
-
-  if (btnExpandir) {
-    btnExpandir.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleModoExpandidoNex();
-    });
-  }
-
-  // ============================================
-  // RENDERIZA PRIMEIRA VEZ
-  // ============================================
-
-  renderizarViewer();
-} // ⚠️ ESTA CHAVE FECHA A FUNÇÃO abrirVisualizadorPublicacaoMyDropsNex
     // ============================================
+    // BOTÃO EXCLUIR
+    // ============================================
+
+    const btnTrash = viewer.querySelector('.mydrops-pub-trash-btn');
+
+    if (btnTrash) {
+      btnTrash.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        abrirModalExcluirPublicacaoMyDropsNex(async () => {
+          const pub =
+            publicacoesViewerMyDropsNex[publicacaoViewerIndexMyDropsNex];
+          if (!pub) return;
+
+          if (pub.idSupabase) {
+            try {
+              await window.apagarPublicacaoSupabase?.(pub.idSupabase);
+              console.log('🗑️ Drop apagado do Supabase');
+            } catch (erro) {
+              console.error('Erro ao apagar do Supabase:', erro);
+            }
+          }
+
+          publicacoesMyDropsNex = publicacoesMyDropsNex.filter(
+            (item) => item.id !== pub.id
+          );
+
+          salvarPublicacoesMyDropsNex();
+          renderizarPublicacoesMyDropsNex();
+
+          publicacoesViewerMyDropsNex = obterPublicacoesOrdenadasMyDropsNex();
+
+          if (!publicacoesViewerMyDropsNex.length) {
+            const viewerAtual = document.querySelector(
+              '.mydrops-publication-viewer'
+            );
+            if (viewerAtual) viewerAtual.remove();
+            document.body.style.overflow = '';
+            return;
+          }
+
+          if (
+            publicacaoViewerIndexMyDropsNex >=
+            publicacoesViewerMyDropsNex.length
+          ) {
+            publicacaoViewerIndexMyDropsNex =
+              publicacoesViewerMyDropsNex.length - 1;
+          }
+
+          renderizarViewer();
+        });
+      });
+    }
+
+    // ============================================
+    // BOTÃO EXPANDIR — TELA CHEIA (FOCO TOTAL)
+    // ============================================
+
+    const btnExpandir = viewer.querySelector('#mydropsPubExpandir');
+
+    function entrarModoExpandidoNex() {
+      if (!viewer) return;
+      viewer.classList.add('modo-expandido');
+      if (btnExpandir) btnExpandir.textContent = '⤡';
+    }
+
+    function sairModoExpandidoNex() {
+      if (!viewer) return;
+      viewer.classList.remove('modo-expandido');
+      if (btnExpandir) btnExpandir.textContent = '⤢';
+    }
+
+    function toggleModoExpandidoNex() {
+      if (!viewer) return;
+      const estaExpandido = viewer.classList.contains('modo-expandido');
+      if (estaExpandido) {
+        sairModoExpandidoNex();
+      } else {
+        entrarModoExpandidoNex();
+      }
+    }
+
+    if (btnExpandir) {
+      btnExpandir.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleModoExpandidoNex();
+      });
+    }
+
+    // ============================================
+    // RENDERIZA PRIMEIRA VEZ
+    // ============================================
+
+    renderizarViewer();
+  }
+
+  // ============================================
   // EXPÕE GLOBALMENTE
   // ============================================
 
@@ -2522,21 +2362,14 @@ if (capsulaAutor) {
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // ============================================
-    // SINCRONIZA PUBLICAÇÕES COM O SUPABASE
-    // ============================================
+    // Sincroniza publicações com o Supabase
     setTimeout(() => {
       if (typeof sincronizarPublicacoesSupabase === 'function') {
         sincronizarPublicacoesSupabase();
       }
     }, 2000);
 
-    // ============================================
-    // RADIO BUTTONS DO MODAL DE DURAÇÃO
-    // ============================================
-    // ⚠️ Ao trocar entre "24h" e "Escolher duração", mostra/esconde
-    //    a roleta e rola pro 24. NÃO existe mais validação de input.
-
+    // Radio buttons do modal de duração
     const modalDuracao = document.getElementById(
       'modalDuracaoPublicacaoMyDropsNex'
     );
@@ -2550,10 +2383,7 @@ if (capsulaAutor) {
         );
       });
 
-    // ============================================
-    // BOTÃO CANCELAR DO MODAL DE DURAÇÃO
-    // ============================================
-
+    // Botão cancelar do modal de duração
     const btnCancelarDuracao = document.getElementById(
       'cancelarDuracaoPublicacaoMyDropsNex'
     );
@@ -2564,15 +2394,11 @@ if (capsulaAutor) {
       );
     }
 
-    // ============================================
-    // BOTÃO CONCLUIR DO MODAL DE DURAÇÃO
-    // ============================================
-    // ⚠️ Debounce multiplataforma (iOS + Android + fallback universal):
+    // Botão concluir do modal de duração
+    // ⚠️ Debounce multiplataforma (iOS + Android + fallback):
     //    touchend  → iOS cancela pointerup, mas touchend dispara
     //    pointerup → Android / navegadores modernos
     //    click     → fallback do WebKit
-    //    O guard `concluindo` + `ultimoDisparo` garante que só 1 dispara.
-
     const btnConcluirDuracao = document.getElementById(
       'concluirDuracaoPublicacaoMyDropsNex'
     );
@@ -2582,12 +2408,10 @@ if (capsulaAutor) {
       let ultimoDisparo = 0;
 
       const handlerConcluir = (e) => {
-        // ⚠️ NÃO chamar preventDefault — WebKit usa isso pra cancelar o click
         if (e && typeof e.stopPropagation === 'function') {
           e.stopPropagation();
         }
 
-        // ⚠️ Debounce: se qualquer um dos 3 eventos disparou nos últimos 400ms, ignora
         const agora = Date.now();
         if (agora - ultimoDisparo < 400) return;
         if (concluindo) return;
@@ -2613,7 +2437,6 @@ if (capsulaAutor) {
         }
       };
 
-      // ⚠️ Registra os 3 eventos — o debounce garante que só 1 executa
       btnConcluirDuracao.addEventListener('touchend', handlerConcluir);
       btnConcluirDuracao.addEventListener('pointerup', handlerConcluir);
       btnConcluirDuracao.addEventListener('click', handlerConcluir);
@@ -2624,6 +2447,6 @@ if (capsulaAutor) {
   // DEBUG
   // ============================================
 
-  console.log('📝 12-mydrops.js carregado (via adapter + roleta)');
+  console.log('📝 12-mydrops.js carregado (via adapter + roleta, SEM FFmpeg)');
 
 })();

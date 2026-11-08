@@ -2,6 +2,10 @@
    25-NEX-SUPABASE.JS
    NEX — conversas e mensagens no Supabase
 
+   ⚠️ FFmpeg REMOVIDO (incompatível com Capacitor)
+   ⚠️ Vídeo do chat sobe do tamanho original
+   ⚠️ Bitrate controlado na gravação (13-editor.js)
+
    Depende de: 00-config.js, 20-supabase.js
 
    ⚠️ REGRA DE OURO:
@@ -23,7 +27,6 @@
       .trim();
   }
 
-  // ⚠️ Garante que a chave é SEMPRE o username real
   function resolverChaveNex(nome) {
     if (!nome) return '';
     const cache = window.__convUsernamesNex || {};
@@ -202,7 +205,6 @@
     if (!window.supabaseClient || !usernameOutro) return null;
 
     try {
-      // ⚠️ GARANTE QUE A SESSÃO ESTÁ ATIVA NO NAVEGADOR
       const { data: { session } } = await window.supabaseClient.auth.getSession();
       if (!session) {
         await window.supabaseClient.auth.refreshSession();
@@ -224,28 +226,29 @@
       return null;
     }
   }
+
   // ============================================
-// LISTAR MINHAS CONVERSAS
-// ============================================
-async function listarMinhasConversasSupabase() {
-  if (!window.supabaseClient) return [];
+  // LISTAR MINHAS CONVERSAS
+  // ============================================
+  async function listarMinhasConversasSupabase() {
+    if (!window.supabaseClient) return [];
 
-  try {
-    const { data, error } = await window.supabaseClient
-      .rpc('listar_minhas_conversas');
+    try {
+      const { data, error } = await window.supabaseClient
+        .rpc('listar_minhas_conversas');
 
-    if (error) {
-      console.warn('Erro ao listar conversas:', error);
+      if (error) {
+        console.warn('Erro ao listar conversas:', error);
+        return [];
+      }
+
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('Erro ao listar conversas:', err);
       return [];
     }
-
-    return Array.isArray(data) ? data : [];
-  } catch (err) {
-    console.warn('Erro ao listar conversas:', err);
-    return [];
   }
-}
-
+  
 // ============================================
 // BUSCAR MENSAGENS DE UMA CONVERSA
 // ============================================
@@ -395,17 +398,14 @@ async function apagarPraTodosSupabase(mensagemId) {
   if (!window.supabaseClient || !mensagemId) return false;
 
   try {
-    // 1. Busca a mensagem para ver se tem mídia salva
     const { data: msg } = await window.supabaseClient
       .from('mensagens')
       .select('media_url')
       .eq('id', mensagemId)
       .maybeSingle();
 
-    // 2. Se tiver arquivo, manda apagar do Supabase Storage (bucket 'nex')
     if (msg && msg.media_url) {
       try {
-        // Extrai o caminho do arquivo da URL pública
         const partes = msg.media_url.split('/public/nex/');
         const arquivo = partes.length > 1 ? partes[1].split('?')[0] : null;
 
@@ -418,7 +418,6 @@ async function apagarPraTodosSupabase(mensagemId) {
       }
     }
 
-    // 3. Marca a mensagem como apagada no banco de dados (deixa o texto null)
     const { error } = await window.supabaseClient
       .from('mensagens')
       .update({
@@ -440,7 +439,8 @@ async function apagarPraTodosSupabase(mensagemId) {
     return false;
   }
 }
-  // ============================================
+  
+// ============================================
 // CARREGAR CONVERSA COMPLETA (para o chat)
 // ============================================
 async function carregarConversaSupabase(nome) {
@@ -574,14 +574,13 @@ async function carregarConversaSupabase(nome) {
       else if (m.entregue_em) statusMsg = 'entregue';
     }
 
-    // ⚠️ NOVO: Detecta se a mensagem foi salva como sistema
-const isSistema = m.media_meta && m.media_meta.sistema === true;
+    const isSistema = m.media_meta && m.media_meta.sistema === true;
 
-return {
-  id: m.id,
-  timestamp: dataObj.getTime(),
-  side: ehMinha ? 'right' : 'left',
-  sistema: isSistema, // ⚠️ NOVO: Adiciona a flag visual
+    return {
+      id: m.id,
+      timestamp: dataObj.getTime(),
+      side: ehMinha ? 'right' : 'left',
+      sistema: isSistema,
       nome: ehMinha ? 'Eu' : chave,
       avatar: ehMinha ? 'EU' : (chave || '?').charAt(0).toUpperCase(),
       data: dataObj.toLocaleDateString('pt-BR'),
@@ -619,17 +618,16 @@ return {
 
   return convertidas;
 }
-  // ============================================
+  
+// ============================================
 // SINCRONIZAR CARDS DO NEX
 // ============================================
 
-// ⚠️ Timer para fazer o "Debounce" (agrupar chamadas repetidas)
 let _timerSyncCardsNex = null;
 
 async function sincronizarCardsNexSupabase() {
   if (!window.supabaseClient) return;
 
-  // ⚠️ Se já tem um sync agendado, cancela e reagenda (espera o usuário parar)
   if (_timerSyncCardsNex) {
     clearTimeout(_timerSyncCardsNex);
   }
@@ -638,7 +636,6 @@ async function sincronizarCardsNexSupabase() {
     _timerSyncCardsNex = setTimeout(async () => {
       _timerSyncCardsNex = null;
 
-      // Evita concorrência (se já tá rodando, não roda de novo)
       if (window.__sincronizandoCardsNex) return resolve();
 
       window.__sincronizandoCardsNex = true;
@@ -662,7 +659,6 @@ async function sincronizarCardsNexSupabase() {
           const nomeExibicao =
             conv.outro_nome || conv.outro_username || 'Usuário';
 
-          // ⚠️ Conversa sempre indexada pelo username real
           if (
             typeof window.conversas === 'object' &&
             !window.conversas[usernameOutro]
@@ -670,7 +666,6 @@ async function sincronizarCardsNexSupabase() {
             window.conversas[usernameOutro] = [];
           }
 
-          // ⚠️ Aponta o nome exibido pra MESMA lista
           if (
             typeof window.conversas === 'object' &&
             nomeExibicao !== usernameOutro
@@ -701,13 +696,11 @@ async function sincronizarCardsNexSupabase() {
               : false;
 
           if (cardExistente) {
-            // ⚠️ Atualiza preview
             if (conv.ultima_msg_texto) {
               const p = cardExistente.querySelector('.nex-info p');
               if (p) p.textContent = conv.ultima_msg_texto;
             }
 
-            // ⚠️ Atualiza timestamp + hora do card
             const tsMsg =
               conv.ultima_msg_em ||
               conv.ultima_msg_data ||
@@ -727,7 +720,6 @@ async function sincronizarCardsNexSupabase() {
               }
             }
 
-            // ⚠️ Atualiza nome exibido (caso tenha mudado)
             const h3 = cardExistente.querySelector('.nex-info h3');
             if (h3) h3.textContent = nomeExibicao;
             cardExistente.dataset.nomeExibido = nomeExibicao;
@@ -764,7 +756,6 @@ async function sincronizarCardsNexSupabase() {
             const naoLida = conv.nao_lida === true;
             const tipoCard = naoLida ? 'recebida' : 'enviada';
 
-            // ⚠️ Passa timestamp real da última mensagem (pra ordenar)
             const tsMsg =
               conv.ultima_msg_em ||
               conv.ultima_msg_data ||
@@ -790,12 +781,13 @@ async function sincronizarCardsNexSupabase() {
         console.warn('Erro ao sincronizar cards:', err);
       } finally {
         window.__sincronizandoCardsNex = false;
-        resolve(); // ⚠️ Libera a Promise
+        resolve();
       }
-    }, 2000); // ⚠️ Espera 2 segundos antes de executar
+    }, 2000);
   });
 }
-  // ============================================
+
+// ============================================
 // REALTIME — escuta mensagens novas
 // ============================================
 let canalRealtimeNex = null;
@@ -853,8 +845,6 @@ async function iniciarRealtimeNexSupabase() {
           const msg = payload.new;
           if (!msg) return;
 
-          // ⚠️ Se é MINHA mensagem e mudou status (entregue/visto),
-          //    atualiza o objeto local pra refletir ✓✓ e 👁️
           if (msg.autor_id === user.id) {
             processarStatusMinhaMensagemNex(msg);
             return;
@@ -925,14 +915,12 @@ function agendarReconexaoNex() {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
 
-  // Reconecta o Realtime se caiu
   if (!canalRealtimeNex || canalRealtimeNex.state !== 'joined') {
     console.log('👁️ Aba voltou ao foco. Reconectando Realtime...');
     tentativaReconexaoNex = 0;
     iniciarRealtimeNexSupabase();
   }
 
-  // ⚠️ SYNC DE SEGURANÇA: Puxa o que foi perdido enquanto estava fora
   console.log('🔄 Sincronizando dados após voltar ao foco...');
   sincronizarCardsNexSupabase().catch(() => {});
 
@@ -946,7 +934,6 @@ window.addEventListener('online', () => {
   tentativaReconexaoNex = 0;
   iniciarRealtimeNexSupabase();
 
-  // ⚠️ SYNC DE SEGURANÇA: Puxa o que foi perdido enquanto estava offline
   console.log('🔄 Sincronizando dados após retorno da rede...');
   sincronizarCardsNexSupabase().catch(() => {});
 
@@ -954,7 +941,8 @@ window.addEventListener('online', () => {
     carregarConversaSupabase(Drops.estado.conversaAtual).catch(() => {});
   }
 });
-  // ============================================
+  
+// ============================================
 // ATUALIZA STATUS DE MENSAGEM MINHA (entregue/visto)
 // ============================================
 function processarStatusMinhaMensagemNex(msg) {
@@ -1005,7 +993,6 @@ function processarStatusMinhaMensagemNex(msg) {
 async function processarAtualizacaoMensagemNex(msg) {
   if (!msg || !msg.id) return;
 
-  // ⚠️ Descobre a chave (username real) da conversa
   let chaveContato = null;
 
   if (window.__convIdsNex) {
@@ -1079,7 +1066,6 @@ async function processarAtualizacaoMensagemNex(msg) {
 async function processarMensagemRealtimeNex(msg) {
   if (!msg || !msg.conversa_id) return;
 
-  // ⚠️ Descobre a chave (username real) da conversa
   let chaveContato = null;
 
   if (window.__convIdsNex) {
@@ -1106,12 +1092,10 @@ async function processarMensagemRealtimeNex(msg) {
 
   if (!chaveContato) return;
 
-  // ⚠️ Marca as mensagens dessa conversa como ENTREGUES
   marcarMensagensComoEntreguesSupabase(msg.conversa_id).catch((err) =>
     console.warn('Falha ao marcar entregues (realtime):', err)
   );
 
-  // ⚠️ Conversa carregando? Guarda no buffer
   if (msg.conversa_id && __carregandoConversaNex.has(msg.conversa_id)) {
     if (!__bufferRealtimeNex.has(msg.conversa_id)) {
       __bufferRealtimeNex.set(msg.conversa_id, []);
@@ -1121,12 +1105,10 @@ async function processarMensagemRealtimeNex(msg) {
     return;
   }
 
-  // ⚠️ Garante a lista na chave única
   if (!window.conversas[chaveContato]) {
     window.conversas[chaveContato] = [];
   }
 
-  // ⚠️ Evita duplicata
   const jaExiste = window.conversas[chaveContato].some(
     (m) => m.id === msg.id || m._supabaseId === msg.id
   );
@@ -1221,15 +1203,14 @@ async function processarMensagemRealtimeNex(msg) {
     };
   }
 
-// ⚠️ NOVO: Detecta se a mensagem foi salva como sistema
-const isSistemaRealtime = msg.media_meta && msg.media_meta.sistema === true;
+  const isSistemaRealtime = msg.media_meta && msg.media_meta.sistema === true;
 
-const nova = {
-  id: msg.id,
-  timestamp: dataObj.getTime(),
-  side: 'left',
-  sistema: isSistemaRealtime, // ⚠️ NOVO: Adiciona a flag visual
-  nome: chaveContato,
+  const nova = {
+    id: msg.id,
+    timestamp: dataObj.getTime(),
+    side: 'left',
+    sistema: isSistemaRealtime,
+    nome: chaveContato,
     avatar: (chaveContato || '?').charAt(0).toUpperCase(),
     data: dataObj.toLocaleDateString('pt-BR'),
     hora: dataObj.toLocaleTimeString('pt-BR', {
@@ -1246,7 +1227,6 @@ const nova = {
     _supabaseId: msg.id
   };
 
-  // ⚠️ Se tem resposta, e a original não está carregada, recarrega tudo
   if (msg.resposta_a_id) {
     const jaTemOriginal = window.conversas[chaveContato].some(
       (m) => m._supabaseId === msg.resposta_a_id || m.id === msg.resposta_a_id
@@ -1402,10 +1382,9 @@ const nova = {
       }
     }
   }
-    // ⚠️ Insere na chave única
+
   window.conversas[chaveContato].push(nova);
 
-  // ⚠️ Chat aberto = compara pelo username real
   const chatEl = document.getElementById('chatNex');
   const chatEstaVisivel =
     chatEl && getComputedStyle(chatEl).display !== 'none';
@@ -1420,7 +1399,6 @@ const nova = {
       window.renderChat(chaveContato);
     }
 
-    // ⚠️ FEEDBACK: vibra + toca (ela te respondeu — sem notificação, sem badge)
     if (typeof window.feedbackNex?.msgRecebida === 'function') {
       window.feedbackNex.msgRecebida({ contarBadge: false });
     }
@@ -1430,8 +1408,6 @@ const nova = {
     if (convIdAberto) {
       marcarConversaLidaDebounced(convIdAberto);
 
-      // ⚠️ Se o chat está aberto e chegou mensagem nova,
-      //    marca as mensagens dessa conversa como VISUALIZADAS
       marcarMensagensComoVisualizadasSupabase(convIdAberto).catch((err) =>
         console.warn('Falha ao marcar visualizadas (realtime):', err)
       );
@@ -1441,7 +1417,6 @@ const nova = {
       window.marcarConversaComoNaoLidaNex(chaveContato);
     }
 
-    // ⚠️ FEEDBACK: vibra + toca + badge + notificação
     if (typeof window.feedbackNex?.msgRecebida === 'function') {
       window.feedbackNex.msgRecebida();
     }
@@ -1451,7 +1426,6 @@ const nova = {
     }
   }
 
-  // ⚠️ Atualiza preview do card
   const card = typeof window.obterCardConversaNex === 'function'
     ? window.obterCardConversaNex(chaveContato)
     : null;
@@ -1466,38 +1440,22 @@ const nova = {
 
 // ============================================
 // UPLOAD DE MÍDIA DO NEX
+// ⚠️ FFmpeg REMOVIDO (incompatível com Capacitor)
+// ⚠️ Vídeo sobe do tamanho original (bitrate controlado na gravação)
 // ============================================
 async function uploadMidiaNexSupabase(arquivo, tipo) {
   if (!window.supabaseClient || !arquivo) return null;
 
-  // ⚠️ COMPRESSÃO NO UPLOAD
+  // ⚠️ COMPRESSÃO DE IMAGEM (browser-image-compression, OK no Capacitor)
   if (arquivo instanceof File || arquivo instanceof Blob) {
     if (arquivo.type.startsWith('image/') && window.comprimirImagemNex) {
       arquivo = await window.comprimirImagemNex(arquivo);
     }
 
-    // ⚠️ Para vídeo, se tiver o FFmpeg disponível, comprime; senão, envia original
-    if (arquivo.type.startsWith('video/') && window.FFmpeg) {
-      try {
-        const { createFFmpeg, fetchFile } = window.FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
-        await ffmpeg.load();
-        ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(arquivo));
-        await ffmpeg.run(
-          '-i', 'input.mp4',
-          '-vf', 'scale=-2:720',
-          '-b:v', '1000k',
-          '-c:a', 'aac',
-          '-b:a', '128k',
-          'output.mp4'
-        );
-        const data = ffmpeg.FS('readFile', 'output.mp4');
-        arquivo = new Blob([data.buffer], { type: 'video/mp4' });
-      } catch (err) {
-        console.warn('Erro ao comprimir vídeo com FFmpeg:', err);
-      }
-    }
+    // ⚠️ FFmpeg REMOVIDO — vídeo sobe do tamanho original.
+    // O bitrate é controlado na gravação (13-editor.js, 1.5 Mbps).
   }
+
   try {
     const { data: { user } } = await window.supabaseClient.auth.getUser();
     if (!user) return null;
@@ -1646,126 +1604,127 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
           contentType: contentType,
           upsert: false,
           cacheControl: '31536000'
+   });
+
+      if (uploadError) {
+        console.error('❌ Erro no upload do NEX:', {
+          message: uploadError.message,
+          statusCode: uploadError.statusCode,
+          bucket: 'nex',
+          nomeArquivo,
+          contentType,
+          extensao,
+          tamanhoBlob: blob.size
         });
 
-    if (uploadError) {
-      console.error('❌ Erro no upload do NEX:', {
-        message: uploadError.message,
-        statusCode: uploadError.statusCode,
-        bucket: 'nex',
-        nomeArquivo,
-        contentType,
-        extensao,
-        tamanhoBlob: blob.size
-      });
+        if (typeof window.mostrarToastNex === 'function') {
+          window.mostrarToastNex(
+            'Erro no upload: ' + (uploadError.message || 'desconhecido'),
+            'erro',
+            6000
+          );
+        }
 
-      if (typeof window.mostrarToastNex === 'function') {
-        window.mostrarToastNex(
-          'Erro no upload: ' + (uploadError.message || 'desconhecido'),
-          'erro',
-          6000
-        );
+        return null;
       }
 
+      let configTransform = undefined;
+      if (extensao === 'jpg' || extensao === 'jpeg' || extensao === 'png' || extensao === 'webp') {
+        configTransform = { width: 400, quality: 70 };
+      }
+
+      const { data: urlData } = window.supabaseClient.storage
+        .from('nex')
+        .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
+
+      console.log('☁️ Upload NEX OK:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('❌ Erro no upload (catch):', err);
       return null;
     }
+}
+  
+  // ============================================
+  // NOTIFICAÇÃO DE MENSAGEM NOVA
+  // ============================================
+  function notificarMensagemNovaNex(nomeContato, mensagem) {
+    if (!mensagem) return;
 
-    let configTransform = undefined;
-    if (extensao === 'jpg' || extensao === 'jpeg' || extensao === 'png' || extensao === 'webp') {
-      configTransform = { width: 400, quality: 70 };
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate([200, 100, 200]);
+      } catch (e) {}
     }
 
-    const { data: urlData } = window.supabaseClient.storage
-      .from('nex')
-      .getPublicUrl(nomeArquivo, configTransform ? { transform: configTransform } : undefined);
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
 
-    console.log('☁️ Upload NEX OK:', urlData.publicUrl);
-    return urlData.publicUrl;
-  } catch (err) {
-    console.error('❌ Erro no upload (catch):', err);
-    return null;
-  }
-}
+    const titulo = String(nomeContato || 'Nova mensagem');
+    let corpo = '📎 Mídia';
 
-// ============================================
-// NOTIFICAÇÃO DE MENSAGEM NOVA
-// ============================================
-function notificarMensagemNovaNex(nomeContato, mensagem) {
-  if (!mensagem) return;
+    if (mensagem.text) {
+      corpo = String(mensagem.text).slice(0, 80);
+    } else if (mensagem.audio) {
+      corpo = '🎙️ Áudio';
+    } else if (
+      mensagem.anexo?.type === 'imagem' ||
+      mensagem.anexo?.type === 'image'
+    ) {
+      corpo = '📷 Foto';
+    } else if (mensagem.anexo?.type === 'video') {
+      corpo = '🎥 Vídeo';
+    } else if (mensagem.anexo?.type === 'pdf') {
+      corpo = '📄 PDF';
+    } else if (mensagem.anexo?.type === 'location') {
+      corpo = '📍 Localização';
+    } else if (mensagem.anexo?.type === 'album') {
+      corpo = '🎴 Álbum';
+    }
 
-  if (navigator.vibrate) {
     try {
-      navigator.vibrate([200, 100, 200]);
-    } catch (e) {}
+      const notif = new Notification(titulo, {
+        body: corpo,
+        icon: './assets/drops-icon.png',
+        badge: './assets/drops-icon.png',
+        tag: 'nex-' + nomeContato,
+        renotify: true
+      });
+
+      notif.onclick = () => {
+        window.focus();
+        if (typeof window.abrirChatNex === 'function') {
+          const card = document.querySelector(
+            `.nex-chat[data-chat="${nomeContato}"]`
+          );
+          if (card) window.abrirChatNex(card);
+        }
+        notif.close();
+      };
+
+      setTimeout(() => notif.close(), 6000);
+    } catch (e) {
+      console.warn('Erro ao mostrar notificação:', e);
+    }
   }
 
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
+  // ============================================
+  // PEDIR PERMISSÃO DE NOTIFICAÇÃO
+  // ============================================
+  async function pedirPermissaoNotificacaoNex() {
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission === 'denied') return false;
 
-  const titulo = String(nomeContato || 'Nova mensagem');
-  let corpo = '📎 Mídia';
-
-  if (mensagem.text) {
-    corpo = String(mensagem.text).slice(0, 80);
-  } else if (mensagem.audio) {
-    corpo = '🎙️ Áudio';
-  } else if (
-    mensagem.anexo?.type === 'imagem' ||
-    mensagem.anexo?.type === 'image'
-  ) {
-    corpo = '📷 Foto';
-  } else if (mensagem.anexo?.type === 'video') {
-    corpo = '🎥 Vídeo';
-  } else if (mensagem.anexo?.type === 'pdf') {
-    corpo = '📄 PDF';
-  } else if (mensagem.anexo?.type === 'location') {
-    corpo = '📍 Localização';
-  } else if (mensagem.anexo?.type === 'album') {
-    corpo = '🎴 Álbum';
+    try {
+      const resultado = await Notification.requestPermission();
+      return resultado === 'granted';
+    } catch (e) {
+      return false;
+    }
   }
 
-  try {
-    const notif = new Notification(titulo, {
-      body: corpo,
-      icon: './assets/drops-icon.png',
-      badge: './assets/drops-icon.png',
-      tag: 'nex-' + nomeContato,
-      renotify: true
-    });
-
-    notif.onclick = () => {
-      window.focus();
-      if (typeof window.abrirChatNex === 'function') {
-        const card = document.querySelector(
-          `.nex-chat[data-chat="${nomeContato}"]`
-        );
-        if (card) window.abrirChatNex(card);
-      }
-      notif.close();
-    };
-
-    setTimeout(() => notif.close(), 6000);
-  } catch (e) {
-    console.warn('Erro ao mostrar notificação:', e);
-  }
-}
-
-// ============================================
-// PEDIR PERMISSÃO DE NOTIFICAÇÃO
-// ============================================
-async function pedirPermissaoNotificacaoNex() {
-  if (!('Notification' in window)) return false;
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission === 'denied') return false;
-
-  try {
-    const resultado = await Notification.requestPermission();
-    return resultado === 'granted';
-  } catch (e) {
-    return false;
-  }
-}
-    // ============================================
+  // ============================================
   // SILENCIADOS
   // ============================================
   async function carregarSilenciadosSupabase() {
@@ -1774,9 +1733,6 @@ async function pedirPermissaoNotificacaoNex() {
     try {
       const { data: { user } } = await window.supabaseClient.auth.getUser();
       if (!user) return;
-
-      // ⚠️ SEM JOIN embutido. 3 selects simples.
-      // Funciona mesmo SEM foreign keys declaradas na tabela.
 
       // 1. IDs de quem EU silenciei
       const { data: euSilenciei } = await window.supabaseClient
@@ -1829,7 +1785,7 @@ async function pedirPermissaoNotificacaoNex() {
         meSilenciou: quemMeSilenciou.size
       });
 
-      // ⚠️ Se o chat está aberto, re-aplica o bloqueio visual AGORA
+      // Se o chat está aberto, re-aplica o bloqueio visual AGORA
       if (typeof window.revalidarSilenciamentoNex === 'function') {
         window.revalidarSilenciamentoNex();
       }
@@ -1860,7 +1816,7 @@ async function pedirPermissaoNotificacaoNex() {
           .from('silenciados')
           .insert({ usuario_id: user.id, silenciado_id: perfil.id });
 
-        if (error && error.code !== '23505') { // Ignora se já existe
+        if (error && error.code !== '23505') {
           console.warn('Erro ao silenciar:', error);
           return false;
         }
@@ -1918,12 +1874,10 @@ async function pedirPermissaoNotificacaoNex() {
 
             if (!ehMeuSilenciamento && !fuiSilenciado) return;
 
-            // Precisamos do username da outra pessoa para atualizar a lista
             const outroId = ehMeuSilenciamento ? registro.silenciado_id : registro.usuario_id;
 
             if (!outroId) return;
 
-            // Busca o username da outra pessoa (rápido, só 1 linha)
             const { data: perfil } = await window.supabaseClient
               .from('profiles')
               .select('username')
@@ -1933,11 +1887,9 @@ async function pedirPermissaoNotificacaoNex() {
             if (!perfil?.username) return;
             const username = String(perfil.username).toLowerCase().trim();
 
-            // Garante que os Sets existam
             if (!window.__euSilencieiNex) window.__euSilencieiNex = new Set();
             if (!window.__quemMeSilenciouNex) window.__quemMeSilenciouNex = new Set();
 
-            // Atualiza as listas na memória
             if (ehMeuSilenciamento) {
               if (payload.eventType === 'INSERT') {
                 window.__euSilencieiNex.add(username);
@@ -1950,9 +1902,6 @@ async function pedirPermissaoNotificacaoNex() {
               if (payload.eventType === 'INSERT') {
                 window.__quemMeSilenciouNex.add(username);
 
-                // ⚠️ CORRIGIDO: se eu estiver no chat com essa pessoa agora,
-                //    aplica o bloqueio visual via revalidarSilenciamentoNex
-                //    (leve, não recarrega o chat inteiro, mantém scroll)
                 if (Drops.estado.conversaAtual === username) {
                   if (typeof window.revalidarSilenciamentoNex === 'function') {
                     window.revalidarSilenciamentoNex();
@@ -1961,9 +1910,6 @@ async function pedirPermissaoNotificacaoNex() {
               } else if (payload.eventType === 'DELETE') {
                 window.__quemMeSilenciouNex.delete(username);
 
-                // ⚠️ CORRIGIDO: se eu estiver no chat, destrava na hora
-                //    via revalidarSilenciamentoNex (que reseta TUDO:
-                //    display, disabled, placeholder, classes)
                 if (Drops.estado.conversaAtual === username) {
                   if (typeof window.revalidarSilenciamentoNex === 'function') {
                     window.revalidarSilenciamentoNex();
@@ -2009,12 +1955,10 @@ async function pedirPermissaoNotificacaoNex() {
             const perfil = payload.new;
             if (!perfil || !perfil.username) return;
 
-            // Calcula se está online com base na ultima_atividade
             const ultima = perfil.ultima_atividade;
             const LIMITE_ONLINE_MS = 30 * 1000;
             const online = ultima && (Date.now() - new Date(ultima).getTime() < LIMITE_ONLINE_MS);
 
-            // Avisa as telas (Chat e lista de Cards) que a presença mudou
             document.dispatchEvent(new CustomEvent('drops_presenca_atualizada', {
               detail: { username: perfil.username.toLowerCase(), online }
             }));
@@ -2067,6 +2011,6 @@ async function pedirPermissaoNotificacaoNex() {
     console.log('☁️ 25-nex-supabase.js pronto');
   });
 
-  console.log('💬 25-nex-supabase.js carregado');
+  console.log('💬 25-nex-supabase.js carregado (sem FFmpeg)');
 
 })();

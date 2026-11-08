@@ -1,7 +1,12 @@
 /* ============================================
    13-EDITOR.JS
    Editor de foto/vídeo, câmera, texto, fundo
-   
+
+   ⚠️ BITRATE AJUSTADO (Parte 7):
+   - videoBitsPerSecond: 1500000 (1.5 Mbps)
+   - audioBitsPerSecond: 96000 (96 kbps)
+   - Vídeo de 60s agora tem ~11 MB (antes ~30 MB)
+
    Depende de: 00-config.js, 03-utils.js, 12-mydrops.js
 ============================================ */
 
@@ -225,8 +230,8 @@
     ultimoToqueTextoMyDropsNex.el = el;
     ultimoToqueTextoMyDropsNex.tempo = agora;
   }
-
-  // ============================================
+  
+// ============================================
 // APLICAR / LIMPAR TEMA DE TEXTO
 // ============================================
 
@@ -280,15 +285,15 @@ function criarAlcasMyDropsNex(el) {
   removerAlcasMyDropsNex(el);
 
   const alcaRot = document.createElement('button');
-alcaRot.type = 'button';
-alcaRot.className = 'editor-alca-nex editor-alca-rotacionar-nex';
-alcaRot.setAttribute('aria-label', 'Rotacionar');
+  alcaRot.type = 'button';
+  alcaRot.className = 'editor-alca-nex editor-alca-rotacionar-nex';
+  alcaRot.setAttribute('aria-label', 'Rotacionar');
 
-const alcaRes = document.createElement('button');
-alcaRes.type = 'button';
-alcaRes.className = 'editor-alca-nex editor-alca-redimensionar-nex';
-alcaRes.setAttribute('aria-label', 'Redimensionar'); 
-  
+  const alcaRes = document.createElement('button');
+  alcaRes.type = 'button';
+  alcaRes.className = 'editor-alca-nex editor-alca-redimensionar-nex';
+  alcaRes.setAttribute('aria-label', 'Redimensionar');
+
   el.appendChild(alcaRot);
   el.appendChild(alcaRes);
 
@@ -374,26 +379,26 @@ function ativarAlcaRedimensionarMyDropsNex(el, alca) {
     pointerId = e.pointerId;
     try { alca.setPointerCapture(pointerId); } catch (_) {}
 
-    // ⚠️ Pega o font-size atual do texto (em px)
-const body = el.querySelector('.video-editor-text-body-mydrops-nex');
-const fontAtual = body ? (parseFloat(body.style.fontSize) || 28) : 28;
+    // Pega o font-size atual do texto (em px)
+    const body = el.querySelector('.video-editor-text-body-mydrops-nex');
+    const fontAtual = body ? (parseFloat(body.style.fontSize) || 28) : 28;
 
-// ⚠️ Limite visual: font-size × scale ≤ 50
-const LIMITE_VISUAL = 50;
-const scaleMaxima = Math.max(0.3, LIMITE_VISUAL / fontAtual);
+    // Limite visual: font-size × scale ≤ 50
+    const LIMITE_VISUAL = 50;
+    const scaleMaxima = Math.max(0.3, LIMITE_VISUAL / fontAtual);
 
-const onMove = (ev) => {
-  if (ev.pointerId !== pointerId) return;
+    const onMove = (ev) => {
+      if (ev.pointerId !== pointerId) return;
 
-  const dist = Math.hypot(ev.clientX - centroX, ev.clientY - centroY);
-  const fator = dist / distInicial;
+      const dist = Math.hypot(ev.clientX - centroX, ev.clientY - centroY);
+      const fator = dist / distInicial;
 
-  // ⚠️ Aplica o limite visual dinâmico
-  const nova = Math.max(0.3, Math.min(scaleMaxima, escalaInicial * fator));
+      // Aplica o limite visual dinâmico
+      const nova = Math.max(0.3, Math.min(scaleMaxima, escalaInicial * fator));
 
-  el.dataset.scale = String(nova);
-  atualizarTransformacaoItemMyDropsNex(el);
-};
+      el.dataset.scale = String(nova);
+      atualizarTransformacaoItemMyDropsNex(el);
+    };
 
     const onUp = (ev) => {
       if (ev.pointerId !== pointerId) return;
@@ -409,13 +414,12 @@ const onMove = (ev) => {
     alca.addEventListener('pointercancel', onUp);
   });
 }
-
+  
 // ============================================
 // SELECIONAR / DESELECIONAR
 // ============================================
 
 function limparSelecaoEditavelMyDropsNex() {
-  // Remove alças do item selecionado
   if (itemSelecionadoMyDropsNex) {
     removerAlcasMyDropsNex(itemSelecionadoMyDropsNex);
   }
@@ -458,7 +462,6 @@ function selecionarTextoMyDropsNex(el) {
   el.classList.add('is-selected');
   el.style.outline = '2px solid rgba(255,255,255,.65)';
 
-  // Cria as alças ➕ e ↻
   criarAlcasMyDropsNex(el);
 
   const floatingTrash = document.getElementById(
@@ -513,7 +516,6 @@ function editarTextoInlineMyDropsNex(el) {
   const body = el.querySelector('.video-editor-text-body-mydrops-nex');
   if (!body) return;
 
-  // Placeholder não entra em edição — limpa
   const textoAtual = (body.textContent || '').trim();
   const ehPlaceholder =
     textoAtual === '2 toque para editar' ||
@@ -524,11 +526,9 @@ function editarTextoInlineMyDropsNex(el) {
     body.textContent = '';
   }
 
-  // Marca como editando
   el.dataset.editando = '1';
   body.contentEditable = 'true';
 
-  // Remove alças e lixeira durante a edição
   removerAlcasMyDropsNex(el);
 
   const floatingTrash = document.getElementById(
@@ -538,7 +538,6 @@ function editarTextoInlineMyDropsNex(el) {
     floatingTrash.classList.remove('active');
   }
 
-  // Foca e coloca o cursor no fim
   setTimeout(() => {
     body.focus();
 
@@ -553,7 +552,6 @@ function editarTextoInlineMyDropsNex(el) {
     }
   }, 50);
 
-  // Finaliza quando perde o foco
   const onBlur = () => {
     body.removeEventListener('blur', onBlur);
     finalizarEdicaoInlineMyDropsNex(el);
@@ -573,16 +571,14 @@ function finalizarEdicaoInlineMyDropsNex(el) {
 
   const textoFinal = (body.textContent || '').trim();
 
-  // Se ficou vazio, restaura o placeholder
   if (!textoFinal) {
     body.textContent = '2 toque para editar';
   }
 
-  // Re-seleciona pra voltar as alças e a lixeira
   selecionarTextoMyDropsNex(el);
 }
 
-  // ============================================
+// ============================================
 // LIXEIRA FLUTUANTE
 // ============================================
 
@@ -607,7 +603,6 @@ function garantirLixeiraMyDropsNex() {
       const alvo = itemSelecionadoMyDropsNex;
       if (!alvo) return;
 
-      // Remove alças antes de apagar
       removerAlcasMyDropsNex(alvo);
 
       alvo.remove();
@@ -738,7 +733,7 @@ function criarFotoEditavelMyDropsNex(dataURL) {
   selecionarFotoMyDropsNex(item);
   ativarArrasteFotoMyDropsNex(item);
 }
-
+  
 // ============================================
 // CRIAR VÍDEO EDITÁVEL
 // ============================================
@@ -1004,9 +999,9 @@ function ativarArrasteVideoMyDropsNex(el) {
     el.addEventListener('pointercancel', onUp);
   });
 }
-
-  // ============================================
-// ABRIR EDITOR DE FOTO
+  
+// ============================================
+// ABRIR EDITOR DE FOTO (legado)
 // ============================================
 
 function abrirEditorFotoMyDropsNex(dataURL = null) {
@@ -1206,7 +1201,7 @@ function abrirEditorFotoMyDropsNex(dataURL = null) {
 }
 
 // ============================================
-// CÂMERA DE VÍDEO (MyDrops)
+// CÂMERA DE VÍDEO (MyDrops) — estado
 // ============================================
 
 let streamCameraMyDropsNex = null;
@@ -1306,6 +1301,12 @@ function obterMimeTypeVideoMyDropsNex() {
     ) || ''
   );
 }
+  
+// ============================================
+// INICIAR GRAVAÇÃO — BITRATE AJUSTADO
+// videoBitsPerSecond: 1500000 (1.5 Mbps) — antes era 4000000
+// audioBitsPerSecond: 96000   (96 kbps)  — antes era 128000
+// ============================================
 
 async function iniciarGravacaoMyDropsNex() {
   if (gravandoCameraMyDropsNex) return;
@@ -1332,12 +1333,12 @@ async function iniciarGravacaoMyDropsNex() {
     mediaRecorderMyDropsNex = mimeType
       ? new MediaRecorder(streamCameraMyDropsNex, {
           mimeType,
-          videoBitsPerSecond: 4000000,
-          audioBitsPerSecond: 128000
+          videoBitsPerSecond: 1500000,
+          audioBitsPerSecond: 96000
         })
       : new MediaRecorder(streamCameraMyDropsNex, {
-          videoBitsPerSecond: 4000000,
-          audioBitsPerSecond: 128000
+          videoBitsPerSecond: 1500000,
+          audioBitsPerSecond: 96000
         });
 
     mediaRecorderMyDropsNex.ondataavailable = (evento) => {
@@ -1347,47 +1348,45 @@ async function iniciarGravacaoMyDropsNex() {
     };
 
     mediaRecorderMyDropsNex.onstop = () => {
-  if (timerCameraMyDropsNex) {
-    clearInterval(timerCameraMyDropsNex);
-    timerCameraMyDropsNex = null;
-  }
+      if (timerCameraMyDropsNex) {
+        clearInterval(timerCameraMyDropsNex);
+        timerCameraMyDropsNex = null;
+      }
 
-  gravandoCameraMyDropsNex = false;
-  atualizarUICameraMyDropsNex();
+      gravandoCameraMyDropsNex = false;
+      atualizarUICameraMyDropsNex();
 
-  if (acaoAoPararGravacaoMyDropsNex !== 'editor') {
-    acaoAoPararGravacaoMyDropsNex = 'editor';
-    chunksCameraMyDropsNex = [];
-    return;
-  }
+      if (acaoAoPararGravacaoMyDropsNex !== 'editor') {
+        acaoAoPararGravacaoMyDropsNex = 'editor';
+        chunksCameraMyDropsNex = [];
+        return;
+      }
 
-  const blob = new Blob(chunksCameraMyDropsNex, {
-    type: mediaRecorderMyDropsNex?.mimeType || 'video/webm'
-  });
+      const blob = new Blob(chunksCameraMyDropsNex, {
+        type: mediaRecorderMyDropsNex?.mimeType || 'video/webm'
+      });
 
-  if (window.urlVideoGravadoMyDropsNex) {
-    URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
-  }
+      if (window.urlVideoGravadoMyDropsNex) {
+        URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
+      }
 
-  window.videoGravadoMyDropsNex = blob;
-  window.urlVideoGravadoMyDropsNex = URL.createObjectURL(blob);
+      window.videoGravadoMyDropsNex = blob;
+      window.urlVideoGravadoMyDropsNex = URL.createObjectURL(blob);
 
-  chunksCameraMyDropsNex = [];
+      chunksCameraMyDropsNex = [];
 
-  pararStreamCameraMyDropsNex();
+      pararStreamCameraMyDropsNex();
 
-  const overlay = document.getElementById('cameraMyDropsOverlayNex');
-  if (overlay) overlay.style.display = 'none';
+      const overlay = document.getElementById('cameraMyDropsOverlayNex');
+      if (overlay) overlay.style.display = 'none';
 
-  // ⚠️ CORREÇÃO: chama o NOVO editor (31-video.js) via window,
-  //    que foi sobrescrito lá. Sem isso, abre o editor antigo
-  //    (referência local dentro deste arquivo).
-  if (typeof window.abrirEditorVideoMyDropsNex === 'function') {
-    window.abrirEditorVideoMyDropsNex();
-  } else {
-    abrirEditorVideoMyDropsNex();
-  }
-};
+      if (typeof window.abrirEditorVideoMyDropsNex === 'function') {
+        window.abrirEditorVideoMyDropsNex();
+      } else {
+        abrirEditorVideoMyDropsNex();
+      }
+    };
+
     mediaRecorderMyDropsNex.start();
 
     timerCameraMyDropsNex = setInterval(() => {
@@ -1490,28 +1489,28 @@ function criarOverlayFotoMyDropsNex() {
   if (document.getElementById('cameraFotoMyDropsOverlayNex')) return;
 
   const overlay = document.createElement('div');
-overlay.id = 'cameraFotoMyDropsOverlayNex';
+  overlay.id = 'cameraFotoMyDropsOverlayNex';
 
-overlay.innerHTML = `
-  <video id="cameraFotoMyDropsPreviewNex" autoplay playsinline muted></video>
+  overlay.innerHTML = `
+    <video id="cameraFotoMyDropsPreviewNex" autoplay playsinline muted></video>
 
-  <button
-    type="button"
-    id="cameraFotoMyDropsSwitchNex"
-    aria-label="Virar câmera">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-      <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
-      <circle cx="12" cy="12" r="3"/>
-      <path d="m18 22-3-3 3-3"/>
-      <path d="m6 2 3 3-3 3"/>
-    </svg>
-  </button>
+    <button
+      type="button"
+      id="cameraFotoMyDropsSwitchNex"
+      aria-label="Virar câmera">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+        <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+        <circle cx="12" cy="12" r="3"/>
+        <path d="m18 22-3-3 3-3"/>
+        <path d="m6 2 3 3-3 3"/>
+      </svg>
+    </button>
 
-  <button type="button" id="cameraFotoMyDropsCaptureNex"></button>
+    <button type="button" id="cameraFotoMyDropsCaptureNex"></button>
 
-  <button type="button" id="cameraFotoMyDropsCloseNex">Sair ➜</button>
-`;
+    <button type="button" id="cameraFotoMyDropsCloseNex">Sair ➜</button>
+  `;
 
   document.body.appendChild(overlay);
 
@@ -1594,20 +1593,12 @@ function capturarFotoMyDropsNex() {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   }
 
-    const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+  const dataURL = canvas.toDataURL('image/jpeg', 1.0);
 
   pararStreamFotoMyDropsNex();
 
   const overlay = document.getElementById('cameraFotoMyDropsOverlayNex');
   if (overlay) overlay.style.display = 'none';
-
-  // ============================================
-  // ⚠️ Abre o editor NOVO (30-foto.js) — câmera igual à galeria
-  // ============================================
-  // Prioridade:
-  //   1. window.abrirFotoNex   → função nativa do 30-foto.js
-  //   2. window.abrirEditorFotoMyDropsNex → fallback global
-  //   3. abrirEditorFotoMyDropsNex → fallback local (não deve chegar aqui)
 
   if (typeof window.abrirFotoNex === 'function') {
     window.abrirFotoNex(dataURL);
@@ -1621,63 +1612,64 @@ function capturarFotoMyDropsNex() {
 
   abrirEditorFotoMyDropsNex(dataURL);
 }
-    // ============================================
-  // EDITOR DE VÍDEO (gravado)
-  // ============================================
+  
+// ============================================
+// EDITOR DE VÍDEO (gravado)
+// ============================================
 
-  function abrirEditorVideoMyDropsNex() {
-    const legendaVideoInput = document.getElementById('legendaVideoMyDropsInput');
-    if (legendaVideoInput) {
-      legendaVideoInput.value = '';
-      const contador = document.getElementById('legendaVideoContadorMyDrops');
-      if (contador) contador.textContent = '0/500';
-    }
-    legendaTemporariaMyDropsNex = '';
+function abrirEditorVideoMyDropsNex() {
+  const legendaVideoInput = document.getElementById('legendaVideoMyDropsInput');
+  if (legendaVideoInput) {
+    legendaVideoInput.value = '';
+    const contador = document.getElementById('legendaVideoContadorMyDrops');
+    if (contador) contador.textContent = '0/500';
+  }
+  legendaTemporariaMyDropsNex = '';
 
-    const overlay = document.getElementById('videoEditorMyDropsNex');
-    const preview = document.getElementById('videoEditorPreviewMyDropsNex');
-    const btnLoop = document.getElementById('videoEditorLoopMyDropsNex');
+  const overlay = document.getElementById('videoEditorMyDropsNex');
+  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
+  const btnLoop = document.getElementById('videoEditorLoopMyDropsNex');
 
-    if (!overlay || !preview || !window.urlVideoGravadoMyDropsNex) return;
+  if (!overlay || !preview || !window.urlVideoGravadoMyDropsNex) return;
 
-    preview.src = window.urlVideoGravadoMyDropsNex;
-    preview.loop = false;
-    preview.muted = false;
-    preview.controls = true;
+  preview.src = window.urlVideoGravadoMyDropsNex;
+  preview.loop = false;
+  preview.muted = false;
+  preview.controls = true;
 
-    loopVideoMyDropsNex = false;
+  loopVideoMyDropsNex = false;
 
-    if (btnLoop) btnLoop.classList.remove('is-active');
+  if (btnLoop) btnLoop.classList.remove('is-active');
 
-    overlay.style.display = 'flex';
+  overlay.style.display = 'flex';
 
-    const btnSairNovo = document.getElementById('videoEditorSairMyDropsNex');
-    if (btnSairNovo) btnSairNovo.style.display = 'flex';
+  const btnSairNovo = document.getElementById('videoEditorSairMyDropsNex');
+  if (btnSairNovo) btnSairNovo.style.display = 'flex';
 
-    preview.play().catch(() => {});
+  preview.play().catch(() => {});
+}
+
+function fecharEditorVideoMyDropsNex() {
+  const overlay = document.getElementById('videoEditorMyDropsNex');
+  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
+  const btnLoop = document.getElementById('videoEditorLoopMyDropsNex');
+
+  if (preview) {
+    preview.pause();
+    preview.removeAttribute('src');
+    preview.load();
   }
 
-  function fecharEditorVideoMyDropsNex() {
-    const overlay = document.getElementById('videoEditorMyDropsNex');
-    const preview = document.getElementById('videoEditorPreviewMyDropsNex');
-    const btnLoop = document.getElementById('videoEditorLoopMyDropsNex');
+  loopVideoMyDropsNex = false;
 
-    if (preview) {
-      preview.pause();
-      preview.removeAttribute('src');
-      preview.load();
-    }
+  if (btnLoop) btnLoop.classList.remove('is-active');
+  if (overlay) overlay.style.display = 'none';
 
-    loopVideoMyDropsNex = false;
+  const btnSairNovo = document.getElementById('videoEditorSairMyDropsNex');
+  if (btnSairNovo) btnSairNovo.style.display = 'none';
+}
 
-    if (btnLoop) btnLoop.classList.remove('is-active');
-    if (overlay) overlay.style.display = 'none';
-
-    const btnSairNovo = document.getElementById('videoEditorSairMyDropsNex');
-    if (btnSairNovo) btnSairNovo.style.display = 'none';
-  }
-
-  function excluirVideoMyDropsNex() {
+function excluirVideoMyDropsNex() {
   if (window.urlVideoGravadoMyDropsNex) {
     URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
   }
@@ -1687,122 +1679,120 @@ function capturarFotoMyDropsNex() {
 
   limparCamadasTextoMyDropsNex();
 
-  // ⚠️ CORREÇÃO: chama o NOVO editor (31-video.js) via window.
-  //    Sem isso, essa função fecha o editor ANTIGO (que nunca
-  //    mais abre) e deixa o NOVO aberto — trava a tela.
   if (typeof window.fecharEditorVideoMyDropsNex === 'function') {
     window.fecharEditorVideoMyDropsNex();
   } else {
     fecharEditorVideoMyDropsNex();
   }
-  }
-  // ============================================
-  // LOOP DO VÍDEO NO EDITOR
-  // ============================================
+}
 
-  function atualizarLoopVideoEditorMyDropsNex(ativo) {
-    loopVideoMyDropsNex = ativo;
+// ============================================
+// LOOP DO VÍDEO NO EDITOR
+// ============================================
 
-    const overlay = document.getElementById('videoEditorMyDropsNex');
-    const preview = document.getElementById('videoEditorPreviewMyDropsNex');
-    const btnLoopDrops = document.getElementById('fotoEditorLoopMyDropsNex');
-    const btnLoopPreview = document.getElementById('videoEditorLoopMyDropsNex');
+function atualizarLoopVideoEditorMyDropsNex(ativo) {
+  loopVideoMyDropsNex = ativo;
 
-    const editorVideoAberto =
-      !!overlay && getComputedStyle(overlay).display !== 'none' && !!preview;
+  const overlay = document.getElementById('videoEditorMyDropsNex');
+  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
+  const btnLoopDrops = document.getElementById('fotoEditorLoopMyDropsNex');
+  const btnLoopPreview = document.getElementById('videoEditorLoopMyDropsNex');
 
-    if (editorVideoAberto) {
-      if (btnLoopPreview) {
-        btnLoopPreview.classList.toggle('is-active', ativo);
-      }
+  const editorVideoAberto =
+    !!overlay && getComputedStyle(overlay).display !== 'none' && !!preview;
 
-      if (btnLoopDrops) {
-        btnLoopDrops.classList.remove('is-active');
-        btnLoopDrops.style.display = 'none';
-      }
-
-      preview.loop = ativo;
-
-      if (ativo) {
-        preview.muted = true;
-        preview.defaultMuted = true;
-        preview.volume = 0;
-        preview.controls = true;
-        preview.play().catch(() => {});
-      } else {
-        preview.muted = false;
-        preview.defaultMuted = false;
-        preview.volume = 1;
-        preview.controls = true;
-        preview.play().catch(() => {});
-      }
-
-      return;
-    }
-
-    const item = itemSelecionadoMyDropsNex;
-    const videoSelecionado = !!(
-      item && item.classList.contains('video-editor-video-mydrops-nex')
-    );
-
-    if (videoSelecionado) {
-      if (btnLoopDrops) {
-        btnLoopDrops.style.display = 'block';
-        btnLoopDrops.classList.toggle('is-active', ativo);
-      }
-
-      if (btnLoopPreview) {
-        btnLoopPreview.classList.remove('is-active');
-      }
-
-      item.dataset.loop = ativo ? '1' : '0';
-
-      const video = item.querySelector('video');
-      const barra = item.querySelector('.video-editor-video-progress-mydrops-nex');
-      const tempo = item.querySelector('.video-editor-video-time-mydrops-nex');
-      const play = item.querySelector('.video-editor-video-play-mydrops-nex');
-
-      if (video) {
-        video.loop = ativo;
-
-        if (barra) barra.style.display = ativo ? 'none' : '';
-        if (tempo) tempo.style.display = ativo ? 'none' : '';
-        if (play) play.style.display = ativo ? 'none' : '';
-
-        video.muted = ativo;
-        video.defaultMuted = ativo;
-        video.volume = ativo ? 0 : 1;
-
-        if (ativo) {
-          video.setAttribute('muted', '');
-        } else {
-          video.removeAttribute('muted');
-        }
-
-        video.play().catch(() => {});
-      }
-
-      return;
-    }
-
-    if (btnLoopDrops) {
-      btnLoopDrops.style.display = 'none';
-      btnLoopDrops.classList.remove('is-active');
-    }
-
+  if (editorVideoAberto) {
     if (btnLoopPreview) {
       btnLoopPreview.classList.toggle('is-active', ativo);
     }
+
+    if (btnLoopDrops) {
+      btnLoopDrops.classList.remove('is-active');
+      btnLoopDrops.style.display = 'none';
+    }
+
+    preview.loop = ativo;
+
+    if (ativo) {
+      preview.muted = true;
+      preview.defaultMuted = true;
+      preview.volume = 0;
+      preview.controls = true;
+      preview.play().catch(() => {});
+    } else {
+      preview.muted = false;
+      preview.defaultMuted = false;
+      preview.volume = 1;
+      preview.controls = true;
+      preview.play().catch(() => {});
+    }
+
+    return;
   }
 
-  // ============================================
-  // MODAL DE FUNDO
-  // ============================================
+  const item = itemSelecionadoMyDropsNex;
+  const videoSelecionado = !!(
+    item && item.classList.contains('video-editor-video-mydrops-nex')
+  );
 
-  let fundoSelecionadoMyDropsNex = null;
-  let fundoTipoMyDropsNex = null;
+  if (videoSelecionado) {
+    if (btnLoopDrops) {
+      btnLoopDrops.style.display = 'block';
+      btnLoopDrops.classList.toggle('is-active', ativo);
+    }
 
-  function abrirModalFundoMyDropsNex() {
+    if (btnLoopPreview) {
+      btnLoopPreview.classList.remove('is-active');
+    }
+
+    item.dataset.loop = ativo ? '1' : '0';
+
+    const video = item.querySelector('video');
+    const barra = item.querySelector('.video-editor-video-progress-mydrops-nex');
+    const tempo = item.querySelector('.video-editor-video-time-mydrops-nex');
+    const play = item.querySelector('.video-editor-video-play-mydrops-nex');
+
+    if (video) {
+      video.loop = ativo;
+
+      if (barra) barra.style.display = ativo ? 'none' : '';
+      if (tempo) tempo.style.display = ativo ? 'none' : '';
+      if (play) play.style.display = ativo ? 'none' : '';
+
+      video.muted = ativo;
+      video.defaultMuted = ativo;
+      video.volume = ativo ? 0 : 1;
+
+      if (ativo) {
+        video.setAttribute('muted', '');
+      } else {
+        video.removeAttribute('muted');
+      }
+
+      video.play().catch(() => {});
+    }
+
+    return;
+  }
+
+  if (btnLoopDrops) {
+    btnLoopDrops.style.display = 'none';
+    btnLoopDrops.classList.remove('is-active');
+  }
+
+  if (btnLoopPreview) {
+    btnLoopPreview.classList.toggle('is-active', ativo);
+  }
+}
+
+// ============================================
+// MODAL DE FUNDO
+// ============================================
+
+let fundoSelecionadoMyDropsNex = null;
+let fundoTipoMyDropsNex = null;
+
+function abrirModalFundoMyDropsNex() {
   const modal = document.getElementById('modalFundoMyDropsNex');
   if (!modal) return;
 
@@ -1817,36 +1807,35 @@ function capturarFotoMyDropsNex() {
 
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
-  }
+}
 
-  function fecharModalFundoMyDropsNex() {
-    const modal = document.getElementById('modalFundoMyDropsNex');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.style.display = 'none';
-    }
-    fundoSelecionadoMyDropsNex = null;
-    fundoTipoMyDropsNex = null;
+function fecharModalFundoMyDropsNex() {
+  const modal = document.getElementById('modalFundoMyDropsNex');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
   }
+  fundoSelecionadoMyDropsNex = null;
+  fundoTipoMyDropsNex = null;
+}
 
-  function aplicarFundoMyDropsNex() {
+function aplicarFundoMyDropsNex() {
   const preview = document.getElementById('fotoEditorPreviewMyDropsNex');
   const stage = document.getElementById('fotoEditorStageMyDropsNex');
 
   if (!preview || !stage) return;
 
   if (fundoTipoMyDropsNex === 'cor' && fundoSelecionadoMyDropsNex) {
-    // ⚠️ Verifica se é degradê ou cor sólida
     if (fundoSelecionadoMyDropsNex.includes('gradient')) {
       preview.style.setProperty('background-image', fundoSelecionadoMyDropsNex, 'important');
       preview.style.setProperty('background-color', 'transparent', 'important');
-      
+
       stage.style.setProperty('background-image', fundoSelecionadoMyDropsNex, 'important');
       stage.style.setProperty('background-color', 'transparent', 'important');
     } else {
       preview.style.setProperty('background-color', fundoSelecionadoMyDropsNex, 'important');
       preview.style.setProperty('background-image', 'none', 'important');
-      
+
       stage.style.setProperty('background-color', fundoSelecionadoMyDropsNex, 'important');
       stage.style.setProperty('background-image', 'none', 'important');
     }
@@ -1862,33 +1851,33 @@ function capturarFotoMyDropsNex() {
   }
 
   fecharModalFundoMyDropsNex();
+}
+
+// ============================================
+// BOTÃO AJUSTAR (toggle cover/contain)
+// ============================================
+
+let ajustarAtivo = false;
+
+function toggleAjustarFoto() {
+  const preview = document.getElementById('fotoEditorPreviewMyDropsNex');
+  const btn = document.getElementById('fotoEditorAjustarMyDropsNex');
+
+  if (!preview || !btn) return;
+
+  ajustarAtivo = !ajustarAtivo;
+
+  if (ajustarAtivo) {
+    preview.style.backgroundSize = 'cover';
+    btn.classList.remove('inativo');
+    btn.classList.add('ativo');
+  } else {
+    preview.style.backgroundSize = 'contain';
+    btn.classList.remove('ativo');
+    btn.classList.add('inativo');
   }
-
-  // ============================================
-  // BOTÃO AJUSTAR (toggle cover/contain)
-  // ============================================
-
-  let ajustarAtivo = false;
-
-  function toggleAjustarFoto() {
-    const preview = document.getElementById('fotoEditorPreviewMyDropsNex');
-    const btn = document.getElementById('fotoEditorAjustarMyDropsNex');
-
-    if (!preview || !btn) return;
-
-    ajustarAtivo = !ajustarAtivo;
-
-    if (ajustarAtivo) {
-      preview.style.backgroundSize = 'cover';
-      btn.classList.remove('inativo');
-      btn.classList.add('ativo');
-    } else {
-      preview.style.backgroundSize = 'contain';
-      btn.classList.remove('ativo');
-      btn.classList.add('inativo');
-    }
-  }
-
+}
+  
   function setupAjustarDrag() {
     const btn = document.getElementById('fotoEditorAjustarMyDropsNex');
     if (!btn) return;
@@ -2032,7 +2021,7 @@ function capturarFotoMyDropsNex() {
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Botões da câmera
+    // Botões da câmera de vídeo
     document.getElementById('cameraMyDropsRecordNex')?.addEventListener('click', async () => {
       if (gravandoCameraMyDropsNex) {
         pararGravacaoMyDropsNex('editor');
@@ -2041,44 +2030,41 @@ function capturarFotoMyDropsNex() {
       }
     });
 
-const switchVideoBtn = document.getElementById('cameraMyDropsSwitchNex');
-if (switchVideoBtn) {
-  // ⚠️ Substitui o emoji 🔄 por SVG (câmera com setas de troca)
-  switchVideoBtn.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-      <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
-      <circle cx="12" cy="12" r="3"/>
-      <path d="m18 22-3-3 3-3"/>
-      <path d="m6 2 3 3-3 3"/>
-    </svg>
-  `;
-  switchVideoBtn.setAttribute('aria-label', 'Virar câmera');
-  switchVideoBtn.addEventListener('click', alternarCameraMyDropsNex);
+    const switchVideoBtn = document.getElementById('cameraMyDropsSwitchNex');
+    if (switchVideoBtn) {
+      switchVideoBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+          <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="m18 22-3-3 3-3"/>
+          <path d="m6 2 3 3-3 3"/>
+        </svg>
+      `;
+      switchVideoBtn.setAttribute('aria-label', 'Virar câmera');
+      switchVideoBtn.addEventListener('click', alternarCameraMyDropsNex);
 
-  // ⚠️ FALLBACK: se por algum motivo o botão for recriado
-  //    (re-render do HTML, etc.), reaplica o SVG automaticamente.
-  if (!switchVideoBtn.__svgObserver) {
-    switchVideoBtn.__svgObserver = new MutationObserver(() => {
-      if (!switchVideoBtn.querySelector('svg')) {
-        switchVideoBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
-            <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
-            <circle cx="12" cy="12" r="3"/>
-            <path d="m18 22-3-3 3-3"/>
-            <path d="m6 2 3 3-3 3"/>
-          </svg>
-        `;
+      if (!switchVideoBtn.__svgObserver) {
+        switchVideoBtn.__svgObserver = new MutationObserver(() => {
+          if (!switchVideoBtn.querySelector('svg')) {
+            switchVideoBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>
+                <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"/>
+                <circle cx="12" cy="12" r="3"/>
+                <path d="m18 22-3-3 3-3"/>
+                <path d="m6 2 3 3-3 3"/>
+              </svg>
+            `;
+          }
+        });
+        switchVideoBtn.__svgObserver.observe(switchVideoBtn, {
+          childList: true,
+          subtree: true
+        });
       }
-    });
-    switchVideoBtn.__svgObserver.observe(switchVideoBtn, {
-      childList: true,
-      subtree: true
-    });
-  }
-}
-    
+    }
+
     // Botão sair no editor de vídeo
     document.getElementById('videoEditorSairMyDropsNex')?.addEventListener('click', () => {
       if (window.urlVideoGravadoMyDropsNex) {
@@ -2110,10 +2096,8 @@ if (switchVideoBtn) {
     // ============================================
 
     document.getElementById('fundoCoresBtn')?.addEventListener('click', () => {
-  document.getElementById('fundoPaletaCores').style.display = 'block';
-});
-
-// ⚠️ REMOVIDO: Botão "Personalizar" foi excluído do HTML.
+      document.getElementById('fundoPaletaCores').style.display = 'block';
+    });
 
     document.querySelectorAll('.fundo-cor').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -2134,8 +2118,6 @@ if (switchVideoBtn) {
       fundoSelecionadoMyDropsNex = cor;
       fundoTipoMyDropsNex = 'cor';
     });
-
-    // ⚠️ REMOVIDO: Eventos da galeria de fundo (não existem mais).
 
     document.getElementById('fundoCancelarBtn')?.addEventListener('click', fecharModalFundoMyDropsNex);
     document.getElementById('fundoAplicarBtn')?.addEventListener('click', aplicarFundoMyDropsNex);
@@ -2181,33 +2163,32 @@ if (switchVideoBtn) {
       true
     );
   });
+
   // ============================================
-// LIMITE VISUAL DO TEXTO (font-size × scale ≤ 50)
-// ============================================
-window.aplicarLimiteVisualTextoNex = function (el) {
-  if (!el) return;
+  // LIMITE VISUAL DO TEXTO (font-size × scale ≤ 50)
+  // ============================================
+  window.aplicarLimiteVisualTextoNex = function (el) {
+    if (!el) return;
 
-  const body = el.querySelector('.video-editor-text-body-mydrops-nex');
-  if (!body) return;
+    const body = el.querySelector('.video-editor-text-body-mydrops-nex');
+    if (!body) return;
 
-  const LIMITE_VISUAL = 50;
+    const LIMITE_VISUAL = 50;
 
-  const fontAtual = parseFloat(body.style.fontSize) || 28;
-  const scaleAtual = Number(el.dataset.scale || 1);
+    const fontAtual = parseFloat(body.style.fontSize) || 28;
+    const scaleAtual = Number(el.dataset.scale || 1);
 
-  // ⚠️ Se font × scale passar do limite, ajusta a scale
-  if (fontAtual * scaleAtual > LIMITE_VISUAL) {
-    const scaleMaxima = LIMITE_VISUAL / fontAtual;
-    el.dataset.scale = String(scaleMaxima);
-    atualizarTransformacaoItemMyDropsNex(el);
-  }
-};
+    if (fontAtual * scaleAtual > LIMITE_VISUAL) {
+      const scaleMaxima = LIMITE_VISUAL / fontAtual;
+      el.dataset.scale = String(scaleMaxima);
+      atualizarTransformacaoItemMyDropsNex(el);
+    }
+  };
 
-// ============================================
-// DEBUG
-// ============================================
+  // ============================================
+  // DEBUG
+  // ============================================
 
-console.log('🎬 13-editor.js carregado');
-  
+  console.log('🎬 13-editor.js carregado (bitrate 1.5 Mbps)');
+
 })();
-

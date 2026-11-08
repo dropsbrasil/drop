@@ -181,11 +181,10 @@ async function calcularAdeptosEnviadosNex() {
     const idsNovos = new Set(souAdeptoDe.map((a) => a.id));
 
     const novos = souAdeptoDe.filter((a) => !idsAntigos.has(a.id));
-    const saiu = antigos.filter((a) => !idsNovos.has(a.id));
+const saiu = antigos.filter((a) => !idsNovos.has(a.id));
 
-    novos.forEach((a) => notificarSouAdeptoNex(a, 'entrou'));
-    saiu.forEach((a) => notificarSouAdeptoNex(a, 'saiu'));
-
+// ⚠️ AJUSTE: Usuário A (quem segue) NÃO recebe mais notificação local
+// A notificação agora é gerada apenas para o Usuário B (quem é seguido)
     window.AdeptosAdapterNex.salvarSouAdeptoDe(souAdeptoDe);
 
     console.log('🎯 Sou adepto de:', souAdeptoDe);
@@ -327,9 +326,9 @@ function criarNotificacaoAdeptoNex(adepto, tipo) {
         minute: '2-digit'
       }),
       text:
-        tipo === 'entrou'
-          ? `👑 Parabéns! Você virou adepto de @${Drops.usernameAtual}!`
-          : `😢 Você deixou de ser adepto de @${Drops.usernameAtual}.`,
+  tipo === 'entrou'
+    ? `👑 ${nome} se tornou seu adepto. Deseje boas-vindas!`
+    : `😢 ${nome} deixou de ser seu adepto.`,
       sistema: true
     };
 
@@ -358,9 +357,9 @@ function criarNotificacaoAdeptoNex(adepto, tipo) {
         minute: '2-digit'
       }),
       text:
-        tipo === 'entrou'
-          ? `👑 Parabéns! Você virou adepto de @${Drops.usernameAtual}!`
-          : `😢 Você deixou de ser adepto de @${Drops.usernameAtual}.`,
+  tipo === 'entrou'
+    ? `👑 ${nome} se tornou seu adepto. Deseje boas-vindas!`
+    : `😢 ${nome} deixou de ser seu adepto.`,
       sistema: true
     });
 
