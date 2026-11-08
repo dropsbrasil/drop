@@ -459,13 +459,23 @@
 .controle-avatar-nex {
   width: 54px;
   height: 54px;
-  border-radius: 18px;
+  border-radius: 18px; /* Mantém o quadrado arredondado */
   background: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
   font-size: 22px;
+  overflow: hidden; /* ⚠️ Impede a imagem de vazar */
+  flex-shrink: 0;
+}
+
+/* ⚠️ NOVO: Força a imagem a preencher o quadrado arredondado perfeitamente */
+.controle-avatar-nex img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Corta a imagem sem achatar */
+  display: block;
 }
 
 .controle-user-nex h3 {
