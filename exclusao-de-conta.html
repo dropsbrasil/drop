@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+=<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -53,6 +53,7 @@
       margin-bottom: 14px;
     }
     input:focus, textarea:focus { border-color: #60a5fa; }
+    input:disabled, textarea:disabled { opacity: 0.6; cursor: not-allowed; }
     textarea { min-height: 100px; resize: vertical; }
     button {
       width: 100%;
@@ -65,9 +66,35 @@
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 8px 20px rgba(239, 68, 68, 0.28);
+      transition: opacity 0.15s ease, transform 0.12s ease;
     }
     button:active { transform: scale(0.98); }
-    .ok-msg { display: none; color: #4ade80; font-weight: 700; margin-top: 14px; text-align: center; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .ok-msg {
+      display: none;
+      color: #4ade80;
+      font-weight: 700;
+      margin-top: 14px;
+      text-align: center;
+      padding: 14px 16px;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      border-radius: 14px;
+    }
+    .ok-msg.visivel { display: block; }
+    .erro-msg {
+      display: none;
+      color: #fca5a5;
+      font-weight: 600;
+      margin-top: 14px;
+      text-align: center;
+      padding: 12px 14px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .erro-msg.visivel { display: block; }
   </style>
 </head>
 <body>
@@ -103,8 +130,13 @@
       <label for="motivo">Motivo (opcional)</label>
       <textarea id="motivo" name="motivo" placeholder="Se quiser, conte o motivo da exclusão"></textarea>
 
-      <button type="submit">Solicitar exclusão da conta</button>
-      <p class="ok-msg" id="okMsg">✅ Solicitação enviada. Você receberá confirmação por e-mail.</p>
+      <button type="submit" id="btnEnviar">Solicitar exclusão da conta</button>
+
+      <p class="ok-msg" id="okMsg">
+        ✅ Solicitação enviada! Você receberá confirmação por e-mail em até 30 dias.
+      </p>
+
+      <p class="erro-msg" id="erroMsg"></p>
     </form>
   </div>
 
@@ -114,28 +146,113 @@
   <h2>Exclusão dentro do app</h2>
   <p>Você também pode excluir a conta diretamente pelo app: <strong>Menu (☰) → Sistema → Excluir minha conta</strong>.</p>
 
+  <!-- Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
+    // ============================================
+    // CONFIGURAÇÃO DO SUPABASE
+    // ============================================
+    const SUPABASE_URL = 'https://sldiecaaplwgjxvfsdnq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsZGllY2FhcGx3Z2p4dmZzZG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTg5NDYsImV4cCI6MjEwNjA5NDk0Nn0.NJ7moZHhR4dEazJO35b7HFfPHpVnQhEeS5tnQE1xucE';
+
+    let supabaseClient = null;
+    try {
+      if (window.supabase) {
+        supabaseClient = window.supabase.createClient(
+          SUPABASE_URL,
+          SUPABASE_ANON_KEY
+        );
+      }
+    } catch (e) {
+      console.warn('Supabase indisponível:', e);
+    }
+
+    // ============================================
+    // ENVIAR SOLICITAÇÃO
+    // ============================================
     async function enviarSolicitacao(event) {
       event.preventDefault();
 
-      const email = document.getElementById('email').value.trim();
-      const username = document.getElementById('username').value.trim();
-      const motivo = document.getElementById('motivo').value.trim();
+      const emailInput = document.getElementById('email');
+      const usernameInput = document.getElementById('username');
+      const motivoInput = document.getElementById('motivo');
+      const btn = document.getElementById('btnEnviar');
+      const okMsg = document.getElementById('okMsg');
+      const erroMsg = document.getElementById('erroMsg');
+
+      const email = emailInput.value.trim();
+      const username = usernameInput.value.trim().replace(/^@/, '');
+      const motivo = motivoInput.value.trim();
 
       if (!email || !username) return;
 
-      const assunto = encodeURIComponent('Solicitação de exclusão de conta — Drops');
-      const corpo = encodeURIComponent(
-        'Solicitação de exclusão de conta\n\n' +
-        'E-mail: ' + email + '\n' +
-        '@username: ' + username + '\n' +
-        'Motivo: ' + (motivo || '(não informado)') + '\n\n' +
-        'Enviado em: ' + new Date().toLocaleString('pt-BR')
-      );
+      okMsg.classList.remove('visivel');
+      erroMsg.classList.remove('visivel');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
 
-      window.location.href = 'mailto:dpo@drops.app?subject=' + assunto + '&body=' + corpo;
+      // ============================================
+      // 1. TENTA GRAVAR NO SUPABASE
+      // ============================================
+      let gravou = false;
 
-      document.getElementById('okMsg').style.display = 'block';
+      if (supabaseClient) {
+        try {
+          const { error } = await supabaseClient
+            .from('solicitacoes_exclusao')
+            .insert({
+              email: email,
+              username: username,
+              motivo: motivo || null,
+              origem: 'web'
+            });
+
+          if (error) {
+            console.warn('Erro ao gravar solicitação:', error);
+          } else {
+            gravou = true;
+            console.log('✅ Solicitação gravada no Supabase');
+          }
+        } catch (err) {
+          console.warn('Erro inesperado ao gravar:', err);
+        }
+      }
+
+      // ============================================
+      // 2. MOSTRA RESULTADO
+      // ============================================
+      if (gravou) {
+        okMsg.classList.add('visivel');
+        emailInput.disabled = true;
+        usernameInput.disabled = true;
+        motivoInput.disabled = true;
+        btn.textContent = '✅ Solicitação enviada';
+        btn.style.opacity = '0.6';
+
+        // Rola até a mensagem
+        okMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        // ============================================
+        // 3. FALLBACK: ABRE O E-MAIL
+        // ============================================
+        const assunto = encodeURIComponent('Solicitação de exclusão de conta — Drops');
+        const corpo = encodeURIComponent(
+          'Solicitação de exclusão de conta\n\n' +
+          'E-mail: ' + email + '\n' +
+          '@username: ' + username + '\n' +
+          'Motivo: ' + (motivo || '(não informado)') + '\n\n' +
+          'Enviado em: ' + new Date().toLocaleString('pt-BR')
+        );
+
+        window.location.href = 'mailto:dpo@drops.app?subject=' + assunto + '&body=' + corpo;
+
+        erroMsg.textContent = 'Não conseguimos registrar no sistema. Abrimos seu app de e-mail como alternativa.';
+        erroMsg.classList.add('visivel');
+
+        btn.disabled = false;
+        btn.textContent = 'Solicitar exclusão da conta';
+      }
     }
   </script>
 </body>
