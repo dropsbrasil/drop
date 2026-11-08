@@ -1,19 +1,27 @@
 /* ============================================
    14-UTILS.CSS
    Menu anexo, câmera, álbum, preview, modais, correções
+
+   ⚠️ SAFE-AREA aplicado em:
+   - #menuAnexoNex
+   - .menu-camera-modal
+   - #previewStackNex
 ============================================ */
 
 /* ============================================
-   MENU ANEXO DO CHAT
+   MENU ANEXO DO CHAT — SAFE-AREA
 ============================================ */
 
 .menu-anexo,
 #menuAnexoNex {
   position: fixed;
   right: 14px;
-  bottom: 84px;
+
+  /* ⚠️ SAFE-AREA: respeita o gesto de home */
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+
   width: 240px;
-  background: rgba(15, 23, 42, 0.75); /* Vidro fosco escuro */
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -33,7 +41,7 @@
 
 .anexo-item {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.4); /* Borda branca fina no botão */
+  border: 1px solid rgba(255, 255, 255, 0.4);
   background: rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 12px 14px;
@@ -52,7 +60,6 @@
   border-color: rgba(255, 255, 255, 0.6);
 }
 
-/* Cápsula Azul Translúcida do Ícone */
 .anexo-item-icone {
   width: 40px;
   height: 40px;
@@ -62,7 +69,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa; 
+  color: #60a5fa;
   flex-shrink: 0;
   box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.1);
 }
@@ -90,13 +97,16 @@
 }
 
 /* ============================================
-   MENU CÂMERA LATERAL
+   MENU CÂMERA LATERAL — SAFE-AREA
 ============================================ */
 
 .menu-camera-modal {
   position: fixed;
   right: 14px;
-  bottom: 96px;
+
+  /* ⚠️ SAFE-AREA: respeita o gesto de home */
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+
   width: 220px;
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(24px) saturate(1.4);
@@ -139,18 +149,44 @@
   border-color: rgba(255, 255, 255, 0.6);
 }
 
-/* Cores dos ícones */
 .camera-item.foto svg {
-  color: #60a5fa; /* Azul */
+  color: #60a5fa;
 }
 
 .camera-item.video svg {
-  color: #f87171; /* Vermelho */
+  color: #f87171;
 }
 
 /* ============================================
-   (ÁLBUM DO CHAT REMOVIDO)
+   PREVIEW STACK — SAFE-AREA
 ============================================ */
+
+#previewStackNex {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+
+  /* ⚠️ SAFE-AREA: respeita o gesto de home */
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+
+  z-index: 71;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+#previewStackNex.tem-conteudo {
+  display: flex;
+}
+
+#previewStackNex > div {
+  display: none;
+}
+
+#previewStackNex > div.ativo {
+  display: block !important;
+}
 
 /* ============================================
    PREVIEW DE MÍDIA (ANTES DE ENVIAR)
@@ -281,6 +317,26 @@
   font-size: 18px;
   font-weight: 900;
 }
+
+/* ============================================
+   PREVIEW DE MÚLTIPLAS MÍDIAS (no stack)
+============================================ */
+
+#previewMidiasNex {
+  width: 100%;
+  box-sizing: border-box;
+  pointer-events: auto;
+  background: rgba(255,255,255,.38);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+  border: 1px solid rgba(255,255,255,.22);
+  overflow: hidden;
+}
+
+
 /* ============================================
    DOC PREVIEW (PDF)
 ============================================ */
@@ -466,6 +522,142 @@
   color: #1e293b;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+
+/* ============================================
+   ÁUDIO PREVIEW (INLINE)
+============================================ */
+
+#audioInlineNex {
+  width: 100%;
+  box-sizing: border-box;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.audio-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  border: 1px solid rgba(37,99,235,.08);
+}
+
+.audio-preview-play {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border: none;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(37,99,235,.22);
+}
+
+.audio-preview-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audio-preview-bar {
+  flex: 1;
+  height: 8px;
+  background: #dbeafe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.audio-preview-fill {
+  width: 0%;
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width .15s linear;
+}
+
+.audio-preview-time {
+  min-width: 92px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.audio-preview-cancel {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: none;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   PREVIEW DE RESPOSTA
+============================================ */
+
+#previewRespostaNex {
+  width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.reply-preview-box {
+  width: 100%;
+  background: #fff;
+  border: 2px solid #2f6bff;
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
+}
+
+.reply-preview-text {
+  color: #ff2d2d;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reply-preview-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #ff2d2d;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(255,45,45,.35);
+  pointer-events: auto;
+  position: relative;
+  z-index: 5;
 }
 
 /* ============================================
@@ -746,9 +938,9 @@
   color: #fbbf24 !important;
   font-weight: 700 !important;
 }
+
 /* ============================================
    CORREÇÃO DEFINITIVA — EDITOR, MODAIS E LEGENDA
-   v3 — Legenda DENTRO do editor
 ============================================ */
 
 body.editor-aberto {
@@ -758,33 +950,27 @@ body.editor-aberto {
   padding: 0 !important;
 }
 
-/* Esconde a tabbar quando editor estiver aberto */
 body.editor-aberto .tabbar {
   display: none !important;
 }
 
-/* Esconde a tabbar quando viewer estiver aberto */
 body.viewer-aberto .tabbar {
   display: none !important;
 }
 
-/* Esconde a tabbar quando modal estiver aberto */
 body.modal-aberto .tabbar {
   display: none !important;
 }
 
-/* ⚠️ CORREÇÃO: esconde a tabbar quando o chat NEX estiver aberto */
 body.chat-aberto .tabbar {
   display: none !important;
 }
 
-/* Trava scroll do body quando chat estiver aberto */
 body.chat-aberto {
   overflow: hidden !important;
   height: 100dvh !important;
   max-height: 100dvh !important;
 }
-
 
 /* ============================================
    EDITOR FULLSCREEN
@@ -815,7 +1001,6 @@ body.chat-aberto {
 
 /* ============================================
    LEGENDA ROW — ABSOLUTE DENTRO DO EDITOR
-   Fica colada no fundo, sempre visível
 ============================================ */
 
 .foto-editor-legenda-row-mydrops-nex,
@@ -823,7 +1008,10 @@ body.chat-aberto {
   position: absolute !important;
   left: 12px !important;
   right: 12px !important;
-  bottom: 12px !important;
+
+  /* ⚠️ SAFE-AREA no editor legado também */
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+
   z-index: 100000 !important;
   display: flex !important;
   align-items: center !important;
@@ -889,6 +1077,7 @@ body.chat-aberto {
 /* ============================================
    TOAST GLOBAL (FEEDBACK DE AÇÕES)
 ============================================ */
+
 #toastGlobalNex {
   position: fixed;
   top: 24px;
@@ -914,12 +1103,6 @@ body.chat-aberto {
     transform .32s cubic-bezier(.22, 1, .36, 1),
     opacity .28s ease;
 
-  /* ⚠️ CORREÇÃO: cria um stacking context isolado.
-     Mesmo se outro elemento tiver o mesmo z-index (como o
-     viewer do Nearby), o toast fica por cima porque:
-     1. É movido pro final do body via JS (correção 1)
-     2. isolation: isolate garante o contexto próprio
-     3. z-index máximo (2147483647 = int32 max) */
   isolation: isolate;
   will-change: transform, opacity;
 }
@@ -965,7 +1148,6 @@ body.chat-aberto {
   transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
 }
 
-/* Estado ativo: usuário já reagiu com esse emoji */
 .nearby-drop-reaction.ativo {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   box-shadow:
@@ -973,7 +1155,6 @@ body.chat-aberto {
     0 8px 20px rgba(37,99,235,.45);
 }
 
-/* Animação pop ao clicar */
 .nearby-drop-reaction.pop-anim {
   animation: popReacaoNex .34s cubic-bezier(.22, 1, .36, 1);
 }
@@ -985,7 +1166,6 @@ body.chat-aberto {
   100% { transform: scale(1); }
 }
 
-/* Pop com estado ativo mantém a escala maior */
 .nearby-drop-reaction.ativo.pop-anim {
   animation: popReacaoAtivoNex .34s cubic-bezier(.22, 1, .36, 1);
 }
@@ -996,9 +1176,9 @@ body.chat-aberto {
   70%  { transform: scale(1); }
   100% { transform: scale(1.08); }
 }
+
 /* ============================================
    BOLINHA VERMELHA NA TABBAR
-   Indicador de novidade (fallback visual)
 ============================================ */
 
 .tab.tab-nearby.tem-notificacao,
@@ -1028,6 +1208,23 @@ body.chat-aberto {
     0 0 4px rgba(239, 68, 68, 0.6);
   animation: pulsoNotificacaoNex 1.6s ease-in-out infinite;
   pointer-events: none;
+}
+
+@keyframes pulsoNotificacaoNex {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px rgba(15, 23, 42, 0.9),
+      0 0 12px rgba(239, 68, 68, 0.9),
+      0 0 4px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow:
+      0 0 0 2px rgba(15, 23, 42, 0.9),
+      0 0 20px rgba(239, 68, 68, 1),
+      0 0 8px rgba(239, 68, 68, 0.8);
+  }
 }
 
 /* ============================================

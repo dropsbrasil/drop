@@ -2,6 +2,9 @@
    16-NOTAS.CSS
    Editor de Notas: papel, barra, alças, painel Aa,
    rodapé, cápsula de marca, borda dupla.
+
+   ⚠️ SAFE-AREA aplicado em #notasLegendaRowNex e
+      #notasPainelAaNex (Parte 5)
 ============================================ */
 
 /* ============================================
@@ -28,13 +31,13 @@
   padding: 0;
   pointer-events: auto;
   box-sizing: border-box;
-  color: transparent; /* Esconde qualquer texto sobrando */
+  color: transparent;
 }
 
 .editor-alca-rotacionar-nex {
   top: -11px;
   left: -11px;
-  background: #10b981; /* Verde */
+  background: #10b981;
   cursor: grab;
 }
 
@@ -45,18 +48,16 @@
 .editor-alca-redimensionar-nex {
   bottom: -11px;
   right: -11px;
-  background: #3b82f6; /* Azul */
+  background: #3b82f6;
   cursor: nwse-resize;
 }
 
-/* Esconde alças quando o elemento não está selecionado */
 .video-editor-text-mydrops-nex:not(.is-selected) .editor-alca-nex,
 .video-editor-photo-mydrops-nex:not(.is-selected) .editor-alca-nex,
 .video-editor-video-mydrops-nex:not(.is-selected) .editor-alca-nex {
   display: none;
 }
 
-/* Esconde alças durante edição inline de texto */
 .video-editor-text-mydrops-nex[data-editando="1"] .editor-alca-nex {
   display: none;
 }
@@ -148,7 +149,6 @@
    TEXTO NO PAPEL
 ============================================ */
 
-/* Regra base — só tipografia, sem background/border */
 #notasEditorNex .video-editor-text-body-mydrops-nex {
   font-family: 'Caveat', 'Comic Sans MS', cursive !important;
   font-weight: 500 !important;
@@ -158,7 +158,6 @@
   letter-spacing: 0.2px !important;
   padding: 8px !important;
 
-  /* ⚠️ Contém o texto dentro do papel */
   width: 100% !important;
   max-width: 100% !important;
   white-space: normal !important;
@@ -167,10 +166,6 @@
   box-sizing: border-box !important;
 }
 
-/* ⚠️ ROLAGEM INTERNA SÓ DURANTE A EDIÇÃO
-   Altura máxima baseada na viewport (vh), porque o pai
-   não tem altura definida pra usar %.
-   Fora da edição, o texto fica livre (sem limite). */
 #notasEditorNex .video-editor-text-body-mydrops-nex[contenteditable="true"] {
   max-height: 45vh !important;
   overflow-y: auto !important;
@@ -179,7 +174,6 @@
   overscroll-behavior: contain;
 }
 
-/* ⚠️ Scrollbar discreta (só aparece se passar de 70%) */
 #notasEditorNex .video-editor-text-body-mydrops-nex[contenteditable="true"]::-webkit-scrollbar {
   width: 4px;
 }
@@ -189,7 +183,6 @@
   border-radius: 999px;
 }
 
-/* ⚠️ Força herança de fonte em TODOS os filhos (linhas, spans, etc) */
 #notasEditorNex .video-editor-text-body-mydrops-nex *,
 #notasEditorNex .video-editor-text-body-mydrops-nex br + *,
 #notasEditorNex .video-editor-text-body-mydrops-nex div,
@@ -204,7 +197,6 @@
   letter-spacing: inherit !important;
 }
 
-/* Só aplica transparente quando NÃO tiver tema */
 #notasEditorNex .video-editor-text-body-mydrops-nex:not([class*="tema-"]) {
   background: transparent !important;
   border: none !important;
@@ -264,10 +256,8 @@
 }
 
 .notas-btn-topo {
-  /* ⚠️ Fundo sutil e Borda branca fina */
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  
   height: 36px;
   min-width: 36px;
   border-radius: 999px;
@@ -293,17 +283,14 @@
   transform: scale(0.94);
 }
 
-/* Foto e Fundo — leve destaque */
 #notasBtnFotoNex,
 #notasBtnFundoNex {
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* Salvar — destaque azul sempre visível */
 #notasBtnSalvarNex {
   background: rgba(37, 99, 235, 0.22);
   color: #bfdbfe;
-  /* ⚠️ Borda azulada */
   border-color: rgba(96, 165, 250, 0.5);
 }
 
@@ -312,12 +299,10 @@
   border-color: rgba(96, 165, 250, 0.8);
 }
 
-/* Sair — destaque vermelho suave */
 #notasBtnSairNex {
   background: rgba(239, 68, 68, 0.18);
   color: #fca5a5;
   margin-left: 4px;
-  /* ⚠️ Borda avermelhada */
   border-color: rgba(248, 113, 113, 0.5);
 }
 
@@ -330,7 +315,6 @@
    FOCO TOTAL — versão reforçada
 ============================================ */
 
-/* Por padrão, Tema e Aa ficam escondidos */
 #notasBtnTemaNex,
 #notasBtnAaNex {
   display: none !important;
@@ -345,7 +329,6 @@
   overflow: hidden !important;
 }
 
-/* Quando texto selecionado: mostra Tema e Aa */
 #notasEditorNex.modo-notas-texto-selecionado #notasBtnTemaNex,
 #notasEditorNex.modo-notas-texto-selecionado #notasBtnAaNex {
   display: inline-flex !important;
@@ -360,7 +343,6 @@
   color: #bfdbfe;
 }
 
-/* Quando texto selecionado: esconde Foto e Fundo */
 #notasEditorNex.modo-notas-texto-selecionado #notasBtnFotoNex,
 #notasEditorNex.modo-notas-texto-selecionado #notasBtnFundoNex {
   display: none !important;
@@ -375,7 +357,6 @@
   overflow: hidden !important;
 }
 
-/* Quando foto selecionada: esconde Tema, Aa e Fundo */
 #notasEditorNex.modo-notas-foto-selecionada #notasBtnTemaNex,
 #notasEditorNex.modo-notas-foto-selecionada #notasBtnAaNex,
 #notasEditorNex.modo-notas-foto-selecionada #notasBtnFundoNex {
@@ -402,7 +383,7 @@
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.92);
   border: 2px solid #ffffff;
-  color: #ef4444; /* ⚠️ Vermelho vibrante */
+  color: #ef4444;
   font-size: 16px;
   font-weight: 900;
   display: none;
@@ -454,9 +435,11 @@
   box-sizing: border-box;
   animation: notasPainelSubir 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* ⚠️ Altura máxima de 45vh */
   max-height: 45vh;
   overflow: hidden;
+
+  /* ⚠️ SAFE-AREA: respeita o gesto de home do Android */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 #notasPainelAaNex.aberto {
@@ -474,7 +457,6 @@
   justify-content: space-between;
   gap: 12px;
 
-  /* ⚠️ Cabeçalho fixo no topo */
   position: sticky;
   top: 0;
   z-index: 2;
@@ -516,12 +498,10 @@
   padding: 0 16px;
 }
 
-/* ⚠️ Primeira seção tem padding-top extra (por causa do cabeçalho sticky) */
 .notas-painel-secao:first-of-type {
   padding-top: 14px;
 }
 
-/* ⚠️ Última seção tem padding-bottom pra não colar no fundo */
 .notas-painel-secao:last-of-type {
   padding-bottom: 16px;
 }
@@ -658,7 +638,7 @@
 
 /* ============================================
    BOTÕES DE ALINHAMENTO
-   ============================================ */
+============================================ */
 
 .notas-alinhamento-linha {
   display: flex;
@@ -698,14 +678,63 @@
 }
 
 /* ============================================
+   CONTEÚDO ROLÁVEL DO PAINEL Aa
+============================================ */
+
+#notasPainelAaNex .notas-painel-conteudo {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-top: 14px;
+}
+
+#notasPainelAaNex .notas-painel-conteudo .notas-painel-secao:first-of-type {
+  padding-top: 0 !important;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar {
+  width: 6px;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  margin: 4px 0;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+#notasPainelAaNex .notas-painel-conteudo {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+
+/* ============================================
    RODAPÉ — LEGENDA CÁPSULA + PUBLICAR
+   ⚠️ SAFE-AREA aplicado
 ============================================ */
 
 #notasLegendaRowNex {
   position: absolute;
   left: 12px;
   right: 12px;
-  bottom: 12px;
+
+  /* ⚠️ SAFE-AREA: respeita o gesto de home do Android */
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+
   z-index: 100000;
   display: flex;
   align-items: flex-end;
@@ -804,6 +833,7 @@
 /* ============================================
    CÁPSULA DE MARCA (só no PNG salvo)
 ============================================ */
+
 #notasCapsulaMarcaNex {
   position: absolute;
   bottom: 16px;
@@ -837,7 +867,6 @@
   box-sizing: border-box;
 }
 
-
 #notasCapsulaMarcaNex.visivel {
   display: inline-flex;
 }
@@ -857,32 +886,43 @@
   color: #93c5fd;
 }
 
-/* ============================================
-   AVATAR NA CÁPSULA
-============================================ */
-
 #notasCapsulaMarcaNex .capsula-avatar {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  max-height: 32px;
   border-radius: 50%;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 18px;
   line-height: 1;
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 #notasCapsulaMarcaNex .capsula-avatar img {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: cover;
   display: block;
   border-radius: 50%;
+  padding: 0;
+  margin: 0;
+}
+
+#notasCapsulaMarcaNex {
+  padding: 4px 10px 4px 4px;
+  gap: 6px;
+  align-items: center;
 }
 
 /* ============================================
@@ -934,11 +974,8 @@ body.notas-aberto .tabbar {
 
 /* ============================================
    AJUSTES FINAIS — TEXTO NO NOTAS
-   (sobrescreve tema-branco/escuro/etc
-    pra combinar com o papel creme)
 ============================================ */
 
-/* Tema padrão (sem caixa) no Notas */
 #notasEditorNex .video-editor-text-body-mydrops-nex:not([class*="tema-"]) {
   background: transparent !important;
   border: none !important;
@@ -947,7 +984,6 @@ body.notas-aberto .tabbar {
   box-shadow: none !important;
 }
 
-/* Temas aplicados no Notas — ajusta o padding */
 #notasEditorNex .video-editor-text-body-mydrops-nex.tema-branco,
 #notasEditorNex .video-editor-text-body-mydrops-nex.tema-escuro,
 #notasEditorNex .video-editor-text-body-mydrops-nex.tema-azul,
@@ -963,6 +999,7 @@ body.notas-aberto .tabbar {
 #notasEditorNex .video-editor-text-body-mydrops-nex.tema-papel {
   padding: 16px 18px 16px 24px !important;
 }
+
 
 /* ============================================
    Z-INDEX DE EMPILHAMENTO (ordem visual)
@@ -1004,7 +1041,6 @@ body.notas-aberto .tabbar {
 
 /* ============================================
    TRAVA DE SELEÇÃO DE TEXTO
-   (evita selecionar o texto ao arrastar)
 ============================================ */
 
 #notasCamadaNex .video-editor-text-mydrops-nex,
@@ -1014,7 +1050,6 @@ body.notas-aberto .tabbar {
   -webkit-touch-callout: none;
 }
 
-/* Mas durante edição inline, permite selecionar */
 #notasCamadaNex .video-editor-text-mydrops-nex[data-editando="1"] .video-editor-text-body-mydrops-nex {
   user-select: text;
   -webkit-user-select: text;
@@ -1067,12 +1102,11 @@ body.notas-aberto .tabbar {
   position: fixed !important;
   left: 12px !important;
   right: 12px !important;
-  bottom: 12px !important;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
   z-index: 2147483647 !important;
   box-sizing: border-box !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7) !important;
 
-  /* ⚠️ Altura máxima e overflow */
   max-height: 45vh !important;
   overflow: hidden !important;
 }
@@ -1091,7 +1125,6 @@ body.notas-aberto .tabbar {
   align-items: center !important;
   justify-content: space-between !important;
 
-  /* ⚠️ Cabeçalho fixo */
   position: sticky !important;
   top: 0 !important;
   z-index: 2 !important;
@@ -1147,7 +1180,6 @@ body.notas-aberto .tabbar {
    BARRAS — Sistema de 2 barras (v3)
 ============================================ */
 
-/* Por padrão: barra principal visível, contexto escondido */
 #notasBarraTopoNex {
   display: flex !important;
 }
@@ -1156,9 +1188,6 @@ body.notas-aberto .tabbar {
   display: none !important;
 }
 
-/* Quando TEXTO selecionado:
-   - Esconde a barra principal
-   - Mostra a barra de contexto */
 #notasEditorNex.modo-notas-texto-selecionado #notasBarraTopoNex {
   display: none !important;
 }
@@ -1187,13 +1216,11 @@ body.notas-aberto .tabbar {
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* Quando FOTO selecionada: esconde as duas */
 #notasEditorNex.modo-notas-foto-selecionada #notasBarraTopoNex,
 #notasEditorNex.modo-notas-foto-selecionada #notasBarraContextoNex {
   display: none !important;
 }
 
-/* Esconde os antigos botões contexto (caso fiquem por aí) */
 #notasBtnTemaNex,
 #notasBtnAaNex {
   display: inline-flex !important;
@@ -1253,7 +1280,7 @@ body.notas-aberto .tabbar {
 
 /* ============================================
    SCROLLBAR DO PAINEL Aa (visível)
-   ============================================ */
+============================================ */
 
 #notasPainelAaNex::-webkit-scrollbar {
   width: 6px;
@@ -1274,56 +1301,7 @@ body.notas-aberto .tabbar {
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* Firefox */
 #notasPainelAaNex {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
-}
-/* ============================================
-   CONTEÚDO ROLÁVEL DO PAINEL Aa
-   ============================================ */
-
-#notasPainelAaNex .notas-painel-conteudo {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  flex: 1 1 auto !important;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-
-  /* Espaço pro cabeçalho fixo */
-  padding-top: 14px;
-}
-
-/* ⚠️ Primeira seção não precisa de padding-top extra */
-#notasPainelAaNex .notas-painel-conteudo .notas-painel-secao:first-of-type {
-  padding-top: 0 !important;
-}
-
-/* ⚠️ Scrollbar visível */
-#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar {
-  width: 6px;
-}
-
-#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 999px;
-  margin: 4px 0;
-}
-
-#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-}
-
-#notasPainelAaNex .notas-painel-conteudo::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* Firefox */
-#notasPainelAaNex .notas-painel-conteudo {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }

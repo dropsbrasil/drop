@@ -1,6 +1,13 @@
 /* ============================================
    00-BASE.CSS
    Reset global, HTML, body, botões, telas
+
+   ⚠️ PADDING DUPLO CORRIGIDO:
+   - Removido body { padding-bottom: 72px }
+   - .screen agora usa calc + safe-area
+
+   Antes: body 72px + screen 95px = 167px de espaço vazio
+   Depois: só screen 95px + safe-area (valor correto)
 ============================================ */
 
 * {
@@ -18,9 +25,9 @@ html, body {
   overflow-x: hidden;
 }
 
+/* ⚠️ CORREÇÃO: body NÃO tem mais padding-bottom (era a causa do vão vazio) */
 body {
-  /* ⚠️ CORREÇÃO: Devolvido o padding para o conteúdo não ficar preso atrás da tabbar */
-  padding-bottom: 72px;
+  /* padding-bottom: 72px; ← REMOVIDO */
 }
 
 button,
@@ -43,15 +50,16 @@ img {
 }
 
 /* ============================================
-   TELAS
+   TELAS — PADDING COM SAFE-AREA
 ============================================ */
 
 .screen {
   display: none;
-  /* ⚠️ CORREÇÃO: 100dvh resolve o bug da barra do navegador mobile */
-  min-height: 100dvh; 
+  min-height: 100dvh;
   background: #050b18;
-  padding: 18px 8px 95px;
+
+  /* ⚠️ CORREÇÃO: 95px + safe-area cobre tabbar + gesto de home */
+  padding: 18px 8px calc(95px + env(safe-area-inset-bottom, 0px));
 }
 
 .screen.active {
@@ -131,7 +139,7 @@ img {
   width: calc(100% - 32px);
   max-width: 600px;
   height: 58px;
-  background: rgba(15, 23, 42, 0.75); /* Fallback mais escuro para Android sem blur */
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -277,6 +285,10 @@ img {
   animation: pulsoNotificacaoNex 1.6s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* ============================================
+   ANIMAÇÃO DE PULSO (notificação)
+============================================ */
 
 @keyframes pulsoNotificacaoNex {
   0%, 100% {

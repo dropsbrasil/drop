@@ -1,6 +1,9 @@
 /* ============================================
    05-CHAT.CSS
    Tela do chat NEX: topo, corpo, rodapé, preview stack
+
+   ⚠️ SAFE-AREA-TOP aplicado em .chat-top (header)
+   ⚠️ SAFE-AREA-BOTTOM aplicado em .chat-bottom
 ============================================ */
 
 #chatNex {
@@ -22,16 +25,19 @@
   height: 100dvh !important;
 }
 
-
 /* ============================================
-   TOPO DO CHAT
+   TOPO DO CHAT — SAFE-AREA-TOP
 ============================================ */
 
 .chat-top {
   position: relative;
   flex-shrink: 0;
-  height: 70px;
+  height: auto;
   padding: 8px 12px;
+
+  /* ⚠️ SAFE-AREA-TOP: respeita status bar/notch */
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+
   background: rgba(255,255,255,.72);
   backdrop-filter: blur(12px);
   z-index: 20;
@@ -130,12 +136,11 @@
   position: relative;
 }
 
-/* ⚠️ Quando a bio não couber, ativa o efeito marquee */
 .chat-user-meta p.marquee-ativo {
   text-overflow: clip;
   max-width: 180px;
   overflow: hidden;
-  font-size: 0; /* esconde o texto original */
+  font-size: 0;
 }
 
 .chat-user-meta p.marquee-ativo::before {
@@ -216,10 +221,6 @@
 }
 
 /* ============================================
-   RODAPÉ DO CHAT (INPUT + BOTÕES)
-============================================ */
-
-/* ============================================
    CHAT SILENCIADO (Você foi silenciado)
 ============================================ */
 
@@ -250,9 +251,8 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Quando o chat está silenciado, a barra fica cinza e desabilitada */
 .chat-bottom.silenciado {
-  pointer-events: none; /* Desabilita todos os cliques */
+  pointer-events: none;
   opacity: 0.6;
 }
 
@@ -272,18 +272,20 @@
   cursor: not-allowed;
 }
 
-/* O botão de enviar fica vermelho silenciado */
 .chat-bottom.silenciado .send-btn {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
   cursor: not-allowed;
 }
 
-/* Mantém o botão de enviar visível, mas bloqueia o input e clipe */
 .chat-bottom.silenciado #micBtn,
 .chat-bottom.silenciado #btnAnexoNex {
   display: none !important;
 }
+
+/* ============================================
+   RODAPÉ DO CHAT (INPUT + BOTÕES) — SAFE-AREA-BOTTOM
+============================================ */
 
 .chat-bottom {
   position: relative !important;
@@ -292,7 +294,10 @@
   display: flex;
   gap: 8px;
   padding: 10px 12px;
+
+  /* ⚠️ SAFE-AREA-BOTTOM: respeita o gesto de home do Android */
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+
   background: rgba(255,255,255,.85);
   backdrop-filter: blur(10px);
   box-sizing: border-box;
@@ -436,23 +441,20 @@
   right: 12px;
   bottom: 84px;
   z-index: 71;
-  display: none;              /* ⚠️ Escondido por padrão */
+  display: none;
   flex-direction: column;
   gap: 10px;
   pointer-events: none;
 }
 
-/* ⚠️ Só aparece quando tem conteúdo válido */
 #previewStackNex.tem-conteudo {
   display: flex;
 }
 
-/* ⚠️ Cada filho começa escondido */
 #previewStackNex > div {
   display: none;
 }
 
-/* ⚠️ Quando o filho tiver conteúdo (.ativo), aparece */
 #previewStackNex > div.ativo {
   display: block !important;
 }
@@ -669,7 +671,6 @@
   background: rgba(37, 99, 235, 0.16);
 }
 
-/* Ajusta o header do chat pra caber o novo botão */
 .chat-top-main {
   align-items: center;
   gap: 8px;
@@ -801,7 +802,6 @@
               0 8px 20px rgba(37, 99, 235, 0.22);
 }
 
-/* Ícone de silenciado (sininho cortado) */
 .nex-chat.silenciado .nex-info h3::after {
   content: '🔕';
   font-size: 12px;
@@ -809,6 +809,7 @@
   opacity: 0.7;
   vertical-align: middle;
 }
+
 /* ============================================
    MODAL DE MÍDIAS COMPARTILHADAS
 ============================================ */

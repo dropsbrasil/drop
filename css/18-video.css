@@ -2,6 +2,8 @@
    18-VIDEO.CSS
    Editor de Vídeo: palco, papel, controles,
    barra pill, rodapé cápsula.
+
+   ⚠️ SAFE-AREA aplicado em #videoLegendaRowNex (Parte 2)
 ============================================ */
 
 /* ============================================
@@ -167,13 +169,11 @@
   cursor: pointer;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
-  /* Aumenta a área clicável sem mudar o visual */
   padding: 8px 0;
   margin: -8px 0;
   box-sizing: content-box;
 }
 
-/* Área visual da barra (mantém 4px) */
 #videoProgressoNex::before {
   content: '';
   position: absolute;
@@ -200,7 +200,6 @@
   z-index: 2;
 }
 
-/* Bolinha azul (scrubber) — aparece ao tocar/arrastar */
 #videoProgressoScrubNex {
   position: absolute;
   top: 50%;
@@ -219,16 +218,13 @@
   z-index: 3;
 }
 
-/* Quando o usuário está tocando/arrastando, a bolinha cresce */
 #videoProgressoNex.scrubando #videoProgressoScrubNex {
   transform: translate(-50%, -50%) scale(1.15);
 }
 
-/* Durante o drag, o vídeo é pausado — mas mantém visual */
 #videoProgressoNex.scrubando #videoProgressoFillNex {
   transition: none;
 }
-
 
 /* ============================================
    BARRA SUPERIOR DO EDITOR DE VÍDEO (FINA)
@@ -237,15 +233,15 @@
 #videoBarraTopoNex {
   position: absolute;
   top: 24px;
-  left: 50%; /* ⚠️ Centralizado na tela como a foto */
+  left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 6px; /* ⚠️ Espaçamento fino entre os botões */
+  gap: 6px;
   background: rgba(30, 41, 59, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 4px; /* ⚠️ Barra fina */
+  padding: 4px;
   border-radius: 999px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   z-index: 100001;
@@ -255,7 +251,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px; /* ⚠️ Tamanho reduzido de 48 para 34 */
+  width: 34px;
   height: 34px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -268,7 +264,6 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Ajusta o tamanho dos SVGs internos para ficarem proporcionais */
 .video-btn-topo svg {
   width: 18px;
   height: 18px;
@@ -285,7 +280,6 @@
   color: #60a5fa;
 }
 
-/* Botão Sair do Vídeo (Vermelho contido) */
 #videoBtnSairNex {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.35);
@@ -296,19 +290,16 @@
   background: rgba(239, 68, 68, 0.3);
 }
 
-/* Botão Loop — padrão */
 #videoBtnLoopNex {
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* Botão Loop — ativo */
 #videoBtnLoopNex.ativo {
   background: rgba(37, 99, 235, 0.4);
   color: #ffffff;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
 }
 
-/* Botão Sair */
 #videoBtnSairNex {
   background: rgba(239, 68, 68, 0.18);
   color: #fca5a5;
@@ -317,13 +308,17 @@
 
 /* ============================================
    RODAPÉ — LEGENDA CÁPSULA CLARA + PUBLICAR
+   ⚠️ SAFE-AREA aplicado
 ============================================ */
 
 #videoLegendaRowNex {
   position: absolute;
   left: 12px;
   right: 12px;
-  bottom: 12px;
+
+  /* ⚠️ SAFE-AREA: respeita o gesto de home do Android */
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+
   z-index: 100000;
   display: flex;
   align-items: flex-end;

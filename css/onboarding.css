@@ -61,6 +61,14 @@ button {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+
+  /* ⚠️ CORREÇÃO: permite scroll interno quando o conteúdo passa da tela */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+
+  /* Respiro no final para o botão não colar no fundo */
+  padding-bottom: 20px;
 }
 
 .onb-btn-voltar {
