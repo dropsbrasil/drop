@@ -875,19 +875,24 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
     ?.classList.contains('aberto');
 
   if (notasVisivel) {
-    const legendaNotasInput = document.getElementById(
-      'notasLegendaInputNex'
-    );
-    legenda = (legendaNotasInput?.value || '').trim();
-  } else if (fotoNovoVisivel) {
-    const input = document.getElementById('legendaMyDropsInput');
-    legenda = (input?.value || '').trim();
-  } else if (fotoAntigoVisivel) {
-    const input = document.getElementById('legendaMyDropsInput');
-    legenda = (input?.value || '').trim();
-  } else if (videoNovoVisivel || videoAntigoVisivel) {
-    const input = document.getElementById('legendaVideoMyDropsInput');
-    legenda = (input?.value || '').trim();
+  const input = document.getElementById('notasLegendaInputNex');
+  legenda = (input?.value || window.__notasLegendaTemporaria || '').trim();
+  window.__notasLegendaTemporaria = null;
+} else if (fotoNovoVisivel) {
+  const input = document.getElementById('legendaMyDropsInput');
+  legenda = (input?.value || window.__fotoLegendaTemporaria || '').trim();
+  window.__fotoLegendaTemporaria = null;
+} else if (fotoAntigoVisivel) {
+  const input = document.getElementById('legendaMyDropsInputAntigo');
+  legenda = (input?.value || '').trim();
+} else if (videoNovoVisivel) {
+  const input = document.getElementById('legendaVideoMyDropsInput');
+  legenda = (input?.value || window.__videoLegendaTemporaria || '').trim();
+  window.__videoLegendaTemporaria = null;
+} else if (videoAntigoVisivel) {
+  const input = document.getElementById('legendaVideoMyDropsInputAntigo');
+  legenda = (input?.value || window.__videoLegendaTemporaria || '').trim();
+  window.__videoLegendaTemporaria = null;
   }
 
   // ============================================

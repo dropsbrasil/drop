@@ -1065,14 +1065,14 @@ function abrirEditorFotoMyDropsNex(dataURL = null) {
     legendaInput.id = 'fotoEditorLegendaMyDropsNex';
     legendaInput.className = 'foto-editor-legenda-mydrops-nex';
     legendaInput.innerHTML = `
-      <textarea
-        id="legendaMyDropsInput"
-        class="foto-editor-legenda-input"
-        maxlength="500"
-        placeholder="✍🏼 Escreva uma legenda (máx. 500 caracteres)..."
-      ></textarea>
-      <span id="legendaContadorMyDrops" class="foto-editor-legenda-contador">0/500</span>
-    `;
+  <textarea
+    id="legendaMyDropsInputAntigo"
+    class="foto-editor-legenda-input"
+    maxlength="500"
+    placeholder="✍🏼 Escreva uma legenda (máx. 500 caracteres)..."
+  ></textarea>
+  <span id="legendaContadorMyDropsAntigo" class="foto-editor-legenda-contador">0/500</span>
+`;
 
     const btnPublicarFoto = document.createElement('button');
     btnPublicarFoto.type = 'button';
@@ -1081,7 +1081,7 @@ function abrirEditorFotoMyDropsNex(dataURL = null) {
     btnPublicarFoto.textContent = 'Publicar';
 
     btnPublicarFoto.addEventListener('click', () => {
-      const legenda = document.getElementById('legendaMyDropsInput')?.value || '';
+  const legenda = document.getElementById('legendaMyDropsInputAntigo')?.value || '';
       legendaTemporariaMyDropsNex = legenda;
       abrirModalDuracaoPublicacaoMyDropsNex('foto');
     });
@@ -1091,8 +1091,8 @@ function abrirEditorFotoMyDropsNex(dataURL = null) {
     editor.appendChild(legendaRow);
 
     // Contador
-    const textarea = legendaInput.querySelector('#legendaMyDropsInput');
-    const contador = document.getElementById('legendaContadorMyDrops');
+const textarea = legendaInput.querySelector('#legendaMyDropsInputAntigo');
+const contador = document.getElementById('legendaContadorMyDropsAntigo');
     if (textarea && contador) {
       textarea.addEventListener('input', () => {
         const len = textarea.value.length;
