@@ -981,8 +981,35 @@ function abrirMinhasPublicacoesNearby() {
       if (metaWrapNearby) metaWrapNearby.insertAdjacentHTML('beforeend', window.gerarHTMLSelos(drop.selos));
     }
     if (counter) counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
-    if (views) views.textContent = drop.views || 0;
+if (views) views.textContent = drop.views || 0;
 
+// ⚠️ NOVO: RENDERIZA A LEGENDA NO VIEWER
+const legendaEl = viewer.querySelector('#nearbyDropLegenda');
+const legendaTextoEl = viewer.querySelector('#nearbyDropLegendaTexto');
+const btnVerMaisLegenda = viewer.querySelector('#nearbyDropVerMais');
+
+if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
+  const textoLegenda = String(drop.legenda || '').trim();
+  
+  if (textoLegenda.length > 0) {
+    legendaEl.style.display = 'flex';
+    legendaTextoEl.textContent = textoLegenda;
+    legendaTextoEl.classList.remove('expandido');
+    btnVerMaisLegenda.textContent = 'Ver mais';
+    btnVerMaisLegenda.dataset.expandido = 'false';
+    
+    // Mostra o botão "Ver mais" se o texto passar de 2 linhas
+    setTimeout(() => {
+      if (legendaTextoEl.scrollHeight > legendaTextoEl.clientHeight + 5) {
+        btnVerMaisLegenda.classList.add('visivel');
+      } else {
+        btnVerMaisLegenda.classList.remove('visivel');
+      }
+    }, 50);
+  } else {
+    legendaEl.style.display = 'none';
+  }
+}
     const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
     const urlCalc = drop.url || drop.imagem || '';
 

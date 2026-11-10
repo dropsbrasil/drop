@@ -1095,9 +1095,15 @@ function criarCardPublicacaoMyDropsNex(pub) {
   // ============================================
 
   const media = document.createElement('div');
-  media.className = 'mydrops-publication-media';
+media.className = 'mydrops-publication-media';
 
-  if (pub.midiaTipo === 'video') {
+// ⚠️ CORREÇÃO: garante que o container preencha o card
+media.style.width = '100%';
+media.style.height = '100%';
+media.style.position = 'relative';
+media.style.overflow = 'hidden';
+
+if (pub.midiaTipo === 'video') {
     const video = document.createElement('video');
     video.src = pub.mediaUrl;
     video.loop = !!pub.loop;
@@ -1143,13 +1149,20 @@ function criarCardPublicacaoMyDropsNex(pub) {
 
     media.appendChild(videoWrapper);
   } else {
-    const img = document.createElement('img');
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.src = pub.mediaUrl;
-    img.alt = 'Publicação My Drops';
-    media.appendChild(img);
-  }
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.src = pub.mediaUrl;
+  img.alt = 'Publicação My Drops';
+
+  // ⚠️ CORREÇÃO: faz a imagem preencher o card igual ao vídeo
+  img.style.display = 'block';
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'cover';
+
+  media.appendChild(img);
+}
 
   // ============================================
   // OVERLAY (metadados)
@@ -1419,8 +1432,9 @@ function abrirModalListaPublicacaoMyDropsNex(titulo, lista) {
   const itens = normalizarListaPublicacaoMyDropsNex(lista);
 
   const modal = document.createElement('div');
-  modal.className = 'mydrops-list-modal';
-
+modal.className = 'mydrops-list-modal';
+modal.style.zIndex = '2147483650';
+  
   const itensHTML = itens.length
     ? itens
         .map((item, index) => {
