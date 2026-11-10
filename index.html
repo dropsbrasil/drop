@@ -1985,7 +1985,7 @@ if (window.pdfjsLib) {
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js"></script>
+<!-- FFmpeg removido (incompatível com Capacitor e path 404 no unpkg) -->
 
 <!-- ============================================
      JS DO APP — 25- MÓDULOS
@@ -2040,38 +2040,36 @@ if (window.pdfjsLib) {
      ATUALIZAÇÃO AUTOMÁTICA DO SERVICE WORKER
 ============================================ -->
 <script>
-  // ⚠️ REDE DE PROTEÇÃO CONTRA TELA BRANCA
-  let dropsRecarregando = false;
 
-  function recuperarAppNex() {
-    if (dropsRecarregando) return;
-    dropsRecarregando = true;
-    console.warn('⚠️ Falha crítica detectada. Limpando cache e reiniciando...');
-    
-    if ('caches' in window) {
-      caches.keys().then(function(names) {
-        for (let name of names) caches.delete(name);
-      });
+  // ⚠️ REDE DE PROTEÇÃO CONTRA TELA BRANCA (v2 — com cooldown, sem loop)
+const CHAVE_RECUPERACAO = 'drops_ultima_recuperacao';
+const COOLDOWN_RECUPERACAO_MS = 60 * 1000;
+
+function recuperarAppNex() {
+  try {
+    const ultima = Number(sessionStorage.getItem(CHAVE_RECUPERACAO) || '0');
+    const agora = Date.now();
+
+    if (agora - ultima < COOLDOWN_RECUPERACAO_MS) {
+      console.warn('⚠️ Recuperação ignorada (cooldown ativo).');
+      return;
     }
-    
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) registration.unregister();
-      });
-    }
+
+    sessionStorage.setItem(CHAVE_RECUPERACAO, String(agora));
+    console.warn('⚠️ Falha crítica. Recarregando uma vez...');
     setTimeout(() => window.location.reload(), 300);
-  }
+  } catch (e) {}
+}
 
-  window.addEventListener('error', function(e) {
-    if (e.message && (
-        e.message.includes('ChunkLoadError') || 
-        e.message.includes('Failed to fetch') || 
-        e.message.includes('NetworkError') ||
-        e.message.includes('Importing a module script failed')
-    )) {
-      recuperarAppNex();
-    }
-  }, true);
+window.addEventListener('error', function(e) {
+  const msg = e.message || '';
+  if (
+    msg.includes('ChunkLoadError') ||
+    msg.includes('Importing a module script failed')
+  ) {
+    recuperarAppNex();
+  }
+}, true);
 
   window.addEventListener('unhandledrejection', function(e) {
     const motivo = e.reason?.message || String(e.reason || '');

@@ -81,9 +81,15 @@ const ARQUIVOS_BASE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ARQUIVOS_BASE))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => {
+      return Promise.allSettled(
+        ARQUIVOS_BASE.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('⚠️ SW: falha ao cachear', url, err);
+          })
+        )
+      );
+    }).then(() => self.skipWaiting())
   );
 });
 
@@ -108,25 +114,43 @@ self.addEventListener('fetch', (event) => {
 
   const url = req.url;
 
-  if (
-    url.includes('supabase.co') ||
-    url.includes('cdn.jsdelivr.net') ||
-    url.includes('cdnjs.cloudflare.com') ||
-    url.includes('unpkg.com')
-  ) {
-    return;
-  }
+if (
+  url.includes('supabase.co') ||
+  url.includes('cdn.jsdelivr.net') ||
+  url.includes('cdnjs.cloudflare.com') ||
+  url.includes('unpkg.com') ||
+  url.includes('fonts.googleapis.com') ||
+  url.includes('fonts.gstatic.com')
+) {
+  return;
+}
 
-  event.respondWith(
+    event.respondWith(
     fetch(req)
       .then((resposta) => {
         if (resposta && resposta.status === 200) {
           const clone = resposta.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+          caches.open(CACHE_NAME)
+            .then((cache) => cache.put(req, clone))
+            .catch(() => {});
         }
         return resposta;
       })
-      .catch(() => caches.match(req))
+      .catch(async () => {
+        const cacheado = await caches.match(req);
+        if (cacheado) return cacheado;
+
+        if (req.mode === 'navigate') {
+          const indexCache = await caches.match('./index.html');
+          if (indexCache) return indexCache;
+        }
+
+        return new Response('Recurso indisponível offline.', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+        });
+      })
   );
 });
 
