@@ -1000,205 +1000,6 @@ function ativarArrasteVideoMyDropsNex(el) {
   });
 }
   
-// ============================================
-// ABRIR EDITOR DE FOTO (legado)
-// ============================================
-
-function abrirEditorFotoMyDropsNex(dataURL = null) {
-  legendaTemporariaMyDropsNex = '';
-
-  fotoAtualMyDropsNex = dataURL;
-
-  // Cria o editor se ainda não existir
-  if (!document.getElementById('fotoEditorMyDropsNex')) {
-    const editor = document.createElement('div');
-    editor.id = 'fotoEditorMyDropsNex';
-    editor.className = 'video-editor-mydrops-nex';
-    editor.style.display = 'none';
-
-    editor.innerHTML = `
-      <div id="fotoEditorStageMyDropsNex" class="foto-editor-stage-mydrops-nex">
-        <div id="fotoEditorPreviewMyDropsNex"></div>
-        <div id="fotoEditorLayerMyDropsNex" class="video-editor-layer-mydrops-nex"></div>
-      </div>
-
-      <div class="foto-editor-top-buttons">
-        <button type="button" id="fotoEditorAddTextMyDropsNex" class="foto-editor-top-btn">𝐓/🙂</button>
-        <button type="button" id="fotoEditorThemeMyDropsNex" class="foto-editor-top-btn">🎨</button>
-        <button type="button" id="dropsFotoMyDropsNex" class="foto-editor-top-btn">📷 Foto</button>
-        <button type="button" id="dropsFundoMyDropsNex" class="foto-editor-top-btn">🖼️ Fundo</button>
-        <button type="button" id="fotoEditorAjustarMyDropsNex" class="foto-editor-top-btn ajustar-btn">⬛ Ajustar</button>
-        <button type="button" id="fotoEditorDeleteMyDropsNex" class="foto-editor-top-btn">Sair ➜</button>
-      </div>
-
-      <input type="file" id="dropsFotoPickerMyDropsNex" accept="image/*" multiple hidden>
-      <input type="file" id="dropsVideoPickerMyDropsNex" accept="video/*" hidden>
-    `;
-
-    document.body.appendChild(editor);
-
-    // Botão Fundo
-    setTimeout(function () {
-      const btnFundo = document.getElementById('dropsFundoMyDropsNex');
-      if (btnFundo) {
-        const novoBtn = btnFundo.cloneNode(true);
-        btnFundo.parentNode.replaceChild(novoBtn, btnFundo);
-        novoBtn.addEventListener('click', function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          abrirModalFundoMyDropsNex();
-        });
-      }
-
-      conectarBotaoAjustar();
-    }, 50);
-
-    // ============================================
-    // CAMPO LEGENDA + PUBLICAR
-    // ============================================
-
-    const legendaRow = document.createElement('div');
-    legendaRow.id = 'fotoEditorLegendaRowMyDropsNex';
-    legendaRow.className = 'foto-editor-legenda-row-mydrops-nex';
-
-    const legendaInput = document.createElement('div');
-    legendaInput.id = 'fotoEditorLegendaMyDropsNex';
-    legendaInput.className = 'foto-editor-legenda-mydrops-nex';
-    legendaInput.innerHTML = `
-  <textarea
-    id="legendaMyDropsInputAntigo"
-    class="foto-editor-legenda-input"
-    maxlength="500"
-    placeholder="✍🏼 Escreva uma legenda (máx. 500 caracteres)..."
-  ></textarea>
-  <span id="legendaContadorMyDropsAntigo" class="foto-editor-legenda-contador">0/500</span>
-`;
-
-    const btnPublicarFoto = document.createElement('button');
-    btnPublicarFoto.type = 'button';
-    btnPublicarFoto.id = 'fotoEditorPublishMyDropsNex';
-    btnPublicarFoto.className = 'video-editor-publish-mydrops-nex';
-    btnPublicarFoto.textContent = 'Publicar';
-
-    btnPublicarFoto.addEventListener('click', () => {
-  const legenda = document.getElementById('legendaMyDropsInputAntigo')?.value || '';
-      legendaTemporariaMyDropsNex = legenda;
-      abrirModalDuracaoPublicacaoMyDropsNex('foto');
-    });
-
-    legendaRow.appendChild(legendaInput);
-    legendaRow.appendChild(btnPublicarFoto);
-    editor.appendChild(legendaRow);
-
-    // Contador
-const textarea = legendaInput.querySelector('#legendaMyDropsInputAntigo');
-const contador = document.getElementById('legendaContadorMyDropsAntigo');
-    if (textarea && contador) {
-      textarea.addEventListener('input', () => {
-        const len = textarea.value.length;
-        contador.textContent = `${len}/500`;
-        legendaTemporariaMyDropsNex = textarea.value;
-      });
-    }
-
-    // Eventos dos botões topo
-    editor.querySelector('#fotoEditorDeleteMyDropsNex')?.addEventListener('click', () => {
-      fotoAtualMyDropsNex = null;
-
-      const layer = document.getElementById('fotoEditorLayerMyDropsNex');
-      if (layer) layer.innerHTML = '';
-
-      editor.style.display = 'none';
-      legendaTemporariaMyDropsNex = '';
-    });
-
-    editor.querySelector('#fotoEditorAddTextMyDropsNex')?.addEventListener('click', criarTextoMyDropsNex);
-    editor.querySelector('#fotoEditorThemeMyDropsNex')?.addEventListener('click', aplicarTemaNoTextoSelecionadoMyDropsNex);
-
-    editor.querySelector('#dropsFotoMyDropsNex')?.addEventListener('click', () => {
-      const picker = document.getElementById('dropsFotoPickerMyDropsNex');
-      if (picker) picker.click();
-    });
-
-    document.getElementById('dropsFotoPickerMyDropsNex')?.addEventListener('change', (e) => {
-      const arquivos = Array.from(e.target.files || []).slice(0, 5);
-
-      arquivos.forEach((arquivo) => {
-        const leitor = new FileReader();
-
-        leitor.onload = function (evt) {
-          const dataURL = evt.target.result;
-          criarFotoEditavelMyDropsNex(dataURL);
-        };
-
-        leitor.readAsDataURL(arquivo);
-      });
-
-      e.target.value = '';
-    });
-
-    document.getElementById('dropsVideoPickerMyDropsNex')?.addEventListener('change', (e) => {
-      const arquivo = (e.target.files || [])[0];
-      if (!arquivo) return;
-
-      if (!arquivo.type.startsWith('video/')) {
-        e.target.value = '';
-        return;
-      }
-
-      const urlVideo = URL.createObjectURL(arquivo);
-      criarVideoEditavelMyDropsNex(urlVideo);
-
-      e.target.value = '';
-    });
-  }
-
-  // ============================================
-  // MOSTRA O EDITOR E PREPARA ESTADO
-  // ============================================
-
-  const editor = document.getElementById('fotoEditorMyDropsNex');
-  const preview = document.getElementById('fotoEditorPreviewMyDropsNex');
-  const layer = document.getElementById('fotoEditorLayerMyDropsNex');
-
-  if (layer) layer.innerHTML = '';
-  contadorTextoMyDropsNex = 0;
-  textoSelecionadoMyDropsNex = null;
-
-  // Reseta o stage
-  const stage = document.getElementById('fotoEditorStageMyDropsNex');
-  if (stage) {
-    stage.style.backgroundColor = '';
-    stage.style.backgroundImage = '';
-    stage.style.backgroundSize = '';
-    stage.style.backgroundPosition = '';
-    stage.style.backgroundRepeat = '';
-  }
-
-  if (dataURL) {
-    preview.style.backgroundImage = `url('${dataURL}')`;
-    preview.style.backgroundSize = 'contain';
-    preview.style.backgroundPosition = 'center';
-    preview.style.backgroundColor = '#000';
-  } else {
-    preview.style.backgroundImage = 'none';
-    preview.style.backgroundSize = 'contain';
-    preview.style.backgroundPosition = 'center';
-    preview.style.backgroundColor = '#08111f';
-  }
-
-  // Preenche legenda se existir
-  const legendaInput = document.getElementById('legendaMyDropsInput');
-  if (legendaInput && legendaTemporariaMyDropsNex) {
-    legendaInput.value = legendaTemporariaMyDropsNex;
-    const contador = document.getElementById('legendaContadorMyDrops');
-    if (contador) {
-      contador.textContent = `${legendaTemporariaMyDropsNex.length}/500`;
-    }
-  }
-
-  editor.style.display = 'flex';
-}
 
 // ============================================
 // CÂMERA DE VÍDEO (MyDrops) — estado
@@ -1381,9 +1182,7 @@ async function iniciarGravacaoMyDropsNex() {
       if (overlay) overlay.style.display = 'none';
 
       if (typeof window.abrirEditorVideoMyDropsNex === 'function') {
-        window.abrirEditorVideoMyDropsNex();
-      } else {
-        abrirEditorVideoMyDropsNex();
+  window.abrirEditorVideoMyDropsNex();
       }
     };
 
@@ -1600,7 +1399,7 @@ function capturarFotoMyDropsNex() {
   const overlay = document.getElementById('cameraFotoMyDropsOverlayNex');
   if (overlay) overlay.style.display = 'none';
 
-  if (typeof window.abrirFotoNex === 'function') {
+    if (typeof window.abrirFotoNex === 'function') {
     window.abrirFotoNex(dataURL);
     return;
   }
@@ -1609,82 +1408,8 @@ function capturarFotoMyDropsNex() {
     window.abrirEditorFotoMyDropsNex(dataURL);
     return;
   }
-
-  abrirEditorFotoMyDropsNex(dataURL);
 }
   
-// ============================================
-// EDITOR DE VÍDEO (gravado)
-// ============================================
-
-function abrirEditorVideoMyDropsNex() {
-  const legendaVideoInput = document.getElementById('legendaVideoMyDropsInput');
-  if (legendaVideoInput) {
-    legendaVideoInput.value = '';
-    const contador = document.getElementById('legendaVideoContadorMyDrops');
-    if (contador) contador.textContent = '0/500';
-  }
-  legendaTemporariaMyDropsNex = '';
-
-  const overlay = document.getElementById('videoEditorMyDropsNex');
-  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
-  const btnLoop = document.getElementById('videoEditorLoopMyDropsNex');
-
-  if (!overlay || !preview || !window.urlVideoGravadoMyDropsNex) return;
-
-  preview.src = window.urlVideoGravadoMyDropsNex;
-  preview.loop = false;
-  preview.muted = false;
-  preview.controls = true;
-
-  loopVideoMyDropsNex = false;
-
-  if (btnLoop) btnLoop.classList.remove('is-active');
-
-  overlay.style.display = 'flex';
-
-  const btnSairNovo = document.getElementById('videoEditorSairMyDropsNex');
-  if (btnSairNovo) btnSairNovo.style.display = 'flex';
-
-  preview.play().catch(() => {});
-}
-
-function fecharEditorVideoMyDropsNex() {
-  const overlay = document.getElementById('videoEditorMyDropsNex');
-  const preview = document.getElementById('videoEditorPreviewMyDropsNex');
-  const btnLoop = document.getElementById('videoEditorLoopMyDropsNex');
-
-  if (preview) {
-    preview.pause();
-    preview.removeAttribute('src');
-    preview.load();
-  }
-
-  loopVideoMyDropsNex = false;
-
-  if (btnLoop) btnLoop.classList.remove('is-active');
-  if (overlay) overlay.style.display = 'none';
-
-  const btnSairNovo = document.getElementById('videoEditorSairMyDropsNex');
-  if (btnSairNovo) btnSairNovo.style.display = 'none';
-}
-
-function excluirVideoMyDropsNex() {
-  if (window.urlVideoGravadoMyDropsNex) {
-    URL.revokeObjectURL(window.urlVideoGravadoMyDropsNex);
-  }
-
-  window.videoGravadoMyDropsNex = null;
-  window.urlVideoGravadoMyDropsNex = null;
-
-  limparCamadasTextoMyDropsNex();
-
-  if (typeof window.fecharEditorVideoMyDropsNex === 'function') {
-    window.fecharEditorVideoMyDropsNex();
-  } else {
-    fecharEditorVideoMyDropsNex();
-  }
-}
 
 // ============================================
 // LOOP DO VÍDEO NO EDITOR
@@ -1951,9 +1676,7 @@ function toggleAjustarFoto() {
   // EXPÕE GLOBALMENTE
   // ============================================
 
-  // Editor foto
-  window.abrirEditorFotoMyDropsNex = abrirEditorFotoMyDropsNex;
-
+  
   // Textos
   window.criarTextoMyDropsNex = criarTextoMyDropsNex;
   window.aplicarTemaTextoMyDropsNex = aplicarTemaTextoMyDropsNex;
@@ -2010,12 +1733,9 @@ function toggleAjustarFoto() {
   window.abrirStreamFotoMyDropsNex = abrirStreamFotoMyDropsNex;
   window.pararStreamFotoMyDropsNex = pararStreamFotoMyDropsNex;
 
-  // Editor de vídeo
-  window.abrirEditorVideoMyDropsNex = abrirEditorVideoMyDropsNex;
-  window.fecharEditorVideoMyDropsNex = fecharEditorVideoMyDropsNex;
-  window.excluirVideoMyDropsNex = excluirVideoMyDropsNex;
-  window.atualizarLoopVideoEditorMyDropsNex = atualizarLoopVideoEditorMyDropsNex;
-
+  // Editor de vídeo (as funções novas estão no 31-video.js)
+window.atualizarLoopVideoEditorMyDropsNex = atualizarLoopVideoEditorMyDropsNex;
+  
   // ============================================
   // INICIALIZAÇÃO (DOMContentLoaded)
   // ============================================
@@ -2065,32 +1785,7 @@ function toggleAjustarFoto() {
       }
     }
 
-    // Botão sair no editor de vídeo
-    document.getElementById('videoEditorSairMyDropsNex')?.addEventListener('click', () => {
-      if (window.urlVideoGravadoMyDropsNex) {
-        excluirVideoMyDropsNex();
-      } else {
-        fecharCameraMyDrops();
-      }
-
-      const myDropsScreen = document.getElementById('mydrops');
-      if (myDropsScreen) mostrarTela('mydrops', 0);
-    });
-
-    // Publicar vídeo
-    document.getElementById('videoEditorPublishMyDropsNex')?.addEventListener('click', () => {
-      const legendaVideoInput = document.getElementById('legendaVideoMyDropsInput');
-      if (legendaVideoInput) {
-        legendaTemporariaMyDropsNex = legendaVideoInput.value.trim();
-      }
-      abrirModalDuracaoPublicacaoMyDropsNex('video');
-    });
-
-    // Loop no editor de vídeo
-    document.getElementById('videoEditorLoopMyDropsNex')?.addEventListener('click', () => {
-      atualizarLoopVideoEditorMyDropsNex(!loopVideoMyDropsNex);
-    });
-
+    
     // ============================================
     // MODAL DE FUNDO — EVENTOS
     // ============================================

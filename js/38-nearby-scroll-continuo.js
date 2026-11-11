@@ -224,25 +224,31 @@
   }
 
   function iniciarDrag(e) {
-    if (animando) return;
-    if (!e.touches || e.touches.length !== 1) return;
+  if (animando) return;
+  if (!e.touches || e.touches.length !== 1) return;
 
-    const alvo = e.target;
+  // ⚠️ NOVO: Se a legenda estiver expandida, trava a troca de perfil (vertical)
+  const legendaTexto = document.querySelector('.nearby-pub-legenda-texto');
+  if (legendaTexto && legendaTexto.classList.contains('expandido')) {
+    return; 
+  }
+
+  const alvo = e.target;
     if (
-      alvo.closest('.nearby-drop-close') ||
-      alvo.closest('.nearby-drop-comment-box') ||
-      alvo.closest('.nearby-drop-profile-btn') ||
-      alvo.closest('.nearby-pub-stats-row') ||
-      alvo.closest('.nearby-drop-expandir') ||
-      alvo.closest('.nearby-pub-capsula-autor') ||
-      alvo.closest('.controles-inferiores-nex') ||
-alvo.closest('.btn-mute-custom-nex') ||
-// ⚠️ NÃO bloqueia o vídeo aqui, deixando o swipe horizontal passar
-alvo.closest('input') ||
-alvo.closest('textarea') ||
-alvo.closest('button')
-    ) {
-      return;
+  alvo.closest('.nearby-drop-close') ||
+  alvo.closest('.nearby-drop-comment-box') ||
+  alvo.closest('.nearby-drop-profile-btn') ||
+  alvo.closest('.nearby-pub-stats-row') ||
+  alvo.closest('.nearby-drop-expandir') ||
+  alvo.closest('.nearby-pub-capsula-autor') ||
+  alvo.closest('.controles-inferiores-nex') ||
+  alvo.closest('.btn-mute-custom-nex') ||
+  alvo.closest('.nearby-pub-legenda') || /* ⚠️ NOVO: Ignora a legenda */
+  alvo.closest('input') ||
+  alvo.closest('textarea') ||
+  alvo.closest('button')
+) {
+  return;
     }
 
     const estado = obterEstado();

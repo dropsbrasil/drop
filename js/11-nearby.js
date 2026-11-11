@@ -786,16 +786,13 @@ async function compartilharDropNearbyNex() {
     return;
   }
 
-  const chaveDrop = window.chaveDropPerfilNex
-    ? window.chaveDropPerfilNex(perfilIdCalc, dropIndexAtual, urlCalc)
-    : `${perfilIdCalc}::${dropIndexAtual}::${urlCalc}`;
+// ⚠️ Usa o ID direto do objeto do drop (que sempre existe no viewer)
+const publicacaoId = drop.publicacaoIdSupabase || drop.dropIndex;
 
-  const publicacaoId = window.__dropsMapaIdsPublicacao && window.__dropsMapaIdsPublicacao[chaveDrop];
-
-  if (!publicacaoId) {
-    window.mostrarToastNex?.('Drop muito antigo. Não é possível compartilhar.', 'info');
-    return;
-  }
+if (!publicacaoId) {
+  window.mostrarToastNex?.('Drop muito antigo. Não é possível compartilhar.', 'info');
+  return;
+}
 
   if (typeof window.compartilharPublicacaoSupabase !== 'function') {
     window.mostrarToastNex?.('Sistema indisponível.', 'erro');
@@ -837,24 +834,29 @@ async function atualizarCapsulaShareNearbyNex(publicacaoId) {
   const capsulaEl = document.querySelector('#nearbyDropShareCapsula');
   if (!capsulaEl) return;
 
-  if (!publicacaoId || typeof window.jaCompartilhouSupabase !== 'function') {
+  if (!publicacaoId || typeof window.contarCompartilhamentosSupabase !== 'function') {
     capsulaEl.style.display = 'none';
     return;
   }
 
   try {
-    const ja = await window.jaCompartilhouSupabase(publicacaoId);
-    if (!ja) {
+    let total = Number(await window.contarCompartilhamentosSupabase(publicacaoId)) || 0;
+
+    if (total === 0) {
       capsulaEl.style.display = 'none';
       return;
     }
 
-    let total = 0;
-    if (typeof window.contarCompartilhamentosSupabase === 'function') {
-      total = Number(await window.contarCompartilhamentosSupabase(publicacaoId)) || 0;
-    }
-
-    capsulaEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>${total}</span>`;
+    // ⚠️ SVG com width/height para não sumir
+    capsulaEl.innerHTML = `
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      <span>${total}</span>
+    `;
     capsulaEl.style.display = 'inline-flex';
   } catch (err) {
     capsulaEl.style.display = 'none';
@@ -1222,12 +1224,21 @@ if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
             if (typeof window.feedbackNex?.trocouPerfil === 'function') window.feedbackNex.trocouPerfil();
             renderizar();
           }
-        }
-      }
-    }, { passive: true });
+              }
+    }
+  }, { passive: true });
 
-    viewer.addEventListener('touchcancel', () => { swipeAtivo = false; }, { passive: true });
-  } // FECHA renderizar()
+  // ⚠️ NOVO: Atualiza a cápsula de compartilhamento assim que o drop é renderizado
+  const pubIdParaShare = drop.publicacaoIdSupabase || drop.dropIndex;
+  if (pubIdParaShare) {
+    atualizarCapsulaShareNearbyNex(pubIdParaShare);
+  } else {
+    const capsulaShare = viewer.querySelector('#nearbyDropShareCapsula');
+    if (capsulaShare) capsulaShare.style.display = 'none';
+  }
+
+  viewer.addEventListener('touchcancel', () => { swipeAtivo = false; }, { passive: true });
+} // FECHA renderizar()
 
   viewer.querySelector('.nearby-drop-close').onclick = () => {
     if (inputComentario) inputComentario.value = '';

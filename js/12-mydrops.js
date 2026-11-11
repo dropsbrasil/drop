@@ -188,14 +188,15 @@ function atualizarCampoDuracaoPersonalizadaMyDropsNex() {
 
   const mostrar = selecionado === 'custom';
 
-  if (wrap) wrap.style.display = mostrar ? 'flex' : 'none';
+if (wrap) wrap.style.display = mostrar ? 'flex' : 'none';
 
-  if (mostrar) {
-    setTimeout(() => rolarParaHoraMyDropsNex(HORAS_INICIAIS), 60);
-    if (btnConcluir) btnConcluir.disabled = false;
-  } else {
-    if (btnConcluir) btnConcluir.disabled = true;
-  }
+if (mostrar) {
+  setTimeout(() => rolarParaHoraMyDropsNex(HORAS_INICIAIS), 60);
+}
+
+// ⚠️ CORREÇÃO: O botão deve ficar sempre habilitado, 
+// pois tanto "24h" quanto "custom" são opções válidas.
+if (btnConcluir) btnConcluir.disabled = false;
 }
 
 // ============================================
@@ -854,10 +855,6 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
 
   let legenda = '';
 
-  const fotoAntigoEl = document.getElementById('fotoEditorMyDropsNex');
-  const fotoAntigoVisivel =
-    !!fotoAntigoEl && fotoAntigoEl.style.display === 'flex';
-
   const fotoNovoVisivel = document
     .getElementById('fotoEditorNex')
     ?.classList.contains('aberto');
@@ -882,24 +879,18 @@ async function concluirPublicacaoComDuracaoMyDropsNex() {
   const input = document.getElementById('legendaMyDropsInput');
   legenda = (input?.value || window.__fotoLegendaTemporaria || '').trim();
   window.__fotoLegendaTemporaria = null;
-} else if (fotoAntigoVisivel) {
-  const input = document.getElementById('legendaMyDropsInputAntigo');
-  legenda = (input?.value || '').trim();
+
 } else if (videoNovoVisivel) {
   const input = document.getElementById('legendaVideoMyDropsInput');
   legenda = (input?.value || window.__videoLegendaTemporaria || '').trim();
   window.__videoLegendaTemporaria = null;
-} else if (videoAntigoVisivel) {
-  const input = document.getElementById('legendaVideoMyDropsInputAntigo');
-  legenda = (input?.value || window.__videoLegendaTemporaria || '').trim();
-  window.__videoLegendaTemporaria = null;
-  }
+}
 
-  // ============================================
-  // VÍDEO INFO
-  // ============================================
+// ============================================
+// VÍDEO INFO
+// ============================================
 
-  let videoInfo = null;
+let videoInfo = null;
 
   if (origem === 'video') {
     videoInfo =
