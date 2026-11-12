@@ -725,3 +725,26 @@
   display: none !important;
   pointer-events: none !important;
 }
+/* ============================================
+   BOTÃO COMPARTILHAR E ENVIAR
+============================================ */
+
+/* 1. Estado Padrão (Pronto para compartilhar) - Azul FORTE */
+.nearby-drop-viewer .nearby-drop-send:not(.ja-compartilhado),
+.nearby-drop-viewer .nearby-drop-send.is-active {
+  opacity: 1 !important; 
+  background: #2563eb !important; /* Azul vibrante */
+  border: 1px solid rgba(255, 255, 255, 0.4) !important; 
+  box-shadow: 
+    0 0 12px rgba(37, 99, 235, 0.6), 
+    0 6px 16px rgba(37, 99, 235, 0.4) !important;
+  transition: all 0.2s ease;
+}
+
+/* 2. Estado Já Compartilhado (com o visto) - Azul ESCURO e APAGADO */
+.nearby-drop-viewer .nearby-drop-send.ja-compartilhado:not(.is-active) {
+  opacity: 0.6 !important; 
+  background: #1e3a8a !important; /* Azul escuro */
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+}
