@@ -16,7 +16,16 @@
   // ============================================
 
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Inicializando Drops...');
+  console.log('🚀 Inicializando Drops...');
+
+  // ⚠️ REMOVE O ESCUDO ANTI-TELA BRANCA
+  const bootProtection = document.getElementById('bootProtectionNex');
+  if (bootProtection) {
+    bootProtection.style.opacity = '0';
+    setTimeout(() => {
+      if (bootProtection.parentNode) bootProtection.remove();
+    }, 300);
+  }
 
     // ============================================
     // SERVICE WORKER (PWA)
