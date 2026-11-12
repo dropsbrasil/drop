@@ -667,7 +667,7 @@
     <line x1="12" y1="16" x2="12" y2="12"></line>
     <line x1="12" y1="8" x2="12.01" y2="8"></line>
   </svg>
-  Você foi silenciado por esta pessoa.
+  Você está no modo mudo nesta conversa.
 </div>
 
 <div class="chat-bottom">
@@ -1233,9 +1233,20 @@
     </svg>
     Sistema
   </h4>
-      <button type="button" id="btnToggleSomNex">🔊 Sons</button>
-<button type="button" id="btnToggleVibracaoNex">📳 Vibração</button>
-<button type="button" id="btnAtivarPushNex">🔔 Ativar notificações</button>
+      <div class="controle-toggle-row" id="btnToggleSomNex" style="cursor: pointer;">
+  <div class="controle-toggle-label">🔊 Sons</div>
+  <div class="controle-toggle-switch" id="switchSomNex" style="pointer-events: none;"></div>
+</div>
+
+<div class="controle-toggle-row" id="btnToggleVibracaoNex" style="cursor: pointer;">
+  <div class="controle-toggle-label">📳 Vibração</div>
+  <div class="controle-toggle-switch" id="switchVibracaoNex" style="pointer-events: none;"></div>
+</div>
+
+<div class="controle-toggle-row" id="btnAtivarPushNex" style="cursor: pointer;">
+  <div class="controle-toggle-label" id="textoPushNex">🔔 Notificações</div>
+  <div class="controle-toggle-switch" id="switchPushNex" style="pointer-events: none;"></div>
+</div>
       <button type="button" id="btnLimparPerfilNex">🧹 Limpar perfil</button>
       <button type="button" id="btnSobreAppNex">
   <span style="display: flex; align-items: center; gap: 10px;">
