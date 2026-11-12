@@ -316,12 +316,40 @@
 </style> 
 </head>
 <body>
+
+<!-- ============================================
+     🛡️ ESCUDO DE CARREGAMENTO (ANTI-TELA BRANCA)
+============================================ -->
+<div id="bootProtectionNex" style="position: fixed; inset: 0; background: #050b18; z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; transition: opacity 0.3s ease;">
+  <div style="width: 44px; height: 44px; border: 4px solid rgba(37,99,235,0.2); border-top-color: #2563eb; border-radius: 50%; animation: spinBootNex 1s linear infinite; margin-bottom: 20px;"></div>
+  <div style="font-size: 14px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">Sincronizando seu Drops...</div>
   
+  <div id="bootAjudaNex" style="display: none; margin-top: 24px; text-align: center; animation: fadeInBootNex 0.4s ease;">
+    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;">Está demorando mais que o normal.</p>
+    <button onclick="localStorage.clear(); sessionStorage.clear(); window.location.reload(true);" style="background: #2563eb; color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+      Recarregar App
+    </button>
+  </div>
+</div>
+
+<style>
+  @keyframes spinBootNex { 100% { transform: rotate(360deg); } }
+  @keyframes fadeInBootNex { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script>
+  // Se em 8 segundos o app não sumir com essa tela, mostra o botão de ajuda
+  setTimeout(function() {
+    var ajuda = document.getElementById('bootAjudaNex');
+    if (ajuda) ajuda.style.display = 'block';
+  }, 8000);
+</script>
 
 <!-- ============================================
      TELA: MY DROPS
 ============================================ -->
-<section id="mydrops" class="screen active">
+  
+  <section id="mydrops" class="screen active">
   <div class="app-topbar mydrops-topbar">
     <div class="app-topbar-text">
      <h1>Meu Perfil</h1>
@@ -1986,51 +2014,51 @@ if (window.pdfjsLib) {
 <!-- ============================================
      JS DO APP — 25- MÓDULOS
 ============================================ -->
-<script src="./js/00-config.js"></script>
-<script src="./js/20-supabase.js"></script>
-<script src="./js/17-adapters.js"></script>
-<script src="./js/21-perfil-supabase.js"></script>
-<script src="./js/22-publicacoes-supabase.js"></script>
-<script src="./js/23-reacoes-supabase.js"></script>
-<script src="./js/24-visualizacoes-supabase.js"></script>
-<script src="./js/25-nex-supabase.js"></script>
-<script src="./js/26-reacoes-midia-supabase.js"></script>
-<script src="./js/16-visitas.js"></script>
-<script src="./js/27-feedback.js"></script>
-<script src="./js/01-auth.js"></script>
-<script src="./js/02-ui.js"></script>
-<script src="./js/03-utils.js"></script>
-<script src="./js/04-conversas.js"></script>
-<script src="./js/05-nex-chat.js"></script>
-<script src="./js/06-nex-midia.js"></script>
-<script src="./js/07-nex-album.js"></script>
-<script src="./js/08-perfil.js"></script>
-<script src="./js/09-conectados.js"></script>
-<script src="./js/18-sobre.js"></script>
-<script src="./js/10-adeptos.js"></script>
-<script src="./js/11-nearby.js?v=20261016"></script>
-<script src="./js/12-mydrops.js"></script>
-<script src="./js/13-editor.js"></script>
-<script src="./js/15-reacoes.js"></script>
-<script src="./js/19-mural.js"></script>
-<script src="./js/29-notas.js"></script>
-<script src="./js/30-foto.js"></script>
-<script src="./js/31-video.js"></script>
-<script src="./js/32-notificacoes-tabs.js"></script>
-<script src="./js/33-notificacoes-realtime.js"></script>
-<script src="./js/40-realtime-compartilhamentos.js"></script>
-<script src="./js/41-drops-vistos.js?v=20261016"></script>
-<script src="./js/34-notificacoes-cards.js"></script>
-<script src="./js/36-push.js"></script>
-<script src="./js/14-init.js"></script>
+<script defer src="./js/00-config.js"></script>
+<script defer src="./js/20-supabase.js"></script>
+<script defer src="./js/17-adapters.js"></script>
+<script defer src="./js/21-perfil-supabase.js"></script>
+<script defer src="./js/22-publicacoes-supabase.js"></script>
+<script defer src="./js/23-reacoes-supabase.js"></script>
+<script defer src="./js/24-visualizacoes-supabase.js"></script>
+<script defer src="./js/25-nex-supabase.js"></script>
+<script defer src="./js/26-reacoes-midia-supabase.js"></script>
+<script defer src="./js/16-visitas.js"></script>
+<script defer src="./js/27-feedback.js"></script>
+<script defer src="./js/01-auth.js"></script>
+<script defer src="./js/02-ui.js"></script>
+<script defer src="./js/03-utils.js"></script>
+<script defer src="./js/04-conversas.js"></script>
+<script defer src="./js/05-nex-chat.js"></script>
+<script defer src="./js/06-nex-midia.js"></script>
+<script defer src="./js/07-nex-album.js"></script>
+<script defer src="./js/08-perfil.js"></script>
+<script defer src="./js/09-conectados.js"></script>
+<script defer src="./js/18-sobre.js"></script>
+<script defer src="./js/10-adeptos.js"></script>
+<script defer src="./js/11-nearby.js?v=20261016"></script>
+<script defer src="./js/12-mydrops.js"></script>
+<script defer src="./js/13-editor.js"></script>
+<script defer src="./js/15-reacoes.js"></script>
+<script defer src="./js/19-mural.js"></script>
+<script defer src="./js/29-notas.js"></script>
+<script defer src="./js/30-foto.js"></script>
+<script defer src="./js/31-video.js"></script>
+<script defer src="./js/32-notificacoes-tabs.js"></script>
+<script defer src="./js/33-notificacoes-realtime.js"></script>
+<script defer src="./js/40-realtime-compartilhamentos.js"></script>
+<script defer src="./js/41-drops-vistos.js?v=20261016"></script>
+<script defer src="./js/34-notificacoes-cards.js"></script>
+<script defer src="./js/36-push.js"></script>
+<script defer src="./js/14-init.js"></script>
 <!-- Script de selos (por último) -->
-<script src="./js/selos.js"></script>
-<script src="./js/28-history.js"></script>
+<script defer src="./js/selos.js"></script>
+<script defer src="./js/28-history.js"></script>
 
 <!-- Tutorial interativo (por último) -->
-<script src="./js/35-tutorial.js"></script>
-<script src="./js/37-onboarding-viewers.js"></script>
-<script src="./js/38-nearby-scroll-continuo.js?v=20261016"></script>
+<script defer src="./js/35-tutorial.js"></script>
+<script defer src="./js/37-onboarding-viewers.js"></script>
+<script defer src="./js/38-nearby-scroll-continuo.js?v=20261016"></script>
 
 <!-- ============================================
      ATUALIZAÇÃO AUTOMÁTICA DO SERVICE WORKER
