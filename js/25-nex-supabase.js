@@ -1808,9 +1808,14 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
       }
 
       window.__euSilencieiNex = quemEuSilenciei;
-      window.__quemMeSilenciouNex = quemMeSilenciou;
+window.__quemMeSilenciouNex = quemMeSilenciou;
 
-      console.log('🔇 Silenciados carregados:', {
+// ⚠️ SINCRONIZA COM O LOCALSTORAGE
+try {
+  localStorage.setItem('dropsChatsSilenciadosNex', JSON.stringify(Array.from(quemEuSilenciei)));
+} catch (e) {}
+
+console.log('🔇 Silenciados carregados:', {
         euSilenciei: quemEuSilenciei.size,
         meSilenciou: quemMeSilenciou.size
       });

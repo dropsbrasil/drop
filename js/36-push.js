@@ -121,43 +121,48 @@
   }
 
   async function atualizarBotaoPushNex() {
-    const btn = document.getElementById('btnAtivarPushNex');
-    if (!btn) return;
+  const btn = document.getElementById('btnAtivarPushNex');
+  const switchEl = document.getElementById('switchPushNex');
+  const textoEl = document.getElementById('textoPushNex');
+  
+  if (!btn || !switchEl) return;
 
-    if (!suportaPush()) {
-      btn.textContent = '🔕 Push não suportado';
-      btn.disabled = true;
-      btn.style.opacity = '0.5';
-      btn.dataset.acao = 'indisponivel';
-      return;
-    }
+  if (!suportaPush()) {
+    if (textoEl) textoEl.innerHTML = '🔕 Push não suportado';
+    switchEl.classList.remove('ativo');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.dataset.acao = 'indisponivel';
+    return;
+  }
 
-    if (Notification.permission === 'denied') {
-      btn.textContent = '🚫 Bloqueado pelo navegador';
-      btn.disabled = true;
-      btn.style.opacity = '0.5';
-      btn.dataset.acao = 'bloqueado';
-      return;
-    }
+  if (Notification.permission === 'denied') {
+    if (textoEl) textoEl.innerHTML = '🚫 Bloqueado pelo navegador';
+    switchEl.classList.remove('ativo');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.dataset.acao = 'bloqueado';
+    return;
+  }
 
-    let temSubscription = false;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      temSubscription = !!sub;
-    } catch (e) {}
+  let temSubscription = false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    temSubscription = !!sub;
+  } catch (e) {}
 
-    if (Notification.permission === 'granted' && temSubscription) {
-      btn.textContent = '🔕 Desativar notificações';
-      btn.disabled = false;
-      btn.style.opacity = '1';
-      btn.dataset.acao = 'desativar';
-    } else {
-      btn.textContent = '🔔 Ativar notificações';
-      btn.disabled = false;
-      btn.style.opacity = '1';
-      btn.dataset.acao = 'ativar';
-    }
+  if (Notification.permission === 'granted' && temSubscription) {
+    switchEl.classList.add('ativo');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.dataset.acao = 'desativar';
+  } else {
+    switchEl.classList.remove('ativo');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.dataset.acao = 'ativar';
+  }
   }
 
   // Expõe globalmente para ser usado no logout e em outros lugares

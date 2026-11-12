@@ -40,56 +40,76 @@
   // ============================================
 
   function aplicarSilenciamentoChatNex(usernameAberto) {
-    const silenciado = checarSeFuiSilenciadoNex(usernameAberto);
+  const silenciado = checarSeFuiSilenciadoNex(usernameAberto);
 
-    const chatBottom = document.querySelector('.chat-bottom');
-    const toastSilenciado = document.getElementById('toastSilenciadoNex');
-    const iconeEnviar = document.getElementById('iconeEnviarChatNex');
-    const iconeMudo = document.getElementById('iconeMudoChatNex');
-    const inputChat = document.getElementById('chatInput');
-    const btnEnviar = document.getElementById('btnEnviarChatNex');
-    const btnAnexo = document.getElementById('btnAnexoNex');
-    const btnMic = document.getElementById('micBtn');
+  const chatBottom = document.querySelector('.chat-bottom');
+  const toastSilenciado = document.getElementById('toastSilenciadoNex');
+  const iconeEnviar = document.getElementById('iconeEnviarChatNex');
+  const iconeMudo = document.getElementById('iconeMudoChatNex');
+  const inputChat = document.getElementById('chatInput');
+  const btnEnviar = document.getElementById('btnEnviarChatNex');
+  const btnAnexo = document.getElementById('btnAnexoNex');
+  const btnMic = document.getElementById('micBtn');
 
-    if (silenciado) {
-      // ⚠️ Esconde o bloco inferior INTEIRO (input + botões)
-      if (chatBottom) {
-        chatBottom.classList.add('silenciado');
-        chatBottom.style.display = 'none';
-      }
-
-      // Mostra o card de "silenciado"
-      if (toastSilenciado) toastSilenciado.style.display = 'flex';
-
-      if (iconeEnviar) iconeEnviar.style.display = 'none';
-      if (iconeMudo) iconeMudo.style.display = 'block';
-
-      // Trava por segurança (defesa em profundidade)
-      if (inputChat) inputChat.disabled = true;
-      if (btnEnviar) btnEnviar.disabled = true;
-      if (btnAnexo) btnAnexo.disabled = true;
-      if (btnMic) btnMic.disabled = true;
-
-    } else {
-      // Restaura o bloco inferior normal
-      if (chatBottom) {
-        chatBottom.classList.remove('silenciado');
-        chatBottom.style.display = '';
-      }
-
-      if (toastSilenciado) toastSilenciado.style.display = 'none';
-
-      if (iconeEnviar) iconeEnviar.style.display = 'block';
-      if (iconeMudo) iconeMudo.style.display = 'none';
-
-      if (inputChat) {
-        inputChat.disabled = false;
-        inputChat.placeholder = 'Digite uma mensagem...';
-      }
-      if (btnEnviar) btnEnviar.disabled = false;
-      if (btnAnexo) btnAnexo.disabled = false;
-      if (btnMic) btnMic.disabled = false;
+  if (silenciado) {
+    // ⚠️ Esconde o bloco inferior INTEIRO (input + botões)
+    if (chatBottom) {
+      chatBottom.classList.add('silenciado');
+      chatBottom.style.display = 'none';
     }
+
+    // Mostra o card de "silenciado" cravado no rodapé
+    if (toastSilenciado) {
+      toastSilenciado.style.display = 'flex';
+      // Força a posição no rodapé para não quebrar o layout
+      toastSilenciado.style.position = 'absolute';
+      toastSilenciado.style.bottom = '0';
+      toastSilenciado.style.left = '0';
+      toastSilenciado.style.right = '0';
+      toastSilenciado.style.zIndex = '100';
+      toastSilenciado.style.backgroundColor = '#0f172a';
+      toastSilenciado.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+    }
+
+    if (iconeEnviar) iconeEnviar.style.display = 'none';
+    if (iconeMudo) iconeMudo.style.display = 'block';
+
+    // Trava por segurança (defesa em profundidade)
+    if (inputChat) inputChat.disabled = true;
+    if (btnEnviar) btnEnviar.disabled = true;
+    if (btnAnexo) btnAnexo.disabled = true;
+    if (btnMic) btnMic.disabled = true;
+
+  } else {
+    // Restaura o bloco inferior normal
+    if (chatBottom) {
+      chatBottom.classList.remove('silenciado');
+      chatBottom.style.display = '';
+    }
+
+    if (toastSilenciado) {
+      toastSilenciado.style.display = 'none';
+      // Limpa os estilos forçados
+      toastSilenciado.style.position = '';
+      toastSilenciado.style.bottom = '';
+      toastSilenciado.style.left = '';
+      toastSilenciado.style.right = '';
+      toastSilenciado.style.zIndex = '';
+      toastSilenciado.style.backgroundColor = '';
+      toastSilenciado.style.borderTop = '';
+    }
+
+    if (iconeEnviar) iconeEnviar.style.display = 'block';
+    if (iconeMudo) iconeMudo.style.display = 'none';
+
+    if (inputChat) {
+      inputChat.disabled = false;
+      inputChat.placeholder = 'Digite uma mensagem...';
+    }
+    if (btnEnviar) btnEnviar.disabled = false;
+    if (btnAnexo) btnAnexo.disabled = false;
+    if (btnMic) btnMic.disabled = false;
+  }
   }
 
   function revalidarSilenciamentoNex() {
@@ -234,7 +254,7 @@
         </svg>
       `}
     </span>
-    <span class="chat-menu-item-texto">${euSilenciei ? 'Reativar notificações' : 'Silenciar conversa'}</span>
+    <span class="chat-menu-item-texto">${euSilenciei ? 'Desmutar' : 'Mute'}</span>
   </button>
 
   ${blocoApagar}
@@ -289,11 +309,24 @@ document.addEventListener('click', (e) => {
 
 function estaSilenciadoNex(username) {
   if (!username) return false;
+  
+  const alvo = String(username).replace(/^@/, '').trim().toLowerCase();
+
+  // 1. Tenta ler da memória oficial (fonte do Supabase)
+  if (window.__euSilencieiNex) {
+    for (const item of window.__euSilencieiNex) {
+      if (String(item).replace(/^@/, '').trim().toLowerCase() === alvo) {
+        return true;
+      }
+    }
+  }
+
+  // 2. Fallback: Tenta ler do localStorage (caso o Supabase ainda não tenha carregado)
   try {
     const lista = JSON.parse(
       localStorage.getItem('dropsChatsSilenciadosNex') || '[]'
     );
-    return Array.isArray(lista) && lista.includes(username);
+    return Array.isArray(lista) && lista.some(i => String(i).replace(/^@/, '').trim().toLowerCase() === alvo);
   } catch (e) {
     return false;
   }
@@ -366,9 +399,9 @@ async function alternarSilenciarChatNex(username) {
   atualizarSilenciadoNoCardNex(username);
 
   window.mostrarToastNex?.(
-    ativouSilencio ? 'Conversa silenciada' : 'Notificações reativadas',
-    'info'
-  );
+  ativouSilencio ? 'Conversa mutada' : 'Conversa desmutada',
+  'info'
+);
 }
 
 function atualizarSilenciadoNoCardNex(username) {

@@ -770,16 +770,11 @@ async function compartilharDropNearbyNex() {
   if (!perfil || !drop) return;
 
   const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
-  const urlCalc = drop.url || drop.imagem || '';
+const urlCalc = drop.url || drop.imagem || '';
 
-  // ⚠️ BLOQUEIO DE SILENCIAMENTO
-  const estouSilenciado = checarSeFuiSilenciadoNex(perfilIdCalc);
-  if (estouSilenciado) {
-    window.mostrarToastNex?.('Você está silenciado por este usuário.', 'erro');
-    return;
-  }
+// ⚠️ REGRA: Compartilhar drop de A é LIBERADO mesmo se B estiver mutado.
 
-  // ⚠️ CORREÇÃO: Comparação correta do username
+// ⚠️ CORREÇÃO: Comparação correta do username
 const meuUser = String(Drops.usernameAtual || '').replace(/^@/, '').toLowerCase().trim();
 const autorLimpo = String(perfil.username || perfilAtualId || perfilIdCalc).replace(/^@/, '').toLowerCase().trim();
 
