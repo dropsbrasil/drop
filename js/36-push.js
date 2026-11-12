@@ -210,16 +210,66 @@
   // INICIALIZAÇÃO (aguarda login)
   // ============================================
 
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      if (!suportaPush()) return;
+  // ============================================
+// ATUALIZAR VISUAL DO BOTÃO
+// ============================================
+function atualizarBotaoPushNex() {
+  const btn = document.getElementById('btnAtivarPushNex');
+  if (!btn) return;
 
-      // Se já tem permissão, ativa direto
-      if (Notification.permission === 'granted') {
-        ativarPush();
+  if (!suportaPush()) {
+    btn.textContent = '🔕 Push não suportado';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    btn.textContent = '✅ Notificações Ativadas';
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+  } else if (Notification.permission === 'denied') {
+    btn.textContent = '🚫 Bloqueado pelo navegador';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  } else {
+    btn.textContent = '🔔 Ativar notificações';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Atualiza o botão sempre que o menu (☰) for clicado
+  const btnMenuGlobal = document.querySelector('.btn-menu-global');
+  if (btnMenuGlobal) {
+    btnMenuGlobal.addEventListener('click', () => {
+      setTimeout(atualizarBotaoPushNex, 100);
+    });
+  }
+
+  // 2. Ação do botão de ativar push
+  const btnPush = document.getElementById('btnAtivarPushNex');
+  if (btnPush) {
+    btnPush.addEventListener('click', async () => {
+      const sucesso = await ativarPush();
+      if (sucesso) {
+        window.mostrarToastNex?.('Notificações ativadas com sucesso!', 'sucesso');
+      } else {
+        window.mostrarToastNex?.('Não foi possível ativar as notificações.', 'erro');
       }
-    }, 5000);
-  });
+      atualizarBotaoPushNex();
+    });
+  }
+
+  // 3. Ativação em background se já estiver permitido
+  setTimeout(() => {
+    if (suportaPush() && Notification.permission === 'granted') {
+      ativarPush();
+    }
+    atualizarBotaoPushNex();
+  }, 5000);
+});
 
   console.log('🔔 32-push.js carregado (com desativarPush)');
 

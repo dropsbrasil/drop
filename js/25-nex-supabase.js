@@ -1413,17 +1413,49 @@ async function processarMensagemRealtimeNex(msg) {
       );
     }
   } else {
-    if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
-      window.marcarConversaComoNaoLidaNex(chaveContato);
-    }
+  if (typeof window.marcarConversaComoNaoLidaNex === 'function') {
+    window.marcarConversaComoNaoLidaNex(chaveContato);
+  }
 
-    if (typeof window.feedbackNex?.msgRecebida === 'function') {
-      window.feedbackNex.msgRecebida();
-    }
+  // ⚠️ CORREÇÃO 1: Respeito ao Mute e Bip Baixo no NEX
+  const chatSilenciado =
+    typeof window.estaSilenciadoNex === 'function' &&
+    window.estaSilenciadoNex(chaveContato);
 
-    if (typeof window.notificarMensagemNovaNex === 'function') {
-      window.notificarMensagemNovaNex(chaveContato, nova);
+  if (!chatSilenciado) {
+    const naTelaNex = document.getElementById('nex')?.classList.contains('active');
+    const appEmFoco = document.visibilityState === 'visible';
+
+    if (naTelaNex && appEmFoco) {
+      // Está na tela do NEX, mas não no chat. Apenas vibra e bip baixo.
+      if (typeof window.vibrarNex === 'function') window.vibrarNex([60]);
+      
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) {
+          const ctx = new Ctx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, ctx.currentTime);
+          gain.gain.setValueAtTime(0.05, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.1);
+        }
+      } catch (e) {}
+    } else {
+      // Fora da tela do NEX (outra aba ou app em background)
+      if (typeof window.feedbackNex?.msgRecebida === 'function') {
+        window.feedbackNex.msgRecebida();
+      }
+
+      if (typeof window.notificarMensagemNovaNex === 'function') {
+        window.notificarMensagemNovaNex(chaveContato, nova);
+      }
     }
+  }
   }
 
   const card = typeof window.obterCardConversaNex === 'function'
@@ -1649,15 +1681,13 @@ async function uploadMidiaNexSupabase(arquivo, tipo) {
   // NOTIFICAÇÃO DE MENSAGEM NOVA
   // ============================================
   function notificarMensagemNovaNex(nomeContato, mensagem) {
-    if (!mensagem) return;
+  if (!mensagem) return;
 
-    if (navigator.vibrate) {
-      try {
-        navigator.vibrate([200, 100, 200]);
-      } catch (e) {}
-    }
+  // ⚠️ CORREÇÃO 2: Removida a vibração duplicada.
+  // O feedbackNex.msgRecebida() já cuida de vibrar com o padrão correto.
+  // Aqui só cuidamos da notificação visual do sistema.
 
-    if (!('Notification' in window)) return;
+  if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
 
     const titulo = String(nomeContato || 'Nova mensagem');

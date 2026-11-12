@@ -569,12 +569,50 @@ async function apagarPublicacaoSupabase(id) {
         return 0;
       }
 
-      return count || 0;
-    } catch (err) {
-      console.warn('Erro ao contar compartilhamentos:', err);
-      return 0;
-    }
+          return count || 0;
+  } catch (err) {
+    console.warn('Erro ao contar compartilhamentos:', err);
+    return 0;
   }
+}
+
+// ============================================
+// BUSCAR LISTA DE QUEM COMPARTILHOU
+// ============================================
+async function buscarListaCompartilhamentosSupabase(publicacaoId) {
+  if (!window.supabaseClient || !publicacaoId) return [];
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('compartilhamentos')
+      .select('usuario_id')
+      .eq('publicacao_original_id', publicacaoId);
+
+    if (error || !data || !data.length) return [];
+
+    const ids = data.map((c) => c.usuario_id);
+    const { data: perfis } = await window.supabaseClient
+      .from('profiles')
+      .select('id, username, nome, avatar_url')
+      .in('id', ids);
+
+    const perfisMap = {};
+    (perfis || []).forEach((p) => {
+      perfisMap[p.id] = p;
+    });
+
+    return data.map((c) => {
+      const p = perfisMap[c.usuario_id] || {};
+      const nome = p.nome || p.username || 'Usuário';
+      const avatar = p.avatar_url || nome.charAt(0).toUpperCase();
+
+      return { nome, username: p.username || '', avatar };
+    });
+  } catch (erro) {
+    console.error('Erro ao buscar lista de compartilhamentos:', erro);
+    return [];
+  }
+}
 
   // ============================================
   // EXPÕE GLOBALMENTE
@@ -588,8 +626,9 @@ async function apagarPublicacaoSupabase(id) {
   window.buscarTodosOsDropsComAutor = buscarTodosOsDropsComAutor;
   window.apagarPublicacaoSupabase = apagarPublicacaoSupabase;
   window.compartilharPublicacaoSupabase = compartilharPublicacaoSupabase;
-  window.jaCompartilhouSupabase = jaCompartilhouSupabase;
-  window.contarCompartilhamentosSupabase = contarCompartilhamentosSupabase;
+window.jaCompartilhouSupabase = jaCompartilhouSupabase;
+window.contarCompartilhamentosSupabase = contarCompartilhamentosSupabase;
+window.buscarListaCompartilhamentosSupabase = buscarListaCompartilhamentosSupabase;  
   
   document.addEventListener('DOMContentLoaded', async () => {
     await aguardarSupabase();

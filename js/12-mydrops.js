@@ -2031,18 +2031,21 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
       }
     }
 
-    if (
-      publicacaoIdSupabase &&
-      typeof window.buscarVisualizacoesSupabase === 'function'
-    ) {
-      window
-        .buscarVisualizacoesSupabase(publicacaoIdSupabase)
-        .then((total) => {
-          if (viewsEl) viewsEl.textContent = String(total || 0);
-        })
-        .catch((err) =>
-          console.warn('Erro ao buscar views MyDrops:', err)
-        );
+    if (publicacaoIdSupabase) {
+  // ⚠️ CORREÇÃO: Não registra visualização na tela "Minhas publicações"
+  // para não contar a si mesmo. A view só conta pelo Nearby.
+
+  // Busca o total atualizado
+  if (typeof window.buscarVisualizacoesSupabase === 'function') {
+    window
+      .buscarVisualizacoesSupabase(publicacaoIdSupabase)
+      .then((total) => {
+        if (viewsEl) viewsEl.textContent = String(total || 0);
+      })
+      .catch((err) =>
+        console.warn('Erro ao buscar views MyDrops:', err)
+      );
+  }
     }
   };
   
@@ -2187,24 +2190,39 @@ function abrirVisualizadorPublicacaoMyDropsNex(lista, indexInicial = 0) {
         const tipo = btn.getAttribute('data-list');
 
         if (tipo === 'views') {
-          const pubIdParaViews = pub.idSupabase || pub.id;
+  const pubIdParaViews = pub.idSupabase || pub.id;
 
-          if (
-            pubIdParaViews &&
-            typeof window.buscarListaVisualizacoesSupabase === 'function'
-          ) {
-            const lista =
-              await window.buscarListaVisualizacoesSupabase(pubIdParaViews);
-            abrirModalListaPublicacaoMyDropsNex('Visualizações', lista || []);
-            return;
-          }
+  if (
+    pubIdParaViews &&
+    typeof window.buscarListaVisualizacoesSupabase === 'function'
+  ) {
+    const lista =
+      await window.buscarListaVisualizacoesSupabase(pubIdParaViews);
+    abrirModalListaPublicacaoMyDropsNex('Visualizações', lista || []);
+    return;
+  }
 
-          abrirModalListaPublicacaoMyDropsNex(
-            'Visualizações',
-            pub.visualizacoes || []
-          );
-          return;
-        }
+  abrirModalListaPublicacaoMyDropsNex(
+    'Visualizações',
+    pub.visualizacoes || []
+  );
+  return;
+}
+
+// ⚠️ NOVO: Abre a lista de quem compartilhou
+if (tipo === 'share') {
+  const pubIdParaShare = pub.idSupabase || pub.id;
+
+  if (
+    pubIdParaShare &&
+    typeof window.buscarListaCompartilhamentosSupabase === 'function'
+  ) {
+    const lista =
+      await window.buscarListaCompartilhamentosSupabase(pubIdParaShare);
+    abrirModalListaPublicacaoMyDropsNex('Compartilhamentos 🔁', lista || []);
+  }
+  return;
+}
 
         const publicacaoIdSupabase = pub.idSupabase || pub.id;
 

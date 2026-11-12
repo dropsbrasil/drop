@@ -573,13 +573,14 @@ viewer.querySelectorAll('.nearby-drop-reaction').forEach((btn) => {
 
     const perfilIdCalc = perfil.id || perfilAtualId || perfil.nome || '';
     const urlCalc = drop.url || drop.imagem || '';
-    const autorLimpo = String(perfilIdCalc).toLowerCase();
-    const meuUser = String(Drops.usernameAtual || '').toLowerCase();
+    // ⚠️ CORREÇÃO: Pega o username do autor e o seu, limpando o @ e maiúsculas
+const autorLimpo = String(perfil.username || perfilAtualId || perfilIdCalc).replace(/^@/, '').toLowerCase().trim();
+const meuUser = String(Drops.usernameAtual || '').replace(/^@/, '').toLowerCase().trim();
 
-    if (autorLimpo && autorLimpo === meuUser) {
-      window.mostrarToastNex?.('Você não pode reagir ao seu próprio drop.', 'info');
-      return;
-    }
+if (autorLimpo && autorLimpo === meuUser) {
+  window.mostrarToastNex?.('Você não pode reagir ao seu próprio drop.', 'info');
+  return;
+}
 
     const usuarioId = Drops.usernameAtual || 'anonimo';
     registrarReacaoDropNex(perfilIdCalc, dropIndexAtual, urlCalc, btn.textContent.trim(), usuarioId);
@@ -778,13 +779,14 @@ async function compartilharDropNearbyNex() {
     return;
   }
 
-  const meuUser = String(Drops.usernameAtual || '').toLowerCase().trim();
-  const autorLimpo = String(perfilIdCalc).toLowerCase().trim();
+  // ⚠️ CORREÇÃO: Comparação correta do username
+const meuUser = String(Drops.usernameAtual || '').replace(/^@/, '').toLowerCase().trim();
+const autorLimpo = String(perfil.username || perfilAtualId || perfilIdCalc).replace(/^@/, '').toLowerCase().trim();
 
-  if (autorLimpo && autorLimpo === meuUser) {
-    window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
-    return;
-  }
+if (autorLimpo && autorLimpo === meuUser) {
+  window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
+  return;
+}
 
 // ⚠️ Usa o ID direto do objeto do drop (que sempre existe no viewer)
 const publicacaoId = drop.publicacaoIdSupabase || drop.dropIndex;
@@ -811,10 +813,12 @@ if (!publicacaoId) {
       if (publicacaoId) atualizarCapsulaShareNearbyNex(publicacaoId);
       if (typeof window.feedbackNex?.comentou === 'function') window.feedbackNex.comentou();
     } else if (resultado?.erro === 'ja_compartilhado') {
-      if (btn) btn.classList.add('ja-compartilhado');
-      window.mostrarToastNex?.('Você já compartilhou esse drop.', 'info');
-    } else {
-      window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
+  if (btn) btn.classList.add('ja-compartilhado');
+  window.mostrarToastNex?.('Você já compartilhou esse drop.', 'info');
+} else if (resultado?.erro === 'proprio_drop') {
+  window.mostrarToastNex?.('Você não pode compartilhar seu próprio drop.', 'info');
+} else {
+  window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
     }
   } catch (err) {
     window.mostrarToastNex?.('Falha ao compartilhar.', 'erro');
@@ -983,7 +987,50 @@ function abrirMinhasPublicacoesNearby() {
       if (metaWrapNearby) metaWrapNearby.insertAdjacentHTML('beforeend', window.gerarHTMLSelos(drop.selos));
     }
     if (counter) counter.textContent = `${dropIndexAtual + 1}/${drops.length}`;
-if (views) views.textContent = drop.views || 0;
+
+// ⚠️ NOVO: Lógica de Visualização
+const pubIdParaViews = drop.publicacaoIdSupabase || drop.id || drop.dropIndex;
+
+if (pubIdParaViews) {
+  const meuUser = String(Drops.usernameAtual || '').replace(/^@/, '').toLowerCase().trim();
+  const autorLimpo = String(perfil.username || perfilAtualId).replace(/^@/, '').toLowerCase().trim();
+  const ehMeuDrop = autorLimpo === meuUser;
+
+  // 1. Registra (apenas se não for meu e se ainda não registrou)
+  if (!ehMeuDrop && !viewsJaRegistradas.has(pubIdParaViews)) {
+  viewsJaRegistradas.add(pubIdParaViews);
+  if (typeof window.registrarVisualizacaoSupabase === 'function') {
+    window.registrarVisualizacaoSupabase(pubIdParaViews);
+  }
+
+  // ⚠️ CORREÇÃO 5B: Marca como visto localmente e checa se o amigo já foi todo visto
+  if (window.dropsVistosNex?.marcarVisto) {
+    window.dropsVistosNex.marcarVisto(pubIdParaViews);
+  }
+
+  const dropsDoAutor = obterDropsDoPerfil(perfil);
+  const todosVistos = dropsDoAutor.every(d => {
+    const idD = d.publicacaoIdSupabase || d.id || d.dropIndex;
+    return window.dropsVistosNex?.foiVisto(idD) || String(idD) === String(pubIdParaViews);
+  });
+
+  if (todosVistos) {
+    window.limparNovidadePostConectado?.(perfil.username || perfilAtualId);
+    setTimeout(() => window.atualizarBordasCardsNex?.(), 300);
+  }
+  }
+
+  // 2. Busca o total atualizado
+  if (views) {
+    if (typeof window.buscarVisualizacoesSupabase === 'function') {
+      window.buscarVisualizacoesSupabase(pubIdParaViews).then(total => {
+        if (views) views.textContent = total || 0;
+      });
+    } else {
+      views.textContent = drop.views || 0;
+    }
+  }
+}
 
 // ⚠️ NOVO: RENDERIZA A LEGENDA NO VIEWER
 const legendaEl = viewer.querySelector('#nearbyDropLegenda');
@@ -1016,9 +1063,20 @@ if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
     const urlCalc = drop.url || drop.imagem || '';
 
     const stats = obterStatsReacaoDropNex(perfilIdCalc, dropIndexAtual, urlCalc);
-    const totalReacoes = stats.heart + stats.broken;
-    atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
+const totalReacoes = stats.heart + stats.broken;
+atualizarBotoesReacaoNex(viewer, perfilIdCalc, dropIndexAtual, urlCalc);
 
+// ⚠️ NOVO: Renderiza o contador de reações persistente
+const reacoesElAtual = viewer.querySelector('#nearbyDropReactions');
+if (reacoesElAtual) {
+  if (totalReacoes > 0) {
+    reacoesElAtual.innerHTML = `<span class="nearby-drop-reaction-count">❤️${stats.heart}</span><span class="nearby-drop-reaction-count">💔${stats.broken}</span>`;
+    reacoesElAtual.style.display = 'inline-flex';
+  } else {
+    reacoesElAtual.innerHTML = '';
+    reacoesElAtual.style.display = 'none';
+  }
+}
     // ⚠️ BLOQUEIO VISUAL DE SILENCIAMENTO
     //    Bloqueia SÓ o input de comentário e o botão de enviar.
     //    Reações ❤️/💔 continuam LIBERADAS (drop não é comunicação).
@@ -1135,16 +1193,23 @@ if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
     }
 
     viewer.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) return;
-      const alvo = e.target;
-      if (alvo.closest('.nearby-drop-close') || alvo.closest('.nearby-drop-comment-box') ||
-        alvo.closest('.nearby-drop-footer') || alvo.closest('.nearby-drop-profile-btn') ||
-        alvo.closest('.nearby-pub-stats-row') || alvo.closest('.nearby-drop-expandir') ||
-        alvo.closest('.controles-inferiores-nex') || alvo.closest('.btn-mute-custom-nex') ||
-        alvo.closest('input')) {
-        swipeAtivo = false;
-        return;
-      }
+  if (e.touches.length !== 1) return;
+  const alvo = e.target;
+  if (alvo.closest('.nearby-drop-close') || alvo.closest('.nearby-drop-comment-box') ||
+    alvo.closest('.nearby-drop-footer') || alvo.closest('.nearby-drop-profile-btn') ||
+    alvo.closest('.nearby-pub-stats-row') || alvo.closest('.nearby-drop-expandir') ||
+    alvo.closest('.controles-inferiores-nex') || alvo.closest('.btn-mute-custom-nex') ||
+    alvo.closest('input')) {
+    swipeAtivo = false;
+    return;
+  }
+
+  // ⚠️ NOVO: Se a legenda estiver expandida, bloqueia o swipe e deixa o texto rolar
+  const legendaExpandida = viewer.querySelector('.nearby-pub-legenda-texto.expandido');
+  if (legendaExpandida && alvo.closest('.nearby-pub-legenda')) {
+    swipeAtivo = false;
+    return;
+  }
       const videoAtual = viewer.querySelector('#nearbyDropMedia video');
       if (videoAtual && !videoAtual.paused) {
         videoAtual.pause();
@@ -1229,13 +1294,29 @@ if (legendaEl && legendaTextoEl && btnVerMaisLegenda) {
   }, { passive: true });
 
   // ⚠️ NOVO: Atualiza a cápsula de compartilhamento assim que o drop é renderizado
-  const pubIdParaShare = drop.publicacaoIdSupabase || drop.dropIndex;
-  if (pubIdParaShare) {
-    atualizarCapsulaShareNearbyNex(pubIdParaShare);
-  } else {
-    const capsulaShare = viewer.querySelector('#nearbyDropShareCapsula');
-    if (capsulaShare) capsulaShare.style.display = 'none';
+const pubIdParaShare = drop.publicacaoIdSupabase || drop.dropIndex;
+if (pubIdParaShare) {
+  atualizarCapsulaShareNearbyNex(pubIdParaShare);
+} else {
+  const capsulaShare = viewer.querySelector('#nearbyDropShareCapsula');
+  if (capsulaShare) capsulaShare.style.display = 'none';
+}
+
+// ⚠️ NOVO: Atualiza o estado visual do botão de compartilhar
+const btnAcaoRodapeNex = viewer.querySelector('#nearbyBtnAcaoRodapeNex');
+if (btnAcaoRodapeNex) {
+  // 1. Reseta o botão (tira o check e volta para a setinha)
+  btnAcaoRodapeNex.classList.remove('ja-compartilhado');
+  
+  // 2. Se tiver ID, verifica no banco se já foi compartilhado
+  if (pubIdParaShare && typeof window.jaCompartilhouSupabase === 'function') {
+    window.jaCompartilhouSupabase(pubIdParaShare).then((ja) => {
+      if (ja && btnAcaoRodapeNex.isConnected) {
+        btnAcaoRodapeNex.classList.add('ja-compartilhado');
+      }
+    });
   }
+}
 
   viewer.addEventListener('touchcancel', () => { swipeAtivo = false; }, { passive: true });
 } // FECHA renderizar()
@@ -1756,8 +1837,8 @@ function abrirDropRealNearbyNex(dropClicado, listaDeDrops, tipoOrigem = null) {
   const perfilClicado = base[autorClicado];
   if (!perfilClicado) return;
 
-  window.limparNovidadePostConectado?.(autorClicado);
-  window.atualizarBordasCardsNex?.();
+  // ⚠️ CORREÇÃO 5A: A borda só será removida quando TODOS os drops forem vistos
+window.atualizarBordasCardsNex?.();
 
   const indexClicado = perfilClicado.drops.findIndex((d) => d.dropIndex === dropClicado.id);
   const dropIndexFinal = indexClicado >= 0 ? indexClicado : 0;

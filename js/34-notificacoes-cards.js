@@ -62,13 +62,21 @@
   }
 
   function limparNovidadePostConectado(username) {
-    const u = normalizarUser(username);
-    if (!u) return;
-    const mapa = lerMapa(CHAVE_POST);
-    if (mapa[u]) {
-      delete mapa[u];
-      gravarMapa(CHAVE_POST, mapa);
+  const u = normalizarUser(username);
+  if (!u) return;
+  const mapa = lerMapa(CHAVE_POST);
+  if (mapa[u]) {
+    delete mapa[u];
+    gravarMapa(CHAVE_POST, mapa);
+
+    // ⚠️ CORREÇÃO 4B: Se não restou nenhum post novo de amigos,
+    // avisa a tab do Nearby para apagar a bolinha vermelha.
+    if (Object.keys(mapa).length === 0) {
+      if (typeof window.marcarViuNex === 'function') {
+        window.marcarViuNex('nearby');
+      }
     }
+  }
   }
 
   // ============================================
@@ -91,13 +99,21 @@
   }
 
   function limparNovidadeReacaoDrop(publicacaoId) {
-    const id = String(publicacaoId || '').trim();
-    if (!id) return;
-    const mapa = lerMapa(CHAVE_REACAO);
-    if (mapa[id]) {
-      delete mapa[id];
-      gravarMapa(CHAVE_REACAO, mapa);
+  const id = String(publicacaoId || '').trim();
+  if (!id) return;
+  const mapa = lerMapa(CHAVE_REACAO);
+  if (mapa[id]) {
+    delete mapa[id];
+    gravarMapa(CHAVE_REACAO, mapa);
+
+    // ⚠️ CORREÇÃO 4B: Se não restou nenhuma reação nova,
+    // avisa a tab do My Drops para apagar a bolinha vermelha.
+    if (Object.keys(mapa).length === 0) {
+      if (typeof window.marcarViuNex === 'function') {
+        window.marcarViuNex('mydrops');
+      }
     }
+  }
   }
 
   // ============================================
@@ -105,15 +121,24 @@
   // ============================================
 
   function atualizarBordasNearby() {
-    document
-      .querySelectorAll('.story-card[data-autor-id]')
-      .forEach((card) => {
-        const autor = card.dataset.autorId;
-        card.classList.toggle(
-          'tem-novidade',
-          temNovidadePostConectado(autor)
-        );
-      });
+  document
+    .querySelectorAll('.story-card[data-autor-id]')
+    .forEach((card) => {
+      const autor = card.dataset.autorId;
+      const temNovidade = temNovidadePostConectado(autor);
+      
+      card.classList.toggle('tem-novidade', temNovidade);
+
+      // ⚠️ CORREÇÃO 5C: Aplica a borda azul ou cinza no avatar
+      const avatar = card.querySelector('.story-avatar');
+      if (avatar) {
+        if (temNovidade) {
+          avatar.style.border = '2px solid #3b82f6'; // Azul
+        } else {
+          avatar.style.border = '2px solid #475569'; // Cinza
+        }
+      }
+    });
   }
 
   function atualizarBordasMyDrops() {

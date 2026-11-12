@@ -114,11 +114,9 @@
       }, 3000);
     }
 
-    if (typeof pedirPermissaoNotificacaoNex === 'function') {
-      setTimeout(() => {
-        pedirPermissaoNotificacaoNex();
-      }, 3000);
-    }
+    // ⚠️ CORREÇÃO 3A: Pedido automático de permissão removido.
+// O navegador bloqueia pedidos sem interação do usuário.
+// A ativação agora é feita pelo botão no Menu > Sistema.
 
     // ============================================
     // 2. MOSTRA A TELA INICIAL (restaura a última)

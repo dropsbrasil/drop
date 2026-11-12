@@ -92,9 +92,23 @@
 
   // Chamado quando o usuário abre a tab
   function marcarViuNex(tipo) {
-    if (tipo !== 'nearby' && tipo !== 'mydrops') return;
+  if (tipo !== 'nearby' && tipo !== 'mydrops') return;
+  
+  // ⚠️ CORREÇÃO 4A: Só apaga a bolinha da tab se não houver mais novidades pendentes.
+  let temPendentes = false;
+  
+  if (tipo === 'mydrops') {
+    const mapa = JSON.parse(localStorage.getItem('drops_novidade_reacao_drop') || '{}');
+    temPendentes = Object.keys(mapa).length > 0;
+  } else if (tipo === 'nearby') {
+    const mapa = JSON.parse(localStorage.getItem('drops_novidade_post_conectado') || '{}');
+    temPendentes = Object.keys(mapa).length > 0;
+  }
+  
+  if (!temPendentes) {
     gravarNovidadeNex(tipo, false);
     atualizarBolinhasTabsNex();
+  }
   }
 
   // Limpa tudo (debug/reset)
