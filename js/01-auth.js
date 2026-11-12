@@ -1025,12 +1025,20 @@ function atualizarBotoesSomVibracaoNex() {
 
   window.atualizarBotoesSomVibracaoNex = atualizarBotoesSomVibracaoNex;
 
-  const btnMenuGlobal = document.querySelector('.btn-menu-global');
-  if (btnMenuGlobal) {
-    btnMenuGlobal.addEventListener('click', () => {
-      setTimeout(atualizarBotoesSomVibracaoNex, 50);
-    });
-  }
+const btnMenuGlobal = document.querySelector('.btn-menu-global');
+if (btnMenuGlobal) {
+  btnMenuGlobal.addEventListener('click', () => {
+    setTimeout(atualizarBotoesSomVibracaoNex, 50);
+    
+    // ⚠️ Atualiza o switch de Notificações também quando o menu abre
+    if (typeof window.atualizarBotaoPushNex === 'function') {
+      setTimeout(window.atualizarBotaoPushNex, 100);
+    }
+  });
+}
+
+// ⚠️ Garante que ao carregar o app, os switches já apareçam na posição correta
+setTimeout(atualizarBotoesSomVibracaoNex, 1000);
     const btnEditarNome = document.getElementById('btnEditarNomeNex');
   if (btnEditarNome) btnEditarNome.addEventListener('click', abrirEditorNomeNex);
 
