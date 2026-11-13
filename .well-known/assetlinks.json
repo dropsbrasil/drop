@@ -1,1 +1,8 @@
-
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "br.com.appdrop.twa",
+        "sha256_cert_fingerprints": ["A7:4A:22:EC:6A:FD:C5:32:F4:1C:CD:A6:3A:CF:95:2D:0C:70:F3:E8:E9:56:EE:E2:8F:20:0F:17:D3:F1:1F:1F"]
+      }
+    }]
