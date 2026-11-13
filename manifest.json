@@ -1,7 +1,7 @@
 {
   "name": "Drop",
   "short_name": "Drop",
-  "description": "O Drops é uma nova forma de se conectar com o que está ao seu redor. Deixe os seguidores de lado e descubra o que as pessoas próximas a você estão compartilhando agora mesmo.\n\nO que você pode fazer no Drops:\n\n· 📸 Compartilhe Drops: Publique fotos, vídeos e notas que duram de 12 horas a até 30 dias.\n· 👣 Explore o Nearby: Veja publicações de pessoas que estão fisicamente perto de você, mesmo que você ainda não as conheça.\n· 💬 Converse no NEX: Um chat completo e seguro com troca de mensagens, áudios, fotos, localização e documentos.\n· 👑 Ganhe Adeptos: Interaja com quem você gosta e conquiste adeptos que engajam com o seu conteúdo.\n· 🎨 Mural Criativo: Deixe sua marca ou a de seus amigos no mural do seu perfil, com desenhos, textos e fotos.\n\nPrivacidade em primeiro lugar:\nO Drops foi feito respeitando a sua privacidade (LGPD). Você tem total controle sobre quem vê suas publicações e pode revogar o acesso à sua localização a qualquer momento nas configurações.\n\nDescubra o seu bairro. Conecte-se de verdade. Baixe o Drop!",
+  "description": "Descubra quem está perto mesmo estando longe.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -11,19 +11,8 @@
   "lang": "pt-BR",
   "dir": "ltr",
   "categories": [
-    "lifestyle",
-    "multimedia",
-    "navigation",
-    "network",
-    "networking",
-    "personalization",
-    "photo",
-    "photo &amp; video",
     "social",
-    "social networking",
-    "travel",
-    "utilities",
-    "video"
+    "lifestyle"
   ],
   "icons": [
     {
@@ -46,5 +35,5 @@
     }
   ],
   "id": "/",
-  "prefer_related_applications": true
+  "prefer_related_applications": false
 }
