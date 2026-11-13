@@ -76,6 +76,7 @@ const ARQUIVOS_BASE = [
   './js/38-nearby-scroll-continuo.js',
   './js/40-realtime-compartilhamentos.js',
   './js/41-drops-vistos.js',
+'./js/42-sessao-unica.js',
   './js/selos.js'
 ];
 
